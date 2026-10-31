@@ -311,29 +311,19 @@ fun McpPicker(
                         )
                     }
                 },
+                // SYNC-F7（上游 42896e5ad）：ListItem 测量时会读 supporting 的基线判断是否多行，
+                // supporting 里再放 Column+Tag 这种多子节点布局会在测量期提前放置子节点，
+                // 触发 Compose "LayoutNode not found in RectList" 崩溃。这里 supporting 只放单个 Text，
+                // 工具数量标签移到标题行（同一行内 Row + Tag）。
                 titleContent = {
-                    Text(
-                        text = server.commonOptions.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                },
-                supportingContent = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = when (val s = status) {
-                                is McpStatus.Idle -> "Idle"
-                                is McpStatus.Connecting -> "Connecting"
-                                is McpStatus.Connected -> "Connected"
-                                is McpStatus.Reconnecting -> "Reconnecting (${s.attempt}/${s.maxAttempts})"
-                                is McpStatus.Error -> "Error: ${s.message}"
-                                is McpStatus.NeedsAuthorization -> "Needs authorization"
-                                is McpStatus.Authorizing -> "Authorizing"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LocalContentColor.current.copy(alpha = 0.8f),
-                            maxLines = 5
+                            text = server.commonOptions.name,
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         if (status == McpStatus.Connected) {
                             val tools = server.commonOptions.tools
@@ -345,6 +335,22 @@ fun McpPicker(
                             }
                         }
                     }
+                },
+                supportingContent = {
+                    Text(
+                        text = when (val s = status) {
+                            is McpStatus.Idle -> "Idle"
+                            is McpStatus.Connecting -> "Connecting"
+                            is McpStatus.Connected -> "Connected"
+                            is McpStatus.Reconnecting -> "Reconnecting (${s.attempt}/${s.maxAttempts})"
+                            is McpStatus.Error -> "Error: ${s.message}"
+                            is McpStatus.NeedsAuthorization -> "Needs authorization"
+                            is McpStatus.Authorizing -> "Authorizing"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LocalContentColor.current.copy(alpha = 0.8f),
+                        maxLines = 5,
+                    )
                 },
                 trailingContent = {
                     KkSwitch(
