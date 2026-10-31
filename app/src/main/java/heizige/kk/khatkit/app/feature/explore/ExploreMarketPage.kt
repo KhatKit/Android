@@ -560,6 +560,8 @@ fun ExploreMarketPage() {
     val dependencies by vm.dependencies.collectAsStateWithLifecycle()
     val resources by vm.resources.collectAsStateWithLifecycle()
     val busyResource by vm.busyResource.collectAsStateWithLifecycle()
+    // OCR2：市场里原生插件（dependency）的安装状态，用于显示大小/卸载入口。
+    val ocrPlugin by vm.ocrPlugin.collectAsStateWithLifecycle()
 
     var query by rememberSaveable { mutableStateOf("") }
     // 搜索展开态：入口是顶栏右上角的搜索图标（不再常驻搜索药丸）。
@@ -2738,6 +2740,9 @@ private fun ResourceRow(
     onConfigure: (() -> Unit)? = null,
     // P0-5：装过但缺必填的 MCP 条目，行上直接标「需要配置」。
     needsConfig: Boolean = false,
+    // OCR2：已安装的原生插件条目显示大小与卸载入口（其它 kind 传 null，不显示）。
+    sizeLabel: String? = null,
+    onUninstall: (() -> Unit)? = null,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     MochiOptionItem(
@@ -2796,6 +2801,16 @@ private fun ResourceRow(
                 }
                 when {
                     busy -> KkProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    // OCR2：已安装的原生插件条目优先给「卸载」；其它 kind 传 null 不显示。
+                    installed && onUninstall != null -> MochiIconButton(
+                        onClick = { onUninstall() },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.delete,
+                            contentDescription = "卸载",
+                        )
+                    }
                     // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
                     // （`onClick` 只是组件签名要求，不会被调到）。
                     installed -> MochiIconButton(
@@ -2807,16 +2822,6 @@ private fun ResourceRow(
                         Icon(
                             imageVector = check,
                             contentDescription = stringResource(R.string.explore_market_state_installed),
-                        )
-                    }
-                    // OCR2：已安装的原生插件条目给一个「卸载」入口（其它 kind 传 null，不显示）。
-                    installed && onUninstall != null -> MochiIconButton(
-                        onClick = { onUninstall() },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = heizige.kk.khatkit.app.core.ui.icons.delete,
-                            contentDescription = "卸载",
                         )
                     }
                     else -> MochiIconButton(
