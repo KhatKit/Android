@@ -217,7 +217,6 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             }
         )
-    }
 }
 
 /**
