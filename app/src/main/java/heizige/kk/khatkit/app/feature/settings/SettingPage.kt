@@ -41,6 +41,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.navigation.mochiNavSource
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
@@ -95,6 +97,9 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     // U7a-5：设置列表行 → 整页用 Mochi 的卡片 morph。锚点由行上的 mochiNavSource 上报，
     // click 带 source 压栈；没有 Mochi 宿主时（预览/测试）退回普通导航 = 侧推。
     val kkNav = LocalKkNavController.current
+    // CardGroup 的 content 是普通 DSL lambda（非 @Composable），
+    // MaterialTheme.colorScheme 只能在组合里读，所以先在这里取一次，行内复用。
+    val morphColor = MaterialTheme.colorScheme.surfaceContainer
     fun openMorph(screen: Screen, anchor: String) {
         if (kkNav != null) kkNav.navigate(screen, source = anchor) else navController.navigate(screen)
     }
@@ -135,7 +140,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     // 小标题对齐），行内 headline 仍用同名键 —— 组标签与行标题同名是有意的：
                     // 少一行标题会让这一组在列表里没有归属标签，与其它组不齐。
                     item(
-                        modifier = Modifier.mochiNavSource("setting-preferences-ui", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-preferences-ui", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPreferencesUI, "setting-preferences-ui") },
                         leadingContent = { Icon(palette, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_desc)) },
@@ -153,28 +158,28 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     // 其中「界面偏好设置」已升为上面的首组（主题 / 消息显示 / 字体 / 代码块），
                     // 故本组只剩 通知 / 常规 / 网络 / 权限。
                     item(
-                        modifier = Modifier.mochiNavSource("setting-preferences-notification", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-preferences-notification", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPreferencesNotification, "setting-preferences-notification") },
                         leadingContent = { Icon(notifications, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_notification_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_notification)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-preferences-general", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-preferences-general", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPreferencesGeneral, "setting-preferences-general") },
                         leadingContent = { Icon(settingsIcon, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_general_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_general)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-preferences-network", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-preferences-network", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPreferencesNetwork, "setting-preferences-network") },
                         leadingContent = { Icon(language, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_network_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_network)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-permissions", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-permissions", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPermissions, "setting-permissions") },
                         leadingContent = { Icon(verifiedUser, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_permissions_desc)) },
@@ -189,14 +194,14 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     title = { Text(stringResource(R.string.setting_page_general_settings)) },
                 ) {
                     item(
-                        modifier = Modifier.mochiNavSource("setting-assistant", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-assistant", 26.dp, morphColor),
                         onClick = { openMorph(Screen.Assistant, "setting-assistant") },
                         leadingContent = { Icon(search, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_assistant_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_assistant)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-extensions", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-extensions", 26.dp, morphColor),
                         onClick = { openMorph(Screen.Extensions, "setting-extensions") },
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_extensions_desc)) },
@@ -211,67 +216,67 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     title = { Text(stringResource(R.string.setting_page_model_and_services)) },
                 ) {
                     item(
-                        modifier = Modifier.mochiNavSource("setting-models", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-models", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingModels, "setting-models") },
                         leadingContent = { Icon(autoAwesome, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_default_model_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_default_model)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-provider", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-provider", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingProvider, "setting-provider") },
                         leadingContent = { Icon(psychology, null) },
                         headlineContent = { Text(stringResource(R.string.setting_page_providers)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-search", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-search", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingSearch, "setting-search") },
                         leadingContent = { Icon(travelExplore, null) },
                         headlineContent = { Text(stringResource(R.string.setting_page_search_service)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-speech", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-speech", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingSpeech, "setting-speech") },
                         leadingContent = { Icon(campaign, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_tts_service_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_tts_service)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-mcp", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-mcp", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingMcp, "setting-mcp") },
                         leadingContent = { Icon(dns, null) },
                         headlineContent = { Text(stringResource(R.string.setting_page_mcp)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-trace-audit", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-trace-audit", 26.dp, morphColor),
                         onClick = { openMorph(Screen.TraceAudit, "setting-trace-audit") },
                         leadingContent = { Icon(bolt, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_trace_audit_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_trace_audit)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-explore-market", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-explore-market", 26.dp, morphColor),
                         onClick = { openMorph(Screen.ExploreMarket, "setting-explore-market") },
                         leadingContent = { Icon(inventory2, null) },
                         supportingContent = { Text("浏览工具、技能与脚本卡片") },
                         headlineContent = { Text("探索市场") },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-package", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-package", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingPackage, "setting-package") },
                         leadingContent = { Icon(favorite, null) },
                         supportingContent = { Text("套餐激活、额度与网关供应商") },
                         headlineContent = { Text("套餐激活") },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-triggers", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-triggers", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingTriggers, "setting-triggers") },
                         leadingContent = { Icon(bolt, null) },
                         supportingContent = { Text("定时、事件自动运行卡片") },
                         headlineContent = { Text("自动化触发器") },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-web", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-web", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingWeb, "setting-web") },
                         leadingContent = { Icon(dns, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_web_server_desc)) },
@@ -289,14 +294,14 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     title = { Text(stringResource(R.string.setting_page_data_settings)) },
                 ) {
                     item(
-                        modifier = Modifier.mochiNavSource("setting-backup", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-backup", 26.dp, morphColor),
                         onClick = { openMorph(Screen.Backup, "setting-backup") },
                         leadingContent = { Icon(database, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_data_backup_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_data_backup)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-files", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-files", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingFiles, "setting-files") },
                         leadingContent = { Icon(addPhotoAlternate, null) },
                         supportingContent = {
@@ -316,7 +321,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     )
                     // 记忆入口从聊天抽屉搬到这里：先选角色，再进该角色的记忆面板。
                     item(
-                        modifier = Modifier.mochiNavSource("setting-memory", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-memory", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingMemory, "setting-memory") },
                         leadingContent = { Icon(memory, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_memory_desc)) },
@@ -336,7 +341,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     title = { Text(stringResource(R.string.setting_page_about)) },
                 ) {
                     item(
-                        modifier = Modifier.mochiNavSource("setting-about", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-about", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingAbout, "setting-about") },
                         leadingContent = { Icon(celebration, null) },
                         trailingContent = {
@@ -344,9 +349,10 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                var showQQGroupSheet by remember { mutableStateOf(false) }
+                                // U7b-2d：宿主接收 sheetState，显隐与退出动画都交给 MochiSheet。
+                                val qqGroupSheet = rememberMochiSheetState()
                                 MochiIconButton(
-                                    onClick = { showQQGroupSheet = true },
+                                    onClick = { qqGroupSheet.show() },
                                     shapes = IconButtonDefaults.shapes(),
                                 ) {
                                     Icon(
@@ -355,11 +361,10 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                         tint = MaterialTheme.colorScheme.secondary
                                     )
                                 }
-                                if (showQQGroupSheet) {
-                                    QQGroupBottomSheet(
-                                        onDismiss = { showQQGroupSheet = false }
-                                    )
-                                }
+                                QQGroupBottomSheet(
+                                    sheetState = qqGroupSheet,
+                                    onDismiss = { qqGroupSheet.hide() },
+                                )
                                 MochiIconButton(
                                     onClick = {
                                         context.openUrl("https://discord.gg/9weBqxe5c4")
@@ -390,14 +395,14 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_documentation)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-log", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-log", 26.dp, morphColor),
                         onClick = { openMorph(Screen.Log, "setting-log") },
                         leadingContent = { Icon(shelves, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_request_logs_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_request_logs)) },
                     )
                     item(
-                        modifier = Modifier.mochiNavSource("setting-donate", 26.dp, MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.mochiNavSource("setting-donate", 26.dp, morphColor),
                         onClick = { openMorph(Screen.SettingDonate, "setting-donate") },
                         leadingContent = { Icon(favorite, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_donate_desc)) },
@@ -474,10 +479,13 @@ private val QQ_GROUPS = listOf(
 )
 
 @Composable
-internal fun QQGroupBottomSheet(onDismiss: () -> Unit) {
+internal fun QQGroupBottomSheet(
+    sheetState: MochiSheetState,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     PrimaryBottomSheet(
-        visible = true,
+        state = sheetState,
         title = "加入群聊",
         imageVector = groups,
         onDismiss = onDismiss,
