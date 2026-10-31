@@ -43,6 +43,9 @@ class OkHttpClient private constructor(internal val config: Config) {
         var proxy: Proxy? = null
         var proxySelector: ProxySelector? = null
         var proxyAuthenticator: Authenticator? = null
+
+        /** 401 时用来换新凭据并重试一次（对应 OkHttp 的 authenticator） */
+        var authenticator: Authenticator? = null
         var interceptors: List<Interceptor> = emptyList()
         var networkInterceptors: List<Interceptor> = emptyList()
     }
@@ -68,6 +71,7 @@ class OkHttpClient private constructor(internal val config: Config) {
         fun proxy(proxy: Proxy?) = apply { config.proxy = proxy }
         fun proxySelector(selector: ProxySelector?) = apply { config.proxySelector = selector }
         fun proxyAuthenticator(authenticator: Authenticator?) = apply { config.proxyAuthenticator = authenticator }
+        fun authenticator(authenticator: Authenticator?) = apply { config.authenticator = authenticator }
 
         fun addInterceptor(interceptor: Interceptor) =
             apply { config.interceptors = config.interceptors + interceptor }
@@ -132,7 +136,30 @@ class OkHttpClient private constructor(internal val config: Config) {
         }
     }
 
-    fun newBuilder(): Builder = Builder(config)
+    /**
+     * 基于本客户端派生构建器（用于给账号类请求挂 authenticator），对应 OkHttp 的 newBuilder()。
+     *
+     * 复制一份 Config，避免「派生 client 时改到原 client」。
+     */
+    fun newBuilder(): Builder {
+        val src = config
+        val copy = Config().also { c ->
+            c.connectTimeoutMillis = src.connectTimeoutMillis
+            c.readTimeoutMillis = src.readTimeoutMillis
+            c.writeTimeoutMillis = src.writeTimeoutMillis
+            c.callTimeoutMillis = src.callTimeoutMillis
+            c.followRedirects = src.followRedirects
+            c.followSslRedirects = src.followSslRedirects
+            c.retryOnConnectionFailure = src.retryOnConnectionFailure
+            c.proxy = src.proxy
+            c.proxySelector = src.proxySelector
+            c.proxyAuthenticator = src.proxyAuthenticator
+            c.authenticator = src.authenticator
+            c.interceptors = src.interceptors
+            c.networkInterceptors = src.networkInterceptors
+        }
+        return Builder(copy)
+    }
 
     fun newCall(request: Request): Call = Call(this, request)
 
@@ -147,8 +174,9 @@ class OkHttpClient private constructor(internal val config: Config) {
     internal suspend fun sendRequest(initial: Request): Response {
         var request = initial
         var attempts = 0
+        var prior: Response? = null
         while (true) {
-            val response = sendOnce(request)
+            val response = if (prior == null) sendOnce(request) else sendOnce(request).withPrior(prior)
             val proxyAuth = config.proxyAuthenticator
             if (response.code == 407 && proxyAuth != null && attempts < 2) {
                 val retried = proxyAuth.authenticate(Route(proxyFor(request.url)), response) ?: return response
@@ -156,9 +184,26 @@ class OkHttpClient private constructor(internal val config: Config) {
                 attempts++
                 continue
             }
+            // 账号类请求被 401 拒绝时换一次凭据重试（回应里带 priorResponse，供 authenticator 判重）
+            val auth = config.authenticator
+            if (response.code == 401 && auth != null && response.priorResponse == null) {
+                val retried = auth.authenticate(null, response) ?: return response
+                prior = response
+                request = retried
+                continue
+            }
             return response
         }
     }
+
+    private fun Response.withPrior(prior: Response): Response = Response(
+        request = request,
+        code = code,
+        message = message,
+        headers = headers,
+        body = body,
+        priorResponse = prior,
+    )
 
     private suspend fun sendOnce(request: Request): Response {
         val http = httpFor(request.url)

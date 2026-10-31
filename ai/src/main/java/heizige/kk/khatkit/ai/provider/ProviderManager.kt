@@ -9,7 +9,15 @@ import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 /**
  * Provider管理器，负责注册和获取Provider实例
  */
-class ProviderManager(client: OkHttpClient, context: Context) {
+class ProviderManager(
+    client: OkHttpClient,
+    context: Context,
+    /**
+     * 账号类提供商（ChatGPT/Grok）的凭据来源；null 表示账号类型尚未接线。
+     * 由 app 层注入，ai 层只消费。
+     */
+    private val accountCredentials: AccountCredentialProvider? = null,
+) {
     // 存储已注册的Provider实例
     private val providers = mutableMapOf<String, Provider<*>>()
 
@@ -52,6 +60,9 @@ class ProviderManager(client: OkHttpClient, context: Context) {
             is ProviderSetting.OpenAI -> getProvider("openai")
             is ProviderSetting.Google -> getProvider("google")
             is ProviderSetting.Claude -> getProvider("claude")
+            // 账号类提供商由 OA-2b/OA-2c 注册；未注册前调用会抛 Provider not found
+            is ProviderSetting.ChatGPT -> getProvider("chatgpt")
+            is ProviderSetting.Grok -> getProvider("grok")
         } as Provider<T>
     }
 }

@@ -126,6 +126,9 @@ object CherryStudioProviderImporter {
             is ProviderSetting.OpenAI -> "openai|${provider.baseUrl}|${provider.apiKey}"
             is ProviderSetting.Google -> "google|${provider.baseUrl}|${provider.apiKey}"
             is ProviderSetting.Claude -> "claude|${provider.baseUrl}|${provider.apiKey}"
+            // 账号类提供商没有 apiKey/baseUrl，用账号身份做去重键
+            is ProviderSetting.ChatGPT -> "chatgpt|${provider.credential?.accountId.orEmpty()}|${provider.credential?.email.orEmpty()}"
+            is ProviderSetting.Grok -> "grok|${provider.credential?.accountId.orEmpty()}|${provider.credential?.email.orEmpty()}"
         }
     }
 }

@@ -44,5 +44,7 @@ private fun ProviderSetting.withDefaultToolAbility(): ProviderSetting {
         is ProviderSetting.OpenAI -> copy(models = models.map { it.normalized() })
         is ProviderSetting.Google -> copy(models = models.map { it.normalized() })
         is ProviderSetting.Claude -> copy(models = models.map { it.normalized() })
+        is ProviderSetting.ChatGPT -> copy(models = models.map { it.normalized() })
+        is ProviderSetting.Grok -> copy(models = models.map { it.normalized() })
     }
 }

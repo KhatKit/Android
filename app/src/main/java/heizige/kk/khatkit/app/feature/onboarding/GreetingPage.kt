@@ -1088,24 +1088,30 @@ private fun ProviderSetting.apiKeyOrEmpty(): String = when (this) {
     is ProviderSetting.OpenAI -> apiKey
     is ProviderSetting.Google -> apiKey
     is ProviderSetting.Claude -> apiKey
+    is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
 }
 
 private fun ProviderSetting.baseUrlOrEmpty(): String = when (this) {
     is ProviderSetting.OpenAI -> baseUrl
     is ProviderSetting.Google -> baseUrl
     is ProviderSetting.Claude -> baseUrl
+    is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
 }
 
 private fun ProviderSetting.withEnabled(enabled: Boolean): ProviderSetting = when (this) {
     is ProviderSetting.OpenAI -> copy(enabled = enabled)
     is ProviderSetting.Google -> copy(enabled = enabled)
     is ProviderSetting.Claude -> copy(enabled = enabled)
+    is ProviderSetting.ChatGPT -> copy(enabled = enabled)
+    is ProviderSetting.Grok -> copy(enabled = enabled)
 }
 
 private fun ProviderSetting.withConfig(apiKey: String, baseUrl: String): ProviderSetting = when (this) {
     is ProviderSetting.OpenAI -> copy(apiKey = apiKey, baseUrl = baseUrl.ifBlank { this.baseUrl }, enabled = true)
     is ProviderSetting.Google -> copy(apiKey = apiKey, baseUrl = baseUrl.ifBlank { this.baseUrl }, enabled = true)
     is ProviderSetting.Claude -> copy(apiKey = apiKey, baseUrl = baseUrl.ifBlank { this.baseUrl }, enabled = true)
+    // 账号类提供商不配置 apiKey/baseUrl，只打开 enabled
+    is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> copy(enabled = true)
 }
 
 private fun defaultBaseUrlFor(type: KClass<out ProviderSetting>): String = when (type) {

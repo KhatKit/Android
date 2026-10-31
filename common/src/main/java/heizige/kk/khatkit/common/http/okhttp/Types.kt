@@ -328,23 +328,41 @@ class Request private constructor(
     val method: String,
     val headers: Headers,
     val body: RequestBody?,
+    private val tags: Map<Class<*>, Any> = emptyMap(),
 ) {
     fun header(name: String): String? = headers.get(name)
-    fun newBuilder(): Builder = Builder(url, method, headers, body)
+
+    /** 读取随请求传递的标签（用于让鉴权拦截器认出这是账号类请求） */
+    fun <T : Any> tag(type: Class<T>): T? = type.cast(tags[type])
+
+    fun newBuilder(): Builder = Builder(url, method, headers, body, tags)
 
     class Builder {
         private var url: HttpUrl? = null
         private var method: String = "GET"
         private var headers: Headers = Headers.of()
         private var body: RequestBody? = null
+        private val tags: MutableMap<Class<*>, Any> = linkedMapOf()
 
         constructor()
 
-        internal constructor(url: HttpUrl, method: String, headers: Headers, body: RequestBody?) {
+        internal constructor(
+            url: HttpUrl,
+            method: String,
+            headers: Headers,
+            body: RequestBody?,
+            tags: Map<Class<*>, Any> = emptyMap(),
+        ) {
             this.url = url
             this.method = method
             this.headers = headers
             this.body = body
+            this.tags.putAll(tags)
+        }
+
+        /** 打一个随请求传递的标签；[tag] 为 null 时移除该类型的标签 */
+        fun <T : Any> tag(type: Class<T>, tag: T?): Builder = apply {
+            if (tag == null) tags.remove(type) else tags[type] = tag
         }
 
         fun url(url: String): Builder = apply { this.url = url.toHttpUrl() }
@@ -364,7 +382,8 @@ class Request private constructor(
         fun delete(): Builder = apply { method = "DELETE"; body = null }
         fun delete(body: RequestBody?): Builder = apply { method = "DELETE"; this.body = body }
         fun method(method: String, body: RequestBody?): Builder = apply { this.method = method; this.body = body }
-        fun build(): Request = Request(requireNotNull(url) { "url is required" }, method, headers, body)
+        fun build(): Request =
+            Request(requireNotNull(url) { "url is required" }, method, headers, body, tags.toMap())
     }
 }
 
@@ -395,6 +414,8 @@ class Response internal constructor(
     val message: String,
     val headers: Headers,
     val body: ResponseBody,
+    /** 鉴权重试前的响应（对应 OkHttp 的 priorResponse），首次请求为 null */
+    val priorResponse: Response? = null,
 ) : Closeable {
     val isSuccessful: Boolean get() = code in 200..299
     fun header(name: String): String? = headers.get(name)
