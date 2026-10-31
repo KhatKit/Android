@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -141,10 +143,19 @@ private fun MenuList(items: List<MochiMenuItem>, onDismiss: () -> Unit) {
             .padding(vertical = 6.dp),
     ) {
         items.forEach { item ->
+            // INT2①③：菜单行也挂按压形变 + 打开触觉（不再只有水波）。
+            val haptics = rememberKkHaptics()
+            val interaction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = item.enabled) {
+                    .kkPressState(interaction, enabled = item.enabled)
+                    .clickable(
+                        enabled = item.enabled,
+                        interactionSource = interaction,
+                        indication = LocalIndication.current,
+                    ) {
+                        haptics.open()
                         onDismiss()
                         item.onClick()
                     }
@@ -223,10 +234,22 @@ fun MochiMenuRow(
     trailingIcon: (@Composable () -> Unit)? = null,
     selected: Boolean = false,
 ) {
+    // INT2①③：列表行同样走 kkPressState + indication + 打开触觉。
+    val haptics = rememberKkHaptics()
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
+            .kkPressState(interaction, enabled = enabled)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = LocalIndication.current,
+                onClick = {
+                    haptics.open()
+                    onClick()
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

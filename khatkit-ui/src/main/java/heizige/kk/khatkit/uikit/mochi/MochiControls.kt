@@ -7,6 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import ui.feice.mochi.basic.MochiButton as MochiRealButton
+import ui.feice.mochi.basic.MochiButtonStyle as MochiRealButtonStyle
+import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +29,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,24 +87,15 @@ fun MochiButton(
     miuixCornerRadius: Dp = 24.dp,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val scheme = MochiTheme.colorScheme
-    Row(
-        modifier = modifier
-            .clip(MochiTheme.shapes.full)
-            .background(
-                if (variant == MochiButtonVariant.Primary) scheme.primary else scheme.secondaryContainer,
-                MochiTheme.shapes.full,
-            )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(contentPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides
-                if (variant == MochiButtonVariant.Primary) scheme.onPrimary else scheme.onSecondaryContainer,
-        ) { content() }
-    }
+    // INT2①：直接走 Mochi 真按钮 —— 按压缩放 1.08、跟手位移、pressedContainer 高光、glow 与触觉都由库内实现，
+    // 这里只保留旧调用面（variant/contentPadding）。
+    MochiRealButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        style = if (variant == MochiButtonVariant.Primary) MochiRealButtonStyle.Filled else MochiRealButtonStyle.Tonal,
+        contentPadding = contentPadding,
+    ) { content() }
 }
 
 @Composable
@@ -111,17 +109,14 @@ fun MochiTextButton(
     colors: Any? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(contentPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides MochiTheme.colorScheme.primary,
-        ) { content() }
-    }
+    // INT2①：文本按钮也是 Mochi 真按钮的 Text 样式，同样有按压高光/形变与触觉。
+    MochiRealButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        style = MochiRealButtonStyle.Text,
+        contentPadding = contentPadding,
+    ) { content() }
 }
 
 @Composable
@@ -135,29 +130,17 @@ fun MochiIconButton(
     colors: Any? = null,
     content: @Composable () -> Unit,
 ) {
-    val scheme = MochiTheme.colorScheme
-    val background = when (variant) {
-        MochiIconButtonVariant.Standard -> Color.Transparent
-        MochiIconButtonVariant.Tonal -> scheme.secondaryContainer
-        MochiIconButtonVariant.Filled -> scheme.primary
-    }
-    val tint = when (variant) {
-        MochiIconButtonVariant.Standard -> scheme.onSurface
-        MochiIconButtonVariant.Tonal -> scheme.onSecondaryContainer
-        MochiIconButtonVariant.Filled -> scheme.onPrimary
-    }
-    Box(
-        modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(background, CircleShape)
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.material3.LocalContentColor provides if (selected) scheme.primary else tint,
-        ) { content() }
-    }
+    // INT2①：图标按钮直连 Mochi 真组件（Standard→Text/Tonal→Tonal/Filled→Filled），按压形变与触觉随库走。
+    MochiRealIconButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        style = when (variant) {
+            MochiIconButtonVariant.Standard -> MochiRealButtonStyle.Text
+            MochiIconButtonVariant.Tonal -> MochiRealButtonStyle.Tonal
+            MochiIconButtonVariant.Filled -> MochiRealButtonStyle.Filled
+        },
+    ) { content() }
 }
 
 @Composable
@@ -336,9 +319,14 @@ fun KkSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    // INT2②：开关翻转时震一下（Mochi 的 confirm 语义），不再交给系统默认的静音开关。
+    val haptics = rememberKkHaptics()
     androidx.compose.material3.Switch(
         checked = checked,
-        onCheckedChange = onCheckedChange,
+        onCheckedChange = { newValue ->
+            haptics.confirm()
+            onCheckedChange?.invoke(newValue)
+        },
         modifier = modifier,
         enabled = enabled,
     )
@@ -378,14 +366,30 @@ fun KkSlider(
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
     // U3：回 MD3 Slider —— 自带拖拽/点击、步进与无障碍语义。
+    // INT2②：按 Mochi 的滑杆规则补触觉 —— 每跨一档 tick 一次，松手 confirm 一次。
+    val haptics = rememberKkHaptics()
+    val lastStep = remember { intArrayOf(Int.MIN_VALUE) }
+    val stepSize = if (steps > 0) (valueRange.endInclusive - valueRange.start) / (steps + 1) else 0f
     androidx.compose.material3.Slider(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            onValueChange(newValue)
+            if (stepSize > 0f) {
+                val step = ((newValue - valueRange.start) / stepSize).roundToInt()
+                if (step != lastStep[0]) {
+                    lastStep[0] = step
+                    haptics.tick()
+                }
+            }
+        },
         modifier = modifier.semantics { contentDescription = "slider" },
         enabled = enabled,
         valueRange = valueRange,
         steps = steps,
-        onValueChangeFinished = onValueChangeFinished,
+        onValueChangeFinished = {
+            haptics.confirm()
+            onValueChangeFinished?.invoke()
+        },
     )
 }
 
@@ -402,14 +406,31 @@ fun MochiOptionItem(
     supportingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
+    // INT2①③：选项行挂按压形变（kkPressState）+ 统一 indication + 打开触觉，不再是裸 clickable 只有水波。
+    val haptics = rememberKkHaptics()
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .kkPressState(interaction, enabled = onClick != null)
             .background(
                 if (backgroundColor == Color.Unspecified) MochiTheme.colorScheme.surfaceContainer else backgroundColor,
                 shape,
             )
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interaction,
+                        indication = LocalIndication.current,
+                        onClick = {
+                            haptics.open()
+                            onClick()
+                        },
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
