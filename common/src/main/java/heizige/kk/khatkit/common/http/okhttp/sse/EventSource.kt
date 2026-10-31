@@ -39,6 +39,52 @@ abstract class EventSourceListener {
     open fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {}
 }
 
+/** 给客户端挂一个 SSE 入口（对应上游 common 的 newEventSource）。 */
+fun OkHttpClient.newEventSource(request: Request, listener: EventSourceListener): EventSource =
+    EventSources.createFactory(this).newEventSource(request, listener)
+
+/**
+ * SSE 文本行的解析器（从 [KtorEventSource] 抽出来便于单测）。
+ *
+ * 本仓的传输层不校验 Content-Type：Codex（chatgpt.com/backend-api/codex）等后端返回的事件流
+ * 不带 text/event-stream，按行解析即可；上游为此专门内置了一份 SSE 实现。
+ */
+internal object ServerSentEventReader {
+    fun read(
+        reader: BufferedReader,
+        isCancelled: () -> Boolean,
+        onDispatch: (id: String?, type: String?, data: String) -> Unit,
+    ) {
+        var lastId: String? = null
+        var eventType: String? = null
+        val data = StringBuilder()
+
+        fun dispatch() {
+            if (data.isEmpty()) return
+            val payload = data.toString().removeSuffix("\n")
+            onDispatch(lastId, eventType, payload)
+            data.setLength(0)
+            eventType = null
+        }
+
+        while (!isCancelled()) {
+            val line = reader.readLine() ?: break
+            when {
+                line.isEmpty() -> dispatch()
+                line.startsWith(":") -> Unit
+                line.startsWith("data:") -> {
+                    data.append(line.removePrefix("data:").removePrefix(" ")).append('\n')
+                }
+
+                line.startsWith("event:") -> eventType = line.removePrefix("event:").trim()
+                line.startsWith("id:") -> lastId = line.removePrefix("id:").trim()
+                line.startsWith("retry:") -> Unit
+            }
+        }
+        dispatch()
+    }
+}
+
 object EventSources {
     fun createFactory(client: OkHttpClient): EventSource.Factory = EventSource.Factory { request, listener ->
         val actualRequest = if (request.header("Accept") == null) {
@@ -121,35 +167,11 @@ internal class KtorEventSource(
         }
     }
 
-    private fun readEvents(reader: BufferedReader) {
-        var lastId: String? = null
-        var eventType: String? = null
-        val data = StringBuilder()
-
-        fun dispatch() {
-            if (data.isEmpty()) return
-            val payload = data.toString().removeSuffix("\n")
-            listener.onEvent(this, lastId, eventType, payload)
-            data.setLength(0)
-            eventType = null
-        }
-
-        while (!cancelled) {
-            val line = reader.readLine() ?: break
-            when {
-                line.isEmpty() -> dispatch()
-                line.startsWith(":") -> Unit
-                line.startsWith("data:") -> {
-                    data.append(line.removePrefix("data:").removePrefix(" ")).append('\n')
-                }
-
-                line.startsWith("event:") -> eventType = line.removePrefix("event:").trim()
-                line.startsWith("id:") -> lastId = line.removePrefix("id:").trim()
-                line.startsWith("retry:") -> Unit
-            }
-        }
-        dispatch()
-    }
+    private fun readEvents(reader: BufferedReader) = ServerSentEventReader.read(
+        reader = reader,
+        isCancelled = { cancelled },
+        onDispatch = { id, type, data -> listener.onEvent(this, id, type, data) },
+    )
 
     override fun request(): Request = request
 
