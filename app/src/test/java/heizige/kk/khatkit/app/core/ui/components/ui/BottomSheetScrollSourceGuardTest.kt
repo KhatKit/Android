@@ -34,7 +34,7 @@ import java.io.File
  * 内层那个 `ScrollNode` 一上来就撞上「infinity maximum height constraints」并抛异常。
  * 这也是真机栈里那个 `ScrollNode.measure` 套 `ScrollNode.measure` 的形状。
  *
- * 全仓约定是**二选一**，62 个调用点里没有一个同时干两件事：
+ * 全仓约定是**二选一**，60 个调用点里没有一个同时干两件事（U7b-5 起 ReasoningPicker/ChatInput ASR 提示改 MochiDialog）：
  *
  * - 交给弹层滚：`scrollable` 保持默认 `true`，内容里不出现任何滚动容器（本测试的主体规则）；
  * - 自己滚：`scrollable = false` + 内容自带 `verticalScroll` / `LazyColumn`（19 处，全是这个配对）。
@@ -326,7 +326,7 @@ class BottomSheetScrollSourceGuardTest {
             "扫描到的 PrimaryBottomSheet 调用点数量变了：" +
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
             // ChatWelcome adds a bounded, self-scrolling widget manager (scrollable = false).
-            62,
+            60,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }
