@@ -62,7 +62,7 @@ class CardRunsSchemaTest {
         assertTrue(factory.contains("Migration_33_34"))
         assertTrue(factory.contains("Migration_34_35"))
         assertTrue(factory.contains("Migration_35_36"))
-        assertTrue(File("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabase.kt").readText().contains("version = 36"))
+        assertTrue(File("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabase.kt").readText().contains("version = 37"))
     }
 
     private fun schemaFile(version: Int = 33): File {
