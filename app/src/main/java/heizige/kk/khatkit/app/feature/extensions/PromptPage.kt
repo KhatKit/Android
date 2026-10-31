@@ -435,7 +435,7 @@ private fun ModeInjectionEditSheet(
                 Md3SwitchFormRow(
                     checked = injection.enabled,
                     onCheckedChange = { onEdit(injection.copy(enabled = it)) },
-                    label = stringResource(R.string.prompt_page_enabled),
+                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
                 Md3OutlinedTextFieldWithSlots(
@@ -858,7 +858,7 @@ private fun LorebookEditSheet(
                 Md3SwitchFormRow(
                     checked = book.enabled,
                     onCheckedChange = { onEdit(book.copy(enabled = it)) },
-                    label = stringResource(R.string.prompt_page_enabled),
+                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
                 // 条目列表
@@ -987,7 +987,7 @@ private fun RegexInjectionEditDialog(
                 Md3SwitchFormRow(
                     checked = entry.enabled,
                     onCheckedChange = { onEdit(entry.copy(enabled = it)) },
-                    label = stringResource(R.string.prompt_page_enabled),
+                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
                 )
 
                 Md3OutlinedTextFieldWithSlots(
@@ -1077,19 +1077,19 @@ private fun RegexInjectionEditDialog(
                 Md3SwitchFormRow(
                     checked = entry.useRegex,
                     onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
-                    label = stringResource(R.string.prompt_page_use_regex),
+                    label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                 )
 
                 Md3SwitchFormRow(
                     checked = entry.caseSensitive,
                     onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
-                    label = stringResource(R.string.prompt_page_case_sensitive),
+                    label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
                 )
 
                 Md3SwitchFormRow(
                     checked = entry.constantActive,
                     onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
-                    label = stringResource(R.string.prompt_page_constant_active),
+                    label = { Text(stringResource(R.string.prompt_page_constant_active)) },
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
                 )
 

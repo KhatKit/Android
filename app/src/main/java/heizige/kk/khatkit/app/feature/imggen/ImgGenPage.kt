@@ -814,7 +814,7 @@ private fun SettingsBottomSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             KedgeFormRow(
-                label = stringResource(R.string.imggen_page_generation_count),
+                label = { Text(stringResource(R.string.imggen_page_generation_count)) },
                 description = { Text(stringResource(R.string.imggen_page_generation_count_desc)) }
             ) {
                 OutlinedNumberInput(
@@ -825,8 +825,7 @@ private fun SettingsBottomSheet(
             }
 
             KedgeFormRow(
-                label = "Image Size"
-            ) {
+                label = { Text("Image Size") }) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
