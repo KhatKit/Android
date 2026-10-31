@@ -1,6 +1,10 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
 import heizige.kk.khatkit.uikit.mochi.KkCard
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -138,15 +142,21 @@ internal fun EditedFilesList(
         }
     }
 
-    if (selectedPath != null) {
-        val path = selectedPath!!
+    // U7b-6：直连 MochiSheet；路径用最后一份快照，收起动画期间内容不空（原来 selectedPath!! 会崩）。
+    val detailSheet = rememberMochiSheetState()
+    var lastPath by remember { mutableStateOf(selectedPath) }
+    LaunchedEffect(selectedPath) {
+        if (selectedPath != null) {
+            lastPath = selectedPath
+            detailSheet.show()
+        } else {
+            detailSheet.hide()
+        }
+    }
+    lastPath?.let { path ->
         val fileName = remember(path) { path.substringAfterLast('/') }
-        PrimaryBottomSheet(
-            visible = true,
-            title = fileName,
-            imageVector = insertDriveFile,
-            onDismiss = { selectedPath = null },
-        ) { dismiss ->
+        MochiSheet(state = detailSheet, onDismiss = { selectedPath = null }) {
+            MochiSheetHeader(title = fileName)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -181,7 +191,7 @@ internal fun EditedFilesList(
                 KkCard(
                     onClick = {
                         val p = selectedPath ?: return@KkCard
-                        dismiss()
+                        selectedPath = null
                         scope.launch {
                             runCatching {
                                 val (area, relativePath) = resolveWorkspacePath(p)

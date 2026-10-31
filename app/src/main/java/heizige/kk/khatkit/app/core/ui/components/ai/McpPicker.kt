@@ -1,6 +1,11 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
@@ -200,32 +205,31 @@ fun McpPickerListItem(
         },
     )
 
-    if (showMcpPicker) {
-        McpPickerSheet(
+    // U7b-6：state 由这里持有，去 if 门控。
+    val mcpSheet = rememberMochiSheetState()
+    LaunchedEffect(showMcpPicker) { if (showMcpPicker) mcpSheet.show() else mcpSheet.hide() }
+    McpPickerSheet(
+            sheetState = mcpSheet,
             assistant = assistant,
             servers = servers,
             loading = loading,
             onUpdateAssistant = onUpdateAssistant,
             onDismiss = { showMcpPicker = false },
         )
-    }
 }
 
 @Composable
 private fun McpPickerSheet(
+    sheetState: MochiSheetState,
     assistant: Assistant,
     servers: List<McpServerConfig>,
     loading: Boolean,
     onUpdateAssistant: (Assistant) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(id = R.string.mcp_picker_title),
-        imageVector = dns,
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { _ ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有）。
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(title = stringResource(id = R.string.mcp_picker_title))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
