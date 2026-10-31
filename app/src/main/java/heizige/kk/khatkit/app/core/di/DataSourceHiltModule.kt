@@ -116,6 +116,11 @@ object DataSourceHiltModule {
 
     @Provides
     @Singleton
+    fun provideUsageRecordDao(database: AppDatabase): heizige.kk.khatkit.app.core.data.db.dao.UsageRecordDAO =
+        database.usageRecordDao()
+
+    @Provides
+    @Singleton
     fun provideMessageNodeDao(database: AppDatabase): MessageNodeDAO = database.messageNodeDao()
 
     @Provides

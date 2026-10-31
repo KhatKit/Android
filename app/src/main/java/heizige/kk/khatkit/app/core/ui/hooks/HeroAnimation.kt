@@ -2,7 +2,6 @@ package heizige.kk.khatkit.app.core.ui.hooks
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
 
 /**
@@ -18,11 +17,8 @@ fun Modifier.heroAnimation(
     key: Any,
 ): Modifier {
     val sharedTransitionScope = LocalSharedTransitionScope.current ?: return this
-    val animatedVisibilityScope = LocalNavAnimatedContentScope.current
-    return with(sharedTransitionScope) {
-        this@heroAnimation.sharedElement(
-            sharedContentState = rememberSharedContentState(key),
-            animatedVisibilityScope = animatedVisibilityScope
-        )
-    }
+    // U7b：Nav3 外壳已删除，重定向到 MochiNavHost；导航不再提供 LocalNavAnimatedContentScope，
+    // 直接读它会抛 IllegalStateException（真机启动崩溃即此因）。入口 morph 已由 mochiNavSource 承担，
+    // 共享元素转场先关闭，等接上 Mochi 的转场 scope 再恢复。
+    return this
 }

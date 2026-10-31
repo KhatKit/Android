@@ -42,9 +42,9 @@ interface UsageRecordDAO {
     @Query(
         """
         SELECT strftime('%Y-%W', created_at / 1000, 'unixepoch', 'localtime') AS bucket,
-               SUM(prompt_tokens) AS prompt_tokens,
-               SUM(completion_tokens) AS completion_tokens,
-               SUM(cached_tokens) AS cached_tokens,
+               SUM(prompt_tokens) AS promptTokens,
+               SUM(completion_tokens) AS completionTokens,
+               SUM(cached_tokens) AS cachedTokens,
                COUNT(*) AS requests
         FROM usage_record WHERE created_at >= :sinceMillis
         GROUP BY bucket ORDER BY bucket
@@ -55,9 +55,9 @@ interface UsageRecordDAO {
     @Query(
         """
         SELECT model_id AS modelId, model_name AS modelName,
-               SUM(prompt_tokens) AS prompt_tokens,
-               SUM(completion_tokens) AS completion_tokens,
-               SUM(cached_tokens) AS cached_tokens,
+               SUM(prompt_tokens) AS promptTokens,
+               SUM(completion_tokens) AS completionTokens,
+               SUM(cached_tokens) AS cachedTokens,
                COUNT(*) AS requests
         FROM usage_record WHERE created_at >= :sinceMillis
         GROUP BY model_id, model_name ORDER BY (SUM(prompt_tokens) + SUM(completion_tokens)) DESC
@@ -68,9 +68,9 @@ interface UsageRecordDAO {
     @Query(
         """
         SELECT source AS source,
-               SUM(prompt_tokens) AS prompt_tokens,
-               SUM(completion_tokens) AS completion_tokens,
-               SUM(cached_tokens) AS cached_tokens,
+               SUM(prompt_tokens) AS promptTokens,
+               SUM(completion_tokens) AS completionTokens,
+               SUM(cached_tokens) AS cachedTokens,
                COUNT(*) AS requests
         FROM usage_record WHERE created_at >= :sinceMillis
         GROUP BY source ORDER BY (SUM(prompt_tokens) + SUM(completion_tokens)) DESC

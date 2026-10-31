@@ -71,7 +71,7 @@ object AppHiltModule {
         // Dagger 的 Lazy 和 Kotlin 的 Lazy 不是一个类型：tracker/windows 要 Kotlin Lazy
         val managerLazy = lazy { lazyChatManager.get() }
         return heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows(
-            context = context,
+            context = context.applicationContext as android.app.Application,
             appScope = appScope,
             tracker = heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingTracker(
                 appScope = appScope,
