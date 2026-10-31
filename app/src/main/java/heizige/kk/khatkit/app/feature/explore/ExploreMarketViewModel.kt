@@ -16,6 +16,7 @@ import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
 import heizige.kk.khatkit.hub.HubActionResult
 import heizige.kk.khatkit.hub.HubCardMarketInfo
+import heizige.kk.khatkit.hub.HubClient
 import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.hub.CardIndexEntry
@@ -94,11 +95,45 @@ class ExploreMarketViewModel @Inject constructor(
     private val _ocrPlugin = MutableStateFlow<OcrPluginRecord?>(null)
     val ocrPlugin: StateFlow<OcrPluginRecord?> = _ocrPlugin.asStateFlow()
 
+    // OCR4：市场扩展/依赖包条目（/api/items?kind=dependency），由 hub 客户端拉取后映射成资源行。
+    private val _extensionItems = MutableStateFlow<List<HubResourceEntry>>(emptyList())
+    val extensionItems: StateFlow<List<HubResourceEntry>> = _extensionItems.asStateFlow()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             OcrPluginLoader.prepare(appContext)
             _ocrPlugin.value = OcrPluginStore(appContext).read()
         }
+        refreshExtensionItems()
+    }
+
+    /**
+     * OCR4：拉取 kind=dependency 的扩展条目（OCR 原生插件等）。
+     *
+     * URL：GET /api/items?kind=dependency&app_version=<客户端版本>（hub 客户端 extensionItems）。
+     * 空列表 / 断网 / 老服务端没有该接口 → 保持空，市场里整组不渲染，其它分组照常（降级）。
+     */
+    fun refreshExtensionItems() = viewModelScope.launch(Dispatchers.IO) {
+        val appVersion = runCatching { heizige.kk.khatkit.app.BuildConfig.VERSION_NAME }.getOrDefault("")
+        val items = runCatching {
+            HubClient(provider.hubBaseUrl.trim().trimEnd('/'))
+                .extensionItems(kind = "dependency", appVersion = appVersion)
+                .filter { it.status.isBlank() || it.status == "approved" }
+                .map { summary ->
+                    HubResourceEntry(
+                        slug = summary.id.ifBlank { summary.name },
+                        kind = "dependency",
+                        name = summary.name.ifBlank { summary.slug },
+                        description = summary.description.toString(),
+                        version = summary.version,
+                        icon = "dns",
+                        itemCount = 1,
+                        sizeBytes = summary.sizeBytes,
+                        featured = summary.preferred,
+                    )
+                }
+        }.getOrDefault(emptyList())
+        _extensionItems.value = items
     }
 
     /** 市场里 kind=dependency 且 plugin_id=ocr 的条目：下载 zip → sha256 校验 → 安装。 */

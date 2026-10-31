@@ -98,17 +98,37 @@ class HubClient(
         kind: String? = null,
         query: String? = null,
         limit: Int = 50,
+        /** OCR4：带上客户端版本，服务端按 min_app_version 过滤扩展/依赖包条目。 */
+        appVersion: String? = null,
     ): List<HubItemSummary> = withContext(Dispatchers.IO) {
         runCatching {
             val response = client.get(resolve("/api/items")) {
                 kind?.takeIf { it.isNotBlank() }?.let { parameter("kind", it) }
                 query?.takeIf { it.isNotBlank() }?.let { parameter("q", it) }
+                appVersion?.takeIf { it.isNotBlank() }?.let { parameter("app_version", it) }
                 parameter("limit", limit)
             }
             if (!response.status.isSuccess()) return@runCatching emptyList()
             response.body<HubItemList>().items
         }.getOrDefault(emptyList())
     }
+
+    /**
+     * OCR4：扩展/依赖包条目（默认 kind=dependency，即 OCR 这类按需下载的原生插件）。
+     *
+     * `GET /api/items?kind=dependency&app_version=<客户端版本>&limit=…`，解析 items 数组为
+     * [HubItemSummary]（id/name/display_name/description/version/sha256/size/files…）。
+     * 服务端没有该接口、断网或非 2xx 时返回空列表（市场按「无扩展」降级，不影响其它分组）。
+     */
+    suspend fun extensionItems(
+        kind: String = "dependency",
+        appVersion: String = "",
+        limit: Int = 50,
+    ): List<HubItemSummary> = fetchItems(
+        kind = kind,
+        limit = limit,
+        appVersion = appVersion,
+    )
 
     /** 单个条目详情：`GET /api/items/{id}`。不存在（404，含已撤销条目，P0-2）或解析失败返回 null。 */
     suspend fun fetchItem(id: String): HubItemSummary? = withContext(Dispatchers.IO) {

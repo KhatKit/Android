@@ -562,6 +562,8 @@ fun ExploreMarketPage() {
     val busyResource by vm.busyResource.collectAsStateWithLifecycle()
     // OCR2：市场里原生插件（dependency）的安装状态，用于显示大小/卸载入口。
     val ocrPlugin by vm.ocrPlugin.collectAsStateWithLifecycle()
+    // OCR4：/api/items 里的扩展条目（OCR 原生插件）。空列表 = 服务端没有/网络失败，整组不渲染。
+    val extensionItems by vm.extensionItems.collectAsStateWithLifecycle()
 
     var query by rememberSaveable { mutableStateOf("") }
     // 搜索展开态：入口是顶栏右上角的搜索图标（不再常驻搜索药丸）。
@@ -980,6 +982,31 @@ fun ExploreMarketPage() {
                                     shape = shape,
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // 3.9 OCR 插件：/api/items?kind=dependency 的扩展条目（不会出现在资源索引里），
+            // 复用资源行动作（安装走 OCR2 安装器、已装显示大小与卸载）；空/失败时整组不渲染。
+            if (extensionItems.isNotEmpty()) {
+                item(key = "ocr_extensions") {
+                    MarketContentSwap(
+                        key = extensionItems.joinToString(",") { it.slug + it.version },
+                        modifier = swapIn(sectionPad),
+                    ) {
+                        GroupContainer(count = extensionItems.size) { index, shape ->
+                            val entry = extensionItems[index]
+                            ResourceRow(
+                                entry = entry,
+                                busy = busyResource == entry.slug,
+                                onInstall = { installResource(entry) },
+                                onClick = { installResource(entry) },
+                                onUninstall = { vm.uninstallOcrPlugin() },
+                                sizeLabel = if (entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                installed = ocrPlugin != null,
+                                shape = shape,
+                            )
                         }
                     }
                 }
