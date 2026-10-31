@@ -31,9 +31,9 @@
 
 ## 3. 弹层（MochiSheet / MochiDialog）
 
-> **动画覆盖（重要）**：退场动画只在「宿主接 state、调用方持 state」的弹层上生效——直连
-> `MochiSheet` 的 9 处页面、`PrimaryBottomSheet(state=…)` 的 17 个调用点、`EditStateSheetHost`。
-> 其余走 `visible` 兼容层的 34 个调用点（其中 visible=true 恒定 16 处）多为条件组合，关闭即卸载，
+> **动画覆盖（重要）**：退场动画只在「宿主接 state / visible=状态、且常驻组合」的弹层上生效——直连
+> `MochiSheet` **11 处**、`if` 门控改 `visible=状态` **7 处**、`PrimaryBottomSheet(state=…)` **17 处**、
+> 以及 `EditStateSheetHost`。其余 `visible` 兼容层 **25 处**（15 恒定 true + 10 动态布尔）关闭即卸载，
 > **即时消失属预期**，不算缺陷（逐条 file:line 见计划 §14.2.1）。
 
 - [ ] **S1 sheet 起落（直连/state 页面）**：在状态直传的弹层上验证拉起/下滑关闭有动画与 backdrop、无「瞬间消失」。
@@ -80,8 +80,8 @@
 3. MochiItem 缺口：长按/富行/组合语义仍用 `MochiMenuPopup`/`MochiMenuRow`（合计 8 处调用）。
 4. 预设主题：入口已删、运行期不注入；旧数据保留不崩。
 5. `RecordCardSheet` 无调用点（死代码候选），不影响 UI。
-6. `visible` 兼容层弹层（34 个调用点，visible=true 恒定 16 处）**退场为即时消失**，不退场动画；
-   护栏计数 51 与调用点清单见计划 §14.2.1。
+6. `visible` 兼容层弹层（25 个调用点：15 恒定 true + 10 动态布尔）**退场为即时消失**，不退场动画；
+   护栏计数 49（全仓 visible = true 18 处）与调用点清单见计划 §14.2.1。
 
 ## 8. 失败回报格式
 
