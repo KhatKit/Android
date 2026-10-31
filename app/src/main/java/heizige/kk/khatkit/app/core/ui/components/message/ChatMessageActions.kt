@@ -16,7 +16,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -290,6 +292,7 @@ fun ColumnScope.ChatMessageActionButtons(
 
 @Composable
 fun ChatMessageActionsSheet(
+    sheetState: MochiSheetState,
     message: UIMessage,
     model: Model?,
     onDelete: () -> Unit,
@@ -310,12 +313,9 @@ fun ChatMessageActionsSheet(
      */
     groupChat: Boolean = false,
 ) {
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.more_options),
-        imageVector = moreVert,
-        onDismiss = onDismissRequest,
-    ) { dismiss ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有）；原来内容里的 dismiss() 统一走 onDismissRequest()。
+    MochiSheet(state = sheetState, onDismiss = onDismissRequest) {
+        MochiSheetHeader(title = stringResource(R.string.more_options))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -326,7 +326,7 @@ fun ChatMessageActionsSheet(
             // Select and Copy
             KkCard(
                 onClick = {
-                    dismiss()
+                    onDismissRequest()
                     onSelectAndCopy()
                 },
                 shape = MaterialTheme.shapes.medium
@@ -357,7 +357,7 @@ fun ChatMessageActionsSheet(
             if (hasTextContent) {
                 KkCard(
                     onClick = {
-                        dismiss()
+                        onDismissRequest()
                         onWebViewPreview()
                     },
                     shape = MaterialTheme.shapes.medium
@@ -386,7 +386,7 @@ fun ChatMessageActionsSheet(
             if (!groupChat) {
                 KkCard(
                     onClick = {
-                        dismiss()
+                        onDismissRequest()
                         onEdit()
                     },
                     shape = MaterialTheme.shapes.medium
@@ -414,7 +414,7 @@ fun ChatMessageActionsSheet(
             // Share
             KkCard(
                 onClick = {
-                    dismiss()
+                    onDismissRequest()
                     onShare()
                 },
                 shape = MaterialTheme.shapes.medium,
@@ -442,7 +442,7 @@ fun ChatMessageActionsSheet(
             if (!groupChat) {
                 KkCard(
                     onClick = {
-                        dismiss()
+                        onDismissRequest()
                         onFork()
                     },
                     shape = MaterialTheme.shapes.medium
@@ -471,7 +471,7 @@ fun ChatMessageActionsSheet(
             if (!groupChat) {
                 KkCard(
                     onClick = {
-                        dismiss()
+                        onDismissRequest()
                         onDelete()
                     },
                     shape = MaterialTheme.shapes.medium,

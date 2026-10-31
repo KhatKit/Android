@@ -310,8 +310,11 @@ fun ChatMessage(
         }
     }
 
-    if (showActionsSheet) {
-        ChatMessageActionsSheet(
+    // U7b-6：宿主已改 MochiSheet，state 由这里持有，去 if 门控。
+    val actionsSheet = rememberMochiSheetState()
+    LaunchedEffect(showActionsSheet) { if (showActionsSheet) actionsSheet.show() else actionsSheet.hide() }
+    ChatMessageActionsSheet(
+            sheetState = actionsSheet,
             message = message,
             onEdit = onEdit,
             onDelete = onDelete,
@@ -341,7 +344,6 @@ fun ChatMessage(
                 showActionsSheet = false
             }
         )
-    }
 
     // U7b-6：宿主已改 MochiSheet，state 由这里持有。
     val copySheet = rememberMochiSheetState()
