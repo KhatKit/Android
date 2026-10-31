@@ -172,7 +172,8 @@ fun WorkspaceCwdPickerSheet(
             if (currentCwd != null) {
                 MochiTextButton(onClick = {
                     onSelectCwd(null)
-                    dismiss()
+                    // U7b-6：MochiSheetState 没有 dismiss，关闭走调用方的 onDismiss（内部再 hide）。
+                    onDismiss()
                 },
                      shapes = ButtonDefaults.shapes(),) {
                     Text(stringResource(R.string.workspace_cwd_reset))
