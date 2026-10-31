@@ -121,8 +121,46 @@ private val parser by lazy { MarkdownParser(flavour) }
 private fun generateMarkdownHtml(content: String): String {
     val preprocessed = preProcess(content)
     val tree = parser.buildMarkdownTreeFromString(preprocessed)
-    return HtmlGenerator(preprocessed, tree, flavour).generateHtml()
+    // 上游 eb530b0ff：GFM 自带的公式输出不转义源码，0<x<1、\\lambda(x)<k 里的 < 会被 Jsoup
+    // 当成标签开头，公式从那里截断后只能显示源码。这里用自己的 MathProvider 先转义再输出。
+    val providers = flavour.createHtmlGeneratingProviders(
+        LinkMap.Builder.buildLinkMap(tree, preprocessed),
+        null,
+    ) + mapOf(
+        GFMElementTypes.INLINE_MATH to MathProvider(inline = true),
+        GFMElementTypes.BLOCK_MATH to MathProvider(inline = false),
+    )
+    return HtmlGenerator(preprocessed, tree, providers, false).generateHtml()
 }
+
+/**
+ * 公式（`\( \)` / `\[ \]`，预处理后是 `$ $` / `$$ $$`）的 HTML 生成器，移植自上游 eb530b0ff。
+ *
+ * 与 GFM 自带实现的唯一差别：公式源码先做 HTML 转义再放进 `span.math`。不转义的话
+ * Jsoup 会把 `0<x<1` 里的 `<` 当成标签开头，公式被截断后只剩源码。
+ * 输出形状（`span.math` + `inline` 属性）与本文件既有解析约定一致：
+ * [HtmlMathBlock] 认 `inline != true`，行内公式走 `span.math[inline=true]`。
+ */
+private class MathProvider(private val inline: Boolean) : GeneratingProvider {
+    override fun processNode(visitor: HtmlGenerator.HtmlGeneratingVisitor, text: String, node: ASTNode) {
+        // 首尾两个子节点是 $ 或 $$ 定界符
+        val formula = node.children.subList(1, node.children.size - 1)
+            .joinToString("") { it.getTextInNode(text) }
+        visitor.consumeTagOpen(node, "span", "class=\"math\"", "inline=\"$inline\"")
+        visitor.consumeHtml(escapeMathHtml(formula.trimSurroundingBackticks()))
+        visitor.consumeTagClose("span")
+    }
+
+    // 兼容 $`x`$ 这种写法，去掉成对包住公式的反引号
+    private fun String.trimSurroundingBackticks(): String {
+        var n = 0
+        while (length - 2 * n > 2 && this[n] == '`' && this[lastIndex - n] == '`') n++
+        return substring(n, length - n).trim()
+    }
+}
+
+private fun escapeMathHtml(text: CharSequence): String =
+    text.toString().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 // ---- Main composable ----
 
