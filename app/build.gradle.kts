@@ -147,7 +147,8 @@ kotlin {
 
 // SZ-D：kotlin-reflect 只由 ktor-server-core 传递引入；它在 classpath 上时 stdlib 的 Reflection
 // 会 Class.forName 加载 ReflectionFactoryImpl，R8 因此保留整个实现（约 0.7MB dex）。
-configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
+// 只作用应用运行时；*UnitTestRuntimeClasspath 也匹配 "RuntimeClasspath"，单测仍需 kotlin-reflect。
+configurations.matching { it.name.endsWith("RuntimeClasspath") && !it.name.contains("Test") }.configureEach {
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-reflect")
 }
 
