@@ -3,17 +3,15 @@ package heizige.kk.khatkit.uikit.mochi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.collections.immutable.persistentListOf
+// 同包里还有项目内的兼容壳 MochiDialog（Popup 版），这里要的是 Mochi 库的警告框，用别名避开重名
+import ui.feice.mochi.basic.MochiDialog as MochiBasicDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 
 /** 编辑弹窗的单个字段（U4d：替代 Kedge 的 EditFieldConfig）。 */
 data class KkEditField(
@@ -25,8 +23,10 @@ data class KkEditField(
 )
 
 /**
- * 编辑弹窗：material3 AlertDialog + Md3OutlinedTextField 组合，替代 Kedge 的 KedgeEditDialog。
- * 校验失败时把错误文案作为 supportingText 显示，确认按钮置灰。
+ * 编辑弹窗：Mochi 警告框（DG1 起不再走 material3 AlertDialog）+ Md3OutlinedTextField 组合，
+ * 替代 Kedge 的 KedgeEditDialog。
+ * 校验失败时把错误文案作为 supportingText 显示，确认按钮置灰（MochiDialogAction.enabled）。
+ * 调用点签名不变。
  */
 @Composable
 fun KkEditDialog(
@@ -39,42 +39,51 @@ fun KkEditDialog(
     confirmText: String? = null,
     dismissText: String? = null,
 ) {
-    if (!visible) return
-    val values = remember(fields) { mutableStateListOf(*fields.map { it.initialValue }.toTypedArray()) }
-    val errors = fields.map { it.onValidate(values[fields.indexOf(it)]) }
-    AlertDialog(
+    // 每次弹出都用 initialValue 重新起一份（旧实现的 if (!visible) return 就是这个效果）
+    val values = remember(fields, visible) {
+        mutableStateListOf(*fields.map { it.initialValue }.toTypedArray())
+    }
+    val errors = fields.mapIndexed { index, field ->
+        field.onValidate(values.getOrElse(index) { "" })
+    }
+    MochiBasicDialog(
+        visible = visible,
         onDismissRequest = onDismiss,
         modifier = modifier,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp())) {
-                fields.forEachIndexed { index, field ->
-                    val error = field.onValidate(values.getOrElse(index) { "" })
-                    Md3OutlinedTextField(
-                        value = values.getOrElse(index) { "" },
-                        onValueChange = { input ->
-                            val clipped = field.maxLength?.let { input.take(it) } ?: input
-                            if (index < values.size) values[index] = clipped
-                        },
-                        label = field.label,
-                        placeholder = field.placeholder,
-                        isError = error != null,
-                        supportingText = error,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(values.toList()) },
+        title = title,
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = dismissText ?: "Cancel",
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = confirmText ?: "OK",
+                role = MochiDialogActionRole.Primary,
+                // 校验没过就不给点：MochiDialog 点按钮后必关，这里靠 enabled 把关闭口收在按钮状态上
                 enabled = errors.all { it == null },
-            ) { Text(confirmText ?: "OK") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissText ?: "Cancel") }
-        },
-    )
+                onClick = { onConfirm(values.toList()) },
+            ),
+        ),
+        dismissOnOutsideTap = true,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp())) {
+            fields.forEachIndexed { index, field ->
+                val error = field.onValidate(values.getOrElse(index) { "" })
+                Md3OutlinedTextField(
+                    value = values.getOrElse(index) { "" },
+                    onValueChange = { input ->
+                        val clipped = field.maxLength?.let { input.take(it) } ?: input
+                        if (index < values.size) values[index] = clipped
+                    },
+                    label = field.label,
+                    placeholder = field.placeholder,
+                    isError = error != null,
+                    supportingText = error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
 }
 
 private fun Int.dp() = androidx.compose.ui.unit.Dp(this.toFloat())

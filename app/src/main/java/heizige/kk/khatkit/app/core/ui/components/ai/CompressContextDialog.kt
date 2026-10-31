@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -28,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Job
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
@@ -35,6 +33,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 
 @Composable
 fun CompressContextDialog(
@@ -46,6 +47,8 @@ fun CompressContextDialog(
     var keepRecentMessages by remember { mutableIntStateOf(32) }
     val tokenOptions = listOf(500, 1000, 2000, 4000)
     var currentJob by remember { mutableStateOf<Job?>(null) }
+    // 「加载中点取消」只停任务、不关对话框（MochiDialog 点按钮后必调 onDismissRequest）
+    var justCancelled by remember { mutableStateOf(false) }
     val isLoading = currentJob?.isActive == true
 
     // Monitor job completion
@@ -57,16 +60,47 @@ fun CompressContextDialog(
         currentJob = null
     }
 
-    AppAlertDialog(
+    // DG1：material3 AlertDialog → MochiDialog。压缩期间（isLoading）不关：点外面/返回都被拦下，
+    // 任务结束后由上面的 LaunchedEffect 收口 onDismiss
+    MochiDialog(
+        visible = true,
         onDismissRequest = {
-            if (!isLoading) {
+            if (justCancelled) {
+                justCancelled = false
+            } else if (currentJob?.isActive != true) {
                 onDismiss()
             }
         },
-        title = {
-            Text(stringResource(R.string.chat_page_compress_context_title))
+        title = stringResource(R.string.chat_page_compress_context_title),
+        actions = if (isLoading) {
+            persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.cancel),
+                    role = MochiDialogActionRole.Cancel,
+                    onClick = {
+                        currentJob?.cancel()
+                        currentJob = null
+                        justCancelled = true
+                    },
+                ),
+            )
+        } else {
+            persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.cancel),
+                    role = MochiDialogActionRole.Cancel,
+                ),
+                MochiDialogAction(
+                    label = stringResource(R.string.confirm),
+                    role = MochiDialogActionRole.Primary,
+                    onClick = {
+                        currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
+                    },
+                ),
+            )
         },
-        text = {
+        dismissOnOutsideTap = true,
+    ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -133,31 +167,5 @@ fun CompressContextDialog(
                     )
                 }
             }
-        },
-        confirmButton = {
-            if (isLoading) {
-                MochiTextButton(onClick = {
-                    currentJob?.cancel()
-                    currentJob = null
-                },
-                     shapes = ButtonDefaults.shapes(),) {
-                    Text(stringResource(R.string.cancel))
-                }
-            } else {
-                MochiTextButton(onClick = {
-                    currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
-                },
-                     shapes = ButtonDefaults.shapes(),) {
-                    Text(stringResource(R.string.confirm))
-                }
-            }
-        },
-        dismissButton = {
-            if (!isLoading) {
-                MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        }
-    )
+    }
 }

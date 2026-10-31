@@ -1,14 +1,14 @@
 package heizige.kk.khatkit.app.feature.chat
 
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Conversation
@@ -62,8 +62,19 @@ fun ConversationSizeWarningDialog(
     sizeInfo: ConversationSizeInfo,
     onDismiss: () -> Unit
 ) {
-    AppAlertDialog(
+    // DG1：material3 AlertDialog → MochiDialog（警告图标 + 说明 + 单个确认按钮）
+    MochiDialog(
+        visible = true,
         onDismissRequest = onDismiss,
+        title = stringResource(R.string.chat_size_dialog_title),
+        message = stringResource(R.string.chat_size_dialog_content, sizeInfo.nodeCount),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.confirm),
+                role = MochiDialogActionRole.Primary,
+            ),
+        ),
+        dismissOnOutsideTap = true,
         icon = {
             Icon(
                 imageVector = warning,
@@ -71,16 +82,5 @@ fun ConversationSizeWarningDialog(
                 tint = MaterialTheme.colorScheme.tertiary
             )
         },
-        title = {
-            Text(text = stringResource(R.string.chat_size_dialog_title))
-        },
-        text = {
-            Text(text = stringResource(R.string.chat_size_dialog_content, sizeInfo.nodeCount))
-        },
-        confirmButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.confirm))
-            }
-        }
     )
 }

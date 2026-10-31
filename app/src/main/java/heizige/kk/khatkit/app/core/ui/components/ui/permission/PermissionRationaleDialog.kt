@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.permission
 
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,12 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.icons.error
-import androidx.compose.material3.AlertDialog
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 
 /**
  * 权限请求说明对话框
@@ -44,9 +46,26 @@ internal fun PermissionRationaleDialog(
     modifier: Modifier = Modifier
 ) {
     val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
-    AlertDialog(
+    // DG1：material3 AlertDialog → MochiDialog（标题走 title，权限列表作为内容并限高滚动）
+    MochiDialog(
+        visible = true,
         onDismissRequest = onCancel,
         modifier = modifier,
+        title = stringResource(R.string.permission_diaog_title),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.cancel),
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = stringResource(
+                    if (hasPermanentlyDenied) R.string.permission_go_to_settings else R.string.confirm
+                ),
+                role = MochiDialogActionRole.Primary,
+                onClick = onProceed,
+            ),
+        ),
+        dismissOnOutsideTap = true,
         icon = {
             // 标题图标
             Icon(
@@ -56,65 +75,39 @@ internal fun PermissionRationaleDialog(
                 tint = MaterialTheme.colorScheme.primary
             )
         },
-        title = {
-            // 标题
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 说明文字
             Text(
-                text = stringResource(R.string.permission_diaog_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                text = if (hasPermanentlyDenied) {
+                    stringResource(R.string.permission_desc_goto_setting)
+                } else {
+                    stringResource(R.string.permission_desc_require_permission)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-        },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // 说明文字
-                Text(
-                    text = if (hasPermanentlyDenied) {
-                        stringResource(R.string.permission_desc_goto_setting)
-                    } else {
-                        stringResource(R.string.permission_desc_require_permission)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                // 权限列表
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(permissions) { permissionInfo ->
-                        PermissionItem(
-                            permissionInfo = permissionInfo,
-                            isPermanentlyDenied = permanentlyDeniedPermissions.contains(permissionInfo),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            // 权限列表：限高 + 滚动，长列表不会把对话框顶出屏幕
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(permissions) { permissionInfo ->
+                    PermissionItem(
+                        permissionInfo = permissionInfo,
+                        isPermanentlyDenied = permanentlyDeniedPermissions.contains(permissionInfo),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
-        },
-        dismissButton = {
-            MochiButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-        confirmButton = {
-            MochiButton(onClick = onProceed, shapes = ButtonDefaults.shapes()) {
-                Text(
-                    stringResource(
-                        if (hasPermanentlyDenied) {
-                            R.string.permission_go_to_settings
-                        } else {
-                            R.string.confirm
-                        }
-                    )
-                )
-            }
-        },
-    )
+        }
+    }
 }
 
 /**

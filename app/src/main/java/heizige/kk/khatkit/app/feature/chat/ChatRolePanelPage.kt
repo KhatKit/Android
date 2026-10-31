@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
@@ -39,7 +41,6 @@ import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Avatar
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -141,35 +142,32 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
         }
     }
     renameState.EditStateContent { value, onUpdate ->
-        AppAlertDialog(
+        // DG1：material3 AlertDialog → MochiDialog（重命名输入框作为内容）
+        MochiDialog(
+            visible = true,
             onDismissRequest = { renameState.dismiss() },
-            title = { Text(stringResource(R.string.chat_page_edit_title)) },
-            text = {
-                Md3OutlinedTextField(
-                    value = value,
-                    onValueChange = onUpdate,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                )
-            },
-            confirmButton = {
-                MochiTextButton(
+            title = stringResource(R.string.chat_page_edit_title),
+            actions = persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.chat_page_cancel),
+                    role = MochiDialogActionRole.Cancel,
+                ),
+                MochiDialogAction(
+                    label = stringResource(R.string.chat_page_save),
+                    role = MochiDialogActionRole.Primary,
                     onClick = { renameState.confirm() },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_save))
-                }
-            },
-            dismissButton = {
-                MochiTextButton(
-                    onClick = { renameState.dismiss() },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.chat_page_cancel))
-                }
-            },
-        )
+                ),
+            ),
+            dismissOnOutsideTap = true,
+        ) {
+            Md3OutlinedTextField(
+                value = value,
+                onValueChange = onUpdate,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+            )
+        }
     }
 
     // 「新建聊天」时角色已被删除（设置里没了）：不静默失败，落一条可见提示。

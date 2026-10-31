@@ -3,7 +3,6 @@ package heizige.kk.khatkit.app.core.ui.components.message
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -39,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -56,6 +55,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.ChainOfThoughtScope
 import heizige.kk.khatkit.app.core.ui.components.ui.DotLoading
 import heizige.kk.khatkit.app.core.ui.modifier.shimmer
 import heizige.kk.khatkit.app.core.util.JsonInstant
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
@@ -458,32 +460,33 @@ private fun ToolDenyReasonDialog(
 ) {
     var reason by remember { mutableStateOf("") }
 
-    AppAlertDialog(
+    // DG1：material3 AlertDialog → MochiDialog（拒绝理由输入作为内容，「拒绝」是危险色按钮）
+    MochiDialog(
+        visible = true,
         onDismissRequest = onDismiss,
-        title = {
-            Text(stringResource(R.string.chat_message_tool_deny_dialog_title))
-        },
-        text = {
-            Md3OutlinedTextFieldWithSlots(
-                value = reason,
-                onValueChange = { reason = it },
-                label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                minLines = 2,
-                maxLines = 4,
-                shape = RoundedCornerShape(16.dp)
-            )
-        },
-        confirmButton = {
-            MochiTextButton(onClick = { onConfirm(reason) }, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.chat_message_tool_deny))
-            }
-        },
-        dismissButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(android.R.string.cancel))
-            }
-        }
-    )
+        title = stringResource(R.string.chat_message_tool_deny_dialog_title),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(android.R.string.cancel),
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = stringResource(R.string.chat_message_tool_deny),
+                role = MochiDialogActionRole.Destructive,
+                onClick = { onConfirm(reason) },
+            ),
+        ),
+        dismissOnOutsideTap = true,
+    ) {
+        Md3OutlinedTextFieldWithSlots(
+            value = reason,
+            onValueChange = { reason = it },
+            label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = false,
+            minLines = 2,
+            maxLines = 4,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.input.TextFieldLineLimits
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -36,12 +35,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.uuid.Uuid
+import kotlinx.collections.immutable.persistentListOf
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
 import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
+import ui.feice.mochi.basic.MochiConfirmationDialog
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 
 @Composable
 internal fun MessageQueuePanel(
@@ -158,61 +162,60 @@ internal fun MessageQueuePanel(
         DisposableEffect(message.id) {
             onDispose { finishEdit(message.id, null) }
         }
-        AppAlertDialog(
+        // DG1：material3 AlertDialog → MochiDialog（输入框作为内容，保存/取消是胶囊按钮）
+        MochiDialog(
+            visible = true,
             onDismissRequest = { editing = null },
-            title = { Text(stringResource(R.string.chat_page_queue_edit_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (input.messageContent.isNotEmpty()) MediaFileInputRow(input)
-                    Md3TextFieldWithState(
-                        state = input.textContent,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("chat_queue_edit_text"),
-                        lineLimits = TextFieldLineLimits.MultiLine(
-                            minHeightInLines = 3,
-                            maxHeightInLines = 8
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                MochiTextButton(
+            title = stringResource(R.string.chat_page_queue_edit_title),
+            actions = persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.cancel),
+                    role = MochiDialogActionRole.Cancel,
+                ),
+                MochiDialogAction(
+                    label = stringResource(R.string.chat_page_save),
+                    role = MochiDialogActionRole.Primary,
                     enabled = !input.isEmpty(),
-                    onClick = {
-                        onFinishEdit(message.id, input.getContents())
-                        editing = null
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) { Text(stringResource(R.string.chat_page_save)) }
-            },
-            dismissButton = {
-                MochiTextButton(onClick = { editing = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
-            },
-        )
+                    onClick = { onFinishEdit(message.id, input.getContents()) },
+                ),
+            ),
+            dismissOnOutsideTap = true,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (input.messageContent.isNotEmpty()) MediaFileInputRow(input)
+                Md3TextFieldWithState(
+                    state = input.textContent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("chat_queue_edit_text"),
+                    lineLimits = TextFieldLineLimits.MultiLine(
+                        minHeightInLines = 3,
+                        maxHeightInLines = 8
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
+        }
     }
 
     confirmingSendNow?.let { message ->
-        AppAlertDialog(
+        // DG1：确认类（标题 + 说明 + 两个动作）直接用 MochiConfirmationDialog
+        MochiConfirmationDialog(
+            visible = true,
             onDismissRequest = { confirmingSendNow = null },
-            title = { Text(stringResource(R.string.chat_page_queue_send_now)) },
-            text = { Text(stringResource(R.string.chat_page_queue_send_now_interrupt)) },
-            confirmButton = {
-                MochiTextButton(
-                    onClick = {
-                        confirmingSendNow = null
-                        onSendNow(message.id)
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) { Text(stringResource(R.string.chat_page_queue_send_now_confirm)) }
-            },
-            dismissButton = {
-                MochiTextButton(
-                    onClick = { confirmingSendNow = null },
-                    shapes = ButtonDefaults.shapes(),
-                ) { Text(stringResource(R.string.cancel)) }
-            },
+            title = stringResource(R.string.chat_page_queue_send_now),
+            message = stringResource(R.string.chat_page_queue_send_now_interrupt),
+            actions = persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.cancel),
+                    role = MochiDialogActionRole.Cancel,
+                ),
+                MochiDialogAction(
+                    label = stringResource(R.string.chat_page_queue_send_now_confirm),
+                    role = MochiDialogActionRole.Primary,
+                    onClick = { onSendNow(message.id) },
+                ),
+            ),
         )
     }
 }

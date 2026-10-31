@@ -19,6 +19,11 @@ import androidx.compose.material3.AlertDialog
  *
  * 原来的注释只描述 MD3 形态，容易让人以为它在两种风格下表现一致 —— 实际上此前
  * Miuix 下一直是 MD3 弹窗。
+ *
+ * DG1（对话框迁移第一批）之后：core/ui/components + feature/chat 的调用点已全部直连
+ * `ui.feice.mochi.basic.MochiDialog` / `MochiConfirmationDialog`（见各处 DG1 注释），
+ * 本包装器只剩 38 个仓外调用点（assistant/backup/explore/extensions/history/imggen/search/
+ * settings/tasks/workspace），留给后续批次一次性迁完再删，避免本批越界改调用点签名。
  */
 @Composable
 fun AppAlertDialog(
