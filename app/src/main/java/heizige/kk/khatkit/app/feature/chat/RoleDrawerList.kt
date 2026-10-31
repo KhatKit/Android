@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -17,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import ui.feice.mochi.navigation.MochiSidebarItem
@@ -131,32 +129,30 @@ internal fun RoleDrawerList(
                     onClick = { onRole(role) },
                     selected = role.id == selected,
                     leading = {
+                        // UI-3：头像按 MochiSidebarItem 度量给 40dp（原来 28dp，比行高小一半，
+                        // 圆点像「状态点」不像头像）。
                         UIAvatar(
                             name = role.name,
                             value = role.avatar,
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(40.dp),
                         )
                     },
                     trailing = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            // 最近会话标题（或「正在回复…」）压成一行小字放在行尾，
-                            // MochiSidebarItem 只有单行标题槽，不再自绘第二行。
-                            Text(
-                                text = if (active) "正在回复…" else recent?.title?.ifBlank { null }
-                                    ?: role.description.ifBlank { "" },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (active) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 96.dp),
-                            )
+                            // UI-3：行尾只留「状态/时间 + 当前勾」。原来这里还塞了会话标题或
+                            // 角色描述（96dp 上限），一行里同时出现名称、描述、时间、勾，
+                            // 主次不分（见 artifacts/ui-review/2026-10-31/sidebar-roles.jpg）。
+                            if (active) {
+                                Text(
+                                    text = "正在回复…",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                )
+                            }
                             recent?.let {
                                 val local = it.updateAt.atZone(ZoneId.systemDefault())
                                 val today = LocalDate.now()

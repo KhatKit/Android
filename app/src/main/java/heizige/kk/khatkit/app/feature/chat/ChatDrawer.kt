@@ -942,7 +942,8 @@ private fun DrawerSearchHitRow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                // UI-3：与侧栏行同一套水平 16dp / 垂直 8dp（原来 14dp，和角色行差 2dp 会看出一条错位）
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             if (showTitle) {
