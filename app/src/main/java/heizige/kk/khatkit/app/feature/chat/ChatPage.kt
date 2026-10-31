@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
@@ -325,6 +327,8 @@ internal fun ChatScaffold(
     val assistant = setting.getAssistantById(conversation.assistantId) ?: setting.getCurrentAssistant()
     var showRolePicker by remember { mutableStateOf(false) }
     var showFilesSheet by remember { mutableStateOf(false) }
+    // U7b-2d：附件选择面板宿主接收 sheetState（退出动画），打开/关闭仍由 showFilesSheet 驱动。
+    val filesSheet = rememberMochiSheetState()
     if (showRolePicker) {
         AssistantPickerSheet(
             settings = setting,
@@ -662,8 +666,9 @@ internal fun ChatScaffold(
             }
         }
 
-        if (showFilesSheet) {
-            ChatFilesPickerSheet(
+        LaunchedEffect(showFilesSheet) { if (showFilesSheet) filesSheet.show() else filesSheet.hide() }
+        ChatFilesPickerSheet(
+            sheetState = filesSheet,
                 inputState = inputState,
                 setting = setting,
                 conversation = conversation,
@@ -673,12 +678,12 @@ internal fun ChatScaffold(
                 onStartVoiceMode = onStartVoiceMode,
                 onDismiss = { showFilesSheet = false },
             )
-        }
     }
 }
 
 @Composable
 private fun ChatFilesPickerSheet(
+    sheetState: MochiSheetState,
     inputState: ChatInputState,
     setting: Settings,
     conversation: Conversation,
@@ -701,7 +706,7 @@ private fun ChatFilesPickerSheet(
     }
 
     PrimaryBottomSheet(
-        visible = true,
+        state = sheetState,
         title = stringResource(R.string.more_options),
         imageVector = extension,
         onDismiss = { dismissAll() },

@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -151,8 +152,20 @@ fun SettingTriggersPage() {
         }
     }
 
-    editingCard?.let { card ->
+    // U7b-2d：宿主接收 sheetState；保留最后一份卡片快照，退出动画期间卡片内容不消失。
+    val cardEditorSheet = rememberMochiSheetState()
+    var lastEditingCard by remember { mutableStateOf<TriggerCard?>(null) }
+    LaunchedEffect(editingCard) {
+        if (editingCard != null) {
+            lastEditingCard = editingCard
+            cardEditorSheet.show()
+        } else {
+            cardEditorSheet.hide()
+        }
+    }
+    lastEditingCard?.let { card ->
         TriggerCardEditorSheet(
+            sheetState = cardEditorSheet,
             card = card,
             override = editingOverride,
             onSave = { override ->

@@ -1,6 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import ui.feice.mochi.basic.MochiDropdown
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -89,6 +92,8 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
     val lazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val nav = LocalNavController.current
+    // U7b-2d：弹层宿主接收 sheetState（退出动画 + 页根可挂 backdrop）。
+    val addSheet = rememberMochiSheetState()
     var showAddSheet by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
@@ -200,8 +205,9 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
         }
     }
 
-    if (showAddSheet) {
-        AddProviderSheet(
+    LaunchedEffect(showAddSheet) { if (showAddSheet) addSheet.show() else addSheet.hide() }
+    AddProviderSheet(
+            sheetState = addSheet,
             onDismiss = { showAddSheet = false },
             onConfirm = { options ->
                 showAddSheet = false
@@ -313,6 +319,7 @@ private fun SearchServiceList(
  */
 @Composable
 internal fun AddProviderSheet(
+    sheetState: MochiSheetState,
     onDismiss: () -> Unit,
     onConfirm: (SearchOptions) -> Unit
 ) {
@@ -323,7 +330,7 @@ internal fun AddProviderSheet(
     var searchExpanded by remember { mutableStateOf(false) }
 
     PrimaryBottomSheet(
-        visible = true,
+        state = sheetState,
         title = stringResource(R.string.setting_page_search_add_provider),
         imageVector = add,
         confirmText = stringResource(R.string.confirm),

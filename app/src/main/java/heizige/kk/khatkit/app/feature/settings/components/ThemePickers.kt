@@ -35,6 +35,9 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -328,6 +331,8 @@ fun PresetThemeColorDots(
 @Composable
 fun ThemeCustomColorSheet(
     visible: Boolean,
+    /** U7b-2d：inScope 页面可传自己的 state（获得退出动画与页根 backdrop）；不传的旧调用点仍按 visible 走兼容层。 */
+    sheetState: MochiSheetState? = null,
     initialColor: Color,
     history: List<Long>,
     onDismiss: () -> Unit,
@@ -340,8 +345,15 @@ fun ThemeCustomColorSheet(
     var customColor by remember(visible) { mutableStateOf(initialColor) }
     var showHexDialog by remember { mutableStateOf(false) }
 
+    // U7b-2d：调用页传了 state 就用它（退出动画 + 页根 backdrop）；没传的旧调用点走内部兼容层。
+    val internalSheet = rememberMochiSheetState()
+    val effectiveSheet = sheetState ?: internalSheet
+    if (sheetState == null) {
+        LaunchedEffect(visible) { if (visible) effectiveSheet.show() else effectiveSheet.hide() }
+    }
+
     PrimaryBottomSheet(
-        visible = visible,
+        state = effectiveSheet,
         title = stringResource(R.string.greeting_settings_custom_color),
         imageVector = palette,
         onDismiss = onDismiss,

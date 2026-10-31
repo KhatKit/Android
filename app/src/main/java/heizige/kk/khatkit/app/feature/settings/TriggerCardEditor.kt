@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
 import androidx.compose.runtime.Composable
+import ui.feice.mochi.basic.MochiSheetState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -59,6 +60,8 @@ import heizige.kk.khatkit.trigger.TriggerCard
  */
 @Composable
 internal fun TriggerCardEditorSheet(
+    /** U7b-2d：宿主接收 sheetState；card 用调用方保留的最后一份快照，退出动画期间内容不空。 */
+    sheetState: MochiSheetState,
     card: TriggerCard,
     override: CardTriggerOverride,
     onSave: (CardTriggerOverride) -> Unit,
@@ -119,7 +122,7 @@ internal fun TriggerCardEditorSheet(
     }
 
     PrimaryBottomSheet(
-        visible = true,
+        state = sheetState,
         title = "编辑 ${card.name}",
         imageVector = editNote,
         confirmText = "保存",
