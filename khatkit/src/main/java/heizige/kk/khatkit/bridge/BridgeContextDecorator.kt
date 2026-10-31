@@ -113,7 +113,7 @@ class ScopedUiBridge(
     override val context: BridgeContext,
     private val delegate: UiBridge,
 ) : UiBridge by delegate, ContextAwareBridge {
-    private fun <T> await(block: () -> T): T = heizige.kk.khatkit.ui.UiBridgeHost.withinCard(context.cardName) {
+    private fun <T> await(block: () -> T): T = heizige.kk.khatkit.ui.UiBridgeHost.withinCard(context.interactionId) {
         heizige.kk.khatkit.ui.UiBridgeHost.withinBudget(context.deadline.remainingMs(), block)
     }
 
@@ -135,6 +135,8 @@ class ScopedUiBridge(
     ): Map<String, Any?>? = await { delegate.webSheet(title, url, actions, options) }
     override fun confirm(title: String, message: String, danger: Boolean): Boolean =
         await { delegate.confirm(title, message, danger) }
+    override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) =
+        heizige.kk.khatkit.ui.UiBridgeHost.withinCard(context.interactionId) { delegate.show(card, options) }
 }
 
 /** 透明 Web 包装器。 */

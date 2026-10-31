@@ -196,7 +196,6 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -245,7 +244,6 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -456,7 +454,6 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -526,7 +523,6 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
                     .fillMaxHeight(0.8f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

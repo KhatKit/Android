@@ -29,6 +29,10 @@ pub struct JsEngine {
 impl JsEngine {
     pub fn new(host: Arc<Host>) -> rquickjs::Result<Self> {
         let rt = Runtime::new()?;
+        rt.set_memory_limit(64 * 1024 * 1024);
+        rt.set_max_stack_size(1024 * 1024);
+        let interrupt_host = host.clone();
+        rt.set_interrupt_handler(Some(Box::new(move || interrupt_host.interrupt_reason() != 0)));
         let ctx = Context::full(&rt)?;
         Ok(Self {
             _rt: rt,

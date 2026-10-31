@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,7 +18,11 @@ import ui.feice.mochi.basic.MochiTabBar
 import ui.feice.mochi.basic.MochiTabItem
 import ui.feice.mochi.navigation.MochiCompactTitleScaffold
 import ui.feice.mochi.navigation.MochiLargeTitleScaffold
+import ui.feice.mochi.effect.glass.MochiBackdrop
+import ui.feice.mochi.effect.glass.mochiBackdropSource
+import ui.feice.mochi.effect.glass.rememberMochiBarBackdrop
 import ui.feice.mochi.theme.MochiDefaults
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
@@ -127,6 +133,22 @@ fun MochiNavBottomBar(
  * （[MochiLargeTitleScaffold] / [MochiCompactTitleScaffold]：大标题折叠、滚动边缘渐隐、下拉刷新、
  * 安全区都由库内处理），topBar 槽不再需要；不传 title 时保持旧槽位骨架，11 处存量调用点零改动。
  */
+/**
+ * 当前页面骨架给顶栏的玻璃取样源（材质开了玻璃才非空）。
+ *
+ * 栏里的返回键、动作按钮都是玻璃：只有拿到取样源时才会真正模糊背后的内容，
+ * 否则按材质 fallback 画纯色。页面骨架统一在这里录一份正文、下发本地的来源，
+ * 页面的顶栏（Mochi 的 [MochiTitleBar] / Kedge 的顶栏）读它即可 ——
+ * 不要再让每个页面各自 remember 一份。
+ */
+internal val LocalKkBarBackdrop = staticCompositionLocalOf<MochiBackdrop?> { null }
+
+/** 正文录制一层玻璃取样源；[backdrop] 为 null（材质没开玻璃）时是空操作。 */
+@Composable
+private fun BackdropContent(backdrop: MochiBackdrop?, content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().mochiBackdropSource(backdrop)) { content() }
+}
+
 @Composable
 fun MochiPageScaffold(
     modifier: Modifier = Modifier,
@@ -158,8 +180,8 @@ fun MochiPageScaffold(
                 title = title,
                 modifier = modifier,
                 subtitle = subtitle,
-                navigationIcon = navigationIcon,
-                actions = actions,
+                navigationIcon = navigationIcon?.let { icon -> { KkBarIconScope { icon() } } },
+                actions = actions?.let { acts -> { KkBarIconScope { acts() } } },
                 background = MochiDefaults.groupedBackground(),
                 content = body,
             )
@@ -168,38 +190,43 @@ fun MochiPageScaffold(
                 title = title,
                 modifier = modifier,
                 subtitle = subtitle,
-                navigationIcon = navigationIcon,
-                actions = actions,
+                navigationIcon = navigationIcon?.let { icon -> { KkBarIconScope { icon() } } },
+                actions = actions?.let { acts -> { KkBarIconScope { acts() } } },
                 background = MochiDefaults.groupedBackground(),
                 content = body,
             )
         }
         return
     }
-    Box(modifier = modifier.fillMaxSize().background(containerColor)) {
-        val windowWidth = currentWindowDpSize().width
-        val railOnSide = rail != null && windowWidth >= 600.dp && windowWidth < 840.dp
-        if (railOnSide) {
-            androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.width(96.dp).fillMaxHeight()) { rail?.invoke() }
-                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    topBar()
-                    Box(modifier = Modifier.weight(1f)) {
-                        content(PaddingValues.Zero)
+    // 栏玻璃的取样源（材质开玻璃才非空）：正文录一层，顶栏从 CompositionLocal 里读。
+    // 所有走本骨架的页面（设置、列表、工具页……）因此共用同一套栏材质，不再有的页有模糊、有的没有。
+    val barBackdrop = rememberMochiBarBackdrop(background = containerColor)
+    CompositionLocalProvider(LocalKkBarBackdrop provides barBackdrop) {
+        Box(modifier = modifier.fillMaxSize().background(containerColor)) {
+            val windowWidth = currentWindowDpSize().width
+            val railOnSide = rail != null && windowWidth >= 600.dp && windowWidth < 840.dp
+            if (railOnSide) {
+                androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.width(96.dp).fillMaxHeight()) { rail?.invoke() }
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        topBar()
+                        Box(modifier = Modifier.weight(1f)) {
+                            BackdropContent(barBackdrop) { content(PaddingValues.Zero) }
+                        }
                     }
                 }
-            }
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                topBar()
-                Box(modifier = Modifier.weight(1f)) {
-                    content(PaddingValues.Zero)
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    topBar()
+                    Box(modifier = Modifier.weight(1f)) {
+                        BackdropContent(barBackdrop) { content(PaddingValues.Zero) }
+                    }
+                    bottomBar()
+                    rail?.invoke()
                 }
-                bottomBar()
-                rail?.invoke()
             }
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) { snackbarHost() }
+            Box(modifier = Modifier.align(Alignment.BottomEnd)) { floatingActionButton() }
         }
-        Box(modifier = Modifier.align(Alignment.BottomCenter)) { snackbarHost() }
-        Box(modifier = Modifier.align(Alignment.BottomEnd)) { floatingActionButton() }
     }
 }

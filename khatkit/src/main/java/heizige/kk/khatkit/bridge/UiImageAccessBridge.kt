@@ -50,5 +50,17 @@ internal class UiImageAccessBridge(
         return delegate.screen(title, checked(root), checkedOptions)
     }
 
-    override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) = delegate.show(checked(card), options)
+    /** 小组件的尺寸版本（`options.layouts[].tree`）和主树走同一道图片授权。 */
+    override fun show(card: Map<String, Any?>, options: Map<String, Any?>?) {
+        val layouts = options?.get("layouts") as? List<*>
+        val checkedOptions = if (layouts == null) options else options.toMutableMap().apply {
+            put("layouts", layouts.map { layout ->
+                val spec = layout as? Map<*, *> ?: return@map layout
+                @Suppress("UNCHECKED_CAST")
+                val tree = spec["tree"] as? Map<String, Any?> ?: return@map layout
+                spec.toMutableMap().apply { put("tree", checked(tree)) }
+            })
+        }
+        delegate.show(checked(card), checkedOptions)
+    }
 }

@@ -61,16 +61,22 @@ fun MochiListItem(
 ) {
     // UI-2：与 MochiOptionItem/真行件同一套度量（最小高 52dp、水平 16dp、上下 8dp、槽间距 12dp、
     // 标题与 supporting 2dp）。纯展示行没有 onClick，所以不挂按压形变/触觉。
+    val grouped = rememberKkGroupedRow()
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .kkAnimateContentSize()
+            .kkGroupedRowPosition(grouped)
             .heightIn(min = ui.feice.mochi.list.MochiListDefaults.RowMinHeight)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         leadingContent?.invoke()
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.weight(1f).kkGroupedTextStart(grouped),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             overlineContent?.invoke()
             headlineContent()
             supportingContent?.invoke()

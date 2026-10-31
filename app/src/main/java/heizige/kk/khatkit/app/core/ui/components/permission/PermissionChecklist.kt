@@ -18,7 +18,6 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -30,17 +29,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import ui.feice.mochi.effect.mask.mochiScrollFadeMask
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import ui.feice.mochi.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -55,24 +55,17 @@ import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.automation.KhatKitAccessibilityService
 import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
-import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
-import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
-import heizige.kk.khatkit.uikit.mochi.SegmentedItem
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khatkit.uikit.mochi.fadingEdge
-import heizige.kk.khatkit.uikit.mochi.KkOptionsText
-import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
-import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.theme.MochiTheme
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
@@ -86,10 +79,12 @@ private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 fun PermissionChecklist(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    /** compact 模式下自带的留白；嵌进 Mochi 脚手架（已带 16dp 边距）时传零值。 */
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    header: @Composable ColumnScope.() -> Unit = {},
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
-    val cards = listCardStyle()
     val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
 
     var rootEnabled by remember { mutableStateOf(provider.enableRoot) }
@@ -369,85 +364,73 @@ fun PermissionChecklist(
         )
     }
 
+    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxWidth()
             .then(if (compact) Modifier else Modifier.fillMaxSize())
             .then(
                 if (compact) {
-                    Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    Modifier.padding(contentPadding)
                 } else {
+                    // 独立整页（引导页）：透出页面底色，滚动边缘渐隐与 Mochi 回弹
                     Modifier
-                        .background(MaterialTheme.colorScheme.background)
-                        .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .mochiScrollFadeMask(scrollState)
+                        .verticalScroll(scrollState, flingBehavior = MochiScrollDefaults.flingBehavior())
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 }
             ),
+        verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
     ) {
-        KkOptionsText(stringResource(R.string.greeting_permissions_normal))
-        Spacer(modifier = Modifier.height(8.dp))
-        if (missingRuntime.isNotEmpty()) {
-            MochiButton(
-                onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = bolt,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+        header()
+
+        // 顶部状态卡：还有缺失就走「一键授权」，全齐就给一行对勾。
+        MochiListSection {
+            if (missingRuntime.isNotEmpty()) {
+                MochiListRow(
+                    title = stringResource(R.string.greeting_permission_grant_all, missingRuntime.size),
+                    subtitle = stringResource(R.string.greeting_permissions_hint),
+                    leading = {
+                        Icon(
+                            imageVector = bolt,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MochiTheme.colorScheme.primary,
+                        )
+                    },
+                    chevron = true,
+                    onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.greeting_permission_grant_all, missingRuntime.size))
-            }
-        } else {
-            MochiWarningCard(
-                message = stringResource(R.string.greeting_permission_all_granted),
-                level = MochiStatusLevel.Success,
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-            runtimeItems.forEachIndexed { index, item ->
-                PermissionActionItem(
-                    item = item,
-                    shape = cards.indexedShape(index, runtimeItems.size),
+            } else {
+                MochiListRow(
+                    title = stringResource(R.string.greeting_permission_all_granted),
+                    checked = true,
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        KkOptionsText(stringResource(R.string.greeting_permissions_special))
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.greeting_permissions_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-            specialItems.forEachIndexed { index, item ->
-                PermissionActionItem(
-                    item = item,
-                    shape = cards.indexedShape(index, specialItems.size),
-                )
-            }
+        // 常规权限：运行时权限，点了直接弹系统授权框。
+        MochiListSection(header = stringResource(R.string.greeting_permissions_normal)) {
+            runtimeItems.forEach { item -> PermissionRow(item) }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        KkOptionsText(stringResource(R.string.greeting_permissions_dangerous))
-        Spacer(modifier = Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-            PermissionRadioItem(
+        // 系统级权限：跳系统设置页授权，回来 LifecycleResumeEffect 自动刷新状态。
+        MochiListSection(
+            header = stringResource(R.string.greeting_permissions_special),
+            footer = stringResource(R.string.greeting_permissions_hint),
+        ) {
+            specialItems.forEach { item -> PermissionRow(item) }
+        }
+
+        // 高危权限：无障碍 / root / Shizuku / 放手模式 / 审批策略。
+        MochiListSection(header = stringResource(R.string.greeting_permissions_dangerous)) {
+            PermissionDangerRow(
                 title = stringResource(R.string.greeting_permission_accessibility_title),
                 subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
                 selected = accessibilityEnabled,
-                shape = cards.indexedShape(0, 5),
-                dangerous = true,
-                enabled = true,
                 onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
             )
-            PermissionRadioItem(
+            PermissionDangerRow(
                 title = stringResource(R.string.greeting_permission_root_title),
                 subtitle = if (rootAvailable) {
                     stringResource(R.string.greeting_permission_root_desc)
@@ -455,8 +438,6 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
                 },
                 selected = rootAvailable && rootEnabled,
-                shape = cards.indexedShape(1, 5),
-                dangerous = true,
                 enabled = rootAvailable,
                 onClick = {
                     val next = !rootEnabled
@@ -465,7 +446,7 @@ fun PermissionChecklist(
                     rootEnabled = next
                 },
             )
-            PermissionRadioItem(
+            PermissionDangerRow(
                 title = stringResource(R.string.greeting_permission_shizuku_title),
                 subtitle = if (shizukuAvailable) {
                     stringResource(R.string.greeting_permission_shizuku_desc)
@@ -473,8 +454,6 @@ fun PermissionChecklist(
                     stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
                 },
                 selected = shizukuGranted,
-                shape = cards.indexedShape(2, 5),
-                dangerous = true,
                 enabled = shizukuAvailable,
                 onClick = {
                     if (!shizukuGranted && shizukuAvailable && activity != null) {
@@ -487,29 +466,23 @@ fun PermissionChecklist(
                     }
                 },
             )
-            PermissionRadioItem(
+            PermissionDangerRow(
                 title = stringResource(R.string.approval_hands_off_title),
                 subtitle = stringResource(R.string.approval_hands_off_desc) +
                     " " + stringResource(
                         if (handsOff) R.string.approval_status_on else R.string.approval_status_off
                     ),
                 selected = handsOff,
-                shape = cards.indexedShape(3, 5),
-                dangerous = true,
-                enabled = true,
                 onClick = {
                     val next = !handsOff
                     provider.handsOffMode = next
                     handsOff = next
                 },
             )
-            PermissionRadioItem(
+            MochiListRow(
                 title = stringResource(R.string.approval_sheet_title),
                 subtitle = stringResource(R.string.approval_sheet_desc),
-                selected = false,
-                shape = cards.indexedShape(4, 5),
-                dangerous = true,
-                enabled = true,
+                chevron = true,
                 onClick = { showApprovalPolicy = true },
             )
         }
@@ -525,7 +498,7 @@ fun PermissionChecklist(
 }
 
 /**
- * 自动化审批策略面板：按 [ApprovalCategory] 列出，每项用 [SingleChoiceSegmentedRow] 三选一
+ * 自动化审批策略面板：按 [ApprovalCategory] 列出，每项用 Mochi 分段控件三选一
  * （每次询问 / 允许 / 拒绝），选择即持久化并立即生效；放手模式仍覆盖一切为允许。
  */
 @Composable
@@ -539,36 +512,39 @@ private fun ApprovalPolicySheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
-            Text(
-                text = stringResource(R.string.approval_sheet_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            ApprovalCategory.entries.forEach { category ->
-                var policy by remember(category) {
-                    mutableStateOf(AutomationBus.policyOf(category))
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = stringResource(category.labelRes),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    KkSingleChoiceSegmentedRow(
-                        items = ApprovalPolicy.entries.map { option ->
-                            SegmentedItem(
-                                label = stringResource(option.labelRes),
-                                selected = policy == option,
-                                onClick = {
-                                    policy = option
-                                    AutomationBus.setPolicy(category, option)
-                                },
-                            )
-                        },
-                    )
+            MochiListSection(footer = stringResource(R.string.approval_sheet_desc)) {
+                ApprovalCategory.entries.forEach { category ->
+                    var policy by remember(category) {
+                        mutableStateOf(AutomationBus.policyOf(category))
+                    }
+                    val options = ApprovalPolicy.entries
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MochiListDefaults.RowPadding, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(category.labelRes),
+                            style = MochiTheme.textStyles.subhead,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
+                        )
+                        MochiSegmentedControl(
+                            selectedIndex = options.indexOf(policy).coerceAtLeast(0),
+                            onSelect = { index ->
+                                val next = options.getOrNull(index) ?: return@MochiSegmentedControl
+                                policy = next
+                                AutomationBus.setPolicy(category, next)
+                            },
+                            items = options.map { stringResource(it.labelRes) }.toImmutableList(),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             }
         }
@@ -583,51 +559,34 @@ private data class PermissionUiItem(
     val onAction: (() -> Unit)? = null,
 )
 
+/** 权限行：已授权给对勾，未授权给「›」并点进授权流程。 */
 @Composable
-private fun PermissionActionItem(
-    item: PermissionUiItem,
-    shape: Shape,
-) {
-    val statusLabel = if (item.granted) {
-        stringResource(R.string.greeting_permission_status_granted)
-    } else {
-        stringResource(R.string.greeting_permission_status_not_granted) +
-            " · " + stringResource(item.actionLabelRes)
-    }
-    val subtitle = stringResource(item.descRes) + " · " + statusLabel
-    KkAnimatedRadioItem(
-        text = stringResource(item.titleRes),
-        subtitle = subtitle,
-        isSelected = item.granted,
-        onClick = { if (!item.granted) item.onAction?.invoke() },
-        shape = shape,
+private fun PermissionRow(item: PermissionUiItem) {
+    MochiListRow(
+        title = stringResource(item.titleRes),
+        subtitle = stringResource(item.descRes),
+        checked = item.granted,
+        chevron = !item.granted,
+        onClick = item.onAction,
     )
 }
 
+/** 高危权限行：标题用警示色，授权状态给对勾。 */
 @Composable
-private fun PermissionRadioItem(
+private fun PermissionDangerRow(
     title: String,
     subtitle: String,
     selected: Boolean,
-    shape: Shape,
     onClick: () -> Unit,
     enabled: Boolean = true,
-    dangerous: Boolean = false,
 ) {
-    val colors = MaterialTheme.colorScheme
-    val alpha = if (enabled) 1f else 0.6f
-    KkAnimatedRadioItem(
-        text = title,
+    MochiListRow(
+        title = title,
         subtitle = subtitle,
-        isSelected = selected,
-        onClick = { if (enabled) onClick() },
-        selectedBackground = if (dangerous) colors.errorContainer.copy(alpha = 0.54f)
-        else colors.primaryContainer.copy(alpha = 0.54f),
-        unselectedBackground = colors.surfaceVariant.copy(alpha = if (enabled) 0.26f else 0.12f),
-        checkIconTint = if (dangerous) colors.error else colors.primary,
-        textColor = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.38f),
-        shape = shape,
-        modifier = Modifier.alpha(alpha),
+        checked = selected,
+        enabled = enabled,
+        destructive = true,
+        onClick = onClick,
     )
 }
 

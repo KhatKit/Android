@@ -1,6 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -8,8 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -18,6 +26,7 @@ import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.navigation.MochiNavigator
 
 /**
@@ -49,6 +58,8 @@ fun PrimaryBottomSheet(
     onDismiss: () -> Unit,
     scrollable: Boolean = true,
     dismissible: Boolean = true,
+    /** 顶栏浮在正文上（iOS sheet 形态）：正文不再被顶栏挤下去，滚动只发生在正文区。 */
+    floatingHeader: Boolean = false,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
     val sheetState = rememberMochiSheetState()
@@ -69,6 +80,7 @@ fun PrimaryBottomSheet(
         onDismiss = onDismiss,
         scrollable = scrollable,
         dismissible = dismissible,
+        floatingHeader = floatingHeader,
         navigator = null,
         content = content,
     )
@@ -76,7 +88,8 @@ fun PrimaryBottomSheet(
 
 /**
  * 状态直传重载：页面自己 rememberMochiSheetState，打开前 state.show()、关闭后 state.hide()；
- * 页面根还能挂 Modifier.mochiSheetBackdrop(state) 得到「面板拉全屏时页面缩小退后」的背景效果，
+ * Modifier.mochiSheetBackdrop(state) 只能挂在不透明的整页根上：它在面板展开（含弹出时的过冲）时先铺黑底再缩小页面，
+ * 挂在 Scaffold 里透明的列表上会让整页闪一下黑。
  * 多页内容把面板自己的 MochiNavigator 传给 MochiSheet 即可先退子页再关面板。
  */
 @Composable
@@ -93,6 +106,8 @@ fun PrimaryBottomSheet(
     onDismiss: () -> Unit,
     scrollable: Boolean = true,
     dismissible: Boolean = true,
+    /** 顶栏浮在正文上（iOS sheet 形态）：正文不再被顶栏挤下去，滚动只发生在正文区。 */
+    floatingHeader: Boolean = false,
     /** 面板内多页内容用的独立导航器（和内容里的 MochiNavHost 同一个）：有子页时先退页，退回根页才关面板。 */
     navigator: MochiNavigator? = null,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
@@ -109,6 +124,7 @@ fun PrimaryBottomSheet(
         onDismiss = onDismiss,
         scrollable = scrollable,
         dismissible = dismissible,
+        floatingHeader = floatingHeader,
         content = content,
     )
 }
@@ -131,6 +147,7 @@ private fun PrimarySheetShell(
     onDismiss: () -> Unit,
     scrollable: Boolean,
     dismissible: Boolean,
+    floatingHeader: Boolean,
     navigator: MochiNavigator?,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
@@ -145,8 +162,9 @@ private fun PrimarySheetShell(
         },
     ) {
         val hasHeader = title.isNotEmpty() || dismissText != null || (confirmText != null && onConfirm != null)
-        if (hasHeader) {
-            MochiSheetHeader(
+        val header: (@Composable () -> Unit)? = if (hasHeader) {
+            {
+                MochiSheetHeader(
                 title = title,
                 navigationIcon = if (dismissText != null) {
                     {
@@ -171,6 +189,27 @@ private fun PrimarySheetShell(
                     null
                 },
             )
+            }
+        } else {
+            null
+        }
+        if (floatingHeader && header != null) {
+            // 悬浮顶栏：顶栏浮在正文之上，正文从顶栏下面开始；正文自己管滚动（scrollable 应为 false）。
+            var headerHeightPx by remember { mutableIntStateOf(0) }
+            val headerHeight = with(LocalDensity.current) { headerHeightPx.toDp() }
+            Box(Modifier.fillMaxSize()) {
+                Column(Modifier.fillMaxSize().padding(top = headerHeight)) { content(onDismiss) }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { headerHeightPx = it.height }
+                        .background(MochiDefaults.sheetBackground()),
+                ) { header() }
+            }
+            return@MochiSheet
+        }
+        if (hasHeader) {
+            header?.invoke()
         }
         if (scrollable) {
             Column(

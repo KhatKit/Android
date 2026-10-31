@@ -26,6 +26,7 @@ import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
+import heizige.kk.khatkit.app.core.util.UpdateChecker
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.tts.provider.TTSManager
 import heizige.kk.khatkit.app.core.network.WebServerManager
@@ -63,6 +64,7 @@ interface AppEntryPoint {
     fun emojiData(): EmojiData
     fun skillManager(): SkillManager
     fun khatKitToolProvider(): KhatKitToolProvider
+    fun updateChecker(): UpdateChecker
     fun hubAccountRepository(): HubAccountRepository
     fun ttsManager(): TTSManager
     fun okHttpClient(): OkHttpClient

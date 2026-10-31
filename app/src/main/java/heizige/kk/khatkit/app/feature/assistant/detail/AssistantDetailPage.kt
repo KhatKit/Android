@@ -1,24 +1,14 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,14 +17,10 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.construction
 import heizige.kk.khatkit.app.core.ui.icons.extension
@@ -42,106 +28,121 @@ import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.sms
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import ui.feice.mochi.basic.Text
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.navigation.MochiLargeTitleScaffold
+import ui.feice.mochi.theme.MochiTheme
 
+/**
+ * 角色详情：头像 + 名字 + 人格摘要，下面一整张 Mochi 分组卡片列出七个子页入口。
+ *
+ * 骨架是 [MochiLargeTitleScaffold]，每行是 [MochiListRow]（图标 + 标题 + 副标题 + ›），
+ * 点进去分别是基本 / 提示词 / 扩展 / 记忆 / 请求参数 / MCP / 本地工具。
+ */
 @Composable
 fun AssistantDetailPage(id: String) {
     val vm: AssistantDetailViewModel = hiltViewModel<AssistantDetailViewModel, AssistantDetailViewModel.Factory>(creationCallback = { it.create(id) })
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiLargeTitleScaffold(
         title = assistant.name.ifBlank {
             stringResource(R.string.assistant_page_default_assistant)
         },
-        scrollBehavior = scrollBehavior,
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                AssistantHeader(
-                    assistant = assistant,
-                    providerName = providers
-                        .firstOrNull { provider -> provider.models.any { it.id == assistant.chatModelId } }
-                        ?.name,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp)
-                )
-            }
+        navigationIcon = { BackButton() },
+    ) {
+        AssistantHeader(
+            assistant = assistant,
+            providerName = providers
+                .firstOrNull { provider -> provider.models.any { it.id == assistant.chatModelId } }
+                ?.name,
+        )
 
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantBasic(id)) },
-                        leadingContent = { Icon(settings, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_basic_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_basic)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantPrompt(id)) },
-                        leadingContent = { Icon(sms, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_prompt_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_prompt)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantInjections(id)) },
-                        leadingContent = { Icon(extension, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_extensions_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_extensions)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantMemory(id)) },
-                        leadingContent = { Icon(psychology, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_memory_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_memory)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantRequest(id)) },
-                        leadingContent = { Icon(code, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_request_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_request)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantMcp(id)) },
-                        leadingContent = { Icon(construction, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_mcp_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_mcp)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                    item(
-                        onClick = { navController.navigate(Screen.AssistantLocalTool(id)) },
-                        leadingContent = { Icon(menuBook, null) },
-                        supportingContent = { Text(stringResource(R.string.assistant_detail_local_tools_desc)) },
-                        headlineContent = { Text(stringResource(R.string.assistant_page_tab_local_tools)) },
-                        trailingContent = { Icon(arrowForward, null) },
-                    )
-                }
-            }
+        MochiListSection {
+            AssistantDetailEntry(
+                icon = { EntryIcon(settings) },
+                title = stringResource(R.string.assistant_page_tab_basic),
+                subtitle = stringResource(R.string.assistant_detail_basic_desc),
+                onClick = { navController.navigate(Screen.AssistantBasic(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(sms) },
+                title = stringResource(R.string.assistant_page_tab_prompt),
+                subtitle = stringResource(R.string.assistant_detail_prompt_desc),
+                onClick = { navController.navigate(Screen.AssistantPrompt(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(extension) },
+                title = stringResource(R.string.assistant_page_tab_extensions),
+                subtitle = stringResource(R.string.assistant_detail_extensions_desc),
+                onClick = { navController.navigate(Screen.AssistantInjections(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(psychology) },
+                title = stringResource(R.string.assistant_page_tab_memory),
+                subtitle = stringResource(R.string.assistant_detail_memory_desc),
+                onClick = { navController.navigate(Screen.AssistantMemory(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(code) },
+                title = stringResource(R.string.assistant_page_tab_request),
+                subtitle = stringResource(R.string.assistant_detail_request_desc),
+                onClick = { navController.navigate(Screen.AssistantRequest(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(construction) },
+                title = stringResource(R.string.assistant_page_tab_mcp),
+                subtitle = stringResource(R.string.assistant_detail_mcp_desc),
+                onClick = { navController.navigate(Screen.AssistantMcp(id)) },
+            )
+            AssistantDetailEntry(
+                icon = { EntryIcon(menuBook) },
+                title = stringResource(R.string.assistant_page_tab_local_tools),
+                subtitle = stringResource(R.string.assistant_detail_local_tools_desc),
+                onClick = { navController.navigate(Screen.AssistantLocalTool(id)) },
+            )
         }
     }
+}
+
+@Composable
+private fun EntryIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(20.dp),
+        tint = MochiTheme.colorScheme.primary,
+    )
+}
+
+@Composable
+private fun AssistantDetailEntry(
+    icon: @Composable () -> Unit,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    MochiListRow(
+        title = title,
+        subtitle = subtitle,
+        leading = icon,
+        chevron = true,
+        onClick = onClick,
+    )
 }
 
 @Composable
 private fun AssistantHeader(
     assistant: Assistant,
     providerName: String?,
-    modifier: Modifier = Modifier
 ) {
+    val cs = MochiTheme.colorScheme
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         UIAvatar(
             value = assistant.avatar,
@@ -152,23 +153,24 @@ private fun AssistantHeader(
             avatarColor = assistant.avatarColor,
             modifier = Modifier
                 .size(100.dp)
-                .heroAnimation("assistant_${assistant.id}")
+                .heroAnimation("assistant_${assistant.id}"),
         )
 
         Text(
             text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-            style = MaterialTheme.typography.headlineMedium,
+            style = MochiTheme.textStyles.titleLarge,
+            color = cs.onSurface,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
 
         if (assistant.systemPrompt.isNotBlank()) {
             Text(
                 text = assistant.systemPrompt.take(100) + if (assistant.systemPrompt.length > 100) "..." else "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.subhead,
+                color = cs.onSurfaceVariant,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

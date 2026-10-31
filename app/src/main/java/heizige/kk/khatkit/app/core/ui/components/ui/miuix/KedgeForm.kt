@@ -97,7 +97,8 @@ fun Md3SwitchFormRow(
                 onCheckedChange = onCheckedChange,
             )
         },
-        onClick = { onCheckedChange(!checked) },
+        // 照 Mochi（iOS）：开关行本身不可点、不高亮，只有开关能拨
+        onClick = null,
     )
 }
 

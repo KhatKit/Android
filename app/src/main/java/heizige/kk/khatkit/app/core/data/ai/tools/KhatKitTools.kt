@@ -55,7 +55,9 @@ import heizige.kk.khatkit.exec.CardExecutionOptions
 import heizige.kk.khatkit.ui.LateUiAnswer
 import heizige.kk.khatkit.ui.ReplayUiBridge
 import heizige.kk.khatkit.ui.UiMode
+import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.exec.CardRunManager
+import heizige.kk.khatkit.exec.CardRunContext
 import heizige.kk.khatkit.hub.BuiltinCards
 import heizige.kk.khatkit.hub.BundledLibProvider
 import heizige.kk.khatkit.hub.CardCache
@@ -86,9 +88,11 @@ import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.currentCoroutineContext
@@ -297,6 +301,25 @@ class KhatKitToolProvider(
     private val activeUserCards = ConcurrentHashMap.newKeySet<String>()
 
     override val uiRequest = uiHost.request
+
+    /**
+     * 正在用整页承载 UI 的卡片（欢迎页小组件点开的那页）。这些卡片发出的 [UiRequest.pageHostable]
+     * 请求由页面自己渲染，全局 KhatKitUiHost 不再弹层。
+     */
+    private val _pageCards = MutableStateFlow<Set<String>>(emptySet())
+    val pageCards: StateFlow<Set<String>> = _pageCards.asStateFlow()
+
+    fun attachCardPage(name: String) = _pageCards.update { it + name }
+
+    fun detachCardPage(name: String) = _pageCards.update { it - name }
+
+    /** 请求属于哪张卡片：runId 经续跑上下文换回卡片名，否则交互 id 本身就是卡片名。 */
+    fun uiRequestCard(request: UiRequest): String? =
+        uiHost.interactionOf(request)?.let { pendingInteractions[it]?.cardName ?: it }
+
+    /** 这条请求该不该交给 [cards] 里某张卡片的整页。 */
+    fun isPageHosted(request: UiRequest, cards: Set<String>): Boolean =
+        request.pageHostable && uiRequestCard(request)?.let { it in cards } == true
     override val uiProgress = uiHost.progress
 
     override val mediaPickRequest = mediaPickerHost.request
@@ -475,6 +498,24 @@ class KhatKitToolProvider(
         _cardCatalogueRevision.update { it + 1 }
     }
 
+    /** 用户拖出来的格数，存成 `"列x行"`；没拖过返回 null（由 manifest 默认值决定）。 */
+    fun widgetSize(cardName: String): Pair<Int, Int>? =
+        settings.getString("chat_widget_size.$cardName", null)?.split('x')
+            ?.mapNotNull(String::toIntOrNull)?.takeIf { it.size == 2 }?.let { it[0] to it[1] }
+
+    /** 只落盘，不碰 [cardCatalogueRevision]：改尺寸不需要重新加载卡片目录或重跑脚本。 */
+    fun setWidgetSize(cardName: String, width: Int, height: Int) {
+        settings.edit().putString("chat_widget_size.$cardName", "${width}x$height").apply()
+    }
+
+    /** 用户拖出来的小组件顺序（卡片名）；没排过为空，按安装顺序。卸载的卡片名读的时候自然对不上，不用清。 */
+    fun widgetOrder(): List<String> =
+        settings.getString("chat_widget_order", null)?.split('\n')?.filter(String::isNotEmpty).orEmpty()
+
+    fun setWidgetOrder(names: List<String>) {
+        settings.edit().putString("chat_widget_order", names.joinToString("\n")).apply()
+    }
+
     /** Same approval, metering and concurrency boundary as a normal card, with run-local UI. */
     suspend fun runChatWidget(
         card: LoadedCard,
@@ -507,6 +548,8 @@ class KhatKitToolProvider(
                 CardWidgetContent(
                     requireNotNull(ui.content) { "WIDGET_EMPTY: call ui.show(node)" },
                     ui.refreshAction,
+                    ui.frame,
+                    ui.layouts,
                 )
             }
         }
@@ -555,6 +598,7 @@ class KhatKitToolProvider(
 
     /** 一次「有人在等用户」的运行上下文：迟到提交按卡片名找回来续跑。 */
     private data class PendingInteraction(
+        val cardName: String,
         val args: Map<String, Any?>,
         val conversationId: kotlin.uuid.Uuid?,
         val createdAt: Long,
@@ -580,8 +624,9 @@ class KhatKitToolProvider(
      *
      * `values == null` 表示用户关掉了弹层，只补发一条「取消」说明，不触发再生成。
      */
-    private fun onLateUiAnswer(cardName: String, answer: LateUiAnswer) {
-        val pending = pendingInteractions.remove(cardName) ?: return
+    private fun onLateUiAnswer(interactionId: String, answer: LateUiAnswer) {
+        val pending = pendingInteractions.remove(interactionId) ?: return
+        val cardName = pending.cardName
         if (System.currentTimeMillis() - pending.createdAt > PENDING_INTERACTION_TTL_MS) return
         scope.launch {
             if (answer.cancelled) {
@@ -649,7 +694,6 @@ class KhatKitToolProvider(
         val queuedAt = System.currentTimeMillis()
         val argsSummary = args.keys.sorted().joinToString(", ")
         // 操作屏提交后会被「保持显示」到本次运行结束；超时那种要留着等迟到提交，不能收。
-        var keepLateScreen = false
         runCatching {
             cardRunDao.insert(
                 CardRunEntity(
@@ -681,11 +725,11 @@ class KhatKitToolProvider(
         runCatching { cardRunDao.updateStatus(runId, CardRunEntity.PREPARING, System.currentTimeMillis()) }
         // 交互式运行登记续跑上下文：用户迟到的提交靠它找回来（无人值守不需要）
         if (uiMode == UiMode.INTERACTIVE && (trigger == "AI" || trigger == "用户")) {
-            pendingInteractions[card.manifest.name] = PendingInteraction(args, conversationId, System.currentTimeMillis())
+            pendingInteractions[runId] = PendingInteraction(card.manifest.name, args, conversationId, System.currentTimeMillis())
         }
-        val uiTimeoutsBefore = uiHost.timeouts.value
         val automation = showsAutomationStatus(card.manifest, trigger)
         if (automation && AutomationBus.isCancelRequested()) {
+            pendingInteractions.remove(runId)
             runCatching {
                 cardRunDao.finish(
                     runId,
@@ -702,6 +746,7 @@ class KhatKitToolProvider(
         }
         // 兜底闸门：vFlow 未配置时即使 AI 拿到了卡片名也不运行，避免脚本 pop ui.form 配置表单
         if (trigger == "AI" && isVflowCard(card.manifest.name) && !vflowConfigured()) {
+            pendingInteractions.remove(runId)
             runCatching {
                 cardRunDao.finish(
                     runId,
@@ -760,21 +805,23 @@ class KhatKitToolProvider(
             // 脚本可见的运行期上下文：触发来源（AI / 用户 / 定时任务 / 事件触发 / flow / 聊天小组件）。
             // `__khatkit_ui` 是宿主开关，不进脚本参数。
             val scriptArgs = arguments.filterKeys { !it.startsWith("__khatkit_ui") } + mapOf("__khatkit_trigger" to trigger)
-            val result = runManager.run(card, scriptArgs) { loaded, input -> executor().execute(loaded, input, options) }
-            val uiTimedOut = uiHost.timeouts.value > uiTimeoutsBefore
-            keepLateScreen = uiTimedOut
-            if (!uiTimedOut) pendingInteractions.remove(card.manifest.name)
+            val result = runManager.run(card, scriptArgs) { loaded, input ->
+                executor().execute(loaded, input, options.copy(interactionId = runId))
+            }
+            val uiTimedOut = uiHost.hasPendingInteraction(runId)
+            if (!uiTimedOut) pendingInteractions.remove(runId)
             recordCardRunFinished(runId, result)
             if (!hubToken.isNullOrBlank()) {
                 reportToolCallAsync(hubToken, manifest, price, trigger, startedAt, result)
             }
             return if (uiTimedOut) annotateUiPending(result) else result
         } catch (e: Exception) {
-            pendingInteractions.remove(card.manifest.name)
+            pendingInteractions.remove(runId)
             recordCardRunException(runId, e)
             throw e
         } finally {
-            if (!keepLateScreen) uiHost.endScreen()
+            // UiBridgeHost closes the owning run's requests; another card may now own the sheet.
+            if (!uiHost.hasPendingInteraction(runId)) pendingInteractions.remove(runId)
             if (automation) AutomationBus.finish()
         }
     }
@@ -924,7 +971,10 @@ class KhatKitToolProvider(
         }.getOrNull() ?: return args
         return fillSchemaArgs(plan, args) { items, _ ->
             // uiHost 阻塞等宿主 Compose 层回传，必须在 IO 线程上等（与脚本 ui.form 同一机制）
-            withContext(Dispatchers.IO) { uiHost.form(plan.name, items, null) }
+            val run = CardRunContext(currentCoroutineContext()[Job]!!)
+            withContext(Dispatchers.IO + CardRunContext.current.asContextElement(run)) {
+                uiHost.form(plan.name, items, null)
+            }
         }
     }
 
@@ -2075,7 +2125,7 @@ class KhatKitToolProvider(
         val ok = cache.uninstall(name)
         if (ok) {
             cancelScheduledCardJobs(name)
-            settings.edit().remove("chat_widget.$name").apply()
+            settings.edit().remove("chat_widget.$name").remove("chat_widget_size.$name").apply()
             _cardCatalogueRevision.update { it + 1 }
         }
         ok

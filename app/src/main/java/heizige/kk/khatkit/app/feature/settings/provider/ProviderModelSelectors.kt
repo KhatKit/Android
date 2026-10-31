@@ -257,6 +257,60 @@ internal fun ModelTypeSelector(
     )
 }
 
+/** 输入模态的多选行（不带卡片，调用方负责外层分组）。 */
+@Composable
+internal fun ModelInputModalitySegmented(
+    inputModalities: List<Modality>,
+    onUpdate: (List<Modality>) -> Unit,
+) {
+    KkMultiChoiceSegmentedRow(
+        items = Modality.entries.map { modality ->
+            SegmentedItem(
+                label = stringResource(
+                    when (modality) {
+                        Modality.TEXT -> R.string.setting_provider_page_text
+                        Modality.IMAGE -> R.string.setting_provider_page_image
+                    }
+                ),
+                selected = modality in inputModalities,
+                onClick = {
+                    onUpdate(
+                        if (modality in inputModalities) inputModalities - modality
+                        else inputModalities + modality
+                    )
+                },
+            )
+        },
+    )
+}
+
+/** 输出模态的多选行（不带卡片，调用方负责外层分组）。 */
+@Composable
+internal fun ModelOutputModalitySegmented(
+    outputModalities: List<Modality>,
+    onUpdate: (List<Modality>) -> Unit,
+) {
+    KkMultiChoiceSegmentedRow(
+        items = Modality.entries.map { modality ->
+            SegmentedItem(
+                label = stringResource(
+                    when (modality) {
+                        Modality.TEXT -> R.string.setting_provider_page_text
+                        Modality.IMAGE -> R.string.setting_provider_page_image
+                    }
+                ),
+                selected = modality in outputModalities,
+                onClick = {
+                    onUpdate(
+                        if (modality in outputModalities) outputModalities - modality
+                        else outputModalities + modality
+                    )
+                },
+            )
+        },
+    )
+}
+
 /**
  * 输入/输出模态（文本/图片）多选。
  *

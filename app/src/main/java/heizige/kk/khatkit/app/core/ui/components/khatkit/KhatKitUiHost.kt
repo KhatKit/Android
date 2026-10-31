@@ -106,7 +106,10 @@ fun KhatKitUiHost() {
         provider.onUiHostAttached()
         onDispose { provider.onUiHostDetached() }
     }
-    val request by provider.uiRequest.collectAsStateWithLifecycle()
+    val queued by provider.uiRequest.collectAsStateWithLifecycle()
+    val pageCards by provider.pageCards.collectAsStateWithLifecycle()
+    // 欢迎页小组件点开的卡片整页自己渲染它的节点树请求，这里不再弹层。
+    val request = queued?.takeUnless { provider.isPageHosted(it, pageCards) }
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 
     // 弹层声明的方向（orientation / 旧 landscape）：关闭或请求变化后还原用户原本的设置。
@@ -169,17 +172,7 @@ fun KhatKitUiHost() {
                 )
             }
 
-            is UiRequest.FormTree -> key(current) {
-                TreeSheet(current.title, current.root, current.options, provider, form = true)
-            }
-            // 不用 key(current)：换页/触底加载时保持同一份弹层组合，
-            // 滚动位置才有连续状态（滚动归零/守卫分别由 scrollKey/contentKey 控制）。
-            is UiRequest.Screen -> {
-                TreeSheet(current.title, current.root, current.options, provider, pages = current.pages)
-            }
-            is UiRequest.ShowTree -> key(current) {
-                TreeSheet(current.title, current.root, current.options, provider, readOnly = true)
-            }
+            is UiRequest.FormTree, is UiRequest.Screen, is UiRequest.ShowTree -> KhatKitTreeRequest(current, provider)
             is UiRequest.Confirm -> PrimaryBottomSheet(
                 visible = true,
                 title = current.title,
@@ -229,6 +222,25 @@ fun KhatKitUiHost() {
 
         // 媒体 / 目录选择器：与表单弹层并列挂载，独立于 ui request 生命周期
         KhatKitPickerHost(provider)
+    }
+}
+
+/** 节点树请求（ui.form 树 / ui.screen / ui.show 树）；卡片整页也用它，在页内渲染。 */
+@Composable
+internal fun KhatKitTreeRequest(request: UiRequest, provider: KhatKitToolProvider) {
+    when (request) {
+        is UiRequest.FormTree -> key(request) {
+            TreeSheet(request.title, request.root, request.options, provider, form = true)
+        }
+        // 不用 key(current)：换页/触底加载时保持同一份弹层组合，
+        // 滚动位置才有连续状态（滚动归零/守卫分别由 scrollKey/contentKey 控制）。
+        is UiRequest.Screen -> {
+            TreeSheet(request.title, request.root, request.options, provider, pages = request.pages)
+        }
+        is UiRequest.ShowTree -> key(request) {
+            TreeSheet(request.title, request.root, request.options, provider, readOnly = true)
+        }
+        else -> Unit
     }
 }
 

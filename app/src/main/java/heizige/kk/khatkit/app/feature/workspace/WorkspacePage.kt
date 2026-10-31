@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -95,13 +97,19 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
             }
 
             lazyItemsIndexed(workspaces, key = { _, workspace -> workspace.id }) { index, workspace ->
-                WorkspaceItem(
-                    workspace = workspace,
+                KkGroupedColumn(
                     shape = cards.indexedShape(index, workspaces.size),
-                    onRename = { editTarget = workspace },
-                    onDelete = { deleteTarget = workspace },
-                    onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
-                )
+                    containerColor = MochiListDefaults.colors().container,
+                    topDivider = index > 0 && cards.gap == 0.dp,
+                ) {
+                    WorkspaceItem(
+                        workspace = workspace,
+                        shape = cards.indexedShape(index, workspaces.size),
+                        onRename = { editTarget = workspace },
+                        onDelete = { deleteTarget = workspace },
+                        onOpen = { navController.navigate(Screen.WorkspaceDetail(workspace.id)) },
+                    )
+                }
             }
         }
     }

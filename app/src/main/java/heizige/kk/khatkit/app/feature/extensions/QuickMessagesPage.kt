@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -114,12 +116,18 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
             }
 
             lazyItemsIndexed(settings.quickMessages, key = { _, quickMessage -> quickMessage.id }) { index, quickMessage ->
-                QuickMessageItem(
-                    quickMessage = quickMessage,
+                KkGroupedColumn(
                     shape = cards.indexedShape(index, settings.quickMessages.size),
-                    onEdit = { editTarget = quickMessage },
-                    onDelete = { deleteTarget = quickMessage },
-                )
+                    containerColor = MochiListDefaults.colors().container,
+                    topDivider = index > 0 && cards.gap == 0.dp,
+                ) {
+                    QuickMessageItem(
+                        quickMessage = quickMessage,
+                        shape = cards.indexedShape(index, settings.quickMessages.size),
+                        onEdit = { editTarget = quickMessage },
+                        onDelete = { deleteTarget = quickMessage },
+                    )
+                }
             }
         }
     }

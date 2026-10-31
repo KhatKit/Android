@@ -9,6 +9,18 @@ import org.junit.Test
 class RunDeadlineTest {
 
     @Test
+    fun `script cannot extend or clear the host deadline`() {
+        val hardLimit = System.currentTimeMillis() + 60_000
+        val deadline = RunDeadline(hardLimit)
+        deadline.set(Int.MAX_VALUE)
+        assertEquals(hardLimit, deadline.at())
+        deadline.set(0)
+        assertEquals(hardLimit, deadline.at())
+        deadline.set(1_000)
+        assertTrue(deadline.at() < hardLimit)
+    }
+
+    @Test
     fun `zero means unlimited`() {
         val deadline = RunDeadline()
         assertFalse(deadline.expired())

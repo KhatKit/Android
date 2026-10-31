@@ -38,6 +38,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import androidx.compose.runtime.Composable
@@ -493,63 +495,70 @@ private fun ColumnScope.ModelList(
                         state = reorderableState,
                         key = "favorite:" + model.id.toString()
                     ) { isDragging ->
-                        ModelItem(
-                            model = model,
-                            onSelect = onSelect,
+                        // Mochi 分组：每项各包一层分组卡片，非首项在顶边补分隔线（gap > 0 时每项本来就是独立卡片，不画）
+                        KkGroupedColumn(
                             modifier = Modifier
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .animateItem(),
-                            providerSetting = provider,
                             shape = cards.indexedShape(index, favoriteModels.size),
-                            select = model.id == currentModel,
-                            onDismiss = {
-                                onDismiss()
-                            },
-                            tail = {
-                                MochiIconButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            settingsStore.update { settings ->
-                                                settings.copy(
-                                                    favoriteModels = settings.favoriteModels.filter { it != model.id }
-                                                )
-                                            }
-                                        }
-                                    },
-                                    shapes = IconButtonDefaults.shapes(),
-                                ) {
-                                    Icon(
-                                        HeartIcon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            },
-                            dragHandle = {
-                                Icon(
-                                    imageVector = dragIndicator,
-                                    contentDescription = null,
-                                    modifier = Modifier.longPressDraggableHandle(
-                                        onDragStarted = {
-                                            haptics.longPress()
-                                        },
-                                        onDragStopped = {
-                                            haptics.confirm()
-                                            // 松手才写回设置：写盘时界面已经收到新设置，这时再撤掉本地顺序不会闪回旧顺序；
-                                            // 写盘期间可能已经开始下一次拖动，那时的本地顺序要留给下一次松手保存
-                                            val order = draggingFavoriteOrder
-                                            if (order != null) {
-                                                coroutineScope.launch {
-                                                    settingsStore.update { it.copy(favoriteModels = order) }
-                                                    if (draggingFavoriteOrder === order) draggingFavoriteOrder = null
+                            containerColor = MochiListDefaults.colors().container,
+                            topDivider = index > 0 && cards.gap == 0.dp,
+                        ) {
+                            ModelItem(
+                                model = model,
+                                onSelect = onSelect,
+                                providerSetting = provider,
+                                shape = cards.indexedShape(index, favoriteModels.size),
+                                select = model.id == currentModel,
+                                onDismiss = {
+                                    onDismiss()
+                                },
+                                tail = {
+                                    MochiIconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                settingsStore.update { settings ->
+                                                    settings.copy(
+                                                        favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                                    )
                                                 }
                                             }
-                                        }
+                                        },
+                                        shapes = IconButtonDefaults.shapes(),
+                                    ) {
+                                        Icon(
+                                            HeartIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                },
+                                dragHandle = {
+                                    Icon(
+                                        imageVector = dragIndicator,
+                                        contentDescription = null,
+                                        modifier = Modifier.longPressDraggableHandle(
+                                            onDragStarted = {
+                                                haptics.longPress()
+                                            },
+                                            onDragStopped = {
+                                                haptics.confirm()
+                                                // 松手才写回设置：写盘时界面已经收到新设置，这时再撤掉本地顺序不会闪回旧顺序；
+                                                // 写盘期间可能已经开始下一次拖动，那时的本地顺序要留给下一次松手保存
+                                                val order = draggingFavoriteOrder
+                                                if (order != null) {
+                                                    coroutineScope.launch {
+                                                        settingsStore.update { it.copy(favoriteModels = order) }
+                                                        if (draggingFavoriteOrder === order) draggingFavoriteOrder = null
+                                                    }
+                                                }
+                                            }
+                                        )
                                     )
-                                )
-                            }
-                        )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -601,56 +610,63 @@ private fun ColumnScope.ModelList(
                     key = { _, model -> model.id }
                 ) { index, model ->
                     val favorite = settings.value.favoriteModels.contains(model.id)
-                    ModelItem(
-                        model = model,
-                        onSelect = onSelect,
+                    val groupCount = visibleModelsByProvider[providerSetting.id].orEmpty().size
+                    KkGroupedColumn(
                         modifier = Modifier.animateItem(),
-                        providerSetting = providerSetting,
-                        shape = cards.indexedShape(
-                            index = index,
-                            count = visibleModelsByProvider[providerSetting.id].orEmpty().size,
-                        ),
-                        select = currentModel == model.id,
-                        onDismiss = {
-                            onDismiss()
-                        },
-                        tail = {
-                            MochiIconButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        settingsStore.update { settings ->
-                                            if (favorite) {
-                                                settings.copy(
-                                                    favoriteModels = settings.favoriteModels.filter { it != model.id }
-                                                )
+                        shape = cards.indexedShape(index = index, count = groupCount),
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        ModelItem(
+                            model = model,
+                            onSelect = onSelect,
+                            providerSetting = providerSetting,
+                            shape = cards.indexedShape(
+                                index = index,
+                                count = visibleModelsByProvider[providerSetting.id].orEmpty().size,
+                            ),
+                            select = currentModel == model.id,
+                            onDismiss = {
+                                onDismiss()
+                            },
+                            tail = {
+                                MochiIconButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            settingsStore.update { settings ->
+                                                if (favorite) {
+                                                    settings.copy(
+                                                        favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                                    )
 
-                                            } else {
-                                                settings.copy(
-                                                    favoriteModels = settings.favoriteModels + model.id
-                                                )
+                                                } else {
+                                                    settings.copy(
+                                                        favoriteModels = settings.favoriteModels + model.id
+                                                    )
+                                                }
                                             }
                                         }
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    if (favorite) {
+                                        Icon(
+                                            HeartIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = favoriteIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
                                     }
-                                },
-                                shapes = IconButtonDefaults.shapes(),
-                            ) {
-                                if (favorite) {
-                                    Icon(
-                                        HeartIcon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = favoriteIcon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

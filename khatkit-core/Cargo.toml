@@ -10,6 +10,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 jni = "0.21"
+# WASM 卡片运行时（ABI v1）：WasmScriptEngine 的 native 侧。
+docscard-runtime-wasm = { path = "../docscard-runtime-wasm" }
 mlua = { version = "0.12", features = ["lua54", "vendored"] }
 rquickjs = { version = "0.13", features = ["loader", "bindgen"] }
 serde_json = "1"

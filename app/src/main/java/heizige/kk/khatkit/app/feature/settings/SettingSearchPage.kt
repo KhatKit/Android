@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.basic.MochiDropdown
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.MochiSheetState
@@ -256,31 +258,38 @@ private fun SearchServiceList(
                 state = reorderableState,
                 key = service.id
             ) { isDragging ->
-                SearchProviderCard(
-                    service = service,
-                    onEdit = { onEdit(service) },
-                    onDelete = { onDelete(service) },
-                    canDelete = canDelete,
-                    shape = cards.indexedShape(index, services.size),
+                KkGroupedColumn(
                     modifier = Modifier
                         .scale(if (isDragging) 0.95f else 1f)
-                        .animateItem()
+                        .animateItem(),
+                    shape = cards.indexedShape(index, services.size),
+                    containerColor = MochiListDefaults.colors().container,
+                    topDivider = index > 0 && cards.gap == 0.dp,
+                ) {
+                    SearchProviderCard(
+                        service = service,
+                        onEdit = { onEdit(service) },
+                        onDelete = { onDelete(service) },
+                        canDelete = canDelete,
+                        shape = cards.indexedShape(index, services.size),
                         // 与助手/提供商列表一致：长按**整行**就能拖，不用先按住拖柄。
-                        .then(
-                            if (dragEnabled) {
-                                Modifier.longPressDraggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                    },
-                                    onDragStopped = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                    }
-                                )
-                            } else {
-                                Modifier
-                            }
-                        ),
-                )
+                        modifier = Modifier
+                            .then(
+                                if (dragEnabled) {
+                                    Modifier.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                        },
+                                        onDragStopped = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                        }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                    )
+                }
             }
         }
 
@@ -381,32 +390,38 @@ internal fun AddProviderSheet(
                 itemsIndexed(types) { index, type ->
                     val name = SearchOptions.TYPES[type] ?: "Unknown"
                     val isSelected = selectedType == type
-                    MochiOptionItem(
-                        onClick = { selectedType = type },
+                    KkGroupedColumn(
                         shape = cards.indexedShape(index, types.size),
-                        backgroundColor = if (isSelected) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            Color.Unspecified
-                        },
-                        leadingContent = {
-                            AutoAIIcon(
-                                name = name,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        },
-                        titleContent = {
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                }
-                            )
-                        },
-                    )
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        MochiOptionItem(
+                            onClick = { selectedType = type },
+                            shape = cards.indexedShape(index, types.size),
+                            backgroundColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                Color.Unspecified
+                            },
+                            leadingContent = {
+                                AutoAIIcon(
+                                    name = name,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            },
+                            titleContent = {
+                                Text(
+                                    text = name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -512,6 +527,8 @@ internal fun SearchProviderCard(
                 },
             )
         },
+        // 点行进搜索服务详情页（二级页）：⋮ 后面接统一的 ›
+        chevron = true,
     )
 }
 

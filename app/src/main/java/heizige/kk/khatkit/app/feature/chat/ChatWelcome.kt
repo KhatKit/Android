@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -14,7 +15,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import ui.feice.mochi.basic.mochiSheetBackdrop
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -65,12 +65,12 @@ import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
-import heizige.kk.khatkit.app.core.ui.components.ui.Greeting
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.barChart
+import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.dashboard
@@ -93,8 +93,10 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.uikit.Render
 import kotlinx.coroutines.awaitCancellation
+import ui.feice.mochi.effect.content.MochiMorphIcon
 import kotlinx.coroutines.delay
 import kotlin.random.Random
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 /** An independent overlay: it never changes message-list keys or scroll indices. */
 @Composable
@@ -150,8 +152,11 @@ private fun ChatWelcome(
     onSuggestionClick: (String) -> Unit,
 ) {
     var variation by rememberSaveable(sessionKey) { mutableIntStateOf(0) }
-    // U7b-2：显隐交给 MochiSheetState（show/hide），页面根挂 mochiSheetBackdrop 才能有全屏档背景后缩。
+    // U7b-2：显隐交给 MochiSheetState（show/hide）。不挂 mochiSheetBackdrop：欢迎页只是聊天页里透明的一块，
+    // 那个修饰符在面板弹出过冲时会在它下面铺一层黑底，整页闪一下。
     val widgetSheet = rememberMochiSheetState()
+    // 小组件编辑态：描边 + 拖边框改尺寸 + 拖卡片换位 + 移除 / 添加；由标题右侧的编辑按钮切换。
+    var editing by rememberSaveable(sessionKey) { mutableStateOf(false) }
     // 静态兜底：AI 还没回来（或快速模型不可用/请求失败）时先摆这几条。
     // 只 remember 打乱后的**下标**，因为文案是 stringResource，必须在组合里取。
     val staticIdeas = listOf(
@@ -179,22 +184,29 @@ private fun ChatWelcome(
     }
     // 只留「卡片的小组件」和 AI 提示两种内容：用户自己装的卡片（原「我的卡片」区）不再出现在欢迎页。
     val widgets = remember(state.widgets) { state.widgets.filter { it.enabled } }
+    // 编辑态里把最后一个也移除了：没东西可编辑，退回「添加小组件」那一行。
+    LaunchedEffect(widgets.isEmpty()) { if (widgets.isEmpty()) editing = false }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().mochiSheetBackdrop(widgetSheet),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "greeting", contentType = "header") {
-            WelcomeHero(Modifier.welcomeReveal(0))
-        }
-        // 这一区常驻：标题右侧的管理入口（edit）一直显示，方便随时进 sheet 打开新组件；
-        // 全部关掉时列表位置换成那颗全宽的「添加小组件」按钮。
+        // 这一区常驻：没有开着的组件时，标题右侧是管理入口、列表里是全宽「添加小组件」；
+        // 有组件时标题按钮切编辑态，编辑态的网格末尾多一格「添加小组件」打开管理 sheet。
         if (state.widgets.isNotEmpty()) {
             item(key = "widgets_title", contentType = "section") {
+                val manage = widgets.isEmpty()
                 WelcomeSection(
                     stringResource(R.string.chat_widgets),
-                    edit, stringResource(R.string.chat_widgets_manage),
-                    onClick = { widgetSheet.show() },
+                    if (!manage && editing) check else edit,
+                    stringResource(
+                        when {
+                            manage -> R.string.chat_widgets_manage
+                            editing -> R.string.chat_widgets_done
+                            else -> R.string.chat_widgets_edit
+                        },
+                    ),
+                    onClick = { if (manage) widgetSheet.show() else editing = !editing },
                 )
             }
             if (widgets.isEmpty()) {
@@ -202,23 +214,16 @@ private fun ChatWelcome(
                     AddWidgetRow(Modifier.welcomeReveal(1)) { widgetSheet.show() }
                 }
             } else {
-                // 整组拼成一张卡：圆角与项间距全交给 [listCardStyle]（软件口径），脚本只提供内容。
-                // 组内顺序 = 添加顺序（manager 已按 CardCache.installOrder 排过），不在这里再排。
+                // 格子网格：尺寸、顺序都由用户在编辑态拖出来（manager 落盘），内容由卡片按格数给。
                 item(key = "widgets", contentType = "widget") {
-                    val cards = listCardStyle()
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-                        widgets.forEachIndexed { index, widget ->
-                            key(widget.card.manifest.name) {
-                                WelcomeWidgetView(
-                                    widget = widget,
-                                    locales = locales,
-                                    manager = manager,
-                                    shape = cards.indexedShape(index, widgets.size),
-                                    modifier = Modifier.welcomeReveal(1 + index),
-                                )
-                            }
-                        }
-                    }
+                    WelcomeWidgetBoard(
+                        widgets = widgets,
+                        locales = locales,
+                        manager = manager,
+                        editing = editing,
+                        onAdd = { widgetSheet.show() },
+                        modifier = Modifier.welcomeReveal(1),
+                    )
                 }
             }
         }
@@ -248,12 +253,9 @@ private fun ChatWelcome(
         Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
             // 行照抄欢迎页那批选项行（[MochiOptionItem] + [listCardStyle] 的整组圆角）：
             // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 KkSwitch。
-            // 外面不再套 InlineCardGroup —— 圆角要按 index/count 自己算成「一张卡」。
+            // 外面套 InlineCardGroup：gap 为 0 时整组是一张 Mochi 分组卡片（行间分隔线）。
             val cards = listCardStyle()
-            Column(
-                Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(cards.gap),
-            ) {
+            InlineCardGroup(Modifier.fillMaxWidth()) {
                 state.widgets.forEachIndexed { index, widget ->
                     val strings = remember(widget.card.manifest, locales) { CardStrings(widget.card.manifest, locales) }
                     MochiOptionItem(
@@ -302,19 +304,6 @@ private fun ChatWelcome(
  * 原先那根渐变饰条已删 — 全屏唯一的强调色块会和下方的中性卡片抢视线，
  * 语气层级现在只靠字号和留白拉开。
  */
-@Composable
-private fun WelcomeHero(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp)) {
-        Greeting(style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.chat_welcome_question),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 /**
  * 分区标题行：左边标题，右边一颗 Kedge 图标按钮。
  *
@@ -354,7 +343,7 @@ private fun WelcomeSection(
 
 /** Retain the button's center and touch target while replacing only its icon. */
 @Composable
-private fun WelcomeRefreshButton(
+internal fun WelcomeRefreshButton(
     label: String,
     icon: ImageVector,
     loading: Boolean,
@@ -370,7 +359,8 @@ private fun WelcomeRefreshButton(
             if (loading) {
                 KkProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
-                Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                // 编辑 ↔ 完成 这类换图标走 Mochi 的形变图标，不是硬切。
+                MochiMorphIcon(icon, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 20.dp)
             }
         }
     }
@@ -421,7 +411,7 @@ private fun WelcomeIdeaGroup(
     // 首项只圆上边、末项只圆下边、中间四角用小圆角，项间距取 `gap`（默认 2dp，
     // Miuix 是 0）。只在组内这么排，组和「小组件」区之间仍保留列表的 12dp 呼吸位。
     val cards = listCardStyle()
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+    InlineCardGroup(Modifier.fillMaxWidth()) {
         ideas.forEachIndexed { index, idea ->
             WelcomeIdeaRow(
                 idea = idea,
@@ -496,129 +486,6 @@ private fun WelcomeIdeaRow(
             Icon(chevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         },
     )
-}
-
-@Composable
-private fun WelcomeWidgetView(
-    widget: WelcomeWidget,
-    locales: List<String>,
-    manager: ChatWelcomeManager,
-    shape: Shape,
-    modifier: Modifier = Modifier,
-) {
-    val strings = remember(widget.card.manifest, locales) { CardStrings(widget.card.manifest, locales) }
-    val root = widget.content
-    val values = remember(root) { mutableStateMapOf<String, Any?>().apply { root?.initialValues()?.let(::putAll) } }
-    val errors = remember(root) { mutableStateMapOf<String, String>() }
-    WelcomeWidgetFrame(
-        title = strings.widgetTitle,
-        description = strings.description,
-        loading = widget.loading,
-        shape = shape,
-        modifier = modifier,
-        onRefresh = {
-            errors.clear()
-            root?.errors(values)?.let(errors::putAll)
-            if (errors.isEmpty()) manager.refreshFromHeader(widget.card.manifest.name, root?.collect(values).orEmpty())
-        },
-    ) {
-        if (widget.error != null) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.chat_widget_failed), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-                Text(widget.error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        AnimatedVisibility(
-            visible = root != null,
-            enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 8 },
-            exit = fadeOut(tween(150)),
-        ) {
-            if (root != null) {
-                ui.feice.mochi.theme.MochiTheme {
-                    Box(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp)) {
-                        root.Render(
-                            values = values, errors = errors, pickerHost = null, readOnly = widget.loading,
-                            onAction = { action ->
-                                errors.clear()
-                                errors.putAll(root.errors(values))
-                                if (errors.isEmpty()) manager.refresh(widget.card.manifest.name, action, root.collect(values))
-                            },
-                            markdown = { text, modifier -> Box(modifier) { MarkdownBlock(text) } },
-                            image = { src, description, modifier ->
-                                AsyncImage(
-                                    model = if (src.startsWith("content://")) android.net.Uri.parse(src) else java.io.File(src),
-                                    contentDescription = description, modifier = modifier,
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-        if (root == null && !widget.loading && widget.error == null) {
-            Text(
-                stringResource(R.string.chat_widget_empty),
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** Native settings row above script content; the parent animates all height changes. */
-@Composable
-internal fun WelcomeWidgetFrame(
-    title: String,
-    description: String,
-    loading: Boolean,
-    shape: Shape,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    KkSurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Column(Modifier.fillMaxWidth().animateContentSize(tween(260))) {
-            MochiOptionItem(
-                onClick = null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RectangleShape,
-                backgroundColor = Color.Transparent,
-                leadingContent = {
-                    Icon(dashboard, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                },
-                titleContent = {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                supportingContent = description.takeIf { it.isNotBlank() }?.let {
-                    {
-                        Text(
-                            description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-                trailingContent = {
-                    WelcomeRefreshButton(stringResource(R.string.chat_widget_refresh), refresh, loading, onRefresh)
-                },
-            )
-            content()
-        }
-    }
 }
 
 /**

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -10,11 +12,31 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ui.feice.mochi.effect.overscroll.ProvideMochiOverscroll
+
+/**
+ * 全局的内容尺寸动画：曲线和 Mochi 的 `mochiAnimateHeight` 默认弹簧**逐项一致**
+ * （dampingRatio = 1f、stiffness = 380f、visibilityThreshold 0.5dp 那一档）。
+ *
+ * 用在「内容会变高/变矮」的容器上：行展开说明、开关切换后的副标题、输入框从单行长成多行、
+ * 底部面板正文变长……不再各页自己挑一套 spring。
+ */
+val KkContentSizeSpec = spring<IntSize>(
+    dampingRatio = 1f,
+    stiffness = 380f,
+    visibilityThreshold = IntSize(1, 1),
+)
+
+/** 见 [KkContentSizeSpec]：给任意容器加 Mochi 曲线的尺寸动画。 */
+fun Modifier.kkAnimateContentSize(
+    alignment: Alignment = Alignment.TopStart,
+): Modifier = animateContentSize(animationSpec = KkContentSizeSpec, alignment = alignment)
 
 /**
  * U4f1：替代 Khromia 的 `Modifier.fadingEdge`。用 DstIn 的 alpha 渐变把上下边缘擦淡，

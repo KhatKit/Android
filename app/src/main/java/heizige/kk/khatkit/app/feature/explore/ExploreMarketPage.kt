@@ -1,46 +1,22 @@
 package heizige.kk.khatkit.app.feature.explore
 
-import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
-import ui.feice.mochi.navigation.mochiNavSource
-import heizige.kk.khatkit.app.LocalKkNavController
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.shape.MochiRoundedRectangle
+import ui.feice.mochi.theme.MochiDefaults
+import ui.feice.mochi.theme.MochiTheme
 import android.icu.text.CompactDecimalFormat
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,49 +28,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.GlassPopup
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
-import heizige.kk.khatkit.app.core.ui.components.ui.popupBackdropBlur
-import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import heizige.kk.khatkit.uikit.mochi.MochiBadge
-import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
-import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
+import ui.feice.mochi.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,25 +47,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
@@ -145,9 +80,7 @@ import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.calendarMonth
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.code
@@ -176,16 +109,10 @@ import heizige.kk.khatkit.app.core.ui.icons.upload
 import heizige.kk.khatkit.app.core.ui.icons.vpnKey
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.ui.theme.ListCardStyle
-import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.uikit.mochi.Toast
-import heizige.kk.khatkit.uikit.mochi.pressBounce
-import heizige.kk.khatkit.uikit.mochi.AutoCornersShape
-import heizige.kk.khatkit.uikit.mochi.harmonizeWithPrimary
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.Semver
 import heizige.kk.khatkit.hub.CardIndexEntry
@@ -193,16 +120,56 @@ import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.uikit.KhatKitSecretsDialog
 
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.hooks.SearchExpandState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
+import ui.feice.mochi.basic.MochiActivityIndicator
+import ui.feice.mochi.basic.MochiCarousel
+import ui.feice.mochi.basic.MochiChip
+import ui.feice.mochi.basic.MochiEmptyState
+import ui.feice.mochi.basic.MochiSearchBar
+import ui.feice.mochi.basic.MochiChipGroup
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+import ui.feice.mochi.navigation.MochiTitleBar
 import kotlin.math.abs
+import ui.feice.mochi.basic.MochiButton
+import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiBadgedBox
+import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
+import ui.feice.mochi.basic.MochiDialogTextField
+import ui.feice.mochi.basic.MochiDialogDefaults
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.basic.MochiTextFieldDefaults
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSkeleton
+import ui.feice.mochi.list.MochiListButton
+import ui.feice.mochi.list.MochiListStatusChip
+import ui.feice.mochi.list.LocalMochiListItemSpacing
+import ui.feice.mochi.list.mochiListSection
+import ui.feice.mochi.list.rows
+import androidx.compose.foundation.layout.heightIn
+import ui.feice.mochi.effect.elastic.mochiPressDeform
+import ui.feice.mochi.theme.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
+import androidx.compose.ui.layout.layout
+import kotlinx.collections.immutable.persistentListOf
 
 private enum class ExploreFilter {
     ALL,
@@ -323,14 +290,14 @@ private fun TagChip(
     val accent = seed?.let(::roleAvatarColor)
     val background = containerColor
         ?: accent?.copy(alpha = 0.16f)
-        ?: MaterialTheme.colorScheme.surfaceContainerHigh
+        ?: MochiTheme.colorScheme.surfaceContainerHigh
     val foreground = contentColor
-        ?: accent?.let { lerp(it, MaterialTheme.colorScheme.onSurface, 0.45f) }
-        ?: MaterialTheme.colorScheme.onSurfaceVariant
+        ?: accent?.let { lerp(it, MochiTheme.colorScheme.onSurface, 0.45f) }
+        ?: MochiTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier
             .height(TagChipHeight)
-            .clip(CircleShape)
+            .clip(MochiTheme.shapes.full)
             .background(background)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 8.dp),
@@ -340,7 +307,7 @@ private fun TagChip(
         if (icon != null) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(13.dp), tint = foreground)
         }
-        Text(label, style = MaterialTheme.typography.labelSmall, color = foreground)
+        Text(label, style = MochiTheme.textStyles.labelSmall, color = foreground)
     }
 }
 
@@ -356,178 +323,31 @@ private fun TagChip(
  * 抽成一份的原因：两页的手感必须逐帧同形。此前二级页用的是常驻搜索药丸（Md3SearchBar），
  * 一级页是顶栏 morph，同一个市场两种搜索形态。
  */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * 页面顶栏：Mochi 的紧凑标题栏。
+ *
+ * 大标题与搜索框是正文首项（见 [ExploreMarketPage] 的 page_header），所以栏里的标题只在
+ * 内容滚上去之后渐显（[MochiScrollEdgeDefaults.progress]），滚回顶部时把位置让给正文大标题，
+ * 与 iOS 的 large title → 紧凑标题交接同一条规则。返回、「本地」入口都是栏里的 Mochi 按钮。
+ */
 @Composable
-private fun ExploreSearchTopBar(
+private fun MarketTopBar(
     title: String,
     subtitle: String?,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    expanded: Boolean,
-    onToggleSearch: () -> Unit,
-    onExitSearch: () -> Unit,
-    searchExpand: SearchExpandState,
-    scrollBehavior: TopAppBarScrollBehavior,
-    /** 搜索图标左边多出来的一枚动作（一级页是「本地」入口；二级页没有，传 null）。 */
-    extraAction: (@Composable () -> Unit)? = null,
+    listState: LazyListState,
+    actions: @Composable RowScope.() -> Unit,
 ) {
-    val navController = LocalNavController.current
-    val searchProgress = searchExpand.progress
-    val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
-    val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
-    // 与侧边栏一致：展开后自动聚焦，delay(100) 等动画起手再抢焦点，
-    // 直接 requestFocus() 会把入场动画顶掉。
-    val searchFocus = remember { FocusRequester() }
-    // MD3 的 LargeFlexibleTopAppBar 内部是 TwoRowsTopAppBar，同一个 title lambda
-    // 会被渲染两遍（收起态小标题行 + 展开态大标题行），两行按折叠进度交叉淡化，
-    // 任何时刻只有一行可见。FocusRequester 只能挂一份（挂两份时 requestFocus()
-    // 落在先注册的那份 = 收起态小标题行 = 看不见的那行），所以打开搜索时记下当时
-    // 可见的是哪一行，只把 requester 挂到那一行，光标才不会落进隐藏副本。
-    var focusLargeTitleRow by remember { mutableStateOf(true) }
-    LaunchedEffect(expanded) {
-        if (expanded) {
-            if (true) {
-                focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
-            }
-            delay(100)
-            searchFocus.requestFocus()
-        }
-    }
-
-    // 右上角 search↔close 图标：同一槽内交叉淡化，判定照 ChatPage ——
-    // !searching → search；searching && 有关键字 → close；搜索态但还没输入时
-    // 两边都不命中（槽留空）。
-    val searching = searchProgress.value >= 0.5f
-    val hasQuery = searching && query.isNotEmpty()
-    val searchAction: @Composable () -> Unit = {
-        MochiIconButton(
-            onClick = {
-                when {
-                    !searching -> onToggleSearch()
-                    hasQuery -> onQueryChange("")
-                    else -> onExitSearch()
-                }
-            },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (!searching) {
-                    Icon(
-                        imageVector = search,
-                        contentDescription = stringResource(R.string.explore_market_search),
-                        modifier = Modifier.graphicsLayer {
-                            alpha = 1f - searchProgress.value
-                        },
-                    )
-                }
-                if (hasQuery) {
-                    Icon(
-                        imageVector = close,
-                        contentDescription = stringResource(R.string.explore_market_clear_search),
-                        modifier = Modifier.graphicsLayer {
-                            alpha = searchProgress.value
-                        },
-                    )
-                }
-            }
-        }
-    }
-    // 返回箭头：搜索态点它先退出搜索，否则才退出页面
-    val navigationIcon: @Composable () -> Unit = {
-        BackButton(
-            onClick = {
-                if (searchProgress.value >= 0.5f) onExitSearch() else navController.popBackStack()
-            },
-        )
-    }
-
-        KedgePageLargeTopBar(
+    MochiTitleBar(
         title = title,
         subtitle = subtitle,
-        navigationIcon = navigationIcon,
-        actions = {
-            extraAction?.invoke()
-            searchAction()
-        },
-        scrollBehavior = scrollBehavior,
-        colors = CustomColors.topBarColors,
-        titleContent = {
-            // 标题与输入框共用同一个字阶：MD3 下不覆盖，沿用栏内行字阶
-            // （展开 displaySmall / 收起 titleLarge）；Miuix 自绘栏不下发行字阶，
-            // 仍取 title3。理由同 ChatPage：显式覆盖会把标题钉死在一档。
-            val titleStyle =                 LocalTextStyle.current
-        
-            // 同一份 lambda 会被两行各渲染一次，用行内标题字阶区分是哪一行
-            val isLargeTitleRow = LocalTextStyle.current.fontSize >
-                MaterialTheme.typography.titleLarge.fontSize
-            Box {
-                if (titleVisible) {
-                    Column(
-                        modifier = Modifier.graphicsLayer {
-                            alpha = 1f - searchProgress.value
-                            translationX = -searchProgress.value * 24.dp.toPx()
-                        },
-                    ) {
-                        Text(
-                            text = title,
-                            style = titleStyle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (subtitle != null) {
-                            Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = LocalContentColor.current.copy(0.65f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-                if (searchVisible) {
-                    // 用 searchVisible 而不是 expanded：布尔先变 false、
-                    // 进度还在补间时若已卸载输入框，退场动画会被腰斩。
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                            .graphicsLayer {
-                                alpha = searchProgress.value
-                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                            },
-                    ) {
-                        if (query.isBlank()) {
-                            Text(
-                                text = stringResource(R.string.history_page_search),
-                                style = titleStyle,
-                                maxLines = 1,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
-                        }
-                        BasicTextField(
-                            value = query,
-                            onValueChange = onQueryChange,
-                            singleLine = true,
-                            textStyle = titleStyle.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                // 只挂到打开搜索那一刻可见的那一行
-                                .then(
-                                    if (isLargeTitleRow == focusLargeTitleRow) {
-                                        Modifier.focusRequester(searchFocus)
-                                    } else {
-                                        Modifier
-                                    }
-                                ),
-                        )
-                    }
-                }
-            }
-        },
+        // 页面骨架统一录正文、下发来源；材质没开玻璃时它是 null
+        backdrop = LocalKkBarBackdrop.current,
+        navigationIcon = { BackButton() },
+        actions = { KkBarIconScope { actions() } },
+        titleProgress = MochiScrollEdgeDefaults.progress(listState),
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ExploreMarketPage() {
@@ -585,41 +405,8 @@ fun ExploreMarketPage() {
             filter = ExploreFilter.CARDS.name
         }
     }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val density = LocalDensity.current
-    // 悬浮筛选栏的钉线（px→dp）：折叠态顶栏的下沿。含义、算法与为什么必须这么做见
-    // MochiPageScaffold content 里的那段注释；marketList 里靠它把 stickyHeader 的钉线
-    // 从屏幕顶端挪到顶栏下面。初值 0 = 改动前的行为。
-    var filterPinLine by remember { mutableStateOf(0.dp) }
-    // 页面列表的滚动状态。唯一用途是判断悬浮筛选栏有没有「钉住」（见 marketList 里的
-    // [chipsDocked]）—— 原来 LazyColumn 用内部默认 state，页面拿不到这个信号。
-    // marketList 只有一处调用点（搜索结果也在同一个列表里），所以可以共用这一份。
+    // 列表滚动状态：顶栏标题的渐显读它。
     val marketListState = rememberLazyListState()
-
-    // 搜索展开进度：与 ChatPage 同一套（rememberSearchExpandState 内部接预测性返回，
-    // 系统返回手势跟手收起）。折叠态标题、展开态输入框、右上角 search↔close 图标
-    // 全部按这个进度交叉淡化。
-    val searchExpand = rememberSearchExpandState(
-        expanded = searchExpanded,
-        onCollapse = {
-            searchExpanded = false
-            // 收起时清空关键字，否则列表留在过滤态却没有可见输入框
-            if (query.isNotBlank()) {
-                query = ""
-                vm.refresh("")
-            }
-        },
-    )
-    // 页面底色 = surface（Miuix / MD3Exp 由 [CustomColors.pageContainerColor] 统一给）。
-    // 不能取 [CustomColors.topBarColors]：那是 surfaceContainer，比 surface 深一档，
-    // 页面底色会比正文暗、还跟顶栏同色，整页糊成一块。
-    // 悬浮筛选栏（stickyHeader）与整页必须同源同色，所以在这里算一次、两处共用。
-    val pageSurface = CustomColors.pageContainerColor
-    // 悬浮筛选栏「钉住之后」的底色 = 顶栏滚动后的容器色（= surfaceContainer；Miuix 下顶栏与
-    // 页面同色，这时两个值相等、切换是无效果的 no-op）。取 scrolledContainerColor 而不是
-    // containerColor：钉住就代表页面处于滚动中，要跟的正是顶栏此刻显示的那一档。
-    // 两个色都不透明，正文从下面滚过去始终被实色盖住。
-    val chipDockedSurface = CustomColors.topBarColors.scrolledContainerColor
 
     var secretCard by remember { mutableStateOf<String?>(null) }
     var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
@@ -744,29 +531,45 @@ fun ExploreMarketPage() {
         val showFeatured =
             cardsVisible && matches(featuredKeywords) &&
             (featuredCards.isNotEmpty() || featuredPending)
-        // 悬浮筛选栏的位号：它前面只有「精选轮播」这一项；没有轮播时它自己就是首项。
-        val chipItemIndex = if (showFeatured) 1 else 0
-        // 「钉住了」= 列表已滚过 chip 栏的自然位置。sticky 项一旦顶上钉线就停在那儿不动，
-        // 所以「它前面那一项完全滚出视口 / 它自己已经滚过 0」正好就是钉住的那一刻 ——
-        // 不写死任何高度，轮播高度、字体缩放、风格切换都不影响判定。
-        // 必须 derivedStateOf：滚动每帧都在改 firstVisibleItem*，直接读会让整页重组。
-        val chipsDocked by remember(marketListState, chipItemIndex) {
-            derivedStateOf {
-                val index = marketListState.firstVisibleItemIndex
-                index > chipItemIndex ||
-                    (index == chipItemIndex && marketListState.firstVisibleItemScrollOffset > 0)
-            }
-        }
         LazyColumn(
             state = marketListState,
-            // 列表整体下移「折叠态顶栏高度」，剩下的顶边距继续交给 contentPadding（见下）。
-            // 两者之和恒等于调用方给的 listPadding.top，所以正文位置与改动前逐像素相同；
-            // 真正变的只有 stickyHeader 的钉线 —— 从列表顶边（= 屏幕顶端、顶栏背后）
-            // 挪到了列表顶边 + 这段下移 = 顶栏下沿。见 [filterPinLine]。
-            modifier = listModifier.padding(top = filterPinLine),
-            contentPadding = listPadding - PaddingValues(top = filterPinLine),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            modifier = listModifier,
+            contentPadding = listPadding,
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
+            // 首项 = 页面大标题 + 一行说明 + Mochi 搜索框：顶栏的紧凑标题只在滚上去后渐显，
+            // 静止时由这一项承担「探索」这个一级标题。
+            item(key = "page_header") {
+                Column(
+                    modifier = sectionPad,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.explore_market_title),
+                        style = MochiTheme.textStyles.largeTitle,
+                        color = MochiTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.explore_market_subtitle),
+                        style = MochiTheme.textStyles.subhead,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
+                    )
+                    MochiSearchBar(
+                        query = query,
+                        onQueryChange = { new ->
+                            if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
+                            query = new
+                        },
+                        onSearch = { vm.refresh(it) },
+                        onCancel = {
+                            query = ""
+                            vm.refresh("")
+                        },
+                        placeholder = stringResource(R.string.explore_market_search),
+                    )
+                }
+            }
+
             val skillsVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.SKILLS
             val mcpVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.MCP
             val bundlesVisible = selectedFilter == ExploreFilter.ALL || selectedFilter == ExploreFilter.BUNDLES
@@ -824,18 +627,18 @@ fun ExploreMarketPage() {
                         // keyline 策略吃（决定相邻卡露多少），纵向落到 Pager 的 contentPadding，
                         // 卡本体高度 208dp 不变。下边不再留白 —— 下面就是筛选栏，再垫 16dp
                         // 会让 chip 栏的上下边距比两侧大一倍，看着孤零零地吊在中间。
-                        val carouselState = rememberCarouselState { featuredCards.size }
-                        HorizontalMultiBrowseCarousel(
-                            state = carouselState,
-                            preferredItemWidth = 264.dp,
-                            itemSpacing = 12.dp,
-                            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp),
+                        // 精选轮播换成 Mochi 自己的翻页轮播：露出相邻卡、圆角、翻页指示器、
+                        // 越界回弹都由组件给，页面只提供每页的卡面。
+                        MochiCarousel(
+                            pageCount = featuredCards.size,
+                            height = 208.dp,
                             modifier = Modifier.fillMaxWidth(),
+                            spacing = 12.dp,
+                            cornerRadius = FeaturedCorner,
                         ) { page ->
                             Box(
                                 modifier = Modifier
                                     .height(208.dp)
-                                    .maskClip(AutoCornersShape(ExploreShape.carousel))
                             ) {
                                 FeaturedCard(
                                     entry = featuredCards[page],
@@ -873,45 +676,19 @@ fun ExploreMarketPage() {
             // 2. 筛选：内容类型 + 卡片筛选合并成同一条 chip 轨道（原本是上下两行 + 一个
             // 「卡片筛选」小标题）。两行各有一个「全部」，看着就是两套并列的筛选；合并后
             // 只剩一条轨道、一个「全部」，行内不再有分组标题。
-            //
-            // 悬浮栏：stickyHeader 把这条轨道钉住，正文从它下面滚过去。钉在哪条线上由
-            // [filterPinLine] 决定（= 折叠态顶栏下沿），不是列表默认的「屏幕顶端」——
-            // 后者在顶栏背后，等于没悬浮。以前它是普通 item，往上滚就被顶栏盖掉、
-            // 滑出屏幕，想换筛选条件得先滚回顶部。底铺页面底色，滚过去的内容被实色盖住。
-            //
-            // 底色跟着「钉没钉住」走（[chipsDocked]）：一钉住就换成顶栏色 [chipDockedSurface]，
-            // 和上面的顶栏连成一条实色带；滚回列表顶部再变回页面底色 [pageSurface]。
-            // 用 animateColorAsState 而不是硬切：两色只差一档，渐变才不显跳。
-            stickyHeader(key = "filter_chips") {
-                val chipBarSurface by animateColorAsState(
-                    targetValue = if (chipsDocked) chipDockedSurface else pageSurface,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "filter_chip_bar_surface",
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(chipBarSurface)
-                        .padding(vertical = 4.dp),
-                ) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        // 边距与轮播同一套（轮播卡也是 16dp 起）。用 contentPadding 而不是
-                        // 外层 padding：chip 能像卡片一样滑到屏幕边缘，不被盒子夹断。
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(MarketChip.entries, key = { it.name }) { chip ->
-                            MarketFilterChip(
-                                selected = chip == selectedChip,
-                                label = stringResource(chip.labelRes),
-                                icon = chip.icon,
-                                onClick = {
-                                    filter = chip.filter.name
-                                    cardFilter = chip.cardFilter.name
-                                },
-                            )
-                        }
+            // 轨道是 [MochiChipGroup]：横向滚动、左右 16dp 起止，chip 能滑到屏幕边缘。
+            item(key = "filter_chips") {
+                MochiChipGroup(modifier = Modifier.fillMaxWidth()) {
+                    MarketChip.entries.forEach { chip ->
+                        MarketFilterChip(
+                            selected = chip == selectedChip,
+                            label = stringResource(chip.labelRes),
+                            icon = chip.icon,
+                            onClick = {
+                                filter = chip.filter.name
+                                cardFilter = chip.cardFilter.name
+                            },
+                        )
                     }
                 }
             }
@@ -924,7 +701,11 @@ fun ExploreMarketPage() {
             // 已有缓存时刷新不铺骨架，交给上面的下拉指示器，避免每次刷新都把列表整块抽掉。
             if (cardsVisible && cardsPending) {
                 item(key = "cards_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 3) }
+                    SectionSkeleton(
+                        rows = 3,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_chip_cards),
+                    )
                 }
             }
 
@@ -942,15 +723,12 @@ fun ExploreMarketPage() {
                     val preview = cardsMatched.take(CARD_PREVIEW_COUNT)
                     // 还有剩的才给入口：卡不多时点进去是个和这页一样的列表。
                     val remaining = cardsMatched.size - preview.size
-                    MarketContentSwap(
-                        key = preview.joinToString(",") { it.name } + "|" + remaining,
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_chip_cards),
                     ) {
-                        GroupContainer(
-                            count = preview.size + if (remaining > 0) 1 else 0,
-                        ) { index, shape ->
-                            if (index < preview.size) {
-                                val entry = preview[index]
+                        preview.forEach { entry ->
+                            key(entry.name) {
                                 CompactCard(
                                     entry = entry,
                                     installedVersion = installed[entry.name],
@@ -972,16 +750,15 @@ fun ExploreMarketPage() {
                                             }
                                         }
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = shape,
-                                )
-                            } else {
-                                MarketMoreRow(
-                                    label = stringResource(R.string.explore_market_view_all_cards_count, cardsMatched.size),
-                                    onClick = { navController.navigate(Screen.ExploreCards(query)) },
-                                    shape = shape,
                                 )
                             }
+                        }
+                        if (remaining > 0) {
+                            MochiListRow(
+                                title = stringResource(R.string.explore_market_view_all_cards_count, cardsMatched.size),
+                                onClick = { navController.navigate(Screen.ExploreCards(query)) },
+                                chevron = true,
+                            )
                         }
                     }
                 }
@@ -991,22 +768,19 @@ fun ExploreMarketPage() {
             // 复用资源行动作（安装走 OCR2 安装器、已装显示大小与卸载）；空/失败时整组不渲染。
             if (extensionItems.isNotEmpty()) {
                 item(key = "ocr_extensions") {
-                    MarketContentSwap(
-                        key = extensionItems.joinToString(",") { it.slug + it.version },
-                        modifier = swapIn(sectionPad),
-                    ) {
-                        GroupContainer(count = extensionItems.size) { index, shape ->
-                            val entry = extensionItems[index]
-                            ResourceRow(
-                                entry = entry,
-                                busy = busyResource == entry.slug,
-                                onInstall = { installResource(entry) },
-                                onClick = { installResource(entry) },
-                                onUninstall = { vm.uninstallOcrPlugin() },
-                                sizeLabel = if (entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
-                                installed = ocrPlugin != null,
-                                shape = shape,
-                            )
+                    MochiListSection(modifier = swapIn(sectionPad), header = "原生插件") {
+                        extensionItems.forEach { entry ->
+                            key(entry.slug) {
+                                ResourceRow(
+                                    entry = entry,
+                                    busy = busyResource == entry.slug,
+                                    onInstall = { installResource(entry) },
+                                    onClick = { installResource(entry) },
+                                    onUninstall = { vm.uninstallOcrPlugin() },
+                                    sizeLabel = if (entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                    installed = ocrPlugin != null,
+                                )
+                            }
                         }
                     }
                 }
@@ -1015,30 +789,32 @@ fun ExploreMarketPage() {
             // 4. 技能合集：服务端把一组 SKILL.md 打包下发，装完直接进本机技能库。
             if (skillsVisible && skillPacksPending) {
                 item(key = "skill_packs_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 3) }
+                    SectionSkeleton(
+                        rows = 3,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_skill_packs),
+                    )
                 }
             }
 
             if (skillsVisible && visibleSkillPacks.isNotEmpty()) {
                 item(key = "skill_packs") {
-                    MarketContentSwap(
-                        key = visibleSkillPacks.joinToString(",") { it.slug },
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_skill_packs),
                     ) {
-                        GroupContainer(
-                            count = visibleSkillPacks.size,
-                        ) { index, shape ->
-                            val entry = visibleSkillPacks[index]
-                            ResourceRow(
-                                entry = entry,
-                                busy = busyResource == entry.slug,
-                                onInstall = { installResource(entry) },
-                                onClick = { resourceTarget = entry },
-                                onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
-                                sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
-                                installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
-                                shape = shape,
-                            )
+                        visibleSkillPacks.forEach { entry ->
+                            key(entry.slug) {
+                                ResourceRow(
+                                    entry = entry,
+                                    busy = busyResource == entry.slug,
+                                    onInstall = { installResource(entry) },
+                                    onClick = { resourceTarget = entry },
+                                    onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
+                                    sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                    installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
+                                )
+                            }
                         }
                     }
                 }
@@ -1047,30 +823,32 @@ fun ExploreMarketPage() {
             // 5. MCP 服务：一条目 = 一组远端 MCP 端点，装进设置并挂到当前助手。
             if (mcpVisible && mcpMarketPending) {
                 item(key = "mcp_market_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 3) }
+                    SectionSkeleton(
+                        rows = 3,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_mcp_services),
+                    )
                 }
             }
 
             if (mcpVisible && visibleMcpServers.isNotEmpty()) {
                 item(key = "mcp_market") {
-                    MarketContentSwap(
-                        key = visibleMcpServers.joinToString(",") { it.slug },
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_mcp_services),
                     ) {
-                        GroupContainer(
-                            count = visibleMcpServers.size,
-                        ) { index, shape ->
-                            val entry = visibleMcpServers[index]
-                            ResourceRow(
-                                entry = entry,
-                                installed = resourceInstalled(entry),
-                                busy = busyResource == entry.slug,
-                                needsConfig = resourceNeedsConfig(entry),
-                                onInstall = { installResource(entry) },
-                                onConfigure = { configureMcp(entry) },
-                                onClick = { resourceTarget = entry },
-                                shape = shape,
-                            )
+                        visibleMcpServers.forEach { entry ->
+                            key(entry.slug) {
+                                ResourceRow(
+                                    entry = entry,
+                                    installed = resourceInstalled(entry),
+                                    busy = busyResource == entry.slug,
+                                    needsConfig = resourceNeedsConfig(entry),
+                                    onInstall = { installResource(entry) },
+                                    onConfigure = { configureMcp(entry) },
+                                    onClick = { resourceTarget = entry },
+                                )
+                            }
                         }
                     }
                 }
@@ -1079,30 +857,32 @@ fun ExploreMarketPage() {
             // 6. 合集包：技能 + MCP + 卡片打在一起，一次装齐。
             if (bundlesVisible && bundlesPending) {
                 item(key = "bundles_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 2) }
+                    SectionSkeleton(
+                        rows = 2,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_bundles),
+                    )
                 }
             }
 
             if (bundlesVisible && visibleBundles.isNotEmpty()) {
                 item(key = "bundles") {
-                    MarketContentSwap(
-                        key = visibleBundles.joinToString(",") { it.slug },
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_bundles),
                     ) {
-                        GroupContainer(
-                            count = visibleBundles.size,
-                        ) { index, shape ->
-                            val entry = visibleBundles[index]
-                            ResourceRow(
-                                entry = entry,
-                                busy = busyResource == entry.slug,
-                                onInstall = { installResource(entry) },
-                                onClick = { resourceTarget = entry },
-                                onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
-                                sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
-                                installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
-                                shape = shape,
-                            )
+                        visibleBundles.forEach { entry ->
+                            key(entry.slug) {
+                                ResourceRow(
+                                    entry = entry,
+                                    busy = busyResource == entry.slug,
+                                    onInstall = { installResource(entry) },
+                                    onClick = { resourceTarget = entry },
+                                    onUninstall = if (entry.kind == "dependency") ({ vm.uninstallOcrPlugin() }) else null,
+                                    sizeLabel = if (entry.kind == "dependency" && entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
+                                    installed = if (entry.kind == "dependency") ocrPlugin != null else resourceInstalled(entry),
+                                )
+                            }
                         }
                     }
                 }
@@ -1110,27 +890,29 @@ fun ExploreMarketPage() {
 
             if (modelsVisible && modelsPending) {
                 item(key = "models_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 3) }
+                    SectionSkeleton(
+                        rows = 3,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_models),
+                    )
                 }
             }
 
             if (modelsVisible && visibleModels.isNotEmpty()) {
                 item(key = "models") {
                     val preview = visibleModels.take(8)
-                    MarketContentSwap(
-                        key = preview.joinToString(",") { it.first + "/" + it.second.modelId },
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_models),
                     ) {
-                        GroupContainer(
-                            count = preview.size,
-                        ) { index, shape ->
-                            val (providerName, model) = preview[index]
-                            ModelRow(
-                                providerName = providerName,
-                                model = model,
-                                onClick = { navController.navigate(Screen.SettingModels) },
-                                shape = shape,
-                            )
+                        preview.forEach { (providerName, model) ->
+                            key(providerName, model.modelId) {
+                                ModelRow(
+                                    providerName = providerName,
+                                    model = model,
+                                    onClick = { navController.navigate(Screen.SettingModels) },
+                                )
+                            }
                         }
                     }
                 }
@@ -1138,7 +920,11 @@ fun ExploreMarketPage() {
 
             if (cardsVisible && depsPending) {
                 item(key = "dependency_cache_skeleton") {
-                    Box(modifier = swapIn(sectionPad)) { SectionSkeleton(rows = 2) }
+                    SectionSkeleton(
+                        rows = 2,
+                        modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_dependencies),
+                    )
                 }
             }
 
@@ -1146,38 +932,32 @@ fun ExploreMarketPage() {
             // 清理入口在「本地」二级页的同一分区（一级页不再有分区标题与清空按钮）。
             if (cardsVisible && dependencies.isNotEmpty()) {
                 item(key = "dependency_cache") {
-                    MarketContentSwap(
-                        key = dependencies.joinToString(",") { it.name + it.version },
+                    MochiListSection(
                         modifier = swapIn(sectionPad),
+                        header = stringResource(R.string.explore_market_section_dependencies),
                     ) {
-                        GroupContainer(
-                            count = dependencies.size,
-                        ) { index, shape ->
-                            val dependency = dependencies[index]
-                            DependencyRow(
-                                name = dependency.name,
-                                version = dependency.version,
-                                cached = dependency,
-                                shape = shape,
-                                onDelete = {
-                                    vm.deleteDependency(dependency) { ok ->
-                                        scope.launch {
-                                            Toast.show(
-                                                if (ok) {
-                                                    toastDependencyDeleted.format(dependency.name, dependency.version)
-                                                    
-                                                    
-                                                    
-                                                    
-                                                } else {
-                                                    toastDeleteFailed
-                                                },
-                                                !ok,
-                                            )
+                        dependencies.forEach { dependency ->
+                            key(dependency.name, dependency.version) {
+                                DependencyRow(
+                                    name = dependency.name,
+                                    version = dependency.version,
+                                    cached = dependency,
+                                    onDelete = {
+                                        vm.deleteDependency(dependency) { ok ->
+                                            scope.launch {
+                                                Toast.show(
+                                                    if (ok) {
+                                                        toastDependencyDeleted.format(dependency.name, dependency.version)
+                                                    } else {
+                                                        toastDeleteFailed
+                                                    },
+                                                    !ok,
+                                                )
+                                            }
                                         }
-                                    }
-                                },
-                            )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -1217,101 +997,35 @@ fun ExploreMarketPage() {
         }
     }
 
-    // 外层 Box：item 详情是玻璃 popup，它必须和「被模糊的页面」平级、并且画在后者上面，
-    // 所以整页（Scaffold + 所有浮层）收进同一个 Box 里。模糊只挂在 Scaffold 自己的
-    // modifier 上（见下面 [popupBackdropBlur]），popup 保持清晰。
+    // 外层 Box：整页（Scaffold + 所有浮层）收进同一个容器里。详情走 MochiSheet，遮罩由面板自己给。
     Box(modifier = Modifier.fillMaxSize()) {
-    MochiPageScaffold(
-        // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
-        // morph 出输入框（逻辑照 ChatPage）。所以这里只有一行大标题栏。
-        topBar = {
-            // 「本地」入口：一级页唯一一条本机内容入口，形态是一枚图标按钮（原先是一整行
-            // 卡片列表项）。角标报本机卡片数（市场装的 + 仅本机的，与「本地」页顶部分法一致），
-            // 0 张时不挂角标 —— 写法照 McpPickerButton。
-            val localAction: @Composable () -> Unit = {
-                MochiBadgedBox(
-                    badge = {
-                        if (installed.isNotEmpty()) {
-                            MochiBadge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                                Text(text = installed.size.toString())
+        MochiPageScaffold(
+            topBar = {
+                // 「本地」入口：一级页唯一一条本机内容入口（图标按钮 + 本机卡片数角标）。
+                MarketTopBar(
+                    title = stringResource(R.string.explore_market_title),
+                    subtitle = stringResource(R.string.explore_market_subtitle),
+                    listState = marketListState,
+                    actions = {
+                        MochiBadgedBox(
+                            badge = installed.size.takeIf { it > 0 }?.toString(),
+                            color = MochiTheme.colorScheme.tertiaryContainer,
+                            contentColor = MochiTheme.colorScheme.onTertiaryContainer,
+                        ) {
+                            MochiBarIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
+                                Icon(
+                                    imageVector = folderManaged,
+                                    contentDescription = stringResource(R.string.explore_market_local_page_title),
+                                    modifier = Modifier.size(22.dp),
+                                    tint = MochiTheme.colorScheme.onSurface,
+                                )
                             }
                         }
                     },
-                ) {
-                    MochiIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
-                        Icon(
-                            imageVector = folderManaged,
-                            contentDescription = stringResource(R.string.explore_market_local_page_title),
-                        )
-                    }
-                }
-            }
-            // 顶栏不再常驻搜索药丸：入口是右上角那个搜索图标，点开后才在**标题槽位**里
-            // morph 出输入框（逻辑照 ChatPage，两页共用同一个 [ExploreSearchTopBar]）。
-            ExploreSearchTopBar(
-                title = stringResource(R.string.explore_market_title),
-                subtitle = stringResource(R.string.explore_market_subtitle),
-                query = query,
-                onQueryChange = { new ->
-                    // 清空时把远端结果集刷回全量，与原来的清除按钮一致
-                    if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
-                    query = new
-                },
-                expanded = searchExpanded,
-                onToggleSearch = { searchExpanded = true },
-                onExitSearch = { searchExpanded = false },
-                searchExpand = searchExpand,
-                scrollBehavior = scrollBehavior,
-                extraAction = localAction,
-            )
-        },
-        // Miuix 下 MochiPageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
-        // 滚动增量（整页滑不动），所以按风格取。
-        // 详情 popup 打开时整页高斯模糊：模糊挂在 Scaffold 上，popup 是它的兄弟节点。
-        modifier = activeNestedScroll(scrollBehavior)
-            .popupBackdropBlur(selectedCard != null || resourceTarget != null),
-        // 页面底色见上面算好的 [pageSurface]：悬浮筛选栏与整页必须同色，只能有一份来源。
-        containerColor = pageSurface,
-    
-        md3ScrollBehavior = scrollBehavior,
-    ) { innerPadding ->
-        // 悬浮筛选栏钉在哪条线上 —— 这是「chip 到底悬不悬浮」的全部机关。
-        //
-        // stickyHeader 只会把条目钉在 LazyColumn **自己**的顶边（foundation
-        // LazyLayoutStickyItems.kt:100 把钉住的偏移算成 `-beforeContentPadding`，再加回
-        // `visualItemOffset = topPadding`，正好落在列表顶边），而 Scaffold 的正文是从
-        // (0,0) 铺满整屏的（material3 Scaffold.kt:281：`bodyContentPlaceables.place(0, 0)`），
-        // 顶栏画在它上面。于是「把 innerPadding 全交给 contentPadding」这种最自然的写法，
-        // 钉线落在屏幕顶端 —— 正好在顶栏背后，看起来就是「chip 压根没悬浮，一滚就没了」。
-        //
-        // 修法：列表整体下移一个「折叠态顶栏高度」（marketList 里那句
-        // `listPadding - PaddingValues(top = filterPinLine)`），剩下的顶边距仍交给
-        // contentPadding。正文位置 = 下移量 + contentPadding.top，两者之和不变，所以版面
-        // 逐像素不动；变的只是列表顶边，钉线跟着落到顶栏下沿。
-        //
-        // 折叠态高度 = 展开高度 + heightOffsetLimit，展开高度 = 当前高度 - heightOffset，
-        // 于是只用这两个现成的量，不写死 64dp / 88dp：拖动顶栏时 current 与 heightOffset
-        // 反向等量变化，结果是个常量（本就该是常量）。heightOffset 每帧都在动，所以放在
-        // LaunchedEffect 里读 —— 组合期读它会让整页跟着每一次滚动重组。
-        LaunchedEffect(innerPadding) {
-            val offset: Float
-            val limit: Float
-            offset = scrollBehavior.state.heightOffset
-            limit = scrollBehavior.state.heightOffsetLimit
-            // limit 没被顶栏量过时是 -Float.MAX_VALUE（TopAppBarState 的初值）：
-            // 那种情况下退回 0，也就是改动前的行为，绝不把列表凭空推下去。
-            val pinPx = if (limit.isFinite() && limit < 0f && limit > -10_000f) {
-                (with(density) { innerPadding.calculateTopPadding().toPx() } - offset + limit)
-                    .coerceAtLeast(0f)
-            } else {
-                0f
-            }
-            val pin = with(density) { pinPx.toDp() }
-            if (pin != filterPinLine) filterPinLine = pin
-        }
-        Box(modifier = Modifier.fillMaxSize()) {
-            // 搜索结果就在这同一个列表里（marketList 本来就按 query 过滤各分区），
-            // 不像以前那样把正文抽掉、搬进搜索框的全屏槽。
+                )
+            },
+            containerColor = MochiDefaults.groupedBackground(),
+        ) { innerPadding ->
             MochiPullToRefreshBox(
                 isRefreshing = loading,
                 onRefresh = { vm.refresh(query) },
@@ -1319,12 +1033,10 @@ fun ExploreMarketPage() {
             ) {
                 marketList(
                     Modifier.fillMaxSize(),
-                    // 只留纵向：横向 16dp 下沉到各分区自己身上，轮播才能铺满整屏。
                     innerPadding + PaddingValues(top = 8.dp, bottom = 32.dp),
                 )
             }
         }
-    }
 
     // 卡片详情弹层 + 发布/改进对话框：一级页与二级卡片市场页共用同一份实现
     // （两页都能点开卡片，动作语义必须完全一致）。
@@ -1390,27 +1102,32 @@ fun ExploreMarketPage() {
     // 轮播卡「已安装」药丸走卸载，删本机文件不可逆 → 一律先过确认框。
     // 详情抽屉里的「卸载」保持原样（那里已经是二级页面里的显式两段操作，不再加一层）。
     uninstallTarget?.let { target ->
-        RikkaConfirmDialog(
-            show = true,
+        MochiDialog(
+            visible = true,
+            onDismissRequest = { uninstallTarget = null },
             title = stringResource(R.string.explore_market_uninstall_title, target.name),
-            confirmText = stringResource(R.string.explore_market_uninstall),
-            dismissText = stringResource(R.string.explore_market_cancel),
-            onConfirm = {
-                uninstallTarget = null
-                vm.uninstall(target.name) { ok ->
-                    scope.launch { Toast.show(if (ok) toastUninstalledNamed.format(target.name) else toastUninstallFailed, !ok) }
-                }
-            },
-            onDismiss = { uninstallTarget = null },
-        ) {
-            Text(
-                stringResource(
-                    R.string.explore_market_uninstall_message,
-                    target.name,
-                    installed[target.name] ?: target.version,
+            message = stringResource(
+                R.string.explore_market_uninstall_message,
+                target.name,
+                installed[target.name] ?: target.version,
+            ),
+            actions = persistentListOf(
+                MochiDialogAction(
+                    label = stringResource(R.string.explore_market_cancel),
+                    role = MochiDialogActionRole.Cancel,
                 ),
-            )
-        }
+                MochiDialogAction(
+                    label = stringResource(R.string.explore_market_uninstall),
+                    role = MochiDialogActionRole.Destructive,
+                    onClick = {
+                        uninstallTarget = null
+                        vm.uninstall(target.name) { ok ->
+                            scope.launch { Toast.show(if (ok) toastUninstalledNamed.format(target.name) else toastUninstallFailed, !ok) }
+                        }
+                    },
+                ),
+            ),
+        )
     }
     }
 }
@@ -1634,8 +1351,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val activated by vm.activated.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val busyCard by vm.busyCard.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val density = LocalDensity.current
 
     // 行尾下载/更新 icon button 的 Toast：模板串在组合期取出，协程里只 format。
     val scope = rememberCoroutineScope()
@@ -1678,9 +1393,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
     val totalCount = remember(cards, query, triggerSearchLabels, hubInfo) {
         cards.count { it.matchesQuery(query, triggerSearchLabels, hubInfo[it.name]?.license) }
     }
-    // 列表卡片形状与设置页同一份口径（见 [listCardStyle]）。
-    val cardStyle = listCardStyle()
-
     // 搜索态：与一级页 / ChatPage 同一套 —— 入口是顶栏右上角那枚搜索图标，点开后
     // **标题槽位** morph 成输入框（原先这一页是常驻搜索药丸，已去掉）。
     // 一级页带词进来（[initialQuery]）时直接以展开态入场，否则词躺在看不见的输入框里、
@@ -1697,57 +1409,21 @@ fun ExploreCardsPage(initialQuery: String = "") {
             }
         },
     )
-    // 悬浮筛选栏的钉线（px→dp = 折叠态顶栏下沿）。算法与一级页逐字相同，那边有完整推导；
-    // 两页的 chip 轨道必须钉在同一条线上，否则二级页看着就是「chip 一滚就没了」。
-    var filterPinLine by remember { mutableStateOf(0.dp) }
-    // 列表滚动状态提到页面这一层：sticky 的 chip 栏钉没钉住，要看列表滚到哪了。
+    // 列表滚动状态提到页面这一层：顶栏标题渐显、标签搜索后回顶都要用它。
     val listState = rememberLazyListState()
-    // 页面底色 / 钉住后的底色：与一级页同源（悬浮栏与正文必须同色，只能有一份来源）。
-    val pageSurface = CustomColors.pageContainerColor
-    val chipDockedSurface = CustomColors.topBarColors.scrolledContainerColor
 
-    // 同声明的玻璃 popup 宿主：整页收进 Box，模糊只挂在 Scaffold 上。
     Box(modifier = Modifier.fillMaxSize()) {
     MochiPageScaffold(
         topBar = {
-            ExploreSearchTopBar(
+            MarketTopBar(
                 title = stringResource(R.string.explore_market_cards_page_title),
                 subtitle = null,
-                query = query,
-                onQueryChange = { new ->
-                    // 清空时把远端结果集刷回全量，与一级页一致
-                    if (query.isNotBlank() && new.isEmpty()) vm.refresh("")
-                    query = new
-                },
-                expanded = searchExpanded,
-                onToggleSearch = { searchExpanded = true },
-                onExitSearch = { searchExpanded = false },
-                searchExpand = searchExpand,
-                scrollBehavior = scrollBehavior,
+                listState = listState,
+                actions = {},
             )
         },
-        modifier = activeNestedScroll(scrollBehavior)
-            .popupBackdropBlur(selectedCard != null),
-        containerColor = pageSurface,
-        md3ScrollBehavior = scrollBehavior,
+        containerColor = MochiDefaults.groupedBackground(),
     ) { innerPadding ->
-        // 钉线 = 折叠态顶栏下沿：stickyHeader 只钉在 LazyColumn 自己的顶边上，
-        // 不下移就钉在屏幕顶端（正好在顶栏背后）。推导见一级页同名那段注释。
-        LaunchedEffect(innerPadding) {
-            val offset: Float
-            val limit: Float
-            offset = scrollBehavior.state.heightOffset
-            limit = scrollBehavior.state.heightOffsetLimit
-            val pinPx = if (limit.isFinite() && limit < 0f && limit > -10_000f) {
-                (with(density) { innerPadding.calculateTopPadding().toPx() } - offset + limit)
-                    .coerceAtLeast(0f)
-            } else {
-                0f
-            }
-            val pin = with(density) { pinPx.toDp() }
-            if (pin != filterPinLine) filterPinLine = pin
-        }
-
         cardsList(
             matched = matched,
             totalCount = totalCount,
@@ -1760,7 +1436,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
             cardFilter = cardFilter,
             onCardFilter = { cardFilter = it },
             selectedCardFilter = selectedCardFilter,
-            cardStyle = cardStyle,
             onSelectCard = { selectedCard = it },
             onInstallCard = { entry ->
                 vm.install(entry) { ok ->
@@ -1779,9 +1454,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
             onClearQuery = { query = "" },
             onReload = { vm.refresh("") },
             listState = listState,
-            pinLine = filterPinLine,
-            pageSurface = pageSurface,
-            dockedSurface = chipDockedSurface,
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(top = 8.dp, bottom = 32.dp),
         )
@@ -1816,19 +1488,13 @@ fun ExploreCardsPage(initialQuery: String = "") {
 }
 
 /**
- * 二级「卡片市场」的正文：悬浮筛选轨道 + 卡片列表。
+ * 二级「卡片市场」的正文：筛选轨道 + 卡片列表。
  *
- * 形态与一级页的卡片区一致 —— 一行一张全宽卡、每行前置 extension 图标自报类型，
- * 筛选轨道用带图标的 [MarketFilterChip]，卡片总数并进「全部 N」那一格，
- * 页面里不再有分区标题或「共 N 张 · 已安装 N」这类说明行。
+ * 形态与一级页的卡片区一致 —— 一行一张卡、每行前置 extension 图标自报类型，
+ * 筛选轨道用带图标的 [MarketFilterChip]，卡片总数并进「全部 N」那一格。
  *
- * chip 栏是 [stickyHeader]：滚过它的自然位置后就钉在 [pinLine]（折叠态顶栏下沿）上，
- * 正文从它下面滚过去，底色跟着「钉没钉住」在两档之间渐变 —— 与一级页同一条钉线。
- *
- * 卡片逐项挂 [swapIn]（= `Modifier.animateItem`，上游 ImageToolbox 列表同款，
- * 见其 `ScreenPreferenceSelection.kt` / `HelpListContent.kt` 的逐项 `animateItem()`）：
- * 搜索词或筛选一变，出列表的卡淡出、进列表的卡淡入（延后 40ms）、留下来的卡用弹簧
- * 滑到新位置，而不是整块列表硬切。
+ * 卡片走 [mochiListSection]：几十到几百张卡连成一张 Mochi 分组卡片，但每一行仍是懒加载列表的
+ * 一项，滑到哪组合到哪。行上不挂逐项进出场动画（快速滚动时条目持续进出视口，逐项动画会拖帧）。
  */
 @Composable
 private fun cardsList(
@@ -1843,61 +1509,30 @@ private fun cardsList(
     cardFilter: String,
     onCardFilter: (String) -> Unit,
     selectedCardFilter: CardFilter,
-    cardStyle: ListCardStyle,
     onSelectCard: (CardIndexEntry) -> Unit,
     onInstallCard: (CardIndexEntry) -> Unit,
     onUpdateCard: (CardIndexEntry) -> Unit,
     onClearQuery: () -> Unit,
     onReload: () -> Unit,
     listState: LazyListState,
-    pinLine: Dp,
-    pageSurface: Color,
-    dockedSurface: Color,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    // 「钉住了」= 列表已滚过 chip 栏的自然位置。chip 栏在这一页是首项，所以位号恒为 0：
-    // 它自己只要滚过 0 就说明已经顶在钉线上。不写死任何高度，字体缩放/风格切换都不影响。
-    val chipsDocked by remember(listState) {
-        derivedStateOf {
-            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
-        }
-    }
-    // 整页只剩「卡片连成一条」这一种分组：形状按卡在**结果集**里的位号算（首项圆上边、
-    // 末项圆下边、中间四角小圆），项间距取 [ListCardStyle.gap] —— 与一级页 [GroupContainer]
-    // 的卡片栈逐像素同款。二级页此前一张卡一格、每格整张圆角 + 12dp 间距，同一批卡在两个
-    // 页面是两种卡面，现在两边共用一份口径。
-    LazyColumn(
-        state = listState,
-        // 列表整体下移一个「折叠态顶栏高度」：sticky 只钉在 LazyColumn 自己的顶边上，
-        // 不下移就钉在屏幕顶端（顶栏背后）。正文位置 = 下移量 + contentPadding.top，
-        // 两者之和不变，所以版面不动，变的只有钉线。
-        modifier = modifier.padding(top = pinLine),
-        contentPadding = contentPadding - PaddingValues(top = pinLine),
-        verticalArrangement = Arrangement.spacedBy(cardStyle.gap),
-    ) {
-        stickyHeader(key = "card_filters") {
-            val chipBarSurface by animateColorAsState(
-                targetValue = if (chipsDocked) dockedSurface else pageSurface,
-                animationSpec = tween(durationMillis = 200),
-                label = "card_filter_chip_bar_surface",
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(chipBarSurface)
-                    // 卡与卡的间距已收到 [ListCardStyle.gap]，chip 栏与第一张卡之间留回
-                    // 一段呼吸位（底色跟着 [chipBarSurface]，钉住时下半截是这个实色）。
-                    .padding(top = 4.dp, bottom = 14.dp),
-            ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    // 边距用 contentPadding 而不是外层 padding：chip 能像卡片一样滑到
-                    // 屏幕边缘，不被盒子夹断。
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    // 列表项之间不留间距：分组卡片的行要首尾相接；筛选轨道与卡片之间的距离由轨道自己的下边距给。
+    CompositionLocalProvider(LocalMochiListItemSpacing provides 0.dp) {
+        LazyColumn(
+            state = listState,
+            modifier = modifier,
+            contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),
+        ) {
+            item(key = "card_filters") {
+                // 轨道外扩回屏幕边（bleed）：chip 能滑到屏幕边缘，不被列表的左右 16dp 夹断。
+                MochiChipGroup(
+                    modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    bleed = 16.dp,
                 ) {
-                    items(CardFilter.entries) { option ->
+                    CardFilter.entries.forEach { option ->
                         MarketFilterChip(
                             selected = selectedCardFilter == option,
                             label = when (option) {
@@ -1913,273 +1548,110 @@ private fun cardsList(
                     }
                 }
             }
-        }
 
-        // 正文的左右 16dp：chip 栏自己带 contentPadding，列表这一层不再带横向内边距，
-        // 钉住的实色底才能铺满整屏（与一级页同一手法）。
-        val rowPad = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-        if (loading && matched.isEmpty()) {
-            item(key = "loading") { Box(modifier = swapIn(rowPad)) { CardGridSkeleton() } }
-        } else if (matched.isEmpty()) {
-            item(key = "empty") {
-                Box(modifier = swapIn(rowPad)) {
-                    ExploreEmptyState(
-                        query = query,
-                        scopeLabel = stringResource(R.string.explore_market_cards_page_title),
-                        onClearQuery = onClearQuery,
-                        onReload = onReload,
-                    )
+            if (loading && matched.isEmpty()) {
+                item(key = "loading") { SectionSkeleton(rows = 3, modifier = swapIn(Modifier)) }
+            } else if (matched.isEmpty()) {
+                item(key = "empty") {
+                    Box(modifier = swapIn(Modifier.fillMaxWidth())) {
+                        ExploreEmptyState(
+                            query = query,
+                            scopeLabel = stringResource(R.string.explore_market_cards_page_title),
+                            onClearQuery = onClearQuery,
+                            onReload = onReload,
+                        )
+                    }
                 }
-            }
-        } else {
-            // 关键：一张卡一个 item，滑到哪组合到哪。这里不挂 `animateItem` 或
-            // `AnimatedContent`：市场通常有几十到几百张卡，快速滚动时条目持续进出
-            // 视口，逐项进出场动画会让每一帧同时跑大量动画与重绘。
-            itemsIndexed(
-                items = matched,
-                key = { _, entry -> entry.name },
-                contentType = { _, _ -> "market_card" },
-            ) { index, entry ->
-                CompactCard(
-                    entry = entry,
-                    installedVersion = installed[entry.name],
-                    triggers = triggers[entry.name] ?: entry.triggers,
-                    hubInfo = hubInfo[entry.name],
-                    busy = busyCard == entry.name,
-                    onClick = { onSelectCard(entry) },
-                    onInstall = { onInstallCard(entry) },
-                    onUpdate = { onUpdateCard(entry) },
-                    modifier = rowPad,
-                    shape = cardStyle.indexedShape(index, matched.size),
-                )
+            } else {
+                mochiListSection(key = "market_cards") {
+                    rows(
+                        items = matched,
+                        key = { entry -> entry.name },
+                        contentType = { "market_card" },
+                    ) { entry ->
+                        CompactCard(
+                            entry = entry,
+                            installedVersion = installed[entry.name],
+                            triggers = triggers[entry.name] ?: entry.triggers,
+                            hubInfo = hubInfo[entry.name],
+                            busy = busyCard == entry.name,
+                            onClick = { onSelectCard(entry) },
+                            onInstall = { onInstallCard(entry) },
+                            onUpdate = { onUpdateCard(entry) },
+                        )
+                    }
+                }
             }
         }
     }
-}
-
-/**
- * 「查看全部」入口：一级页铺满 [CARD_PREVIEW_COUNT] 张后，去二级页看剩下的。
- * 组内最后一行（形状由调用点按组内位号给出），沿用 option item 的度量，只把文字居中。
- */
-@Composable
-private fun MarketMoreRow(
-    label: String,
-    onClick: () -> Unit,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
-) {
-    MochiOptionItem(
-        onClick = onClick,
-        shape = shape,
-        titleContent = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-    )
-}
-
-/**
- * 形状一致性锁：整页只用这一套圆角。
- * 轮播 item 26 / 卡片 32 / 图标瓦片 12 / 筛选 chip 12（按下收到 8）；
- * 列表条目行（option item）的形状不在这里 —— 它跟设置页共用 [listCardStyle]，
- * 由用户可配的「列表卡片样式」决定。实心药丸按钮交给 Kedge 组件自己的形状。
- * 新加组件时不要再写魔法数字，从这里取。
- */
-private object ExploreShape {
-    val carousel = 26.dp
-    /** 轮播卡按住：在 26dp 档位上收一档（与筛选 chip 同一套「按压 = 收圆角」语言）。 */
-    val carouselPressed = 22.dp
-    /** 卡片：网格卡与列表条目统一 32dp 一档（参考稿的 `rounded-lg` = 2rem），按住收 4dp。 */
-    val surface = 32.dp
-    /** 列表条目卡片：与 [surface] 同档 —— 两处共用一个数，卡片语言只有一个来源。 */
-    val card = 32.dp
-    /** 旧的分组底板档位：分组容器已改成一叠卡片，这一档只剩骨架条在用。 */
-    val group = 18.dp
-    /** 图标瓦片：网格卡 40dp 配 12dp 圆角。 */
-    val tile = 12.dp
-    /**
-     * 筛选 chip：44dp 高的满圆角药丸；选中后收到 12dp。
-     *
-     * 按下态那两档（14dp / 8dp）自 t20 起由 `:kedge` 的 `KkFilterChip` 内部按统一公式
-     * `max(静止 − 8dp, 8dp)` 算出，本页不再持有这两个常量 —— 这里只留静止两档。
-     */
-    val chip = 22.dp
-    val chipSelected = 12.dp
-    val chipHeight = 44.dp
-    /** chip 左侧那枚身份色块：30dp 见方、11dp 圆角（距药丸左沿的 6dp 内边距自 t20 起是
-     *  [KkFilterChip] 的默认 contentPadding，本页不再单独传）。 */
-    val chipTileSize = 30.dp
-    val chipTile = 11.dp
-}
-
-/**
- * 卡片按压反馈：按住时圆角收一档（[rest] → [pressed]），松手用同一个弹簧弹回。
- *
- * 和筛选 chip 是同一套语言 —— 「按住 = 圆角收紧」，不再整体缩放：卡面缩小时圆角并不会
- * 跟着变，浅色卡在深色底上会露出四角，看着像卡在自己的轮廓里抖。
- * 弹簧参数与 [MarketFilterChip] 逐项一致，整页按压手感只有一个来源。
- */
-@Composable
-private fun rememberPressedCorner(
-    interactionSource: InteractionSource,
-    rest: Dp,
-    pressed: Dp,
-): Dp {
-    val isPressed by interactionSource.collectIsPressedAsState()
-    return animateDpAsState(
-        targetValue = if (isPressed) pressed else rest,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "card_press_corner",
-    ).value
 }
 
 /** 数字类信息（版本号、票数、体积、哈希）统一走等宽数字，避免上下行对不齐。 */
 private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
 /**
- * 组尾的「管理」行：分区标题去掉之后，本地页每个分组末尾用一行 option item 承接
- * 原来标题条上的动作（管理本地工具 / 管理技能 / 管理 MCP / 清空依赖缓存）。
- *
- * 形态与组内条目同一套度量（[MochiOptionItem] + 组内位号给的形状），文字居中，
- * 行里不再出现「已安装卡片 / 本地工具」这类分区标题字样。
+ * 行首图标：照 iOS 26 设置行，28dp（[MochiListDefaults.LeadingSize]）连续圆角方块 + 12% 主色底，图标 17dp 主色。
+ * 整组图标因此带一点色，但只有一种色相 —— 一排条目不会变成调色盘。
+ * 内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
  */
 @Composable
-private fun GroupActionRow(
-    label: String,
-    onClick: () -> Unit,
-    sourceKey: String? = null,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
-) {
-    MochiOptionItem(
-        onClick = onClick,
-        modifier = if (sourceKey != null) {
-            Modifier.mochiNavSource(sourceKey, 26.dp, MaterialTheme.colorScheme.surfaceContainer)
+private fun RowIcon(icon: ImageVector, tint: Color = MochiTheme.colorScheme.primary) {
+    Box(
+        modifier = Modifier
+            .size(MochiListDefaults.LeadingSize)
+            .clip(MochiTheme.shapes.small)
+            .background(tint.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(17.dp),
+            tint = tint,
+        )
+    }
+}
+
+/**
+ * 行上的状态标签，放进 [MochiListRow] 的 status 槽。整页只有一个强调色：`accent = true` 才用主色，
+ * 其余走中性面，模型能力、连接状态这一排不会出现多种饱和色。
+ */
+@Composable
+private fun StatusChip(text: String, accent: Boolean = false) {
+    MochiListStatusChip(
+        text = text,
+        containerColor = if (accent) {
+            MochiTheme.colorScheme.primary.copy(alpha = 0.15f)
         } else {
-            Modifier
+            MochiTheme.colorScheme.surfaceContainerHighest
         },
-        shape = shape,
-        titleContent = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
+        contentColor = if (accent) MochiTheme.colorScheme.primary else MochiTheme.colorScheme.onSurfaceVariant,
     )
 }
 
 /**
- * 条目组：**一组条目合成一张卡**（首项圆上边、末项圆下边、项间 [ListCardStyle.gap] 间距），
- * 圆角与间距全部走 [listCardStyle] —— 与设置页的列表卡片同一份口径，
- * 于是「设置 → 界面 → 列表卡片样式」里改一次，市场页与设置页一起变。
- *
- * 形状按组内位号算好传给条目：条目自己不猜自己在组里的位置（同 `CardGroup`
- * 把 `indexedShape` 算好再交给 `MochiOptionItem` 的做法）。
+ * 行尾的圆形小动作（下载 / 配置 / 卸载 / 已装）：Mochi 图标按钮，比默认 48dp 收一档，
+ * 让列表行保持 iOS 行高。图标色取按钮下发的内容色。
  */
 @Composable
-private fun GroupContainer(
-    count: Int,
-    modifier: Modifier = Modifier,
-    content: @Composable (index: Int, shape: Shape) -> Unit,
+private fun RowActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    style: MochiButtonStyle = MochiButtonStyle.Tonal,
 ) {
-    if (count <= 0) return
-    val cards = listCardStyle()
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(cards.gap),
-    ) {
-        for (index in 0 until count) {
-            content(index, cards.indexedShape(index, count))
-        }
+    MochiIconButton(onClick = onClick, enabled = enabled, style = style, size = 34.dp) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(18.dp),
+            tint = LocalContentColor.current,
+        )
     }
 }
 
-/**
- * 行尾「下一级」箭头：导航型条目的统一收尾，与设置页的 `PreferenceArrow` 同一语义。
- * 只做指示，不接受点击（点击归整行）。
- */
-@Composable
-private fun RowChevron() {
-    Icon(
-        imageVector = chevronRight,
-        contentDescription = null,
-        modifier = Modifier.size(20.dp),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-    )
-}
-
-/**
- * 行首图标：设置页 option item 的图标槽尺寸（图标 24dp，外层圆形淡底由
- * [MochiOptionItem] 自己铺）。内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
- */
-@Composable
-private fun RowIcon(icon: ImageVector) {
-    Icon(
-        imageVector = icon,
-        contentDescription = null,
-        modifier = Modifier.size(24.dp),
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-/**
- * 状态标签。整页只有一个强调色：`accent = true` 才用主色，其余走中性面。
- * 结果就是模型能力那一排不再出现六种饱和色。
- */
-@Composable
-private fun MetaChip(text: String, accent: Boolean = false) {
-    // 卡片底是 surfaceContainer，徽标要抬到 surfaceContainerHighest 才有一档可见的层次
-    // （参考稿里所有小胶囊都是 `bg-surface-container-highest`）。
-    MochiBadge(
-        containerColor = if (accent) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-        else MaterialTheme.colorScheme.surfaceContainerHighest,
-        contentColor = if (accent) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-    ) {
-        Text(text = text, style = MaterialTheme.typography.labelSmall.tabular())
-    }
-}
-
-/**
- * 单行筛选 chip：44dp 高的满圆角药丸，左侧嵌一枚 30dp 的图标块，右侧跟文字。
- *
- * 配色全部取 MD3 Expressive 的音调角色，chip 自己**不带色相** —— 一行十个也不会变成调色盘，
- * 换主题或开动态取色时整排跟着主题一起变，而不是十份写死的品牌色互相打架：
- *  · 未选中：药丸 `surfaceContainerHigh`，图标块 `onSurfaceVariant` 12% 淡洗，内容 `onSurfaceVariant`；
- *  · 选中：药丸 `secondaryContainer`，图标块反过来吃满 `onSecondaryContainer`（图标再用
- *    `secondaryContainer` 压回去），内容 `onSecondaryContainer`。
- * 选中是「形状 + 颜色」两件事一起变：圆角 22dp → 12dp（走 spring 回弹），底色中性容器色 →
- * secondaryContainer（走 tween）—— 形状的弹性不该被颜色的线性时长拖慢。
- *
- * 两种风格都只调 [KkFilterChip]：MD3 侧把上面这套动画结果分别喂进它的 `shape` /
- * `containerColor`+`selectedContainerColor` / `labelColor`+`selectedLabelColor` /
- * `iconColor`+`selectedIconColor` / `leadingIcon` 槽（动画仍由这里驱动，见下面的注释）；
- * Miuix 侧这些槽一律传 null，维持它自己那套「勾 + 文本」胶囊（该风格此前就是这么渲染的）。
- *
- * t20 起，原来手绘的那几处细节已升级成 [KkFilterChip] 的**默认行为**（用户裁定：三个 chip
- * 组件统一，实现落在组件内部），本页不再各写一份：
- *  · 未选中不画描边（此前 MD3 `FilterChip` 未选中会给 1dp `outlineVariant`）；
- *  · 内容内边距默认左 6dp / 右 16dp（此前是固定的 horizontal 8dp）；
- *  · 图标块与文字间距 10dp（此前是固定的 8dp）；
- *  · 按压圆角收缩：`pressedCorner = max(静止 − 8dp, 8dp)`，这里只传静止圆角（22dp ↔ 12dp 的
- *    动画值）⇒ 按下自动复现 22→14、12→8。
- * 仍存在的差异（属 MD3 组件自身度量 / 状态层，本轮未动也不打算 fork）：
- *  ① 高度：MD3 `FilterChip` 自带 `Height = 32dp` 下限，clickable `Surface` 还会叠一层
- *     `minimumInteractiveComponentSize()`（≥48dp）。这里继续传 `Modifier.height(chipHeight)`
- *     顶 44dp，但最终话语权只能在真机上量。
- *  ② 按压/悬停的容器色 state layer：`FilterChip` 有，原手绘没有（MD3 规范内，接受）。
- *  ③ 涟漪：`FilterChip` 自持 indication，原手绘是 `indication = null`（本轮未开槽，接受）。
- */
+/** 单行筛选 chip：Mochi 胶囊（选中底色 / 对勾 / 按压弹簧都由组件给），页面只递图标和文案。 */
 @Composable
 private fun MarketFilterChip(
     selected: Boolean,
@@ -2187,313 +1659,82 @@ private fun MarketFilterChip(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
-    // Miuix 风格下 [KkFilterChip] 自己会切成「勾选框 + 文本」的胶囊，且**不画图标块** ——
-    // 一整排 chip 各带一块彩色图标砖本来就是 MD3 卡片的语言，Miuix 的筛选语言是勾 + 文字，
-    // 混在一起两边都不像。所以下面所有 MD3 专用槽位在 Miuix 下都传 null（含 leadingIcon）。
-    val isMd3 = true
-    val colors = MaterialTheme.colorScheme
-    val container = colors.surfaceContainerHigh
-    val selectedContainer = colors.secondaryContainer
-    // 选中态底色：compositeOver 到实底上（而不是直接给颜色带 alpha，
-    // 否则深色主题下会透出后面的列表内容）。
-    val background by animateColorAsState(
-        targetValue = if (selected) selectedContainer else container,
-        animationSpec = tween(durationMillis = 260),
-        label = "market_chip_container",
-    )
-    val corner by animateDpAsState(
-        targetValue = if (selected) ExploreShape.chipSelected else ExploreShape.chip,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "market_chip_corner",
-    )
-    val tile by animateColorAsState(
-        targetValue = if (selected) colors.onSecondaryContainer
-        else colors.onSurfaceVariant.copy(alpha = 0.12f).compositeOver(container),
-        animationSpec = tween(durationMillis = 220),
-        label = "market_chip_tile",
-    )
-    val tileContent by animateColorAsState(
-        targetValue = if (selected) selectedContainer else colors.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 220),
-        label = "market_chip_tile_content",
-    )
-    val labelColor by animateColorAsState(
-        targetValue = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 220),
-        label = "market_chip_label",
-    )
-
-    KkRichFilterChip(
+    MochiChip(
+        label = label,
         selected = selected,
         onClick = onClick,
-        label = {
-            if (isMd3) {
-                // 标签色不写在 Text 上：交给 colors 的 labelColor / selectedLabelColor 注入
-                // 的 LocalContentColor，色值与容器色同源（同一个动画值）。
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                )
-            } else {
-                // Miuix：保持它自己的 body2 与内容色，一个字面参数都不多传。
-                Text(label)
-            }
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = if (selected) MochiTheme.colorScheme.onPrimary else MochiTheme.colorScheme.primary,
+            )
         },
-        // 高度只在 MD3 侧顶到 44dp；Miuix 侧不传，免得把它那枚胶囊也撑成 44dp。
-        modifier = if (isMd3) Modifier.height(ExploreShape.chipHeight) else Modifier,
-        leadingIcon = if (isMd3) {
-            {
-                Box(
-                    modifier = Modifier
-                        .size(ExploreShape.chipTileSize)
-                        .clip(AutoCornersShape(ExploreShape.chipTile))
-                        .background(tile),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        // 由 KkFilterChip 的 iconColor / selectedIconColor 槽注入。
-                        tint = LocalContentColor.current,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        } else {
-            null
-        },
-        // t20：圆角收缩改由 KkFilterChip 内部实现（统一公式 max(静止−8dp, 8dp)），
-        // 这里只把静止圆角这一个数传下去 ⇒ 按下仍是 22→14、12→8，默认值/内边距/间距/描边
-        // 也不再各站一份显式传参（组件默认已是手绘那套）。
-        cornerRadius = if (isMd3) corner else null,
-        // KkFilterChip 的容器色是「一个状态一个 Color」：把同一个动画值喂给两个槽，
-        // tween 就仍由上面那个 animation 驱动，而不是交给 MD3 硬切。
     )
 }
 
 /**
- * 骨架 → 真实内容的换场：进出场与邻项挪位全用 `animateItem` 的默认 spec
- * （fadeIn/fadeOut/placementSpec 都是 `spring(StiffnessMediumLow)`）。
- *
- * 不自己调 spec：上游 ImageToolbox 的列表逐项就是裸 `Modifier.animateItem()`
- * （`ScreenPreferenceSelection.kt:222` / `HelpListContent.kt:81` / `TutorialCategoryContent.kt:79`），
- * 手写 tween 只会让「市场的手感」和参照物又分家。`animateItem` 是 [LazyItemScope] 的成员，
- * 只能挂在 lazy item 根节点上。
+ * 骨架 → 真实内容的换场：进出场与邻项挪位全用 `animateItem` 的默认 spec。
+ * `animateItem` 是 [LazyItemScope] 的成员，只能挂在 lazy item 根节点上。
+ * 分区内部的行增减由 [MochiListSection] 自己的高度动画负责 —— 一个容器只有一份高度动画。
  */
 private fun LazyItemScope.swapIn(base: Modifier): Modifier = base.animateItem()
 
-/**
- * 搜索换场：**同一格**里装的内容换了一批时（搜索词变了 → 命中集合变了），
- * 旧内容淡出微缩、新内容淡入微放，而不是硬切一下。
- *
- * 与 [swapIn] 的分工：`animateItem` 管的是「惰性项**自己**进出 + 邻项挪位」，
- * 而一级页每个分区是**一个**惰性项（[GroupContainer] 把这些行组在一格里），
- * 项号没变 → `animateItem` 什么都不会做，命中行只会硬换。所以格里这一层要单独换场。
- *
- * 换场形状**不写自定义 spec**，用的就是 `AnimatedContent` 的默认 spec
- * （`fadeIn(tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, tween(220, 90))`
- * `togetherWith fadeOut(tween(90))`，外加默认的 `SizeTransform`）：上游 ImageToolbox 的
- * 搜索换场正是这个默认值 —— `HelpListContent.kt` 的整块列表换场
- * （`AnimatedContent(searchKeyword.isBlank() to filteredTips.isNotEmpty())`）与
- * `ScreenPreferenceSelection.kt:123` 都只传 `transitionSpec = { fadeIn() togetherWith fadeOut() }`
- * 或干脆不传。缩放要的就是这个 0.92 的可见幅度：手写 0.97 那一档在屏幕上看不出内容换过。
- *
- * [key] 传「真的变了才该动」的东西：调用点传的是命中集合的签名（`joinToString` 出来的名字串）。
- * 签名一变，`AnimatedContent` 会把上一帧那份 content lambda（闭包捕获的是旧数据）留作离场内容，
- * 于是拿到的是真·新旧两批内容，而不是同一批内容叠两次。
- */
+/** 骨架灰条：Mochi 骨架（扫光由组件给），内容只用来撑尺寸。 */
 @Composable
-private fun MarketContentSwap(
-    key: Any?,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    AnimatedContent(
-        targetState = key,
-        modifier = modifier,
-        label = "explore_market_content_swap",
-    ) { target ->
-        // 用 target 作为 key：状态切换时重建内容子树，同时满足 lint 对未用参数的检查。
-        androidx.compose.runtime.key(target) { content() }
-    }
+private fun SkeletonBar(modifier: Modifier, shape: Shape = MochiTheme.shapes.full) {
+    MochiSkeleton(loading = true, shape = shape) { Box(modifier) }
 }
 
 /**
- * 骨架呼吸值（0f→1f 往返）。整块骨架共用一个时钟：灰块一多，每个 `rememberInfiniteTransition`
- * 都是独立动画帧源，各自起一个会让骨架本身变成掉帧的来源。
+ * 条目骨架行：度量与 [MochiListRow] 对齐（左右 16dp、最小行高 52dp、28dp 图标块 + 标题 / 摘要两条灰条），
+ * 到货时是「原地填充」而不是整页重排。
  */
 @Composable
-private fun rememberSkeletonPulse(): Float {
-    val transition = rememberInfiniteTransition(label = "explore_skeleton")
-    val pulse by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(durationMillis = 900), RepeatMode.Reverse),
-        label = "explore_skeleton_alpha",
-    )
-    return pulse
-}
-
-/** 加载骨架：形状与真实内容同形，替代居中转圈。 */
-@Composable
-private fun SkeletonBlock(
-    modifier: Modifier,
-    shape: Shape = AutoCornersShape(ExploreShape.group),
-    pulse: Float = rememberSkeletonPulse(),
-) {
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.30f + 0.40f * pulse),
-            ),
-    )
-}
-
-/**
- * 卡面内部的次级灰块：压在骨架卡面上，所以取 `onSurface` 的低透明度 ——
- * 浅色主题下是「灰卡面上的深条」，深色主题下自动反过来，两边都有对比度。
- */
-@Composable
-private fun SkeletonBar(
-    modifier: Modifier,
-    shape: Shape = AutoCornersShape(ExploreShape.tile),
-    pulse: Float,
-) {
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f + 0.07f * pulse)),
-    )
-}
-
-/**
- * 卡片列表骨架：一行一条，与 [CompactCard] 同形（[SkeletonRow] 那张 option item 骨架）。
- * 二级页「卡片市场」还在拉数据时铺三条。
- */
-@Composable
-private fun CardGridSkeleton() {
-    val cards = listCardStyle()
-    Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-        repeat(3) { index ->
-            SkeletonRow(shape = cards.indexedShape(index, 3))
+private fun SkeletonRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MochiListDefaults.RowMinHeight)
+            .padding(horizontal = MochiListDefaults.TextRowPadding, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SkeletonBar(Modifier.size(MochiListDefaults.LeadingSize), MochiTheme.shapes.small)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            SkeletonBar(Modifier.fillMaxWidth(0.55f).height(14.dp))
+            SkeletonBar(Modifier.fillMaxWidth(0.32f).height(11.dp))
         }
     }
 }
 
+/** 分区骨架：与真实分区同构的一张分组卡片，里面铺 [rows] 条骨架行。 */
+@Composable
+private fun SectionSkeleton(rows: Int, modifier: Modifier = Modifier, header: String? = null) {
+    MochiListSection(modifier = modifier, header = header) {
+        repeat(rows) { SkeletonRow() }
+    }
+}
+
 /**
- * 轮播骨架：度量与 [HorizontalMultiBrowseCarousel] 抄同一份（item 264dp、间距 12dp、
- * contentPadding 上/左/右 16dp、卡高 208dp），数据到货时卡片不会位移，只是把灰块换成海报卡。
- *
- * 卡里也铺内容骨架（左上徽标 / 右上版本号 / 标题 / 摘要 / 左下安装药丸 + 右下元信息），
- * 版式按 [FeaturedCard] 的 `SpaceBetween` 三段摆放，和真卡同一套骨架线。
+ * 轮播骨架：度量与 [MochiCarousel] 抄同一份（卡宽 264dp、间距 12dp、左 16dp、卡高 208dp），
+ * 数据到货时卡片不会位移，只是把灰块换成海报卡。
  */
 @Composable
 private fun FeaturedCarouselSkeleton() {
-    val pulse = rememberSkeletonPulse()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // 与真实轮播同一份留白：上 16dp，下边 0（下面紧接悬浮筛选栏）。
             .padding(top = 16.dp)
             .clipToBounds()
             .padding(start = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         repeat(2) {
-            Box(
-                modifier = Modifier
-                    .width(264.dp)
-                    .height(208.dp)
-                    .clip(AutoCornersShape(ExploreShape.carousel))
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerHighest
-                            .copy(alpha = 0.30f + 0.40f * pulse),
-                    ),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SkeletonBar(
-                            Modifier.size(46.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                            pulse,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        SkeletonBar(
-                            Modifier.width(40.dp).height(12.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                            pulse,
-                        )
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SkeletonBar(
-                            Modifier.fillMaxWidth(0.62f).height(22.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                            pulse,
-                        )
-                        SkeletonBar(
-                            Modifier.fillMaxWidth(0.86f).height(13.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                            pulse,
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SkeletonBar(
-                            Modifier.width(84.dp).height(32.dp),
-                            RoundedCornerShape(percent = 50),
-                            pulse,
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        SkeletonBar(
-                            Modifier.width(78.dp).height(12.dp),
-                            AutoCornersShape(ExploreShape.tile),
-                            pulse,
-                        )
-                    }
-                }
-            }
+            SkeletonBar(Modifier.width(264.dp).height(208.dp), MochiTheme.shapes.largeIncreased)
         }
     }
-}
-
-/**
- * 条目骨架行：底色 / 圆角 / 内边距 / 图标槽与 [MochiOptionItem] 的 option item 逐项对齐
- * （12dp 内边距、24dp 图标 + 8dp 圆形垫、标题 / 摘要两条灰块）。
- * 形状由调用点按组内位号给出，到货时是「原地填充」而不是整页重排。
- */
-@Composable
-private fun SkeletonRow(shape: Shape = AutoCornersShape(ExploreShape.card)) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        SkeletonBlock(Modifier.size(40.dp), CircleShape)
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            SkeletonBlock(Modifier.fillMaxWidth(0.55f).height(14.dp), AutoCornersShape(ExploreShape.tile))
-            SkeletonBlock(Modifier.fillMaxWidth(0.32f).height(11.dp), AutoCornersShape(ExploreShape.tile))
-        }
-    }
-}
-
-/**
- * 分区骨架：与「一条目一行的 [GroupContainer]」同构 —— 一组同形行，到货时原地填充。
- * 一级页已无分区标题，所以这里也不再铺标题条。
- */
-@Composable
-private fun SectionSkeleton(rows: Int) {
-    GroupContainer(count = rows) { _, shape -> SkeletonRow(shape = shape) }
 }
 
 /** 页脚同步条：还在拉数据时转圈 + 文案；已经到底了就只剩一行灰字。 */
@@ -2507,12 +1748,12 @@ private fun ExploreFooterSync(loading: Boolean, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (loading) {
-            KkProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+            MochiActivityIndicator(size = 22.dp)
         }
         Text(
             text = if (loading) stringResource(R.string.explore_market_footer_syncing) else stringResource(R.string.explore_market_footer_end),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            style = MochiTheme.textStyles.footnote,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -2525,50 +1766,34 @@ private fun ExploreEmptyState(
     onClearQuery: () -> Unit,
     onReload: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 56.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(AutoCornersShape(ExploreShape.surface))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center,
-        ) {
+    MochiEmptyState(
+        title = if (query.isBlank()) {
+            stringResource(R.string.explore_market_empty_title)
+        } else {
+            stringResource(R.string.explore_market_empty_no_match_title, query)
+        },
+        message = if (query.isBlank()) {
+            stringResource(R.string.explore_market_empty_hint, scopeLabel)
+        } else {
+            stringResource(R.string.explore_market_empty_search_hint)
+        },
+        icon = {
             Icon(
                 imageVector = if (query.isBlank()) travelExplore else search,
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp),
+                tint = MochiTheme.colorScheme.primary,
             )
-        }
-        Text(
-            text = if (query.isBlank()) stringResource(R.string.explore_market_empty_title) else stringResource(R.string.explore_market_empty_no_match_title, query),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = if (query.isBlank()) {
-                stringResource(R.string.explore_market_empty_hint, scopeLabel)
-            } else {
-                stringResource(R.string.explore_market_empty_search_hint)
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp),
-        )
-        MochiTextButton(
-            onClick = if (query.isBlank()) onReload else onClearQuery,
-            shapes = ButtonDefaults.shapes(),
-        ) {
-            Text(if (query.isBlank()) stringResource(R.string.explore_market_reload) else stringResource(R.string.explore_market_clear_search))
-        }
-    }
+        },
+        action = {
+            MochiButton(onClick = if (query.isBlank()) onReload else onClearQuery, style = MochiButtonStyle.Tonal) {
+                Text(
+                    text = if (query.isBlank()) stringResource(R.string.explore_market_reload) else stringResource(R.string.explore_market_clear_search),
+                    style = MochiTheme.textStyles.subhead.copy(fontWeight = FontWeight.SemiBold),
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -2576,38 +1801,19 @@ private fun ToolRow(
     tool: LocalToolInfo,
     enabled: Boolean,
     onClick: () -> Unit,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    MochiOptionItem(
-        onClick = onClick,
-        shape = shape,
-        leadingContent = { RowIcon(tool.icon) },
-        titleContent = {
-            Text(text = stringResource(tool.titleRes), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Text(
-                text = stringResource(tool.descRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = {
-            // 状态位和详情弹窗里的标签用同一种胶囊（[TagChip]）：26dp、满圆角、footnoteSmall，
-            // 不再自起一套 MochiBadge 度量。启用的语义色取 primaryContainer 对
-            // onPrimaryContainer（与市场「已安装」一致），停用退回中性灰。
+    MochiListRow(
+        title = stringResource(tool.titleRes),
+        subtitle = stringResource(tool.descRes),
+        leading = { RowIcon(tool.icon) },
+        status = {
             if (enabled) {
-                TagChip(
-                    label = stringResource(R.string.explore_market_enabled),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                StatusChip(text = stringResource(R.string.explore_market_enabled), accent = true)
             } else {
-                TagChip(label = stringResource(R.string.explore_market_disabled))
+                StatusChip(text = stringResource(R.string.explore_market_disabled))
             }
         },
+        onClick = onClick,
     )
 }
 
@@ -2616,32 +1822,13 @@ private fun SkillRow(
     name: String,
     description: String,
     onClick: () -> Unit,
-    sourceKey: String? = null,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    MochiOptionItem(
+    MochiListRow(
+        title = name,
+        subtitle = description.takeIf { it.isNotBlank() },
         onClick = onClick,
-        modifier = if (sourceKey != null) {
-            // 26dp = 列表卡片圆角（AGENTS 口径）；morph 起点从卡片自己的圆角长成整页
-            Modifier.mochiNavSource(sourceKey, 26.dp, MaterialTheme.colorScheme.surfaceContainer)
-        } else {
-            Modifier
-        },
-        shape = shape,
-        leadingContent = { RowIcon(school) },
-        titleContent = {
-            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = { RowChevron() },
+        leading = { RowIcon(school) },
+        chevron = true,
     )
 }
 
@@ -2650,65 +1837,46 @@ private fun McpRow(
     server: McpServerConfig,
     status: McpStatus?,
     onClick: () -> Unit,
-    // P0-5：装完但缺必填时，行上直接给「配置」入口。
     onConfigure: (() -> Unit)? = null,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    // 展示用 URL 一律过掩码：`?token=` / `&api_key=` 这类 query 不能出现在列表上。
+    // 展示用 URL 一律过掩码：带 token 的 query 不能出现在列表上。
     val displayUrl = maskMcpUrl(server.serverUrl)
     val name = server.commonOptions.name.ifBlank { displayUrl }
     val cardStatus = mcpCardStatus(server, status)
-    MochiOptionItem(
+    MochiListRow(
+        title = name,
+        subtitle = displayUrl,
+        leading = { RowIcon(dns) },
         onClick = onClick,
-        shape = shape,
-        leadingContent = { RowIcon(dns) },
-        titleContent = {
-            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Text(
-                text = displayUrl,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
-                    MochiIconButton(
-                        onClick = onConfigure,
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = heizige.kk.khatkit.app.core.ui.icons.settings,
-                            contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
-                        )
-                    }
-                }
-                when (cardStatus) {
-                    // 缺必填优先：这时底下就算报了「连上」也不认，不能显示已连接。
-                    McpCardStatus.NEEDS_CONFIG -> MetaChip(stringResource(R.string.explore_market_mcp_needs_config))
-                    McpCardStatus.CONNECT_FAILED -> MetaChip(stringResource(R.string.explore_market_mcp_error))
-                    McpCardStatus.CONFIGURED -> when (status) {
-                        McpStatus.Connected -> MetaChip(stringResource(R.string.explore_market_mcp_connected), accent = true)
-                        McpStatus.Connecting, is McpStatus.Reconnecting -> MetaChip(stringResource(R.string.explore_market_mcp_connecting))
-                        is McpStatus.Error -> MetaChip(stringResource(R.string.explore_market_mcp_error))
-                        McpStatus.NeedsAuthorization, McpStatus.Authorizing -> MetaChip(stringResource(R.string.explore_market_mcp_needs_auth))
-                        else -> MetaChip(
-                            if (server.commonOptions.enable) {
-                                stringResource(R.string.explore_market_mcp_disconnected)
-                            } else {
-                                stringResource(R.string.explore_market_mcp_stopped)
-                            }
-                        )
-                    }
+        status = {
+            when (cardStatus) {
+                McpCardStatus.NEEDS_CONFIG -> StatusChip(stringResource(R.string.explore_market_mcp_needs_config))
+                McpCardStatus.CONNECT_FAILED -> StatusChip(stringResource(R.string.explore_market_mcp_error))
+                McpCardStatus.CONFIGURED -> when (status) {
+                    McpStatus.Connected -> StatusChip(stringResource(R.string.explore_market_mcp_connected), accent = true)
+                    McpStatus.Connecting, is McpStatus.Reconnecting -> StatusChip(stringResource(R.string.explore_market_mcp_connecting))
+                    is McpStatus.Error -> StatusChip(stringResource(R.string.explore_market_mcp_error))
+                    McpStatus.NeedsAuthorization, McpStatus.Authorizing -> StatusChip(stringResource(R.string.explore_market_mcp_needs_auth))
+                    else -> StatusChip(
+                        if (server.commonOptions.enable) {
+                            stringResource(R.string.explore_market_mcp_disconnected)
+                        } else {
+                            stringResource(R.string.explore_market_mcp_stopped)
+                        }
+                    )
                 }
             }
+        },
+        trailing = if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
+            {
+                RowActionButton(
+                    icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                    contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
+                    onClick = onConfigure,
+                )
+            }
+        } else {
+            null
         },
     )
 }
@@ -2752,9 +1920,8 @@ private fun resourceMetaLine(entry: HubResourceEntry): String {
 }
 
 /**
- * 资源市场的一张卡（参考稿的条目流）：图标块 + 标题行类目徽标 + 一行摘要 + 一行元信息
- * + 行尾圆形动作。点卡片进详情，圆形按钮直接下载；已装 / 安装中把动作位换成状态，
- * 免得同一个包给两次下载入口。
+ * 资源市场的一行：图标块 + 名称 + 摘要 / 元信息两行 + 行尾圆形动作。
+ * 点行进详情，圆形按钮直接下载；已装 / 安装中把动作位换成状态，免得同一个包给两次下载入口。
  */
 @Composable
 private fun ResourceRow(
@@ -2770,95 +1937,55 @@ private fun ResourceRow(
     // OCR2：已安装的原生插件条目显示大小与卸载入口（其它 kind 传 null，不显示）。
     sizeLabel: String? = null,
     onUninstall: (() -> Unit)? = null,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    MochiOptionItem(
+    // 摘要与元信息各占一行（MochiListRow 的副标题最多两行），不再用「·」把两类信息拼成一串。
+    val subtitle = listOfNotNull(
+        entry.description.ifBlank { entry.items.take(3).joinToString(" · ") }.takeIf { it.isNotBlank() },
+        resourceMetaLine(entry).takeIf { it.isNotBlank() },
+    ).joinToString("\n").takeIf { it.isNotBlank() }
+    MochiListRow(
+        title = entry.name,
+        subtitle = subtitle,
+        leading = { RowIcon(resourceIcon(entry.icon, entry.kind)) },
         onClick = onClick,
-        shape = shape,
-        // 行里不再有「技能合集 / MCP 服务 / 合集包」徽标：类型由这枚图标区分
-        // （技能 school / MCP dns / 合集包 package2），行首图标就是分类的唯一出处。
-        leadingContent = { RowIcon(resourceIcon(entry.icon, entry.kind)) },
-        titleContent = {
-            Text(
-                text = entry.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        loading = busy,
+        status = if (needsConfig) {
+            { StatusChip(text = stringResource(R.string.explore_market_mcp_needs_config)) }
+        } else {
+            null
         },
-        supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = entry.description.ifBlank { entry.items.take(3).joinToString(" · ") },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val meta = resourceMetaLine(entry)
-                if (meta.isNotBlank()) {
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.labelSmall.tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (needsConfig) {
-                    MetaChip(text = stringResource(R.string.explore_market_mcp_needs_config))
-                }
-                if (!busy && onConfigure != null) {
-                    MochiIconButton(
-                        onClick = onConfigure,
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = heizige.kk.khatkit.app.core.ui.icons.settings,
+        trailing = if (busy) {
+            null
+        } else {
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (onConfigure != null) {
+                        RowActionButton(
+                            icon = heizige.kk.khatkit.app.core.ui.icons.settings,
                             contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
+                            onClick = onConfigure,
                         )
                     }
-                }
-                when {
-                    busy -> KkProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    // OCR2：已安装的原生插件条目优先给「卸载」；其它 kind 传 null 不显示。
-                    installed && onUninstall != null -> MochiIconButton(
-                        onClick = { onUninstall() },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = heizige.kk.khatkit.app.core.ui.icons.delete,
+                    when {
+                        installed && onUninstall != null -> RowActionButton(
+                            icon = heizige.kk.khatkit.app.core.ui.icons.delete,
                             contentDescription = "卸载",
+                            onClick = { onUninstall() },
                         )
-                    }
-                    // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
-                    // （`onClick` 只是组件签名要求，不会被调到）。
-                    installed -> MochiIconButton(
-                        onClick = {},
-                        enabled = false,
-                        variant = MochiIconButtonVariant.Tonal,
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = check,
+                        installed -> RowActionButton(
+                            icon = check,
                             contentDescription = stringResource(R.string.explore_market_state_installed),
+                            onClick = {},
+                            enabled = false,
                         )
-                    }
-                    else -> MochiIconButton(
-                        onClick = onInstall,
-                        variant = MochiIconButtonVariant.Filled,
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(
-                            imageVector = downloadForOffline,
+                        else -> RowActionButton(
+                            icon = downloadForOffline,
                             contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                            onClick = onInstall,
+                            style = MochiButtonStyle.Filled,
                         )
                     }
                 }
@@ -2868,13 +1995,9 @@ private fun ResourceRow(
 }
 
 /**
- * 资源合集详情：**玻璃 popup**（居中浮起、背后页面高斯模糊），取代原来的底部抽屉。
- *
- * 版面与卡片详情同一套骨架：固定头部（图标 + 名称 + 类型/版本 + 关闭）/ 可滚正文
- * （徽章 → 描述 → 「包含」清单 → 作者）/ 固定页脚（安装、可选配置）。
- * 「包含」清单从原来的裸箭头列表换成分组里的圆点行，长短不一的技能名/端点读起来更整齐。
+ * 资源合集详情：Mochi 半屏面板，与卡片详情同一套骨架：
+ * 面板头部（名称 + 关闭）→ 图标瓦片与「版本 / 类型」→ 标签 → 描述 → 「包含」分区 → 作者 → 安装 / 配置按钮。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResourceDetailSheet(
     entry: HubResourceEntry,
@@ -2887,39 +2010,30 @@ private fun ResourceDetailSheet(
     /** P0-5：已装但缺必填，详情里也标「需要配置」，与卡片/本机列表同一判定。 */
     needsConfig: Boolean = false,
 ) {
-    val scroll = rememberScrollState()
-    GlassPopup(onDismiss = onDismiss) { dismiss ->
-        PopupHead(
-            title = entry.name,
-            kicker = resourceKindLabel(entry),
-            badge = stringResource(R.string.explore_market_version_prefix, entry.version),
-            icon = resourceIcon(entry.icon, entry.kind),
-            onDismiss = dismiss,
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(scroll)
-                .padding(horizontal = 20.dp)
-                .padding(top = 14.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
+    val sheet = rememberMochiSheetState()
+    LaunchedEffect(Unit) { sheet.show() }
+    MochiSheet(state = sheet, onDismiss = onDismiss) {
+        DetailSheetHeader(title = entry.name, onClose = { sheet.hide() })
+        MochiSheetContent {
+            DetailSheetHero(
+                icon = resourceIcon(entry.icon, entry.kind),
+                version = stringResource(R.string.explore_market_version_prefix, entry.version),
+                kicker = resourceKindLabel(entry),
+            )
+
+            MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp), spacing = 6.dp) {
                 if (installed) {
                     TagChip(
                         label = stringResource(R.string.explore_market_state_installed),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MochiTheme.colorScheme.primaryContainer,
+                        contentColor = MochiTheme.colorScheme.onPrimaryContainer,
                     )
                 }
                 if (needsConfig) {
                     TagChip(
                         label = stringResource(R.string.explore_market_mcp_needs_config),
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        containerColor = MochiTheme.colorScheme.tertiaryContainer,
+                        contentColor = MochiTheme.colorScheme.onTertiaryContainer,
                     )
                 }
                 entry.tags.take(4).forEach { tag -> TagChip(label = tag) }
@@ -2932,122 +2046,69 @@ private fun ResourceDetailSheet(
             if (entry.description.isNotBlank()) {
                 Text(
                     text = entry.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.subhead,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             if (entry.items.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.explore_market_includes),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    PopupActionGroup {
-                        entry.items.forEachIndexed { index, item ->
-                            if (index > 0) PopupActionDivider()
-                            PopupBulletRow(item)
-                        }
-                    }
+                MochiListSection(header = stringResource(R.string.explore_market_includes)) {
+                    entry.items.forEach { item -> MochiListRow(title = item) }
                 }
             }
 
-            if (busy) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    KkProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            if (busy) DetailBusyRow()
 
             if (entry.author.isNotBlank()) {
                 Text(
                     text = stringResource(R.string.explore_market_provided_by, entry.author),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.footnote,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
 
-        PopupFooterDivider()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            BigActionButton(
-                text = when {
-                    busy -> stringResource(R.string.explore_market_action_installing)
-                    installed -> stringResource(R.string.explore_market_action_reinstall)
-                    else -> stringResource(R.string.explore_market_action_download_enable)
-                },
-                onClick = { if (!busy) onInstall() },
-                container = if (busy) {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                } else {
-                    MaterialTheme.colorScheme.primary.harmonizeWithPrimary()
-                },
-                contentColor = if (busy) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onPrimary
-                },
-                modifier = Modifier.weight(1f),
-            )
-            // P0-5：先配置再安装 —— 缺必填的 MCP 条目也能在这里进表单预填。
-            if (onConfigure != null) {
-                BigActionButton(
-                    text = stringResource(R.string.explore_market_mcp_configure),
-                    onClick = { if (!busy) onConfigure() },
-                    container = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DetailPrimaryButton(
+                    text = when {
+                        busy -> stringResource(R.string.explore_market_action_installing)
+                        installed -> stringResource(R.string.explore_market_action_reinstall)
+                        else -> stringResource(R.string.explore_market_action_download_enable)
+                    },
+                    onClick = { if (!busy) onInstall() },
+                    enabled = !busy,
                     modifier = Modifier.weight(1f),
                 )
+                // P0-5：先配置再安装 —— 缺必填的 MCP 条目也能在这里进表单预填。
+                if (onConfigure != null) {
+                    DetailPrimaryButton(
+                        text = stringResource(R.string.explore_market_mcp_configure),
+                        onClick = { if (!busy) onConfigure() },
+                        style = MochiButtonStyle.Tonal,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ModelRow(
     providerName: String,
     model: Model,
     onClick: () -> Unit,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    MochiOptionItem(
+    val badges = model.abilityBadges()
+    MochiListRow(
+        title = model.displayName.ifBlank { model.modelId },
+        // 供应商一行、能力一行：能力标签之间是同一对象的并列属性，才用「·」连。
+        subtitle = listOfNotNull(
+            providerName.takeIf { it.isNotBlank() },
+            badges.takeIf { it.isNotEmpty() }?.joinToString(" · "),
+        ).joinToString("\n").takeIf { it.isNotBlank() },
+        leading = { RowIcon(memory) },
+        chevron = true,
         onClick = onClick,
-        shape = shape,
-        leadingContent = { RowIcon(memory) },
-        titleContent = {
-            Text(
-                text = model.displayName.ifBlank { model.modelId },
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        supportingContent = {
-            // 提供方 + 能力标签压成一行：设置页的 option item 摘要只有一行，
-            // 这里不再单独排一排胶囊。
-            val badges = model.abilityBadges()
-            Text(
-                text = listOfNotNull(
-                    providerName.takeIf { it.isNotBlank() },
-                    badges.takeIf { it.isNotEmpty() }?.joinToString(" · "),
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = { RowChevron() },
     )
 }
 
@@ -3070,33 +2131,14 @@ private fun LocalCardRow(
     version: String,
     triggers: List<String>,
     onClick: () -> Unit,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    MochiOptionItem(
+    MochiListRow(
+        title = name,
+        subtitle = stringResource(R.string.explore_market_local_card_meta, version),
+        leading = { RowIcon(extension) },
+        chevron = true,
         onClick = onClick,
-        shape = shape,
-        leadingContent = { RowIcon(extension) },
-        titleContent = {
-            Text(text = name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        supportingContent = {
-            Text(
-                text = stringResource(R.string.explore_market_local_card_meta, version),
-                style = MaterialTheme.typography.bodyMedium.tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MetaChip(text = triggers.joinToString("/").ifBlank { "local" })
-                RowChevron()
-            }
-        },
+        status = { StatusChip(text = triggers.joinToString("/").ifBlank { "local" }) },
     )
 }
 
@@ -3112,46 +2154,26 @@ private fun DependencyRow(
     version: String,
     cached: DependencyCacheEntry?,
     onDelete: () -> Unit,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
-    // 整行不可点（`onClick = null`）：这一行只报「本机缓存了什么」，唯一的动作是行尾删除。
-    MochiOptionItem(
-        onClick = null,
-        shape = shape,
-        leadingContent = { RowIcon(deployedCode) },
-        titleContent = {
-            Text(
-                text = stringResource(R.string.explore_market_name_version, name, version),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    // 整行不可点：这一行只报「本机缓存了什么」，唯一的动作是行尾删除。
+    MochiListRow(
+        title = stringResource(R.string.explore_market_name_version, name, version),
+        subtitle = if (cached != null) {
+            formatBytes(cached.sizeBytes) + " · SHA-256 " + cached.sha256.take(12) + "…"
+        } else {
+            stringResource(R.string.explore_market_dependency_pending)
         },
-        supportingContent = {
-            Text(
-                text = if (cached != null) {
-                    "${formatBytes(cached.sizeBytes)} · SHA-256 ${cached.sha256.take(12)}…"
-                } else {
-                    stringResource(R.string.explore_market_dependency_pending)
-                },
-                style = MaterialTheme.typography.labelSmall.tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        trailingContent = {
-            if (cached != null) {
-                MochiIconButton(
+        leading = { RowIcon(deployedCode) },
+        trailing = if (cached != null) {
+            {
+                RowActionButton(
+                    icon = deleteForever,
+                    contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
                     onClick = onDelete,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = deleteForever,
-                        contentDescription = stringResource(R.string.explore_market_cd_delete_dependency),
-                    )
-                }
+                )
             }
+        } else {
+            null
         },
     )
 }
@@ -3176,8 +2198,8 @@ private fun DependencyRow(
  *
  * 高度是写死的：标题 / 副标题都锁 1 行，[Arrangement.SpaceBetween] 才不会因为
  * 副标题折行把底部按钮挤出卡片（item 的 maskClip 会直接切掉溢出部分）。
- * 圆角有两层：外层是轮播 item 的 maskClip（keyline 会实时变宽，卡片自身的 clip 单独用会
- * 切不齐），内层就是这张卡自己的 clip —— 内层只负责按压时的圆角收紧（见下面 pressedCorner）。
+ * 圆角有两层：外层是 [MochiCarousel] 的页裁切，内层是这张卡自己的 clip（同一档 [FeaturedCorner]）；
+ * 按压反馈走 Mochi 的 [mochiPressDeform]（轻缩 + 跟手），与全站按钮同一套手感。
  */
 @Composable
 private fun FeaturedCard(
@@ -3190,22 +2212,14 @@ private fun FeaturedCard(
     onUninstall: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    // 按压反馈：圆角收一档。外层的 item maskClip 形状是按 (itemDrawInfo, density) 记住的
-    // （material3 CarouselItemScope.kt:88），换 shape 对象不会生效，所以动画挂在内层这一层
-    // clip 上 —— 两层同心时交集就是更紧的那个圆角，滚动中带 keyline 裁切的侧卡不受影响
-    // （那种情况下可见的角本来就来自 mask）。
-    val pressedCorner = rememberPressedCorner(
-        interactionSource = interactionSource,
-        rest = ExploreShape.carousel,
-        pressed = ExploreShape.carouselPressed,
-    )
     // 药丸的三种语义：没装 = 安装；装了但不是最新 = 更新；装的就是市场这一版 = 已安装（点了走卸载）。
     val installState = cardInstallState(installedVersion, entry.version)
     // 身份色 / 身份形都由包名哈希决定，与卡片行的类型图标是两套东西：
     // 同一张卡在网格里是哪个颜色、哪个轮廓，进了轮播还是它，不需要第二套视觉身份。
     val identityIndex = abs(entry.name.hashCode()) % roleAvatarPalette.size
     val identity = roleAvatarColor(entry.name)
-    val poster = posterTone(identity)
+    val poster = posterBase(identity, MochiTheme.colorScheme.primary)
+    val posterFill = posterGradient(poster)
     val badgeShape = extensionShapes[identityIndex].toShape()
     // 右上角那一块用同一张表里错开半个周期的形，避免和徽标撞成同一个轮廓。
     val blobShape = extensionShapes[(identityIndex + extensionShapes.size / 2) % extensionShapes.size]
@@ -3214,8 +2228,9 @@ private fun FeaturedCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(AutoCornersShape(pressedCorner))
-            .background(poster)
+            .mochiPressDeform()
+            .clip(MochiRoundedRectangle(FeaturedCorner))
+            .background(posterFill)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
     ) {
         // 右上角的有机形：纯平色块看着像没画完，这一块负责体积感。
@@ -3255,57 +2270,44 @@ private fun FeaturedCard(
                 // 已安装时显示本机装着的那个版本，否则显示市场版本。
                 Text(
                     text = "v${installedVersion ?: entry.version}",
-                    style = MaterialTheme.typography.labelSmall.tabular(),
+                    style = MochiTheme.textStyles.labelSmall.tabular(),
                     color = onPoster.copy(alpha = 0.85f),
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = entry.name,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MochiTheme.textStyles.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = onPoster,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = entry.summary.ifBlank { entry.description }.ifBlank { entry.author },
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MochiTheme.textStyles.bodyMedium,
                     color = onPoster.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // 按钮换成 Kedge 组件（MD3 / Miuix 两套风格各给一份配色），箭头图标按要求删掉：
-                // 药丸里只留动作词。视觉仍是「海报纸底上的白药丸」，只换实现不换观感。
-                // 「已安装」时这个药丸就是卸载入口（先弹确认框，见页面根部的 [RikkaConfirmDialog]）。
-                MochiButton(
-                    onClick = { if (installState == CardInstallState.INSTALLED) onUninstall() else onInstall() },
+                // 药丸里只留动作词，视觉是「海报纸底上的白药丸」。
+                // 「已安装」时这个药丸就是卸载入口（先弹确认框，见页面根部的卸载 [MochiDialog]）。
+                PosterActionPill(
+                    label = if (busy) installState.busyLabel() else installState.label(),
                     enabled = !busy,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = onPoster,
-                        contentColor = poster,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        text = when {
-                            busy -> installState.busyLabel()
-                            else -> installState.label()
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+                    contentColor = poster,
+                    onClick = { if (installState == CardInstallState.INSTALLED) onUninstall() else onInstall() },
+                )
                 Spacer(Modifier.width(10.dp))
                 // 元信息让位给按钮：宽度不够时省略号收尾，绝不把按钮挤扁或顶出卡片。
                 Text(
                     text = featuredMetaLine(entry, hubInfo),
-                    style = MaterialTheme.typography.labelSmall.tabular(),
+                    style = MochiTheme.textStyles.labelSmall.tabular()
+                        .copy(textAlign = TextAlign.End),
                     color = onPoster.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -3313,18 +2315,87 @@ private fun FeaturedCard(
     }
 }
 
+/** 精选海报卡与轮播页共用的圆角：卡片 clip、轮播页裁切、轮播骨架同一档。 */
+private val FeaturedCorner = 26.dp
+
+/**
+ * 海报上的动作药丸：[MochiButton]，白底 + 海报色字。
+ * 海报底色由包名哈希生成、不属于主题色，所以这里的白底是成对给出的海报专用配色（深浅主题都成立）。
+ */
+@Composable
+private fun PosterActionPill(
+    label: String,
+    enabled: Boolean,
+    contentColor: Color,
+    onClick: () -> Unit,
+) {
+    val colors = MochiButtonDefaults.colors(MochiButtonStyle.Filled).copy(
+        container = Color.White,
+        content = contentColor,
+        disabledContainer = Color.White.copy(alpha = 0.6f),
+        disabledContent = contentColor.copy(alpha = 0.6f),
+    )
+    MochiButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = colors,
+        minHeight = 36.dp,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = label,
+            style = MochiTheme.textStyles.subhead.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1,
+        )
+    }
+}
+
 /**
  * 身份色 → 海报底色。
  *
- * 只对 RGB 做同比例缩放：缩放三通道等价于只压 HSV 的 V，**色相与饱和度分毫不动** ——
- * 「这张卡是什么颜色」这件身份信息不会被压暗改掉，而白字对比度从 2.8:1 抬到 6:1 以上，
- * 浅色主题、深色主题都得同一个结果（不依赖 colorScheme，也不受 dynamicColor 影响）。
+ * 不再直接把身份色乘 0.58：莫兰迪身份色（角色头像那套低饱和色）压暗后是脏紫 / 脏棕，
+ * 十几张卡排在一起像褪色的旧海报。改成——先把身份色和主题主色混一半（色相还在、
+ * 但整体收进主题的色域），再把亮度封顶到 0.34：白字对比度稳定在 6:1 以上，
+ * 浅色 / 深色主题、开不开动态取色都成立。
  */
-private fun posterTone(identity: Color, factor: Float = 0.58f): Color = Color(
-    red = identity.red * factor,
-    green = identity.green * factor,
-    blue = identity.blue * factor,
-    alpha = 1f,
+private fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Color {
+    val mixed = Color(
+        red = identity.red * (1f - mix) + primary.red * mix,
+        green = identity.green * (1f - mix) + primary.green * mix,
+        blue = identity.blue * (1f - mix) + primary.blue * mix,
+        alpha = 1f,
+    )
+    // 直接乘系数只会把莫兰迪色压成灰；改在 HSV 里定死明度、给饱和度一个下限：
+    // 色相（= 这张卡的身份）不动，颜色不发灰，白字对比度稳定在 6:1 左右。
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(
+        (mixed.red * 255f).toInt().coerceIn(0, 255),
+        (mixed.green * 255f).toInt().coerceIn(0, 255),
+        (mixed.blue * 255f).toInt().coerceIn(0, 255),
+        hsv,
+    )
+    hsv[1] = hsv[1].coerceAtLeast(0.42f)
+    hsv[2] = 0.52f
+    return Color(android.graphics.Color.HSVToColor(hsv))
+}
+
+/** 海报渐变：左上亮一档、右下暗一档，纯平色块看着像没画完。 */
+private fun posterGradient(base: Color): Brush = Brush.linearGradient(
+    colors = listOf(
+        Color(
+            red = (base.red * 1.38f).coerceIn(0f, 1f),
+            green = (base.green * 1.38f).coerceIn(0f, 1f),
+            blue = (base.blue * 1.38f).coerceIn(0f, 1f),
+        ),
+        base,
+        Color(
+            red = (base.red * 0.72f).coerceIn(0f, 1f),
+            green = (base.green * 0.72f).coerceIn(0f, 1f),
+            blue = (base.blue * 0.72f).coerceIn(0f, 1f),
+        ),
+    ),
+    start = Offset.Zero,
+    end = Offset(1200f, 1000f),
 )
 
 /**
@@ -3466,12 +2537,8 @@ private fun cardMetaLine(
 }
 
 /**
- * 卡片列表单元：设置页 option item 的一行 —— 行首图标（[extension]）+ 名称 + 摘要与元信息
- * + 行尾「安装状态 / 下一级箭头」。一级页把它放进 [GroupContainer]（组内位号决定圆角），
- * 二级页一张卡一个 item（整张圆角）。
- *
- * 以前有 `wide` 变体（更大的图标 / 三行摘要 / 一层主色环境光）给 1 + N 网格的首张
- * 主推位用；改成单列后每张都是全宽，两套度量只会让同一列里出现两种卡高，故删掉变体。
+ * 卡片列表单元：一行 [MochiListRow] —— 行首图标（[extension]）+ 名称 + 摘要 / 元信息两行
+ * + 行尾安装状态。一级页与二级页都把它放进 Mochi 分组卡片里，行本身不带底色和圆角。
  */
 @Composable
 private fun CompactCard(
@@ -3486,81 +2553,44 @@ private fun CompactCard(
     onInstall: () -> Unit,
     onUpdate: () -> Unit,
     modifier: Modifier = Modifier,
-    shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     // 状态判定与轮播药丸同一套。
     val installState = installedVersion?.let { cardInstallState(it, entry.version) }
-    MochiOptionItem(
-        onClick = onClick,
+    val meta = cardMetaLine(entry = entry, triggers = triggers, hubInfo = hubInfo, stateLabel = null)
+    MochiListRow(
+        title = entry.name,
         modifier = modifier,
-        shape = shape,
-        leadingContent = { RowIcon(extension) },
-        titleContent = {
-            Text(
-                text = entry.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        supportingContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = entry.summary.ifBlank { entry.description },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = cardMetaLine(
-                        entry = entry,
-                        triggers = triggers,
-                        hubInfo = hubInfo,
-                        stateLabel = null,
-                    ),
-                    style = MaterialTheme.typography.labelSmall.tabular(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        trailingContent = {
-            when {
-                busy -> KkProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                // 已安装是纯状态位：造型走 Tonal，靠 `enabled = false` 拿掉点击与无障碍焦点
-                // （`onClick` 只是组件签名要求，不会被调到）。卸载入口在详情抽屉里。
-                installState == CardInstallState.INSTALLED -> MochiIconButton(
-                    onClick = {},
-                    enabled = false,
-                    variant = MochiIconButtonVariant.Tonal,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = check,
+        // 摘要一行、元信息一行（副标题最多两行）。
+        subtitle = listOf(entry.summary.ifBlank { entry.description }, meta)
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
+            .takeIf { it.isNotBlank() },
+        leading = { RowIcon(extension) },
+        onClick = onClick,
+        loading = busy,
+        trailing = if (busy) {
+            null
+        } else {
+            {
+                when (installState) {
+                    // 已安装是纯状态位：Tonal + `enabled = false` 拿掉点击与无障碍焦点。卸载入口在详情面板里。
+                    CardInstallState.INSTALLED -> RowActionButton(
+                        icon = check,
                         contentDescription = stringResource(R.string.explore_market_state_installed),
+                        onClick = {},
+                        enabled = false,
                     )
-                }
-                installState == CardInstallState.UPDATE -> MochiIconButton(
-                    onClick = onUpdate,
-                    variant = MochiIconButtonVariant.Filled,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = downloadForOffline,
+                    CardInstallState.UPDATE -> RowActionButton(
+                        icon = downloadForOffline,
                         contentDescription = stringResource(R.string.explore_market_state_update),
+                        onClick = onUpdate,
+                        style = MochiButtonStyle.Filled,
                     )
-                }
-                else -> MochiIconButton(
-                    onClick = onInstall,
-                    variant = MochiIconButtonVariant.Filled,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        imageVector = downloadForOffline,
+                    else -> RowActionButton(
+                        icon = downloadForOffline,
                         contentDescription = stringResource(R.string.explore_market_cd_download_named, entry.name),
+                        onClick = onInstall,
+                        style = MochiButtonStyle.Filled,
                     )
                 }
             }
@@ -3569,18 +2599,14 @@ private fun CompactCard(
 }
 
 /**
- * 卡片详情：**玻璃 popup**（居中浮起、背后页面高斯模糊），取代原来的底部抽屉。
+ * 卡片详情：Mochi 半屏面板（[MochiSheet]），自带遮罩与拖拽收起。
  *
- * 三段版面，自上而下：
- * 1. 固定头部：图标瓦片 + 名称 + 「版本 · 引擎 · 权限」+ 关闭按钮；
- * 2. 可滚正文：描述 → 徽章 → 原生依赖 → 次要操作分组；
- * 3. 固定页脚：主操作（安装 / 更新 / 运行）。
+ * 版面自上而下：面板头部（名称 + 关闭）→ 图标瓦片与「版本 / 引擎 · 权限」→ 描述 → 标签 →
+ * 原生依赖分区 → 次级操作分区（密钥 / 卸载 / 发布 / 提交改进 / 投票）→ 主操作按钮（安装 / 更新 / 运行）。
  *
- * 主操作为什么独占页脚：它的文案和数量随卡状态变（未装=安装；已装=运行 / 更新到 vX），
- * 固定在卡底能让视线每次都落在同一处。密钥 / 卸载 / 发布 / 提交改进 / 投票这些次级动作
- * 降为正文里的一行行动作（图标 + 文案 + 箭头），不再和主操作抢同一个视觉高度。
+ * 主操作单独放在最下面：它的文案和数量随卡状态变（未装=安装；已装=运行 / 更新到 vX），
+ * 次级动作是分区里的一行行列表项，不和主操作抢同一个视觉高度。
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CardDetailSheet(
     entry: CardIndexEntry,
@@ -3590,7 +2616,7 @@ private fun CardDetailSheet(
     activated: Boolean,
     busy: Boolean,
     onDismiss: () -> Unit,
-    /** 点弹窗里的标签：先把弹窗收掉，再由页面拿这段文字去搜索。 */
+    /** 点面板里的标签：先把面板收掉，再由页面拿这段文字去搜索。 */
     onTagSearch: (String) -> Unit,
     onToast: (String, Boolean) -> Unit,
     onSecretsClick: () -> Unit,
@@ -3603,7 +2629,6 @@ private fun CardDetailSheet(
     onVote: () -> Unit,
 ) {
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
-    val scroll = rememberScrollState()
 
     // 次级动作在组合期拼好：文案全是 stringResource，只能在这里取。
     val secretsLabel = stringResource(R.string.explore_market_secrets)
@@ -3614,15 +2639,15 @@ private fun CardDetailSheet(
     val voteNeedsActivationLabel = stringResource(R.string.explore_market_vote_needs_activation)
     val secondaryActions = buildList {
         if (installedVersion != null) {
-            add(PopupAction(secretsLabel, vpnKey, onSecretsClick))
-            add(PopupAction(uninstallLabel, deleteForever, onUninstall))
+            add(DetailAction(secretsLabel, vpnKey, onSecretsClick))
+            add(DetailAction(uninstallLabel, deleteForever, onUninstall, destructive = true))
         }
         if (installedVersion != null && activated) {
-            add(PopupAction(publishLabel, upload, onPublishClick))
-            add(PopupAction(forkLabel, editNote, onForkClick))
+            add(DetailAction(publishLabel, upload, onPublishClick))
+            add(DetailAction(forkLabel, editNote, onForkClick))
         }
         if (hubInfo != null) {
-            add(PopupAction(if (activated) voteLabel else voteNeedsActivationLabel, keyboardArrowUp, onVote))
+            add(DetailAction(if (activated) voteLabel else voteNeedsActivationLabel, keyboardArrowUp, onVote))
         }
     }
 
@@ -3630,46 +2655,39 @@ private fun CardDetailSheet(
     val showUpdate = installedVersion != null && installedVersion != entry.version && entry.url.isNotBlank()
     val showInstall = installedVersion == null && entry.url.isNotBlank()
 
-    GlassPopup(onDismiss = onDismiss) { dismiss ->
-        // 标签点击：先收弹窗（有退场动画），再让页面去搜这个标签 —— 搜索框 morph 与
-        // 卡片淡出同时发生，不会被「弹窗还盖着、底下已经换了一屏」吓一跳。
-        val searchTag: (String) -> Unit = { tag ->
-            dismiss()
-            onTagSearch(tag)
-        }
-        PopupHead(
-            title = entry.name,
-            kicker = listOf(entry.engine, entry.privilege).filter { it.isNotBlank() }.joinToString(" · "),
-            badge = stringResource(R.string.explore_market_version_prefix, entry.version),
-            icon = extension,
-            onDismiss = dismiss,
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(scroll)
-                .padding(horizontal = 20.dp)
-                .padding(top = 14.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    val sheet = rememberMochiSheetState()
+    LaunchedEffect(Unit) { sheet.show() }
+    // 标签点击：先收面板（有退场动画），再让页面去搜这个标签 —— 搜索框 morph 与
+    // 面板下滑同时发生，不会被「面板还盖着、底下已经换了一屏」吓一跳。
+    val searchTag: (String) -> Unit = { tag ->
+        sheet.hide()
+        onTagSearch(tag)
+    }
+
+    MochiSheet(state = sheet, onDismiss = onDismiss) {
+        DetailSheetHeader(title = entry.name, onClose = { sheet.hide() })
+        MochiSheetContent {
+            DetailSheetHero(
+                icon = extension,
+                version = stringResource(R.string.explore_market_version_prefix, entry.version),
+                kicker = listOf(entry.engine, entry.privilege).filter { it.isNotBlank() }.joinToString(" · "),
+            )
+
             val description = entry.summary.ifBlank { entry.description }
             if (description.isNotBlank()) {
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.subhead,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
+            MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp), spacing = 6.dp) {
                 if (installedVersion != null) {
                     TagChip(
                         label = stringResource(R.string.explore_market_installed_version_badge, installedVersion),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MochiTheme.colorScheme.primaryContainer,
+                        contentColor = MochiTheme.colorScheme.onPrimaryContainer,
                     )
                 }
                 // 桥接名 / 触发方式 / 授权三样是**可点的标签**：点一下按这个属性搜同类卡片。
@@ -3699,20 +2717,20 @@ private fun CardDetailSheet(
                     TagChip(label = label, onClick = { searchTag(label) })
                 }
                 hubInfo?.let { info ->
-                    // 免费卡片不再挂「免费」胶囊（默认就是免费，标签只是噪音）；
+                    // 免费卡片不挂「免费」胶囊（默认就是免费，标签只是噪音）；
                     // 收费卡片的价格仍然必须露出，否则用户看不到计费方式。
                     if (info.priceCents > 0L) {
                         TagChip(
                             label = stringResource(R.string.explore_market_price_per_call, formatYuan(info.priceCents)),
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            containerColor = MochiTheme.colorScheme.tertiaryContainer,
+                            contentColor = MochiTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                     info.downloadsText()?.let { text -> TagChip(label = text) }
                     if (info.license.isNotBlank()) {
                         TagChip(label = info.license, onClick = { searchTag(info.license) })
                     }
-                    // 「优选」胶囊同样下线；票数保留，它是用户能自己改变的量。
+                    // 票数保留，它是用户能自己改变的量。
                     if (info.votes > 0) {
                         TagChip(label = "▲ ${info.votes}")
                     }
@@ -3720,308 +2738,163 @@ private fun CardDetailSheet(
             }
 
             if (entry.dependencies.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.explore_market_section_dependencies),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        entry.dependencies.forEach { dependency ->
-                            TagChip(
-                                label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
-                                icon = deployedCode,
-                                seed = dependency.name,
-                            )
-                        }
+                MochiListSection(header = stringResource(R.string.explore_market_section_dependencies)) {
+                    entry.dependencies.forEach { dependency ->
+                        MochiListRow(
+                            title = dependency.name,
+                            value = dependency.version,
+                            leading = { RowIcon(deployedCode) },
+                        )
                     }
                 }
             }
 
-            if (busy) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    KkProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.explore_market_processing), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            if (busy) DetailBusyRow()
 
             if (secondaryActions.isNotEmpty()) {
-                PopupActionGroup {
-                    secondaryActions.forEachIndexed { index, action ->
-                        if (index > 0) PopupActionDivider()
-                        PopupActionRow(action)
+                MochiListSection {
+                    secondaryActions.forEach { action ->
+                        MochiListRow(
+                            title = action.label,
+                            onClick = action.onClick,
+                            leading = {
+                                RowIcon(
+                                    action.icon,
+                                    tint = if (action.destructive) {
+                                        MochiTheme.colorScheme.error
+                                    } else {
+                                        MochiTheme.colorScheme.primary
+                                    },
+                                )
+                            },
+                            chevron = !action.destructive,
+                            destructive = action.destructive,
+                        )
                     }
                 }
             }
-        }
 
-        if (showRun || showUpdate || showInstall) {
-            PopupFooterDivider()
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (showRun) {
-                    BigActionButton(
-                        text = stringResource(R.string.explore_market_run_card),
-                        onClick = onRun,
-                        container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                if (showUpdate) {
-                    BigActionButton(
-                        text = stringResource(R.string.explore_market_update_to_version, entry.version),
-                        onClick = onUpdate,
-                        container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                if (showInstall) {
-                    BigActionButton(
-                        text = stringResource(R.string.explore_market_install_card),
-                        onClick = onInstall,
-                        container = MaterialTheme.colorScheme.primary.harmonizeWithPrimary(),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+            if (showRun) {
+                DetailPrimaryButton(stringResource(R.string.explore_market_run_card), onClick = onRun)
+            }
+            if (showUpdate) {
+                DetailPrimaryButton(stringResource(R.string.explore_market_update_to_version, entry.version), onClick = onUpdate)
+            }
+            if (showInstall) {
+                DetailPrimaryButton(stringResource(R.string.explore_market_install_card), onClick = onInstall)
             }
         }
     }
 }
 
-/** 玻璃 popup 的头部：图标瓦片 + 标题两行（名称 / 版本 · 副标题）+ 关闭按钮。 */
+/** 详情面板头部：标题居中，右上角一枚关闭键（面板头部按钮与面板圆角同心）。 */
 @Composable
-private fun PopupHead(
-    title: String,
-    kicker: String?,
-    badge: String?,
-    icon: ImageVector,
-    onDismiss: () -> Unit,
-) {
+private fun DetailSheetHeader(title: String, onClose: () -> Unit) {
+    MochiSheetHeader(
+        title = title,
+        actions = {
+            MochiBarIconButton(onClick = onClose) {
+                Icon(
+                    imageVector = close,
+                    contentDescription = stringResource(R.string.explore_market_cancel),
+                    modifier = Modifier.size(20.dp),
+                    tint = MochiTheme.colorScheme.onSurface,
+                )
+            }
+        },
+    )
+}
+
+/**
+ * 详情面板正文首行：图标瓦片 + 两行说明。版本独占一行（主色、等宽数字），
+ * 类型 / 引擎 · 权限在下一行 —— 两者不是同一类信息，不用「·」拼在一起。
+ */
+@Composable
+private fun DetailSheetHero(icon: ImageVector, version: String?, kicker: String?) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 12.dp, top = 18.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                .clip(MochiTheme.shapes.medium)
+                .background(MochiTheme.colorScheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MochiTheme.colorScheme.primary,
             )
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                // 显式取色，不依赖 LocalContentColor：弹窗卡面是 Color.alpha 的半透明底，
-                // 一旦上层没人 provide 内容色（MD3 分支的默认值是纯黑），标题就是黑底黑字。
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (!badge.isNullOrBlank()) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.labelSmall.tabular(),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                if (!badge.isNullOrBlank() && !kicker.isNullOrBlank()) {
-                    Text(
-                        text = "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (!kicker.isNullOrBlank()) {
-                    Text(
-                        text = kicker,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            if (!version.isNullOrBlank()) {
+                Text(
+                    text = version,
+                    style = MochiTheme.textStyles.subhead.tabular(),
+                    color = MochiTheme.colorScheme.primary,
+                )
+            }
+            if (!kicker.isNullOrBlank()) {
+                Text(
+                    text = kicker,
+                    style = MochiTheme.textStyles.footnote,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = close,
-                contentDescription = stringResource(R.string.explore_market_cancel),
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
-/** popup 正文里的一组次级操作：一块浅底分组，行间用 [PopupActionDivider] 分隔。 */
+/** 详情面板里「处理中」的一行：Mochi 活动指示器 + 文案。 */
 @Composable
-private fun PopupActionGroup(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)),
-        content = content,
-    )
-}
-
-/** 分组内的一行动作：图标 + 文案 + 箭头，整行可点。 */
-@Composable
-private fun PopupActionRow(action: PopupAction) {
+private fun DetailBusyRow() {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = action.onClick,
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            imageVector = action.icon,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        MochiActivityIndicator(size = 16.dp)
         Text(
-            text = action.label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = chevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            text = stringResource(R.string.explore_market_processing),
+            style = MochiTheme.textStyles.subhead,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** 分组内的一条纯文本行（资源合集「包含」清单用）：圆点 + 单行省略。 */
+/** 详情面板的主操作：整宽 Mochi 按钮。 */
 @Composable
-private fun PopupBulletRow(text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(5.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)),
-        )
+private fun DetailPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    enabled: Boolean = true,
+    style: MochiButtonStyle = MochiButtonStyle.Filled,
+) {
+    MochiButton(onClick = onClick, modifier = modifier, enabled = enabled, style = style) {
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
         )
     }
-}
-
-/** 分组内的分隔线：左侧留出图标列的宽度，视觉上不切到行首。 */
-@Composable
-private fun PopupActionDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 42.dp)
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    )
-}
-
-/** 页脚主操作区上方的分隔线（贴卡边，不再让正文与按钮直接相邻）。 */
-@Composable
-private fun PopupFooterDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp)
-            .height(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    )
 }
 
 /** 次级操作的一行定义：文案在组合期取好，点按回调原样透传。 */
-private class PopupAction(
+private class DetailAction(
     val label: String,
     val icon: ImageVector,
     val onClick: () -> Unit,
+    val destructive: Boolean = false,
 )
-
-@Composable
-private fun BigActionButton(
-    text: String,
-    onClick: () -> Unit,
-    container: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .pressBounce(interactionSource)
-            .clip(AutoCornersShape(18.dp))
-            .background(container)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            color = contentColor,
-        )
-    }
-}
 
 @Composable
 private fun PublishCardDialog(
@@ -4034,54 +2907,38 @@ private fun PublishCardDialog(
     var changelog by remember(entry.name) { mutableStateOf("") }
     val price = priceText.toDoubleOrNull() ?: -1.0
 
-    AppDialog(
+    MochiDialog(
+        visible = true,
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.explore_market_publish_dialog_title, entry.name)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Md3OutlinedTextFieldWithSlots(
-                    value = license,
-                    onValueChange = { license = it },
-                    label = { Text(stringResource(R.string.explore_market_license_label)) },
-                    singleLine = true,
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Md3OutlinedTextFieldWithSlots(
-                    value = priceText,
-                    onValueChange = { priceText = it },
-                    label = { Text(stringResource(R.string.explore_market_price_label)) },
-                    singleLine = true,
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Md3OutlinedTextFieldWithSlots(
-                    value = changelog,
-                    onValueChange = { changelog = it },
-                    label = { Text(stringResource(R.string.explore_market_changelog_label)) },
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    text = stringResource(R.string.explore_market_publish_note),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        confirmButton = {
-            MochiTextButton(
-                onClick = { onConfirm(license, price, changelog) },
+        title = stringResource(R.string.explore_market_publish_dialog_title, entry.name),
+        message = stringResource(R.string.explore_market_publish_note),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.explore_market_cancel),
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = stringResource(R.string.explore_market_publish_submit),
+                role = MochiDialogActionRole.Primary,
                 enabled = license.isNotBlank() && price >= 0,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.explore_market_publish_submit))
-            }
-        },
-        dismissButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
-        },
-    )
+                onClick = { onConfirm(license, price, changelog) },
+            ),
+        ),
+    ) {
+        DialogField(label = stringResource(R.string.explore_market_license_label)) {
+            MochiDialogTextField(value = license, onValueChange = { license = it })
+        }
+        DialogField(label = stringResource(R.string.explore_market_price_label)) {
+            MochiDialogTextField(
+                value = priceText,
+                onValueChange = { priceText = it },
+                autoFocus = false,
+            )
+        }
+        DialogField(label = stringResource(R.string.explore_market_changelog_label)) {
+            DialogMultilineTextField(value = changelog, onValueChange = { changelog = it })
+        }
+    }
 }
 
 @Composable
@@ -4102,48 +2959,75 @@ private fun ForkCardDialog(
     }
     var changelog by remember(entry.name) { mutableStateOf("") }
 
-    AppDialog(
+    MochiDialog(
+        visible = true,
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.explore_market_fork_dialog_title, entry.name)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Md3OutlinedTextFieldWithSlots(
-                    value = parent,
-                    onValueChange = { parent = it },
-                    label = { Text(stringResource(R.string.explore_market_parent_version)) },
-                    singleLine = true,
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Md3OutlinedTextFieldWithSlots(
-                    value = newVersion,
-                    onValueChange = { newVersion = it },
-                    label = { Text(stringResource(R.string.explore_market_new_version)) },
-                    singleLine = true,
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Md3OutlinedTextFieldWithSlots(
-                    value = changelog,
-                    onValueChange = { changelog = it },
-                    label = { Text(stringResource(R.string.explore_market_changelog_required)) },
-                    shape = AutoCornersShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        },
-        confirmButton = {
-            MochiTextButton(
-                onClick = { onConfirm(parent, newVersion, changelog) },
+        title = stringResource(R.string.explore_market_fork_dialog_title, entry.name),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.explore_market_cancel),
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = stringResource(R.string.explore_market_submit),
+                role = MochiDialogActionRole.Primary,
                 enabled = changelog.isNotBlank() && newVersion.isNotBlank(),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.explore_market_submit))
-            }
-        },
-        dismissButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.explore_market_cancel)) }
-        },
+                onClick = { onConfirm(parent, newVersion, changelog) },
+            ),
+        ),
+    ) {
+        DialogField(label = stringResource(R.string.explore_market_parent_version)) {
+            MochiDialogTextField(value = parent, onValueChange = { parent = it })
+        }
+        DialogField(label = stringResource(R.string.explore_market_new_version)) {
+            MochiDialogTextField(value = newVersion, onValueChange = { newVersion = it }, autoFocus = false)
+        }
+        DialogField(label = stringResource(R.string.explore_market_changelog_required)) {
+            DialogMultilineTextField(value = changelog, onValueChange = { changelog = it })
+        }
+    }
+}
+
+/** 对话框里的一个输入项：脚注字阶的字段名 + 输入框（输入框自带 8dp 上边距）。 */
+@Composable
+private fun DialogField(label: String, field: @Composable () -> Unit) {
+    Column(Modifier.padding(top = 4.dp)) {
+        Text(
+            text = label,
+            style = MochiTheme.textStyles.footnote,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
+        )
+        field()
+    }
+}
+
+/**
+ * 更新说明要能换行，而 [MochiDialogTextField] 是单行的：这里用多行 [MochiTextField]，
+ * 照 [MochiDialogTextField] 的口径左右各外扩到与对话框按钮同宽、配色一致。
+ */
+@Composable
+private fun DialogMultilineTextField(value: String, onValueChange: (String) -> Unit) {
+    val outset = 24.dp - MochiDialogDefaults.ButtonInset
+    MochiTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .layout { measurable, constraints ->
+                val o = outset.roundToPx()
+                val p = measurable.measure(
+                    constraints.copy(
+                        minWidth = (constraints.minWidth + o * 2).coerceAtMost(constraints.maxWidth + o * 2),
+                        maxWidth = constraints.maxWidth + o * 2,
+                    ),
+                )
+                layout((p.width - o * 2).coerceAtLeast(0), p.height) { p.place(-o, 0) }
+            },
+        singleLine = false,
+        maxLines = 5,
+        colors = MochiTextFieldDefaults.colors(
+            container = MochiTheme.colorScheme.run { if (isDark) surfaceContainerHighest else surfaceContainerHigh },
+        ),
     )
 }
 
@@ -4201,7 +3085,6 @@ fun ExploreLocalPage() {
     val dependencies by vm.dependencies.collectAsStateWithLifecycle()
     // 已安装卡片声明的依赖包：本地页要连「还没下载的」一起列出来。
     val declaredDependencies by vm.declaredDependencies.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
     var secretCard by remember { mutableStateOf<String?>(null) }
@@ -4249,16 +3132,14 @@ fun ExploreLocalPage() {
 
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.explore_market_local_page_title),
-        scrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        // 与一级页 / 卡片市场页同一口径：页面里没有分区标题，一行一张全宽条目，
-        // 类型由每行的前置图标自报（卡片 extension / 工具 build / 技能 school /
-        // MCP dns / 依赖 deployedCode）。分组之间只靠间距分块。
+        // 每组一个 MochiListSection：有现成文案的组带分区标题，其余只靠分区间距分块；
+        // 类型仍由每行的前置图标自报（卡片 extension / 工具 build / 技能 school / MCP dns / 依赖 deployedCode）。
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding +
                 PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
             if (loading && installed.isEmpty() && skills.isEmpty() && dependencyViews.isEmpty()) {
                 item(key = "loading") { SectionSkeleton(rows = 3) }
@@ -4266,166 +3147,142 @@ fun ExploreLocalPage() {
 
             if (installedFromMarket.isNotEmpty()) {
                 item(key = "installed_market") {
-                    GroupContainer(count = installedFromMarket.size) { index, shape ->
-                        val name = installedFromMarket[index]
-                        LocalCardRow(
-                            name = name,
-                            version = installed[name].orEmpty(),
-                            triggers = triggers[name].orEmpty(),
-                            onClick = { selectedCard = installedEntry(name) },
-                            shape = shape,
-                        )
+                    MochiListSection(header = stringResource(R.string.explore_market_chip_installed)) {
+                        installedFromMarket.forEach { name ->
+                            key(name) {
+                                LocalCardRow(
+                                    name = name,
+                                    version = installed[name].orEmpty(),
+                                    triggers = triggers[name].orEmpty(),
+                                    onClick = { selectedCard = installedEntry(name) },
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             if (localOnly.isNotEmpty()) {
                 item(key = "local_only") {
-                    GroupContainer(count = localOnly.size) { index, shape ->
-                        val name = localOnly[index]
-                        LocalCardRow(
-                            name = name,
-                            version = installed[name].orEmpty(),
-                            triggers = triggers[name].orEmpty(),
-                            onClick = { selectedCard = installedEntry(name) },
-                            shape = shape,
-                        )
+                    MochiListSection {
+                        localOnly.forEach { name ->
+                            key(name) {
+                                LocalCardRow(
+                                    name = name,
+                                    version = installed[name].orEmpty(),
+                                    triggers = triggers[name].orEmpty(),
+                                    onClick = { selectedCard = installedEntry(name) },
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             item(key = "tools") {
-                GroupContainer(count = localToolCatalog.size + 1) { index, shape ->
-                    if (index < localToolCatalog.size) {
-                        val tool = localToolCatalog[index]
-                        ToolRow(
-                            tool = tool,
-                            enabled = tool.option in currentAssistantLocalTools,
-                            onClick = {
-                                navController.navigate(
-                                    Screen.AssistantLocalTool(settings.assistantId.toString())
-                                )
-                            },
-                            shape = shape,
-                        )
-                    } else {
-                        GroupActionRow(
-                            label = stringResource(R.string.explore_market_manage_local_tools),
-                            onClick = {
-                                navController.navigate(
-                                    Screen.AssistantLocalTool(settings.assistantId.toString())
-                                )
-                            },
-                            shape = shape,
-                        )
+                val openTools = {
+                    navController.navigate(Screen.AssistantLocalTool(settings.assistantId.toString()))
+                }
+                MochiListSection {
+                    localToolCatalog.forEach { tool ->
+                        key(tool.option) {
+                            ToolRow(
+                                tool = tool,
+                                enabled = tool.option in currentAssistantLocalTools,
+                                onClick = openTools,
+                            )
+                        }
                     }
+                    MochiListButton(
+                        text = stringResource(R.string.explore_market_manage_local_tools),
+                        onClick = openTools,
+                    )
                 }
             }
 
             item(key = "tasks") {
-                GroupContainer(count = 1) { _, shape ->
-                    val kkNav = LocalKkNavController.current
-                    val morphKey = "explore-action-card-runs"
-                    GroupActionRow(
-                        label = stringResource(R.string.card_runs_title),
-                        sourceKey = morphKey,
-                        onClick = {
-                            if (kkNav != null) kkNav.navigate(Screen.CardRuns, source = morphKey)
-                            else navController.navigate(Screen.CardRuns)
-                        },
-                        shape = shape,
+                MochiListSection {
+                    MochiListRow(
+                        title = stringResource(R.string.card_runs_title),
+                        onClick = { navController.navigate(Screen.CardRuns) },
+                        chevron = true,
                     )
                 }
             }
 
             if (skills.isNotEmpty()) {
                 item(key = "skills") {
-                    GroupContainer(count = skills.size + 1) { index, shape ->
-                        if (index < skills.size) {
-                            val skill = skills[index]
-                            val kkNav = LocalKkNavController.current
-                            val morphKey = "explore-skill-" + skill.name
-                            SkillRow(
-                                name = skill.name,
-                                description = skill.description,
-                                sourceKey = morphKey,
-                                onClick = {
-                                    if (kkNav != null) kkNav.navigate(Screen.SkillDetail(skill.name), source = morphKey)
-                                    else navController.navigate(Screen.SkillDetail(skill.name))
-                                },
-                                shape = shape,
-                            )
-                        } else {
-                            val kkNavManage = LocalKkNavController.current
-                            val morphKeyManage = "explore-action-skills"
-                            GroupActionRow(
-                                label = stringResource(R.string.explore_market_manage_skills),
-                                sourceKey = morphKeyManage,
-                                onClick = {
-                                    if (kkNavManage != null) kkNavManage.navigate(Screen.Skills, source = morphKeyManage)
-                                    else navController.navigate(Screen.Skills)
-                                },
-                                shape = shape,
-                            )
+                    MochiListSection(header = stringResource(R.string.explore_market_chip_skills)) {
+                        skills.forEach { skill ->
+                            key(skill.name) {
+                                SkillRow(
+                                    name = skill.name,
+                                    description = skill.description,
+                                    onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                                )
+                            }
                         }
+                        MochiListButton(
+                            text = stringResource(R.string.explore_market_manage_skills),
+                            onClick = { navController.navigate(Screen.Skills) },
+                        )
                     }
                 }
             }
 
             if (mcpServers.isNotEmpty()) {
                 item(key = "mcp") {
-                    GroupContainer(count = mcpServers.size + 1) { index, shape ->
-                        if (index < mcpServers.size) {
-                            val server = mcpServers[index]
-                            McpRow(
-                                server = server,
-                                status = mcpStatus[server.id],
-                                onClick = { navController.navigate(Screen.SettingMcp) },
-                                onConfigure = { mcpConfigTarget = rePlanMcpInstall(server) },
-                                shape = shape,
-                            )
-                        } else {
-                            GroupActionRow(
-                                label = stringResource(R.string.explore_market_manage_mcp),
-                                onClick = { navController.navigate(Screen.SettingMcp) },
-                                shape = shape,
-                            )
+                    MochiListSection(header = stringResource(R.string.explore_market_chip_mcp)) {
+                        mcpServers.forEach { server ->
+                            key(server.id) {
+                                McpRow(
+                                    server = server,
+                                    status = mcpStatus[server.id],
+                                    onClick = { navController.navigate(Screen.SettingMcp) },
+                                    onConfigure = { mcpConfigTarget = rePlanMcpInstall(server) },
+                                )
+                            }
                         }
+                        MochiListButton(
+                            text = stringResource(R.string.explore_market_manage_mcp),
+                            onClick = { navController.navigate(Screen.SettingMcp) },
+                        )
                     }
                 }
             }
 
             if (dependencyViews.isNotEmpty()) {
                 item(key = "dependency_cache") {
-                    GroupContainer(count = dependencyViews.size + if (dependencies.isEmpty()) 0 else 1) { index, shape ->
-                        if (index < dependencyViews.size) {
-                            val view = dependencyViews[index]
-                            DependencyRow(
-                                name = view.name,
-                                version = view.version,
-                                cached = view.cached,
-                                shape = shape,
-                                onDelete = {
-                                    val cached = view.cached
-                                    if (cached != null) {
-                                        vm.deleteDependency(cached) { ok ->
-                                            scope.launch {
-                                                Toast.show(
-                                                    if (ok) {
-                                                        toastDependencyDeleted.format(cached.name, cached.version)
-                                                    } else {
-                                                        toastDeleteFailed
-                                                    },
-                                                    !ok,
-                                                )
+                    MochiListSection(header = stringResource(R.string.explore_market_section_dependencies)) {
+                        dependencyViews.forEach { view ->
+                            key(view.name, view.version) {
+                                DependencyRow(
+                                    name = view.name,
+                                    version = view.version,
+                                    cached = view.cached,
+                                    onDelete = {
+                                        val cached = view.cached
+                                        if (cached != null) {
+                                            vm.deleteDependency(cached) { ok ->
+                                                scope.launch {
+                                                    Toast.show(
+                                                        if (ok) {
+                                                            toastDependencyDeleted.format(cached.name, cached.version)
+                                                        } else {
+                                                            toastDeleteFailed
+                                                        },
+                                                        !ok,
+                                                    )
+                                                }
                                             }
                                         }
-                                    }
-                                },
-                            )
-                        } else {
-                            GroupActionRow(
-                                label = stringResource(R.string.explore_market_clear),
+                                    },
+                                )
+                            }
+                        }
+                        if (dependencies.isNotEmpty()) {
+                            MochiListButton(
+                                text = stringResource(R.string.explore_market_clear),
                                 onClick = {
                                     vm.clearDependencyCache { count ->
                                         scope.launch {
@@ -4439,7 +3296,6 @@ fun ExploreLocalPage() {
                                         }
                                     }
                                 },
-                                shape = shape,
                             )
                         }
                     }

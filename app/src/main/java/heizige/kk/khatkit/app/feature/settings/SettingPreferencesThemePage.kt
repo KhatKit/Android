@@ -1,46 +1,28 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkSlider
-import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
-import heizige.kk.khatkit.uikit.mochi.KkFancySlider
-import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 import android.content.ClipData
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -59,31 +41,14 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import heizige.kk.khatkit.uikit.mochi.Toast
-import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
-import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
-import heizige.kk.khatkit.app.core.ui.components.ui.Select
-import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
-import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
-import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
-import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
-import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
-import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlin.math.roundToInt
-import kotlin.uuid.Uuid
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
@@ -91,307 +56,178 @@ import heizige.kk.khatkit.app.core.ui.icons.deleteForever
 import heizige.kk.khatkit.app.core.ui.icons.editSquare
 import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
+import ui.feice.mochi.list.MochiListDefaults
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.PaddingValues
+import heizige.kk.khatkit.uikit.mochi.KkSlider
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.Toast
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
+import kotlin.uuid.Uuid
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
+import ui.feice.mochi.theme.MochiTheme
 
 private val themeJson = Json {
     ignoreUnknownKeys = true
     prettyPrint = true
 }
 
+/**
+ * 主题偏好页，布局照 Mochi demo 的主题标签页：
+ * - 顶栏走设置页统一的 KedgeSettingsPageScaffold（紧凑标题，左上返回与「设置 / 界面」同一枚），
+ *   正文是懒加载列表
+ * - 每个分组一张 iOS 26 分组卡片（CardGroup）：卡片外小标题、卡片内行、卡片下说明
+ * - 行是 Mochi 列表行（52dp 行高、16dp 内边距、分隔线自文字起点画到卡片右边），
+ *   进二级页的行带「›」；行高变化走 Mochi 同款尺寸弹簧
+ *
+ * 设置项按 Mochi 主题标签页的分组拆成三个二级页：配色（明暗 / 纯黑 / 系统取色 / 主题色）、
+ * 材质（玻璃 / 按钮样式 / 模糊）、列表卡片（圆角与间距）。本页只留入口和自定义主题管理。
+ */
 @Composable
 fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
-    // Miuix 走双文件（KernelSU SettingsMaterial/SettingsMiuix 架构）
-    
     val settings by vm.settings.collectAsStateWithLifecycle()
-    var amoledDarkMode by rememberAmoledDarkMode()
-    val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
-    // 毛玻璃的落点是 provider（`KhatKitToolProvider.enableBlur` /
-    // `enableBlur`）。这里直接读它的 state，不做 remember 缓存，否则别处切风格后本页不同步。
-    val khatKitProvider: heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider =
-        rememberAppEntryPoint().khatKitToolProvider()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val navController = LocalNavController.current
     val clipboardManager = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val exportSuccessMsg = stringResource(R.string.setting_theme_page_export_success)
     val importSuccessMsg = stringResource(R.string.setting_theme_page_import_success)
-    var showCustomColor by remember { mutableStateOf(false) }
-    var customColor by remember { mutableStateOf(PresetThemes.first().standardLight.primary) }
     var showEditSheet by remember { mutableStateOf(false) }
     var editingTheme by remember { mutableStateOf<CustomTheme?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     var deletingTheme by remember { mutableStateOf<CustomTheme?>(null) }
 
+    fun selectTheme(themeId: String) {
+        // 选自定义主题 = 不再跟随壁纸取色，否则选了也不生效（原来这块被 dynamicColor 挡着，看着像没用）
+        vm.updateSettings(settings.copy(themeId = themeId, dynamicColor = false))
+    }
+
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.setting_page_preferences_theme),
-        scrollBehavior = scrollBehavior,
-    ) { contentPadding ->
+        largeTitle = false,
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(
-                start = 8.dp,
-                top = PageMetrics.TopContentPadding,
-                end = 8.dp,
-                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            contentPadding = innerPadding + PaddingValues(
+                start = 16.dp,
+                top = 12.dp,
+                end = 16.dp,
+                bottom = 16.dp + PageMetrics.BottomContentPadding,
             ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
-            item {
-                val selectedColorModeText = when (colorMode.value) {
-                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
-                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
-                    heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
-                }
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.greeting_settings_theme_mode)) },
-                        supportingContent = { Text(selectedColorModeText) },
-                        trailingContent = {
-                            Select(
-                                options = heizige.kk.khatkit.app.core.ui.theme.ColorMode.entries,
-                                selectedOption = colorMode.value,
-                                onOptionSelected = { colorMode.value = it },
-                                optionToString = { mode ->
-                                    stringResource(
-                                        when (mode) {
-                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.SYSTEM -> R.string.greeting_settings_theme_system
-                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.LIGHT -> R.string.greeting_settings_theme_light
-                                            heizige.kk.khatkit.app.core.ui.theme.ColorMode.DARK -> R.string.greeting_settings_theme_dark
-                                        }
-                                    )
-                                },
-                                modifier = Modifier.width(150.dp),
-                            )
-                        },
-                    )
-                }
-            }
-
-            item {
-                heizige.kk.khatkit.app.feature.settings.components.ThemeColorSettingGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    dynamicColor = settings.dynamicColor,
-                    themeId = settings.themeId,
-                    onUpdateDynamicColor = { vm.updateSettings(settings.copy(dynamicColor = it)) },
-                    onSelectTheme = { vm.updateSettings(settings.copy(themeId = it)) },
-                    onCustomColorClick = { showCustomColor = true },
+        item(key = "appearance") {
+            CardGroup(
+                title = { Text("外观") },
+                footer = "配色、材质和列表卡片各自一页；改完立刻生效，不用回退再进。",
+            ) {
+                item(
+                    chevron = true,
+                    onClick = { navController.navigate(Screen.SettingThemeColors) },
+                    headlineContent = { Text("配色") },
+                    supportingContent = { Text("明暗模式、系统取色、主题色") },
+                )
+                item(
+                    chevron = true,
+                    onClick = { navController.navigate(Screen.SettingThemeMaterials) },
+                    headlineContent = { Text("材质") },
+                    supportingContent = { Text("玻璃、按钮样式、模糊") },
+                )
+                item(
+                    chevron = true,
+                    onClick = { navController.navigate(Screen.SettingThemeListCards) },
+                    headlineContent = { Text("列表卡片") },
+                    supportingContent = { Text("分组卡片的圆角与卡片之间的距离") },
                 )
             }
+        }
 
-            // 「自定义主题」小节：自定义主题的增删改查与导入导出，按外观归属并到本页。
-            // 行为逐字未改——仍写 `Settings.customThemes` / `Settings.themeId`，仍走 `vm.updateSettings`。
-            if (!settings.dynamicColor) {
-                item("customThemesHeader") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        KkOptionsText(stringResource(R.string.setting_theme_page_custom_themes))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            MochiButton(
-                                onClick = { showImportDialog = true },
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Icon(uploadFile, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.setting_theme_page_import_theme))
-                            }
-                            MochiButton(
-                                onClick = {
-                                    editingTheme = null
-                                    showEditSheet = true
-                                },
-                                shapes = ButtonDefaults.shapes(),
-                            ) {
-                                Icon(add, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.setting_theme_page_add_theme))
-                            }
-                        }
-                    }
-                }
-
-                if (settings.customThemes.isEmpty()) {
-                    item("emptyCustomThemes") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.setting_theme_page_no_custom_themes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                items(settings.customThemes, key = { it.id }) { theme ->
-                    CustomThemeItem(
-                        theme = theme,
-                        isSelected = settings.themeId == theme.id,
-                        onSelect = {
-                            vm.updateSettings(settings.copy(themeId = theme.id))
-                        },
-                        onExport = {
-                            val json = themeJson.encodeToString(theme)
-                            scope.launch {
-                                clipboardManager.setClipEntry(
-                                    ClipEntry(ClipData.newPlainText("theme", json))
-                                )
-                            }
-                            Toast.show(exportSuccessMsg, isError = false)
-                        },
-                        onEdit = {
-                            editingTheme = theme
-                            showEditSheet = true
-                        },
-                        onDelete = {
-                            deletingTheme = theme
-                        }
-                    )
-                }
-            }
-
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_amoled_dark_mode_title,
-                            R.string.setting_display_page_amoled_dark_mode_desc,
-                            checked = amoledDarkMode,
-                            onCheckedChange = { amoledDarkMode = it },
-                        )
-                    )
-                    // FX1：液态玻璃 / 光效总开关（默认开，落 DisplaySetting.effectsEnabled）。
-                    // 关掉 ⇒ Theme.kt 传 MochiMaterials()（栏/菜单/面板/弹窗纯色）+ LocalKkEffectsEnabled=false。
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_display_page_effects_title,
-                            R.string.setting_display_page_effects_desc,
-                            checked = settings.displaySetting.effectsEnabled,
-                            onCheckedChange = { enabled ->
-                                vm.updateSettings(
-                                    settings.copy(
-                                        displaySetting = settings.displaySetting.copy(effectsEnabled = enabled),
-                                    )
-                                )
-                            },
-                        )
-                    )
-                }
-            }
-
-            // 下面两组原先在「设置 → 偏好设置 → 界面」（`SettingPreferencesUIPage.kt`），
-            // 按外观归属迁进主题偏好页：毛玻璃、列表卡片样式。控件与持久化字段
-            // 逐字未改 —— 风格/毛玻璃仍写 `KhatKitToolProvider`，卡片样式仍写
-            // `Settings.listCardLargeCorner/listCardSmallCorner/listCardGap`。
-            item {
-                // 毛玻璃开关：MD3 顶栏不做模糊，但该设置对 Miuix 生效，保留可改。
-                // 走 settingItem(SwitchSetting) 而不是手写 trailing：整行可点等价于点开关。
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    settingItem(
-                        SwitchSetting(
-                            R.string.setting_page_blur_title,
-                            null,
-                            checked = khatKitProvider.enableBlur,
-                            onCheckedChange = { khatKitProvider.enableBlur = it },
-                        )
-                    )
-                }
-            }
-
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text(stringResource(R.string.setting_page_list_card_settings)) },
-                ) {
+        // 自定义主题：新建/导入两行动作 + 已有主题各一行；选中即换整套配色（同时关掉系统取色）。
+        // 卡片圆角/项间距读 listCardStyle()，在「列表卡片」页调完这里立刻变。
+        item(key = "customThemes") {
+            CardGroup(
+                title = { Text("自定义主题") },
+                footer = if (settings.customThemes.isEmpty()) {
+                    "还没有自定义主题。可以从配色页的主题色新建，或导入 JSON。"
+                } else {
+                    "选中后整套配色立即生效，并关闭系统取色；删除后回到默认主题。"
+                },
+            ) {
+                item(
+                    onClick = {
+                        editingTheme = null
+                        showEditSheet = true
+                    },
+                    leadingContent = {
+                        Icon(add, null, modifier = Modifier.size(22.dp), tint = MochiTheme.colorScheme.primary)
+                    },
+                    headlineContent = { Text(stringResource(R.string.setting_theme_page_add_theme)) },
+                )
+                item(
+                    onClick = { showImportDialog = true },
+                    leadingContent = {
+                        Icon(uploadFile, null, modifier = Modifier.size(22.dp), tint = MochiTheme.colorScheme.primary)
+                    },
+                    headlineContent = { Text(stringResource(R.string.setting_theme_page_import_theme)) },
+                )
+                settings.customThemes.forEach { theme ->
                     item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_large)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                KkFancySlider(
-                                    value = settings.listCardLargeCorner,
-                                    onValueChange = {
-                                        val large = it.roundToInt().toFloat()
-                                        vm.updateSettings(
-                                            settings.copy(
-                                                listCardLargeCorner = large,
-                                                listCardSmallCorner = settings.listCardSmallCorner
-                                                    .coerceAtMost(large),
+                        onClick = { selectTheme(theme.id) },
+                        leadingContent = {
+                            CustomThemeColorDot(theme = theme, isSelected = settings.themeId == theme.id)
+                        },
+                        headlineContent = { Text(theme.name.ifEmpty { "未命名主题" }) },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                MochiIconButton(
+                                    onClick = {
+                                        val json = themeJson.encodeToString(theme)
+                                        scope.launch {
+                                            clipboardManager.setClipEntry(
+                                                ClipEntry(ClipData.newPlainText("theme", json))
                                             )
-                                        )
+                                        }
+                                        Toast.show(exportSuccessMsg, isError = false)
                                     },
-                                    valueRange = 8f..40f,
-                                    steps = 31,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardLargeCorner.roundToInt()}dp")
-                            }
-                        },
-                    )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_corner_small)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                KkFancySlider(
-                                    value = settings.listCardSmallCorner,
-                                    onValueChange = {
-                                        vm.updateSettings(
-                                            settings.copy(listCardSmallCorner = it.roundToInt().toFloat())
-                                        )
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    Icon(contentCopy, null)
+                                }
+                                MochiIconButton(
+                                    onClick = {
+                                        editingTheme = theme
+                                        showEditSheet = true
                                     },
-                                    valueRange = 0f..settings.listCardLargeCorner.coerceAtLeast(1f),
-                                    steps = (settings.listCardLargeCorner.roundToInt().coerceAtLeast(1) - 1)
-                                        .coerceAtLeast(0),
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardSmallCorner.roundToInt()}dp")
-                            }
-                        },
-                    )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_card_gap)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                KkFancySlider(
-                                    value = settings.listCardGap,
-                                    onValueChange = {
-                                        vm.updateSettings(
-                                            settings.copy(listCardGap = it.roundToInt().toFloat())
-                                        )
-                                    },
-                                    valueRange = 0f..16f,
-                                    steps = 15,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(text = "${settings.listCardGap.roundToInt()}dp")
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    Icon(editSquare, null)
+                                }
+                                MochiIconButton(
+                                    onClick = { deletingTheme = theme },
+                                    shapes = IconButtonDefaults.shapes(),
+                                ) {
+                                    Icon(deleteForever, null, tint = MaterialTheme.colorScheme.error)
+                                }
                             }
                         },
                     )
                 }
             }
+        }
         }
     }
 
@@ -408,7 +244,8 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                 vm.updateSettings(
                     settings.copy(
                         customThemes = newThemes,
-                        themeId = theme.id
+                        themeId = theme.id,
+                        dynamicColor = false,
                     )
                 )
                 showEditSheet = false
@@ -424,7 +261,8 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                 vm.updateSettings(
                     settings.copy(
                         customThemes = settings.customThemes + importedTheme,
-                        themeId = importedTheme.id
+                        themeId = importedTheme.id,
+                        dynamicColor = false,
                     )
                 )
                 showImportDialog = false
@@ -433,123 +271,69 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
         )
     }
 
-    RikkaConfirmDialog(
-        show = deletingTheme != null,
+    MochiDialog(
+        visible = deletingTheme != null,
+        onDismissRequest = { deletingTheme = null },
         title = stringResource(R.string.setting_theme_page_delete_theme_title),
-        confirmText = stringResource(android.R.string.ok),
-        dismissText = stringResource(android.R.string.cancel),
-        onConfirm = {
-            deletingTheme?.let { theme ->
-                val newThemes = settings.customThemes.filter { it.id != theme.id }
-                val newThemeId = if (settings.themeId == theme.id) "sakura" else settings.themeId
-                vm.updateSettings(settings.copy(customThemes = newThemes, themeId = newThemeId))
-            }
-            deletingTheme = null
-        },
-        onDismiss = { deletingTheme = null },
-        text = {
-            Text(stringResource(R.string.setting_theme_page_delete_theme_message))
-        }
-    )
-
-    ThemeCustomColorSheet(
-        visible = showCustomColor,
-        initialColor = customColor,
-        history = settings.customColorHistory,
-        onDismiss = { showCustomColor = false },
-        onColorChanged = { customColor = it },
-        onConfirm = { color ->
-            val argb = color.toArgb().toLong() and 0xFFFFFFFFL
-            val custom = CustomTheme(
-                name = String.format("#%08X", color.toArgb()),
-                primaryColorArgb = argb,
-            )
-            vm.updateSettings(
-                settings.copy(
-                    dynamicColor = false,
-                    customThemes = settings.customThemes + custom,
-                    themeId = custom.id,
-                    customColorHistory = (
-                        listOf(argb) +
-                            settings.customColorHistory.filterNot { it == argb }
-                        ).take(8),
-                )
-            )
-            showCustomColor = false
-        },
+        message = stringResource(R.string.setting_theme_page_delete_theme_message),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(android.R.string.cancel),
+                role = MochiDialogActionRole.Cancel,
+            ),
+            MochiDialogAction(
+                label = stringResource(android.R.string.ok),
+                role = MochiDialogActionRole.Destructive,
+                onClick = {
+                    deletingTheme?.let { theme ->
+                        val newThemes = settings.customThemes.filter { it.id != theme.id }
+                        val newThemeId = if (settings.themeId == theme.id) "sakura" else settings.themeId
+                        vm.updateSettings(settings.copy(customThemes = newThemes, themeId = newThemeId))
+                    }
+                    deletingTheme = null
+                },
+            ),
+        ),
     )
 }
 
+/** 自定义主题的四色预览（选中有勾）：三块容器色拼成的圆，中间是主色圆点。 */
 @Composable
-private fun CustomThemeItem(
-    theme: CustomTheme,
-    isSelected: Boolean,
-    onSelect: () -> Unit,
-    onExport: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
+private fun CustomThemeColorDot(theme: CustomTheme, isSelected: Boolean) {
     val darkMode = LocalDarkMode.current
     val scheme = theme.generateColorScheme(darkMode)
-
-    MochiOptionItem(
-        modifier = Modifier.padding(horizontal = 8.dp),
-        shape = heizige.kk.khatkit.app.core.ui.theme.listCardStyle().indexedShape(0, 1),
-        backgroundColor = CustomColors.listItemColors.containerColor,
-        onClick = { onSelect() },
-        leadingContent = {
-            Box(contentAlignment = Alignment.Center) {
-                Canvas(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .size(24.dp)
-                ) {
-                    drawRect(color = scheme.primaryContainer, size = size)
-                    drawRect(
-                        color = scheme.secondaryContainer,
-                        size = size,
-                        topLeft = Offset(x = size.width / 2, y = 0f)
-                    )
-                    drawRect(
-                        color = scheme.tertiaryContainer,
-                        size = size,
-                        topLeft = Offset(x = size.width / 2, y = size.height / 2)
-                    )
-                    drawCircle(
-                        color = scheme.primary,
-                        radius = if (isSelected) 10.dp.toPx() else 6.dp.toPx(),
-                        center = Offset(x = size.width / 2, y = size.height / 2)
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        },
-        titleContent = { Text(theme.name.ifEmpty { "Unnamed" }) },
-        trailingContent = {
-            Row {
-                MochiIconButton(onClick = onExport, shapes = IconButtonDefaults.shapes()) {
-                    Icon(contentCopy, null)
-                }
-                MochiIconButton(onClick = onEdit, shapes = IconButtonDefaults.shapes()) {
-                    Icon(editSquare, null)
-                }
-                MochiIconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
-                    Icon(
-                        deleteForever,
-                        null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        },
-    )
+    Box(contentAlignment = Alignment.Center) {
+        Canvas(
+            modifier = Modifier
+                .clip(CircleShape)
+                .size(24.dp)
+        ) {
+            drawRect(color = scheme.primaryContainer, size = size)
+            drawRect(
+                color = scheme.secondaryContainer,
+                size = size,
+                topLeft = Offset(x = size.width / 2, y = 0f)
+            )
+            drawRect(
+                color = scheme.tertiaryContainer,
+                size = size,
+                topLeft = Offset(x = size.width / 2, y = size.height / 2)
+            )
+            drawCircle(
+                color = scheme.primary,
+                radius = if (isSelected) 10.dp.toPx() else 6.dp.toPx(),
+                center = Offset(x = size.width / 2, y = size.height / 2)
+            )
+        }
+        if (isSelected) {
+            Icon(
+                check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -580,7 +364,7 @@ private fun CustomThemeEditSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 8.dp)
                 .padding(bottom = 32.dp),
         ) {
             Spacer(Modifier.height(16.dp))
@@ -803,8 +587,7 @@ private fun ColorPickerRow(
 }
 
 // ---------------------------------------------------------------------------
-// HSL 文本解析/格式化：MD3 与 Miuix 两个主题页共用的同一份实现（internal，不新增对外 API）。
-// 原 Miuix 主题页里逐字镜像的「HSL 数字正则 + 解析 + 百分比归一 + 格式化」整套已删除。
+// HSL 文本解析/格式化：自定义主题编辑弹窗用（internal，不新增对外 API）。
 // ---------------------------------------------------------------------------
 
 private val hslNumberRegex = Regex("""[-+]?\d*\.?\d+""")

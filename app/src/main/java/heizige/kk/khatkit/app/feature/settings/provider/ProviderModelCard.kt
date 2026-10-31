@@ -1,8 +1,11 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import ui.feice.mochi.list.MochiListDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.MochiSheetDetent
 import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -83,7 +86,8 @@ internal fun ModelCard(
     val scope = rememberCoroutineScope()
 
     // U7b-2e：保留最后一份 currentState 快照，LaunchedEffect 驱动 show/hide；退出动画期间读快照不 NPE。
-    val editModelSheet = rememberMochiSheetState()
+    // 表单直接开到大档：半屏放不下三页签内容，打开即所见
+    val editModelSheet = rememberMochiSheetState(detents = listOf(MochiSheetDetent.Large))
     var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
     LaunchedEffect(dialogState.isEditing) {
         if (dialogState.isEditing) {
@@ -108,31 +112,16 @@ internal fun ModelCard(
                     dialogState.dismiss()
                 },
                 scrollable = false,
+                // 同添加模型：顶栏浮在正文上，正文铺满面板
+                floatingHeader = true,
             ) { _ ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // 同 AddModelButton：给标题栏与确认按钮行留出预算，别把按钮挤出屏幕。
-                        .fillMaxHeight(0.72f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        ModelSettingsForm(
-                            model = editingModel,
-                            onModelChange = { dialogState.currentState = it },
-                            isEdit = true,
-                            parentProvider = parentProvider
-                        )
-                    }
-
-                }
+                ModelSettingsForm(
+                    model = editingModel,
+                    onModelChange = { dialogState.currentState = it },
+                    isEdit = true,
+                    parentProvider = parentProvider,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 
@@ -186,6 +175,8 @@ internal fun ModelCard(
             onClick = null,
             modifier = modifier,
             shape = shape,
+            // 底色显式铺上：分组里的行默认透明，不铺会透出底下滑动删除的按钮
+            backgroundColor = MochiListDefaults.colors().container,
             leadingContent = {
                 KkSurface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -284,10 +275,7 @@ internal fun BuiltInToolsSettings(
         // `MochiOptionItem`（圆角按 index/count、项距取 `listCardStyle().gap`，
         // Miuix 下并成一整块）。整行可点 = 翻转开关，与设置分组里的开关行同款。
         val cards = listCardStyle()
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(cards.gap),
-        ) {
+        InlineCardGroup(modifier = Modifier.fillMaxWidth()) {
             availableTools.forEachIndexed { index, (tool, title) ->
                 MochiOptionItem(
                     onClick = {
@@ -440,8 +428,7 @@ internal fun ProviderOverrideSettings(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.9f)
-                        .padding(16.dp),
+                        .fillMaxHeight(0.9f),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column(

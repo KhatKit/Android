@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -131,12 +134,18 @@ fun SkillsPage() {
                 item { SkillsEmptyState() }
             } else {
                 lazyItemsIndexed(visibleSkills, key = { _, skill -> skill.skillDir.absolutePath }) { index, skill ->
-                    SkillCard(
-                        skill = skill,
+                    KkGroupedColumn(
                         shape = cards.indexedShape(index, visibleSkills.size),
-                        onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
-                        onDelete = { deleteTarget = skill },
-                    )
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        SkillCard(
+                            skill = skill,
+                            shape = cards.indexedShape(index, visibleSkills.size),
+                            onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                            onDelete = { deleteTarget = skill },
+                        )
+                    }
                 }
             }
 
@@ -154,11 +163,17 @@ fun SkillsPage() {
                     visibleInvalidSkillDirs,
                     key = { _, dir -> "invalid_dir_${dir.dirName}" },
                 ) { index, dir ->
-                    InvalidSkillDirCard(
-                        dir = dir,
+                    KkGroupedColumn(
                         shape = cards.indexedShape(index, visibleInvalidSkillDirs.size),
-                        onDelete = { invalidDeleteTarget = dir },
-                    )
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        InvalidSkillDirCard(
+                            dir = dir,
+                            shape = cards.indexedShape(index, visibleInvalidSkillDirs.size),
+                            onDelete = { invalidDeleteTarget = dir },
+                        )
+                    }
                 }
             }
         }
@@ -515,11 +530,10 @@ private fun SkillImportSheet(
         // （首项只圆上边、末项只圆下边），与页面里的技能卡片同一套口径。
         val cards = listCardStyle()
         val count = 3
-        Column(
+        InlineCardGroup(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(cards.gap),
+                .padding(bottom = 24.dp),
         ) {
             SkillImportSheetItem(
                 shape = cards.indexedShape(0, count),

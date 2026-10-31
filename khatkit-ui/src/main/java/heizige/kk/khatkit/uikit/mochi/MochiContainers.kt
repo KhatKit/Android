@@ -84,17 +84,18 @@ fun KkCard(
     // U3：回 MD3 Card；配色/圆角来自 U2 Bridge（Mochi token）。
     val cs = MaterialTheme.colorScheme
     val cardColors = androidx.compose.material3.CardDefaults.cardColors(
-        containerColor = if (color == Color.Unspecified) cs.surfaceContainer else color,
+        containerColor = if (color == Color.Unspecified) ui.feice.mochi.theme.MochiDefaults.groupedContainer() else color,
         contentColor = if (contentColor == Color.Unspecified) cs.onSurface else contentColor,
     )
+    val animated = modifier.kkAnimateContentSize()
     if (onClick != null) {
         androidx.compose.material3.Card(
-            onClick = onClick, modifier = modifier, shape = shape ?: MaterialTheme.shapes.large,
+            onClick = onClick, modifier = animated, shape = shape ?: MaterialTheme.shapes.large,
             colors = cardColors, border = border,
         ) { Column(Modifier.padding(contentPadding), content = content) }
     } else {
         androidx.compose.material3.Card(
-            modifier = modifier, shape = shape ?: MaterialTheme.shapes.large,
+            modifier = animated, shape = shape ?: MaterialTheme.shapes.large,
             colors = cardColors, border = border,
         ) { Column(Modifier.padding(contentPadding), content = content) }
     }

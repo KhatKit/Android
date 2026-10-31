@@ -104,6 +104,7 @@ import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 @Composable
 internal fun McpToolsConfigure(
@@ -173,7 +174,6 @@ internal fun McpToolCard(
     ) {
         Column(
             modifier = Modifier
-                .animateContentSize()
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -323,7 +323,6 @@ internal fun McpImportModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.7f)
-                .padding(16.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

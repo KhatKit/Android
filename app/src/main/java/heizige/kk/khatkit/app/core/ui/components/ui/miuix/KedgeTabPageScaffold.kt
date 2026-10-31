@@ -1,7 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.miuix
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable

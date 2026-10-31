@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.webview
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -79,10 +80,12 @@ fun WebViewPage(url: String, contentId: String) {
     var showConsoleSheet by remember { mutableStateOf(false) }
 
     // U7a-6：WebView 内可后退时先退网页，登记到 PageBackInterceptor（不再页面级 BackHandler）。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val webBackTokenRoute = LocalPageRoute.current
     val webBackToken = remember { Any() }
     DisposableEffect(state.canGoBack) {
         if (state.canGoBack) {
-            PageBackInterceptor.push(webBackToken) {
+            PageBackInterceptor.push(webBackToken, webBackTokenRoute) {
                 state.goBack()
                 true
             }
@@ -163,7 +166,6 @@ fun WebViewPage(url: String, contentId: String) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
             ) {
                 SelectionContainer {
                     LazyColumn {

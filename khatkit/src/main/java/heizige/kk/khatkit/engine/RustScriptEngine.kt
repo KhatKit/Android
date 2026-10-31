@@ -43,7 +43,11 @@ class RustScriptEngine private constructor(private val kind: Int) : ScriptEngine
                 ?: return EngineResult.Ok(mapOf("result" to JsonValues.fromElement(element)))
             val error = (obj["__error"] as? JsonPrimitive)?.contentOrNull
             if (error != null) {
-                EngineResult.Err("RUST_RUNTIME", error)
+                when (dispatcher.interruptReason()) {
+                    1 -> EngineResult.Err("CARD_CANCELLED", "已取消")
+                    2 -> EngineResult.Err("CARD_TIMEOUT", "卡片运行超时")
+                    else -> EngineResult.Err("RUST_RUNTIME", error)
+                }
             } else {
                 EngineResult.Ok(obj.mapValues { JsonValues.fromElement(it.value) })
             }

@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -242,30 +245,36 @@ private fun ProviderList(
                 state = reorderableState,
                 key = provider.id
             ) { isDragging ->
-                ProviderItem(
-                    modifier = Modifier
-                        .scale(if (isDragging) 0.95f else 1f)
-                        .fillMaxWidth()
-                        // 和助手列表一致：长按**整行**就能拖，不需要先精准按住右侧拖柄。
-                        // 过滤态（搜索中）不开拖拽 —— 那时列表是子集，重排会写坏顺序。
-                        .then(
-                            if (dragEnabled) {
-                                Modifier.longPressDraggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                    },
-                                    onDragStopped = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                    }
-                                )
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    provider = provider,
+                KkGroupedColumn(
+                    modifier = Modifier.scale(if (isDragging) 0.95f else 1f),
                     shape = cards.indexedShape(index, providers.size),
-                    onClick = { onClick(provider) },
-                )
+                    containerColor = MochiListDefaults.colors().container,
+                    topDivider = index > 0 && cards.gap == 0.dp,
+                ) {
+                    ProviderItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            // 和助手列表一致：长按**整行**就能拖，不需要先精准按住右侧拖柄。
+                            // 过滤态（搜索中）不开拖拽 —— 那时列表是子集，重排会写坏顺序。
+                            .then(
+                                if (dragEnabled) {
+                                    Modifier.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                        },
+                                        onDragStopped = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                        }
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                        provider = provider,
+                        shape = cards.indexedShape(index, providers.size),
+                        onClick = { onClick(provider) },
+                    )
+                }
             }
         }
     }
@@ -293,12 +302,10 @@ private fun RecommendProviderButton(
             onDismiss = { showSheet = false },
         ) { _ ->
             val cards = listCardStyle()
-            Column(
+            InlineCardGroup(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(cards.gap)
             ) {
                 RECOMMENDED_PROVIDERS.forEachIndexed { index, provider ->
                     // 与 Miuix 侧同形：整列并成一张分组卡，组距只在首行留一份。
@@ -589,7 +596,6 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
                     // 键盘弹起时把表单顶上来；insets 会被消费，Miuix 分支自己那层 imePadding
                     // 不会与本行叠加成两倍位移。
                     .imePadding()
@@ -665,5 +671,7 @@ private fun ProviderItem(
         },
         // 没有 trailingContent：拖拽手势挂在整行上（见 ProviderList），
         // 再摆一个拖柄图标只会让人以为「必须按住那里才能拖」。
+        // 点行进供应商详情页（二级页），行尾只放统一的 ›
+        chevron = true,
     )
 }

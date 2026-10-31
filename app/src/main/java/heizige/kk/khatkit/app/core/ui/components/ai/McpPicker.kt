@@ -1,12 +1,10 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
-import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
@@ -31,12 +25,16 @@ import heizige.kk.khatkit.uikit.mochi.MochiBadge
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
@@ -47,8 +45,6 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.data.model.Assistant
-import heizige.kk.khatkit.app.core.ui.components.ui.Tag
-import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.dns
@@ -56,6 +52,13 @@ import heizige.kk.khatkit.app.core.ui.icons.power
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
+import ui.feice.mochi.basic.MochiActivityIndicator
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.list.LocalMochiListItemSpacing
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.mochiListSection
+import ui.feice.mochi.list.rows
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun McpPickerButton(
@@ -124,8 +127,7 @@ fun McpPickerButton(
             Column(
                 modifier = Modifier.Companion
                     .fillMaxWidth()
-                    .fillMaxHeight(0.7f)
-                    .padding(16.dp),
+                    .fillMaxHeight(0.7f),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -163,6 +165,8 @@ fun McpPickerListItem(
     servers: List<McpServerConfig>,
     mcpManager: McpManager,
     modifier: Modifier = Modifier,
+    /** 嵌在别的分组卡片里时由外面给首末行圆角；不给就单行自成一组。 */
+    shape: Shape? = null,
     onUpdateAssistant: (Assistant) -> Unit
 ) {
     var showMcpPicker by remember { mutableStateOf(false) }
@@ -180,7 +184,7 @@ fun McpPickerListItem(
         // 整行可点（点开 MCP 选择弹层），与改动前 clickable 语义一致。
         onClick = { showMcpPicker = true },
         modifier = modifier.fillMaxWidth(),
-        shape = cards.indexedShape(index = 0, count = 1),
+        shape = shape ?: cards.indexedShape(index = 0, count = 1),
         leadingContent = {
             if (loading) {
                 KkProgressIndicator(modifier = Modifier.size(24.dp))
@@ -275,70 +279,32 @@ fun McpPicker(
     onUpdateAssistant: (Assistant) -> Unit
 ) {
     val mcpManager = rememberAppEntryPoint().mcpManager()
-    // 每条服务器 = 一张 option item：圆角/行间距取全局列表卡片样式（首项只圆上边、
-    // 末项只圆下边），不再用裸 KkCard 自己排 Row。
-    val cards = listCardStyle()
     val visibleServers = servers.fastFilter { it.commonOptions.enable }
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(cards.gap),
-    ) {
-        itemsIndexed(visibleServers) { index, server ->
-            val status by mcpManager.getStatus(server).collectAsStateWithLifecycle(McpStatus.Idle)
-            MochiOptionItem(
-                // 行本身不可点，只有行尾开关可点（与改动前一致）。
-                onClick = null,
-                shape = cards.indexedShape(index, visibleServers.size),
-                // 状态图标/进度圈占 leading 槽。
-                leadingContent = {
-                    when (status) {
-                        McpStatus.Idle -> Icon(power, null)
-                        McpStatus.Connecting -> KkProgressIndicator(
-                            modifier = Modifier.size(
-                                24.dp
-                            )
-                        )
-
-                        McpStatus.Connected -> Icon(dns, null)
-                        is McpStatus.Reconnecting -> KkProgressIndicator(
-                            modifier = Modifier.size(24.dp)
-                        )
-                        is McpStatus.Error -> Icon(warning, null)
-                        McpStatus.NeedsAuthorization -> Icon(warning, null)
-                        McpStatus.Authorizing -> KkProgressIndicator(
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                },
-                // SYNC-F7（上游 42896e5ad）：ListItem 测量时会读 supporting 的基线判断是否多行，
-                // supporting 里再放 Column+Tag 这种多子节点布局会在测量期提前放置子节点，
-                // 触发 Compose "LayoutNode not found in RectList" 崩溃。这里 supporting 只放单个 Text，
-                // 工具数量标签移到标题行（同一行内 Row + Tag）。
-                titleContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = server.commonOptions.name,
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        if (status == McpStatus.Connected) {
-                            val tools = server.commonOptions.tools
-                            val enabledTools = tools.fastFilter { it.enable }
-                            Tag(
-                                type = TagType.INFO
-                            ) {
-                                Text("${enabledTools.size}/${tools.size} tools")
-                            }
-                        }
-                    }
-                },
-                supportingContent = {
-                    Text(
-                        text = when (val s = status) {
+    val setServerEnabled: (McpServerConfig, Boolean) -> Unit = { server, enabled ->
+        val newServers = assistant.mcpServers.toMutableSet()
+        if (enabled) newServers.add(server.id) else newServers.remove(server.id)
+        newServers.removeIf { servers.none { s -> s.id == server.id } } // remove invalid servers
+        onUpdateAssistant(
+            assistant.copy(
+                mcpServers = newServers.toSet()
+            )
+        )
+    }
+    // 全部服务器 = 一张 Mochi 分组卡片（懒加载：每行是列表的一项，仍连成一张卡片）。
+    // 整行可点切换，行尾开关同样可拨。列表无项间距，所以显式提供 0，避免继承外层的值。
+    CompositionLocalProvider(LocalMochiListItemSpacing provides 0.dp) {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
+        ) {
+            mochiListSection(key = "mcp_servers") {
+                rows(visibleServers, key = { it.id.toString() }) { server ->
+                    val status by mcpManager.getStatus(server).collectAsStateWithLifecycle(McpStatus.Idle)
+                    val checked = server.id in assistant.mcpServers
+                    val tools = server.commonOptions.tools
+                    MochiListRow(
+                        title = server.commonOptions.name,
+                        subtitle = when (val s = status) {
                             is McpStatus.Idle -> "Idle"
                             is McpStatus.Connecting -> "Connecting"
                             is McpStatus.Connected -> "Connected"
@@ -347,38 +313,48 @@ fun McpPicker(
                             is McpStatus.NeedsAuthorization -> "Needs authorization"
                             is McpStatus.Authorizing -> "Authorizing"
                         },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = LocalContentColor.current.copy(alpha = 0.8f),
-                        maxLines = 5,
+                        // 工具数量放行尾的值（原来是标题旁的 Tag），只在已连接时显示。
+                        value = if (status == McpStatus.Connected) {
+                            "${tools.fastFilter { it.enable }.size}/${tools.size} tools"
+                        } else {
+                            null
+                        },
+                        leading = { McpStatusIcon(status) },
+                        onClick = { setServerEnabled(server, !checked) },
+                        trailing = {
+                            MochiSwitch(
+                                checked = checked,
+                                onCheckedChange = { setServerEnabled(server, it) },
+                            )
+                        },
                     )
-                },
-                trailingContent = {
-                    KkSwitch(
-                        checked = server.id in assistant.mcpServers,
-                        onCheckedChange = {
-                            if (it) {
-                                val newServers = assistant.mcpServers.toMutableSet()
-                                newServers.add(server.id)
-                                newServers.removeIf { servers.none { s -> s.id == server.id } } // remove invalid servers
-                                onUpdateAssistant(
-                                    assistant.copy(
-                                        mcpServers = newServers.toSet()
-                                    )
-                                )
-                            } else {
-                                val newServers = assistant.mcpServers.toMutableSet()
-                                newServers.remove(server.id)
-                                newServers.removeIf { servers.none { s -> s.id == server.id } } //  remove invalid servers
-                                onUpdateAssistant(
-                                    assistant.copy(
-                                        mcpServers = newServers.toSet()
-                                    )
-                                )
-                            }
-                        }
-                    )
-                },
-            )
+                }
+            }
         }
     }
+}
+
+/** 行首的连接状态：连接中 / 重连 / 授权中转圈，其余用图标。 */
+@Composable
+private fun McpStatusIcon(status: McpStatus) {
+    val cs = MochiTheme.colorScheme
+    when (status) {
+        McpStatus.Idle -> McpRowIcon(power, cs.primary)
+        McpStatus.Connected -> McpRowIcon(dns, cs.primary)
+        is McpStatus.Error -> McpRowIcon(warning, cs.error)
+        McpStatus.NeedsAuthorization -> McpRowIcon(warning, cs.error)
+        McpStatus.Connecting,
+        is McpStatus.Reconnecting,
+        McpStatus.Authorizing -> MochiActivityIndicator(size = 20.dp)
+    }
+}
+
+@Composable
+private fun McpRowIcon(icon: ImageVector, tint: Color) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(20.dp),
+        tint = tint,
+    )
 }

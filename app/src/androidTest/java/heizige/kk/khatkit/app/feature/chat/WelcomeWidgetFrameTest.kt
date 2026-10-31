@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -129,8 +128,7 @@ class WelcomeWidgetFrameTest {
         compose.setContent {
             KhatKitTheme(style, darkTheme = true) {
                 WelcomeWidgetFrame(
-                    title = "Reset status", description = "Tibo", loading = loading,
-                    shape = RoundedCornerShape(20.dp), onRefresh = { refreshes++ },
+                    title = "Reset status", description = "Tibo", loading = loading, onRefresh = { refreshes++ },
                     modifier = Modifier.testTag("widget"),
                 ) {
                     Column {

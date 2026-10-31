@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichInputChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -240,20 +242,25 @@ private fun ModeInjectionTab(
                         state = reorderableState,
                         key = injection.id
                     ) { isDragging ->
-                        ModeInjectionCard(
-                            injection = injection,
+                        KkGroupedColumn(
+                            modifier = Modifier.graphicsLayer {
+                                if (isDragging) {
+                                    scaleX = 1.05f
+                                    scaleY = 1.05f
+                                }
+                            },
                             shape = cards.indexedShape(index, modeInjections.size),
-                            modifier = Modifier
-                                .longPressDraggableHandle()
-                                .graphicsLayer {
-                                    if (isDragging) {
-                                        scaleX = 1.05f
-                                        scaleY = 1.05f
-                                    }
-                                },
-                            onEdit = { editState.open(injection) },
-                            onDelete = { onUpdate(modeInjections - injection) }
-                        )
+                            containerColor = MochiListDefaults.colors().container,
+                            topDivider = index > 0 && cards.gap == 0.dp,
+                        ) {
+                            ModeInjectionCard(
+                                injection = injection,
+                                shape = cards.indexedShape(index, modeInjections.size),
+                                modifier = Modifier.longPressDraggableHandle(),
+                                onEdit = { editState.open(injection) },
+                                onDelete = { onUpdate(modeInjections - injection) }
+                            )
+                        }
                     }
                 }
             }
@@ -346,6 +353,8 @@ private fun ModeInjectionCard(
             onClick = null,
             modifier = Modifier.fillMaxWidth(),
             shape = shape,
+            // 底色显式铺上：分组里的行默认透明，不铺会透出底下滑动删除的按钮
+            backgroundColor = MochiListDefaults.colors().container,
             titleContent = {
                 Text(
                     text = injection.name.ifEmpty { stringResource(R.string.prompt_page_unnamed) },
@@ -414,8 +423,7 @@ private fun ModeInjectionEditSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.9f)
-                .padding(16.dp),
+                .fillMaxHeight(0.9f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(
@@ -633,20 +641,25 @@ private fun LorebookTab(
                         state = reorderableState,
                         key = book.id
                     ) { isDragging ->
-                        LorebookCard(
-                            book = book,
+                        KkGroupedColumn(
+                            modifier = Modifier.graphicsLayer {
+                                if (isDragging) {
+                                    scaleX = 1.05f
+                                    scaleY = 1.05f
+                                }
+                            },
                             shape = cards.indexedShape(index, lorebooks.size),
-                            modifier = Modifier
-                                .longPressDraggableHandle()
-                                .graphicsLayer {
-                                    if (isDragging) {
-                                        scaleX = 1.05f
-                                        scaleY = 1.05f
-                                    }
-                                },
-                            onEdit = { editState.open(book) },
-                            onDelete = { onUpdate(lorebooks - book) }
-                        )
+                            containerColor = MochiListDefaults.colors().container,
+                            topDivider = index > 0 && cards.gap == 0.dp,
+                        ) {
+                            LorebookCard(
+                                book = book,
+                                shape = cards.indexedShape(index, lorebooks.size),
+                                modifier = Modifier.longPressDraggableHandle(),
+                                onEdit = { editState.open(book) },
+                                onDelete = { onUpdate(lorebooks - book) }
+                            )
+                        }
                     }
                 }
             }
@@ -739,6 +752,8 @@ private fun LorebookCard(
             onClick = null,
             modifier = Modifier.fillMaxWidth(),
             shape = shape,
+            // 底色显式铺上：分组里的行默认透明，不铺会透出底下滑动删除的按钮
+            backgroundColor = MochiListDefaults.colors().container,
             titleContent = {
                 Text(
                     text = book.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_lorebook) },
@@ -829,8 +844,7 @@ private fun LorebookEditSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.95f)
-                .padding(16.dp),
+                .fillMaxHeight(0.95f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(

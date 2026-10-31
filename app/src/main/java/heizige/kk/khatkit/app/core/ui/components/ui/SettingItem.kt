@@ -3,18 +3,30 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
+import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.utils.rememberMochiHaptics
 
 /**
  * 设置项的声明式描述。
@@ -61,7 +73,7 @@ data class InfoSetting(
     @StringRes override val descriptionRes: Int? = null,
 ) : SettingItem
 
-/** 点击跳转项。 */
+/** 点击跳转项（进二级页面），行尾自动带统一的 › 。弹窗/选择器别用它。 */
 @Immutable
 data class NavSetting(
     @StringRes override val titleRes: Int,
@@ -100,8 +112,10 @@ fun SettingGroup(
 
 /**
  * 把一个 [SettingItem] 追加进当前 [CardGroupScope]，用于在同一分组里与自定义 slot 行混排。
+ *
+ * [visible]：依赖别的设置才出现的行传条件，不要包 `if`，显隐才有展开/收起动画。
  */
-fun CardGroupScope.settingItem(item: SettingItem) = setItem(item)
+fun CardGroupScope.settingItem(item: SettingItem, visible: Boolean = true) = setItem(item, visible)
 
 /**
  * 左标题 + 右开关的紧凑行，用于表单中间（不在 [CardGroup] 分组内）。
@@ -145,40 +159,137 @@ fun SliderRow(
     enabled: Boolean = true,
     valueLabel: ((Float) -> String)? = null,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(stringResource(titleRes))
+    // 照 Mochi 的滑块行：标题与数值同一行，滑块在下一行占满。
+    Column(modifier = modifier.fillMaxWidth()) {
+        SliderTitleRow(
+            title = stringResource(titleRes),
+            valueText = valueLabel?.invoke(value) ?: "${(value * 100).toInt()}%",
+        )
         KkSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             steps = steps,
             enabled = enabled,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
         )
-        Text(text = valueLabel?.invoke(value) ?: "${(value * 100).toInt()}%")
     }
 }
 
-private fun CardGroupScope.setItem(item: SettingItem) {
+/**
+ * Mochi 滑块行的标题行：标题左、实时数值右（同一行）。
+ *
+ * 排版照 Mochi 的 `MochiListSliderRow`（TitledSliderRow）：数值不再挤在滑块右边，
+ * 滑块在下面占满整行 —— 这是 Mochi 里滑块唯一的摆法。
+ */
+@Composable
+fun SliderTitleRow(
+    title: String,
+    valueText: String,
+    editor: SliderValueEditor? = null,
+) {
+    var editing by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (editor != null) {
+            // 数值本身就是入口：点开弹窗直接输入精确值 / 恢复默认。
+            // 用主色区分「可点」，Mochi 的只读数值仍是次要色（SliderValueText）。
+            val haptics = rememberMochiHaptics()
+            Text(
+                text = valueText,
+                style = MochiTheme.textStyles.body.copy(fontFeatureSettings = "tnum"),
+                // 颜色和只读数值一致（次要色）：可点靠点击热区和触觉表达，不用主色把数值挑出来
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(MochiTheme.shapes.full)
+                    .clickable {
+                        haptics.tapOpen()
+                        editing = true
+                    }
+                    .padding(start = 10.dp, top = 8.dp, bottom = 8.dp),
+            )
+            SliderValueInputDialog(
+                visible = editing,
+                title = title,
+                editor = editor,
+                onDismiss = { editing = false },
+            )
+        } else {
+            SliderValueText(valueText)
+        }
+    }
+}
+
+/** 滑块行右侧的实时数值：Mochi body 字阶 + 等宽数字 + 次要色（拖到 x1.5 时数字不会左右抖）。 */
+@Composable
+fun SliderValueText(text: String) {
+    Text(
+        text = text,
+        style = MochiTheme.textStyles.body.copy(fontFeatureSettings = "tnum"),
+        color = MochiTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+    )
+}
+
+private fun CardGroupScope.setItem(item: SettingItem, visible: Boolean = true) {
+    val sliderValueText = (item as? SliderSetting)?.let {
+        it.valueLabel?.invoke(it.value) ?: "${(it.value * 100).toInt()}%"
+    }
+    // SliderSetting 没有默认值信息：弹窗只给「直接输入」，不显示「重置」
+    val sliderEditor = (item as? SliderSetting)?.let {
+        SliderValueEditor(
+            value = it.value,
+            valueRange = it.valueRange,
+            onValueChange = it.onValueChange,
+            steps = it.steps,
+        )
+    }
     item(
-        // 只有导航行与开关行给整行点击；纯信息行 / 滑块行传 null。
-        // 开关行必须显式带 enabled 门控：enabled=false 时 trailing 的 KkSwitch
-        // 不消费点击事件，行级 onClick 会照样触发，禁用的行就变成能被改。
+        visible = visible,
+        chevron = item is NavSetting,
+        // 只有导航行给整行点击。开关行照 Mochi（iOS）：行本身不可点、不高亮，只有开关能拨。
         onClick = when (item) {
             is NavSetting -> item.onClick
-            is SwitchSetting -> if (item.enabled) {
-                { item.onCheckedChange(!item.checked) }
-            } else {
-                null
-            }
-
             else -> null
         },
-        supportingContent = item.descriptionRes?.let { res -> { Text(stringResource(res)) } },
+        supportingContent = when (item) {
+            // 滑块行照 Mochi：说明在滑块下面，滑块占满文字列
+            is SliderSetting -> {
+                {
+                    Column {
+                        KkSlider(
+                            value = item.value,
+                            onValueChange = item.onValueChange,
+                            valueRange = item.valueRange,
+                            steps = item.steps,
+                            enabled = item.enabled,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        item.descriptionRes?.let { res ->
+                            Text(
+                                text = stringResource(res),
+                                style = MochiTheme.textStyles.footnote,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            else -> item.descriptionRes?.let { res -> { Text(stringResource(res)) } }
+        },
         trailingContent = when (item) {
             is SwitchSetting -> {
                 {
@@ -190,32 +301,105 @@ private fun CardGroupScope.setItem(item: SettingItem) {
                 }
             }
 
-            is SliderSetting -> {
-                {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        KkSlider(
-                            value = item.value,
-                            onValueChange = item.onValueChange,
-                            valueRange = item.valueRange,
-                            steps = item.steps,
-                            enabled = item.enabled,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = item.valueLabel?.invoke(item.value)
-                                ?: "${(item.value * 100).toInt()}%",
-                            color = LocalContentColor.current,
-                        )
-                    }
-                }
-            }
-
             else -> null
         },
-        headlineContent = { Text(stringResource(item.titleRes)) },
+        headlineContent = {
+            if (sliderValueText != null) {
+                SliderTitleRow(
+                    title = stringResource(item.titleRes),
+                    valueText = sliderValueText,
+                    editor = sliderEditor,
+                )
+            } else {
+                Text(stringResource(item.titleRes))
+            }
+        },
+    )
+}
+
+/**
+ * 分组里的一行滑块（Mochi 滑块行 + 点数值直接输入）。
+ *
+ * 版面：标题与实时数值同一行，滑块在下一行占满文字列；[description] 是滑块下面的一行说明，
+ * [supporting] 放需要跟着滑块的内容（例如字号预览）。
+ *
+ * 右上角的数值是可点的：点击弹出 [SliderValueInputDialog]，能直接输入精确值、恢复默认。
+ * 调用方要给出 [defaultValue]（模型里的默认值），「重置」按钮才有落点。
+ *
+ * @param value 滑块内部单位的值（百分比设置传 0.45 这类，显示按 [displayScale] 换算）
+ * @param steps 档位数，与滑块 steps 同义
+ * @param displayScale 显示单位换算：百分比传 100，其余 1
+ * @param prefix / suffix 显示单位前后缀（x1.5 的 x、45% 的 %、24dp 的 dp）
+ * @param decimals 显示与输入的小数位
+ */
+fun CardGroupScope.sliderItem(
+    // 标题与说明走 composable lambda：CardGroup 的 DSL 块不是 composable 上下文，
+    // 传 String 的话 stringResource 会在调用点报「@Composable invocations ...」
+    title: @Composable () -> String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    defaultValue: Float?,
+    modifier: Modifier = Modifier,
+    steps: Int = 0,
+    enabled: Boolean = true,
+    visible: Boolean = true,
+    displayScale: Float = 1f,
+    prefix: String = "",
+    suffix: String = "",
+    decimals: Int = 0,
+    description: (@Composable () -> String)? = null,
+    onValueChangeFinished: (() -> Unit)? = null,
+    supporting: (@Composable () -> Unit)? = null,
+) {
+    val editor = SliderValueEditor(
+        value = value,
+        valueRange = valueRange,
+        defaultValue = defaultValue,
+        onValueChange = onValueChange,
+        onValueChangeFinished = onValueChangeFinished,
+        displayScale = displayScale,
+        prefix = prefix,
+        suffix = suffix,
+        decimals = decimals,
+        steps = steps,
+    )
+    item(
+        modifier = modifier,
+        visible = visible,
+        headlineContent = {
+            SliderTitleRow(
+                title = title(),
+                valueText = sliderValueText(
+                    value = value,
+                    displayScale = displayScale,
+                    decimals = decimals,
+                    prefix = prefix,
+                    suffix = suffix,
+                ),
+                editor = editor,
+            )
+        },
+        supportingContent = {
+            Column {
+                KkSlider(
+                    value = value,
+                    onValueChange = onValueChange,
+                    valueRange = valueRange,
+                    steps = steps,
+                    enabled = enabled,
+                    onValueChangeFinished = onValueChangeFinished,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (description != null) {
+                    Text(
+                        text = description(),
+                        style = MochiTheme.textStyles.footnote,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                supporting?.invoke()
+            }
+        },
     )
 }

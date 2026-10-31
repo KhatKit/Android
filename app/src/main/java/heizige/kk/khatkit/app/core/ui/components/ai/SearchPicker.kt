@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -184,10 +185,12 @@ fun SearchPickerButton(
             // 两者都把返回变成「关闭弹层」而不是退出页面）。BackHandler 只在本 `if
             // (showSearchPicker)` 分支里组合，弹层收起后整个不注册 ⇒ 不会全 App 吞返回。
             // U7a-6：只在该子页接管返回（登记到 PageBackInterceptor），不再挂页面级 BackHandler。
+            // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+            val pickerBackTokenRoute = LocalPageRoute.current
             val pickerBackToken = remember { Any() }
             DisposableEffect(selectingProvider) {
                 if (selectingProvider) {
-                    PageBackInterceptor.push(pickerBackToken) {
+                    PageBackInterceptor.push(pickerBackToken, pickerBackTokenRoute) {
                         selectingProvider = false
                         true
                     }

@@ -1,7 +1,7 @@
 use crate::host::Host;
 use crate::json_util::{json_to_lua, value_to_json};
 use serde_json::Value as Json;
-use mlua::{Lua, Value, Variadic};
+use mlua::{Lua, Value, Variadic, StdLib, LuaOptions, HookTriggers, VmState};
 use std::sync::Arc;
 
 /// mlua（Lua 5.4）实现。bridge 以「绑定方法表」注入，脚本用点号语法调用。
@@ -12,8 +12,31 @@ pub struct LuaEngine {
 
 impl LuaEngine {
     pub fn new(host: Arc<Host>) -> mlua::Result<Self> {
+        // "ALL_SAFE" means memory-safe, not sandboxed: it includes io/os/file loaders.
+        let lua = Lua::new_with(
+            StdLib::TABLE | StdLib::STRING | StdLib::MATH | StdLib::UTF8 | StdLib::PACKAGE,
+            LuaOptions::default(),
+        )?;
+        lua.set_memory_limit(64 * 1024 * 1024)?;
+        for name in ["dofile", "loadfile"] {
+            lua.globals().set(name, Value::Nil)?;
+        }
+        let package: mlua::Table = lua.globals().get("package")?;
+        package.set("path", "")?;
+        package.set("cpath", "")?;
+        package.set("loadlib", Value::Nil)?;
+        let searchers: mlua::Table = package.get("searchers")?;
+        for index in 2..=4 { searchers.set(index, Value::Nil)?; }
+        let interrupt_host = host.clone();
+        lua.set_hook(HookTriggers::new().every_nth_instruction(10_000), move |_, _| {
+            match interrupt_host.interrupt_reason() {
+                0 => Ok(VmState::Continue),
+                1 => Err(mlua::Error::RuntimeError("CARD_CANCELLED".into())),
+                _ => Err(mlua::Error::RuntimeError("CARD_TIMEOUT".into())),
+            }
+        })?;
         Ok(Self {
-            lua: Lua::new(),
+            lua,
             host,
         })
     }

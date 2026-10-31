@@ -308,45 +308,45 @@ fun SettingWebPage() {
                             )
                         },
                     )
-                    if (serverState.isRunning) {
-                        val port = serverState.port
-                        if (!serverState.localhostOnly) {
-                            val lanUrl = "http://${serverState.address ?: "localhost"}:$port"
-                            item(
-                                onClick = { copyUrl(lanUrl) },
-                                headlineContent = { Text(stringResource(R.string.setting_page_web_server_lan_address)) },
-                                supportingContent = { Text(lanUrl) },
-                            )
+                    // 服务地址几行跟着服务启停显隐：行一直占位、只切 visible，启停时展开/收起，不再一下蹦出来
+                    val running = serverState.isRunning
+                    val port = serverState.port
+                    val lanUrl = "http://${serverState.address ?: "localhost"}:$port"
+                    item(
+                        onClick = { copyUrl(lanUrl) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_web_server_lan_address)) },
+                        supportingContent = { Text(lanUrl) },
+                        visible = running && !serverState.localhostOnly,
+                    )
 
-                            if (serverState.hostname != null) {
-                                val mdnsUrl = "http://${serverState.hostname}:$port"
-                                item(
-                                    onClick = { copyUrl(mdnsUrl) },
-                                    headlineContent = { Text(stringResource(R.string.setting_page_web_server_mdns_address)) },
-                                    supportingContent = { Text(mdnsUrl) },
-                                )
-                            }
-                        }
+                    val mdnsUrl = "http://${serverState.hostname}:$port"
+                    item(
+                        onClick = { copyUrl(mdnsUrl) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_web_server_mdns_address)) },
+                        supportingContent = { Text(mdnsUrl) },
+                        visible = running && !serverState.localhostOnly && serverState.hostname != null,
+                    )
 
-                        val localUrl = "http://localhost:$port"
-                        item(
-                            onClick = { copyUrl(localUrl) },
-                            headlineContent = { Text(stringResource(R.string.setting_page_web_server_local_address)) },
-                            supportingContent = { Text(localUrl) },
-                        )
+                    val localUrl = "http://localhost:$port"
+                    item(
+                        onClick = { copyUrl(localUrl) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_web_server_local_address)) },
+                        supportingContent = { Text(localUrl) },
+                        visible = running,
+                    )
 
-                        // 卡片作为 MCP tool 的入口，Claude Desktop / Cursor 用这个地址
-                        val mcpUrl = if (!serverState.localhostOnly) {
-                            "http://${serverState.address ?: "localhost"}:$port/mcp"
-                        } else {
-                            "http://localhost:$port/mcp"
-                        }
-                        item(
-                            onClick = { copyUrl(mcpUrl) },
-                            headlineContent = { Text("MCP 地址（卡片作为 MCP tool）") },
-                            supportingContent = { Text(mcpUrl) },
-                        )
+                    // 卡片作为 MCP tool 的入口，Claude Desktop / Cursor 用这个地址
+                    val mcpUrl = if (!serverState.localhostOnly) {
+                        "http://${serverState.address ?: "localhost"}:$port/mcp"
+                    } else {
+                        "http://localhost:$port/mcp"
                     }
+                    item(
+                        onClick = { copyUrl(mcpUrl) },
+                        headlineContent = { Text("MCP 地址（卡片作为 MCP tool）") },
+                        supportingContent = { Text(mcpUrl) },
+                        visible = running,
+                    )
                     item(
                         headlineContent = {
                             Text(
@@ -363,22 +363,21 @@ fun SettingWebPage() {
                             )
                         },
                     )
-                    if (serverState.error != null) {
-                        item(
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(R.string.setting_page_web_server_error),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    text = serverState.error ?: "",
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            },
-                        )
-                    }
+                    item(
+                        headlineContent = {
+                            Text(
+                                text = stringResource(R.string.setting_page_web_server_error),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                text = serverState.error ?: "",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        visible = serverState.error != null,
+                    )
                 }
             }
         }

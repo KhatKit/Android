@@ -9,8 +9,50 @@ import kotlinx.serialization.json.JsonArray
  * 保证 native 层与业务解耦。
  */
 class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
+    private val run = heizige.kk.khatkit.exec.CardRunContext.current.get()
+
+    /** Called by native instruction hooks, including scripts that never call a bridge. */
+    fun interruptReason(): Int = when {
+        run?.cancelled == true -> 1
+        bridges.values.any {
+            (it as? heizige.kk.khatkit.bridge.ContextAwareBridge)?.context?.deadline?.expired() == true
+        } -> 2
+        (run?.computationMillis ?: 0L) > 120_000L -> 2
+        else -> 0
+    }
+
+    /** Validate the selected ABI capability against the requested method and destination. */
+    fun wasmAllowed(cap: String, method: String, argsJson: String): Boolean {
+        val bridge = method.substringBefore('.')
+        return when {
+            cap == "host" -> bridge in setOf("host", "time", "i18n")
+            cap == "ai:chat" -> method in setOf("ai.chat", "ai.complete")
+            cap == "fs:workspace" -> bridge == "fs"
+            cap == "ui:render" -> bridge == "ui"
+            cap == "haptics" -> method == "system.vibrate"
+            cap == "clipboard" -> method in setOf("tool.getClipboard", "tool.setClipboard")
+            cap == "media:pick" -> method == "mediaPicker.pickMedia"
+            cap == "image:toolbox" -> bridge == "imageToolbox"
+            cap.startsWith("dep:") -> bridge == cap.substringAfter(':')
+            cap.startsWith("net:") -> {
+                if (bridge != "net") return false
+                val url = parseArgs(argsJson).firstOrNull() as? String ?: return false
+                val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+                val host = uri.host?.lowercase() ?: return false
+                val domain = cap.substringAfter(':').lowercase()
+                uri.scheme in setOf("http", "https") &&
+                    (domain == "*" || host == domain || host.endsWith(".$domain"))
+            }
+            else -> cap in setOf("tool", "accessibility", "store", "download", "web",
+                "browser", "schedule", "system", "shizuku", "root") && bridge == cap
+        }
+    }
 
     fun dispatch(bridge: String, method: String, argsJson: String): String {
+        when (interruptReason()) {
+            1 -> return JsonValues.encode(mapOf("__error" to "CARD_CANCELLED"))
+            2 -> return JsonValues.encode(mapOf("__error" to TIMEOUT_ERROR))
+        }
         val target = bridges[bridge]
             ?: return JsonValues.encode(mapOf("__error" to "unknown bridge: $bridge"))
         val context = (target as? heizige.kk.khatkit.bridge.ContextAwareBridge)?.context

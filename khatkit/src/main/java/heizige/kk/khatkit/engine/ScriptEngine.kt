@@ -38,16 +38,23 @@ sealed interface EngineResult {
 
 class CardExecutionException(val code: String, message: String) : RuntimeException(message)
 
-enum class EngineKind { LUA, JS, COMMAND }
+enum class EngineKind { LUA, JS, WASM, COMMAND }
 
 object EngineFactory {
-    fun create(kind: EngineKind): ScriptEngine {
+    /**
+     * 创建引擎。WASM 卡片需要卡片目录（读 card.wasm + manifest.json），
+     * Lua/JS 走 khatkit_core 的 mlua/rquickjs。
+     */
+    fun create(kind: EngineKind, cardDir: java.io.File? = null): ScriptEngine {
         if (!RustScriptEngine.isAvailable) {
             throw CardExecutionException("RUST_ENGINE", "khatkit_core native 库不可用")
         }
         return when (kind) {
             EngineKind.LUA -> RustScriptEngine.create(RustScriptEngine.KIND_LUA)
             EngineKind.JS -> RustScriptEngine.create(RustScriptEngine.KIND_JS)
+            EngineKind.WASM -> WasmScriptEngine.create(
+                requireNotNull(cardDir) { "WASM 卡片需要卡片目录（card.wasm + manifest.json）" },
+            )
             EngineKind.COMMAND -> throw IllegalArgumentException("command 卡片不经脚本引擎")
         }
     }
@@ -56,7 +63,12 @@ object EngineFactory {
     fun resolve(engine: String, hasLua: Boolean, hasJs: Boolean): EngineKind = when (engine) {
         "lua" -> EngineKind.LUA
         "js" -> EngineKind.JS
+        "wasm" -> EngineKind.WASM
         "command" -> EngineKind.COMMAND
         else -> if (hasJs) EngineKind.JS else EngineKind.LUA
     }
+
+    /** manifest.runtime = wasm 的卡片一律走 WASM 引擎（ABI v1）。 */
+    fun resolve(engine: String, hasLua: Boolean, hasJs: Boolean, runtime: String?): EngineKind =
+        if (runtime == "wasm") EngineKind.WASM else resolve(engine, hasLua, hasJs)
 }

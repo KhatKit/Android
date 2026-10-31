@@ -58,7 +58,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 
@@ -376,9 +375,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                 }
                             )
                         },
-                        trailingContent = {
-                            Icon(arrowForward, contentDescription = null)
-                        },
+                        // 点了是弹出代理配置对话框，不是进二级页，所以行尾不放 ›
                     )
                     item(
                         headlineContent = {

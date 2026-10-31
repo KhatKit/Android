@@ -1,55 +1,33 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.util.plus
+import ui.feice.mochi.navigation.MochiLazyLargeTitleScaffold
 
 /**
  * 权限页：常规权限 / 系统级权限 / 高危权限三组清单 + 实时授权状态。
  *
- * 复用欢迎页的 [PermissionChecklist]（整屏样式），保证两处授权体验一致。
+ * 骨架用 Mochi 大标题脚手架，清单本身也是 Mochi 分组列表（[PermissionChecklist] compact 形态），
+ * 与欢迎页整屏授权体验同一套组件；边距由脚手架给，所以这里传零留白。
  */
 @Composable
 fun SettingPermissionsPage() {
-    
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    KedgeSettingsPageScaffold(
+    MochiLazyLargeTitleScaffold(
         title = stringResource(R.string.setting_page_permissions),
-        scrollBehavior = scrollBehavior,
-    ) { contentPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding + PaddingValues(
-                start = 8.dp,
-                top = PageMetrics.TopContentPadding,
-                end = 8.dp,
-                bottom = 8.dp + PageMetrics.BottomContentPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                // compact = true：滚动交给外层 LazyColumn。
-                // 传 false 会让清单自带 verticalScroll，而 item 的 maxHeight 是无限的，测量期直接崩。
-                PermissionChecklist(
-                    modifier = Modifier.fillMaxWidth(),
-                    compact = true,
-                )
-            }
+        navigationIcon = { BackButton() },
+    ) {
+        item(key = "checklist") {
+            PermissionChecklist(
+                modifier = Modifier.fillMaxWidth(),
+                compact = true,
+                contentPadding = PaddingValues(),
+            )
         }
     }
 }

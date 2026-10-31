@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.assistant
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
@@ -30,7 +32,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import ui.feice.mochi.navigation.MochiTitleBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -100,7 +102,9 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 
@@ -141,12 +145,15 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
 
     MochiPageScaffold(
         topBar = {
-            KedgePageLargeTopBar(
+            // 顶栏换 Mochi 紧凑标题栏（与设置类页面同一个组件），大标题不再折叠。
+            MochiTitleBar(
                 title = stringResource(R.string.assistant_page_title),
+                // 页面骨架统一录正文、下发来源；材质没开玻璃时它是 null
+                backdrop = LocalKkBarBackdrop.current,
                 navigationIcon = {
                     BackButton()
                 },
-                actions = {
+                actions = { KkBarIconScope {
                                         MochiIconButton(
                         onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id,
                             enableMemory = true, autoExtractMemory = true, enableRecentChatsReference = true)) },
@@ -154,10 +161,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                     ) {
                         Icon(add, stringResource(R.string.assistant_page_add))
                     }
-                
+                }
                 },
-                scrollBehavior = scrollBehavior,
-                colors = CustomColors.topBarColors,
             )
         },
         // Miuix 下 MochiPageScaffold 已接 Miuix 折叠行为，再挂 MD3 连接会吃掉全部
@@ -216,95 +221,102 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                             )
                             // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
                             val hasSupporting = assistant.canManageRoles || assistant.enableMemory || assistant.tags.isNotEmpty()
-                            AssistantItem(
-                                assistant = assistant,
-                                defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
-                                providerName = settings.findModelProviderName(
-                                    assistant.chatModelId ?: settings.chatModelId
-                                ),
-                                // 分组总数要算上列表末尾的「新建角色」：它是同一组的末项
-                                // （见本文件 :320 那一段）。若这里仍写 filteredAssistants.size，
-                                // 最后一个角色会被当成本组末项而拿到「下边大圆角」，
-                                // 与「新建角色」的上边 4dp 小圆角错位。
+                            KkGroupedColumn(
+                                modifier = Modifier
+                                    .scale(if (isDragging) 0.95f else 1f)
+                                    .animateItem(),
                                 shape = cards.indexedShape(index, filteredAssistants.size + 1),
-                                // 头像 → 详情页的共享元素转场属于本页，不进共享行。
-                                avatarModifier = Modifier.heroAnimation("assistant_${assistant.id}"),
-                                supportingContent = if (hasSupporting) {
-                                    {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            if (assistant.canManageRoles) {
-                                                Tag(type = TagType.SUCCESS) { Text("主管") }
-                                            }
-                                            if (assistant.enableMemory) {
-                                                Tag(type = TagType.SUCCESS) {
-                                                    Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
+                                containerColor = MochiListDefaults.colors().container,
+                                topDivider = index > 0 && cards.gap == 0.dp,
+                            ) {
+                                AssistantItem(
+                                    assistant = assistant,
+                                    defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
+                                    providerName = settings.findModelProviderName(
+                                        assistant.chatModelId ?: settings.chatModelId
+                                    ),
+                                    // 分组总数要算上列表末尾的「新建角色」：它是同一组的末项
+                                    // （见本文件 :320 那一段）。若这里仍写 filteredAssistants.size，
+                                    // 最后一个角色会被当成本组末项而拿到「下边大圆角」，
+                                    // 与「新建角色」的上边 4dp 小圆角错位。
+                                    shape = cards.indexedShape(index, filteredAssistants.size + 1),
+                                    // 头像 → 详情页的共享元素转场属于本页，不进共享行。
+                                    avatarModifier = Modifier.heroAnimation("assistant_${assistant.id}"),
+                                    supportingContent = if (hasSupporting) {
+                                        {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (assistant.canManageRoles) {
+                                                    Tag(type = TagType.SUCCESS) { Text("主管") }
                                                 }
-                                            }
+                                                if (assistant.enableMemory) {
+                                                    Tag(type = TagType.SUCCESS) {
+                                                        Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
+                                                    }
+                                                }
 
-                                            if (assistant.tags.isNotEmpty()) {
-                                                assistant.tags.take(2).fastForEach { tagId ->
-                                                    val tag = settings.assistantTags.find { it.id == tagId }
-                                                        ?: return@fastForEach
-                                                    KkSurface(
-                                                        shape = RoundedCornerShape(50),
-                                                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                                                    ) {
+                                                if (assistant.tags.isNotEmpty()) {
+                                                    assistant.tags.take(2).fastForEach { tagId ->
+                                                        val tag = settings.assistantTags.find { it.id == tagId }
+                                                            ?: return@fastForEach
+                                                        KkSurface(
+                                                            shape = RoundedCornerShape(50),
+                                                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                                                        ) {
+                                                            Text(
+                                                                text = tag.name,
+                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                            )
+                                                        }
+                                                    }
+                                                    if (assistant.tags.size > 2) {
                                                         Text(
-                                                            text = tag.name,
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                            text = "+${assistant.tags.size - 2}",
                                                             style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
-                                                if (assistant.tags.size > 2) {
-                                                    Text(
-                                                        text = "+${assistant.tags.size - 2}",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
                                             }
                                         }
-                                    }
-                                } else {
-                                    null
-                                },
-                                trailingContent = {
-                                    MochiIconButton(
-                                        onClick = { actionSheetAssistant = assistant },
-                                        shapes = IconButtonDefaults.shapes(),
-                                    ) {
-                                        Icon(
-                                            imageVector = moreVert,
-                                            contentDescription = stringResource(R.string.assistant_page_actions)
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
-                                },
-                                modifier = Modifier
-                                    .scale(if (isDragging) 0.95f else 1f)
-                                    .fillMaxWidth()
-                                    .animateItem()
-                                    .then(
-                                        if (!isFiltering) {
-                                            Modifier.longPressDraggableHandle(
-                                                onDragStarted = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                                },
-                                                onDragStopped = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                }
+                                    } else {
+                                        null
+                                    },
+                                    trailingContent = {
+                                        MochiIconButton(
+                                            onClick = { actionSheetAssistant = assistant },
+                                            shapes = IconButtonDefaults.shapes(),
+                                        ) {
+                                            Icon(
+                                                imageVector = moreVert,
+                                                contentDescription = stringResource(R.string.assistant_page_actions)
                                             )
-                                        } else {
-                                            Modifier
                                         }
-                                    )
-                            )
+                                    },
+                                    onClick = {
+                                        navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (!isFiltering) {
+                                                Modifier.longPressDraggableHandle(
+                                                    onDragStarted = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                    },
+                                                    onDragStopped = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                    }
+                                                )
+                                            } else {
+                                                Modifier
+                                            }
+                                        )
+                                )
+                            }
                         }
                     }
 
@@ -313,18 +325,24 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                         // 只有下圆角是大圆角，角色为空时它自己就是首末项。行间空隙由 LazyColumn
                         // 的 spacedBy(cards.gap) 统一给，不再单独留 16dp 自成一张四角全圆的大卡。
                         // 双风格的容器仍交给 MochiOptionItem 内部分流（MD3Exp / Miuix）。
-                        MochiOptionItem(
-                            onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
-                            modifier = Modifier.fillMaxWidth(),
+                        KkGroupedColumn(
                             shape = cards.indexedShape(filteredAssistants.size, filteredAssistants.size + 1),
-                            leadingContent = { Icon(add, contentDescription = null) },
-                            titleContent = {
-                                Text(
-                                    text = stringResource(R.string.assistant_page_new),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                            },
-                        )
+                            containerColor = MochiListDefaults.colors().container,
+                            topDivider = filteredAssistants.size > 0 && cards.gap == 0.dp,
+                        ) {
+                            MochiOptionItem(
+                                onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = cards.indexedShape(filteredAssistants.size, filteredAssistants.size + 1),
+                                leadingContent = { Icon(add, contentDescription = null) },
+                                titleContent = {
+                                    Text(
+                                        text = stringResource(R.string.assistant_page_new),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
             }

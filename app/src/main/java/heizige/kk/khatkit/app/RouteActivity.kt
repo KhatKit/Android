@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app
 
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
+import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -89,6 +91,7 @@ import heizige.kk.khatkit.app.feature.assistant.detail.AssistantRequestPage
 import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
 import heizige.kk.khatkit.app.feature.chat.ChatRolePanelPage
+import heizige.kk.khatkit.app.feature.chat.CardWidgetPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
@@ -108,6 +111,9 @@ import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
+import heizige.kk.khatkit.app.feature.settings.SettingThemeColorsPage
+import heizige.kk.khatkit.app.feature.settings.SettingThemeListCardsPage
+import heizige.kk.khatkit.app.feature.settings.SettingThemeMaterialsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNotificationPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesGeneralPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNetworkPage
@@ -344,10 +350,20 @@ class RouteActivity : ComponentActivity() {
                     ) { route ->
                         // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
                         // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。
-                        if (route == mochiNavigator.current) {
+                        // 每页一个子返回分发器，只有栈顶页开着：MochiNavHost 会让栈顶下面那页保持组合，
+                        // 它里面的 BackHandler（侧边栏、面板、菜单、行内编辑……）原本照样挂在 Activity 上、
+                        // 而且比 NavHost 的处理器登记得晚、优先级更高 —— 从侧边栏进设置，第一下返回就被
+                        // 底下那页「看不见的侧边栏」吃掉去关自己，得按两次才退出设置。关掉的子分发器里的
+                        // 处理器收不到返回；这页重新回到栈顶时自动开回来。
+                        val isTopPage = route == mochiNavigator.current
+                        val pageBackOwner = rememberNavigationEventDispatcherOwner(enabled = isTopPage)
+                        CompositionLocalProvider(
+                            LocalNavigationEventDispatcherOwner provides pageBackOwner,
+                            LocalPageRoute provides route,
+                        ) {
+                        if (isTopPage) {
                             PageBackGuard(route) { if (!kkNav.popBackStack()) finish() }
                         }
-                        CompositionLocalProvider(LocalPageRoute provides route) {
                         when (val screen = ScreenRoutes.screenOf(route)) {
                             // 未知 route（旧版本恢复/脏数据）：不画，交给 Mochi 栈回退，别崩。
                             null -> Unit
@@ -387,6 +403,9 @@ class RouteActivity : ComponentActivity() {
                             is Screen.ImageGen -> ImageGenPage()
                             is Screen.WebView -> WebViewPage(screen.url, screen.contentId)
                             is Screen.SettingPreferencesTheme -> SettingPreferencesThemePage()
+                            is Screen.SettingThemeColors -> SettingThemeColorsPage()
+                            is Screen.SettingThemeMaterials -> SettingThemeMaterialsPage()
+                            is Screen.SettingThemeListCards -> SettingThemeListCardsPage()
                             is Screen.SettingPreferencesNotification -> SettingPreferencesNotificationPage()
                             is Screen.SettingPreferencesGeneral -> SettingPreferencesGeneralPage()
                             is Screen.SettingPermissions -> SettingPermissionsPage()
@@ -414,6 +433,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.ExploreCards -> ExploreCardsPage(initialQuery = screen.initialQuery)
                             is Screen.ExploreLocal -> ExploreLocalPage()
                             is Screen.CardRuns -> CardRunsPage()
+                            is Screen.CardWidget -> CardWidgetPage(screen.name, screen.title)
                             is Screen.SettingDonate -> SettingDonatePage()
                             is Screen.SettingFiles -> SettingFilesPage()
                             is Screen.SettingMemory -> SettingMemoryPage()
@@ -652,6 +672,19 @@ sealed interface Screen : NavKey {
     @Serializable
     data object SettingPreferencesTheme : Screen
 
+    /** 主题页二级：明暗模式、纯黑、系统取色、主题色（照 Mochi 主题标签页的分组）。 */
+    @Serializable
+    data object SettingThemeColors : Screen
+
+    /** 主题页二级：玻璃、按钮样式、模糊。 */
+    @Serializable
+    data object SettingThemeMaterials : Screen
+
+    /** 主题页二级：列表卡片的圆角与卡片间距。 */
+    @Serializable
+    data object SettingThemeListCards : Screen
+
+
     @Serializable
     data object SettingPreferencesNotification : Screen
 
@@ -713,6 +746,10 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object CardRuns : Screen
+
+    /** 欢迎页小组件点开的卡片整页：卡片用户入口的 ui.screen / ui.form / ui.show 铺在这一页里。 */
+    @Serializable
+    data class CardWidget(val name: String, val title: String = "") : Screen
 
     @Serializable
     data object SettingDonate : Screen

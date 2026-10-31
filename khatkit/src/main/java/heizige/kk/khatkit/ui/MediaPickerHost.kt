@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import heizige.kk.khatkit.exec.CardRunContext
 
 /** `mediaPicker.pickMedia` 的 `media` 取值。 */
 enum class PickMediaKind {
@@ -84,6 +87,7 @@ class MediaPickerHost(
 
     private val _request = MutableStateFlow<MediaPickRequest?>(null)
     val request: StateFlow<MediaPickRequest?> = _request.asStateFlow()
+    private val pickerMutex = Mutex()
 
     /** 未绑定卡片名的兜底入口；[heizige.kk.khatkit.bridge.BridgeRegistry] 注入时用 [forCard] 换成绑定卡片名的视图。 */
     override fun pickMedia(options: Map<String, Any?>): List<String> = pick("", options)
@@ -97,13 +101,19 @@ class MediaPickerHost(
      * 脚本线程调用（[heizige.kk.khatkit.exec.CardExecutor] 在 Dispatchers.Default 上跑）。
      */
     fun pick(cardName: String, options: Map<String, Any?>?): List<String> {
-        val deferred = CompletableDeferred<List<String>>()
-        _request.value = MediaPickRequest(cardName, PickMediaOptions.from(options), deferred)
-        onAwaiting(cardName)
-        val picked = try {
-            runBlocking { withTimeoutOrNull(timeoutMillis) { deferred.await() } }
-        } finally {
-            _request.value = null
+        val picked = CardRunContext.awaitInteraction {
+            pickerMutex.withLock {
+                val deferred = CompletableDeferred<List<String>>()
+                val request = MediaPickRequest(cardName, PickMediaOptions.from(options), deferred)
+                _request.value = request
+                onAwaiting(cardName)
+                try {
+                    withTimeoutOrNull(timeoutMillis) { deferred.await() }
+                } finally {
+                    _request.compareAndSet(request, null)
+                    deferred.cancel()
+                }
+            }
         }
         if (picked.isNullOrEmpty()) return emptyList()
         return importToCache(cardName, picked)

@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.basic.MochiSheetDetent
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.LaunchedEffect
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -46,6 +50,9 @@ import androidx.compose.material3.Surface
 import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.basic.MochiSegmentedDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -166,7 +173,8 @@ internal fun ModelList(
                 ),
             contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // 模型行是同一组（圆角按 index/count 算），项间距取全局列表卡片样式
+            verticalArrangement = Arrangement.spacedBy(listCardStyle().gap),
             state = lazyListState
         ) {
             // 模型列表
@@ -203,28 +211,33 @@ internal fun ModelList(
                         state = reorderableLazyListState,
                         key = item.id
                     ) { isDragging ->
-                        ModelCard(
-                            model = item,
+                        KkGroupedColumn(
+                            modifier = Modifier.graphicsLayer {
+                                if (isDragging) {
+                                    scaleX = 1.05f
+                                    scaleY = 1.05f
+                                } else {
+                                    scaleX = 1f
+                                    scaleY = 1f
+                                }
+                            },
                             shape = listCardStyle().indexedShape(index, providerSetting.models.size),
-                            onDelete = {
-                                onUpdateProvider(providerSetting.delModel(item))
-                            },
-                            onEdit = { editedModel ->
-                                onUpdateProvider(providerSetting.editModel(editedModel))
-                            },
-                            parentProvider = providerSetting,
-                            modifier = Modifier
-                                .longPressDraggableHandle()
-                                .graphicsLayer {
-                                    if (isDragging) {
-                                        scaleX = 1.05f
-                                        scaleY = 1.05f
-                                    } else {
-                                        scaleX = 1f
-                                        scaleY = 1f
-                                    }
+                            containerColor = MochiListDefaults.colors().container,
+                            topDivider = index > 0 && listCardStyle().gap == 0.dp,
+                        ) {
+                            ModelCard(
+                                model = item,
+                                shape = listCardStyle().indexedShape(index, providerSetting.models.size),
+                                onDelete = {
+                                    onUpdateProvider(providerSetting.delModel(item))
                                 },
-                        )
+                                onEdit = { editedModel ->
+                                    onUpdateProvider(providerSetting.editModel(editedModel))
+                                },
+                                parentProvider = providerSetting,
+                                modifier = Modifier.longPressDraggableHandle(),
+                            )
+                        }
                     }
                 }
             }
@@ -289,10 +302,16 @@ internal fun ModelSettingsForm(
     model: Model,
     onModelChange: (Model) -> Unit,
     isEdit: Boolean,
-    parentProvider: ProviderSetting? = null
+    parentProvider: ProviderSetting? = null,
+    modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
+    val tabLabels = listOf(
+        stringResource(R.string.setting_provider_page_basic_settings),
+        stringResource(R.string.setting_provider_page_advanced_settings),
+        stringResource(R.string.setting_page_built_in_tools),
+    ).toImmutableList()
 
     fun setModelId(id: String) {
         val inputModality = ModelRegistry.MODEL_INPUT_MODALITIES.getData(id)
@@ -315,162 +334,191 @@ internal fun ModelSettingsForm(
         )
     }
 
-    Column {
-        KedgeTabRow(
-            titles = listOf(
-                stringResource(R.string.setting_provider_page_basic_settings),
-                stringResource(R.string.setting_provider_page_advanced_settings),
-                stringResource(R.string.setting_page_built_in_tools),
-            ),
-            selectedTabIndex = pagerState.currentPage,
-            onTabSelected = { index ->
-                scope.launch {
-                    pagerState.animateScrollToPage(index)
-                }
+    Column(modifier.fillMaxSize()) {
+        // 页签用 Mochi 分段控件（不是 MD3 下划线 TabRow），左右滑动由下面的 Pager 承担
+        MochiSegmentedControl(
+            selectedIndex = pagerState.currentPage,
+            onSelect = { index ->
+                scope.launch { pagerState.animateScrollToPage(index) }
             },
-            // 三个标题在 Miuix 的固定宽度 TabRow 里会被截成「基本设…」，交给可滚动形态。
-            scrollable = true,
+            items = tabLabels,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            behavior = SheetTabBehavior,
         )
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
         ) { page ->
             when (page) {
-                0 -> {
-                    // 基本设置页面
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(FormMetrics.GroupSpacing),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
-                    ) {
-                        ModelFormGroup(stringResource(R.string.setting_provider_page_model_info)) {
-                            Md3OutlinedTextFieldWithSlots(
-                                value = model.modelId,
-                                onValueChange = {
-                                    if (!isEdit) {
-                                        // 不要在这里 trim：中文输入法打字期间 value 会带着拼音
-                                        // 合成区一起回来，trim 掉尾部空格后回传的值就和 IME
-                                        // 里的不一致，光标会被弹到开头。留到确认时再收拾。
-                                        setModelId(it)
-                                    }
-                                },
-                                label = { Text(stringResource(R.string.setting_provider_page_model_id)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = {
-                                    if (!isEdit) {
-                                        Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
-                                    }
-                                },
-                                enabled = !isEdit,
-                                shape = RoundedCornerShape(16.dp)
-                            )
-
-                            Md3OutlinedTextFieldWithSlots(
-                                value = model.displayName,
-                                onValueChange = {
-                                    onModelChange(model.copy(displayName = it))
-                                },
-                                label = {
-                                    Text(
-                                        stringResource(
-                                            if (isEdit) R.string.setting_provider_page_model_name
-                                            else R.string.setting_provider_page_model_display_name
-                                        )
-                                    )
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = {
-                                    if (!isEdit) {
-                                        Text(stringResource(R.string.setting_provider_page_model_display_name_placeholder))
-                                    }
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                        }
-
-                        ModelFormGroup(stringResource(R.string.setting_provider_page_model_type)) {
-                            ModelTypeSelector(
-                                selectedType = model.type,
-                                onTypeSelected = {
-                                    onModelChange(model.copy(type = it))
-                                },
-                                fillWidth = false,
-                            )
-                        }
-
-                        ModelModalitySelector(
-                            model = model,
-                            inputModalities = model.inputModalities,
-                            onUpdateInputModalities = {
-                                onModelChange(model.copy(inputModalities = it))
-                            },
-                            outputModalities = model.outputModalities,
-                            onUpdateOutputModalities = {
-                                onModelChange(model.copy(outputModalities = it))
-                            },
-                        )
-
-                        if (model.type == ModelType.CHAT) {
-                            ModelFormGroup(stringResource(R.string.setting_provider_page_abilities)) {
-                                ModalAbilitySelector(
-                                    abilities = model.abilities,
-                                    onUpdateAbilities = {
-                                        onModelChange(model.copy(abilities = it))
-                                    }
-                                )
-                            }
-                        }
-                    }
+                0 -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    BasicModelCard(
+                        model = model,
+                        onModelChange = onModelChange,
+                        isEdit = isEdit,
+                        setModelId = ::setModelId,
+                    )
                 }
 
-                1 -> {
-                    // 高级设置页面
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        ProviderOverrideSettings(
-                            providerOverride = model.providerOverwrite,
-                            onUpdateProviderOverride = { providerOverride ->
-                                onModelChange(model.copy(providerOverwrite = providerOverride))
-                            },
-                            parentProvider = parentProvider
-                        )
+                1 -> Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    ProviderOverrideSettings(
+                        providerOverride = model.providerOverwrite,
+                        onUpdateProviderOverride = { providerOverride ->
+                            onModelChange(model.copy(providerOverwrite = providerOverride))
+                        },
+                        parentProvider = parentProvider
+                    )
 
-                        CustomHeaders(
-                            headers = model.customHeaders,
-                            onUpdate = { headers ->
-                                onModelChange(model.copy(customHeaders = headers))
-                            }
-                        )
+                    CustomHeaders(
+                        headers = model.customHeaders,
+                        onUpdate = { headers ->
+                            onModelChange(model.copy(customHeaders = headers))
+                        }
+                    )
 
-                        CustomBodies(
-                            customBodies = model.customBodies,
-                            onUpdate = { bodies ->
-                                onModelChange(model.copy(customBodies = bodies))
-                            }
-                        )
-                    }
-                }
-
-                2 -> {
-                    // 内置工具页面
-                    BuiltInToolsSettings(
-                        tools = model.tools,
-                        onUpdateTools = { tools ->
-                            onModelChange(model.copy(tools = tools))
+                    CustomBodies(
+                        customBodies = model.customBodies,
+                        onUpdate = { bodies ->
+                            onModelChange(model.copy(customBodies = bodies))
                         }
                     )
                 }
+
+                2 -> BuiltInToolsSettings(
+                    tools = model.tools,
+                    onUpdateTools = { tools ->
+                        onModelChange(model.copy(tools = tools))
+                    }
+                )
             }
         }
     }
+}
+
+/** 面板页签：和 Mochi 列表里的分段控件同一尺寸。 */
+private val SheetTabBehavior = MochiSegmentedDefaults.behavior(height = 32.dp, segmentPadding = 12.dp)
+
+/**
+ * 基本设置：**一张**分组卡片，信息 / 类型 / 输入 / 输出 / 能力用分隔线分段。
+ * 不再像以前那样一个分组一张卡（用户反馈：同一份表单里属于一部分的 option item 应该合在一起）。
+ */
+@Composable
+private fun BasicModelCard(
+    model: Model,
+    onModelChange: (Model) -> Unit,
+    isEdit: Boolean,
+    setModelId: (String) -> Unit,
+) {
+    KedgeFormCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(FormMetrics.ItemPadding + 2.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ModelFormSectionTitle(stringResource(R.string.setting_provider_page_model_info))
+            Md3OutlinedTextFieldWithSlots(
+                value = model.modelId,
+                onValueChange = {
+                    if (!isEdit) {
+                        // 不要在这里 trim：中文输入法打字期间 value 会带着拼音
+                        // 合成区一起回来，trim 掉尾部空格后回传的值就和 IME
+                        // 里的不一致，光标会被弹到开头。留到确认时再收拾。
+                        setModelId(it)
+                    }
+                },
+                label = { Text(stringResource(R.string.setting_provider_page_model_id)) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    if (!isEdit) {
+                        Text(stringResource(R.string.setting_provider_page_model_id_placeholder))
+                    }
+                },
+                enabled = !isEdit,
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            Md3OutlinedTextFieldWithSlots(
+                value = model.displayName,
+                onValueChange = { onModelChange(model.copy(displayName = it)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (isEdit) R.string.setting_provider_page_model_name
+                            else R.string.setting_provider_page_model_display_name
+                        )
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    if (!isEdit) {
+                        Text(stringResource(R.string.setting_provider_page_model_display_name_placeholder))
+                    }
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            ModelFormDivider()
+
+            ModelFormSectionTitle(stringResource(R.string.setting_provider_page_model_type))
+            ModelTypeSelector(
+                selectedType = model.type,
+                onTypeSelected = { onModelChange(model.copy(type = it)) },
+                fillWidth = false,
+            )
+
+            if (model.type == ModelType.CHAT) {
+                ModelFormDivider()
+                ModelFormSectionTitle(stringResource(R.string.setting_provider_page_input_modality))
+                ModelInputModalitySegmented(
+                    inputModalities = model.inputModalities,
+                    onUpdate = { onModelChange(model.copy(inputModalities = it)) },
+                )
+
+                ModelFormDivider()
+                ModelFormSectionTitle(stringResource(R.string.setting_provider_page_output_modality))
+                ModelOutputModalitySegmented(
+                    outputModalities = model.outputModalities,
+                    onUpdate = { onModelChange(model.copy(outputModalities = it)) },
+                )
+
+                ModelFormDivider()
+                ModelFormSectionTitle(stringResource(R.string.setting_provider_page_abilities))
+                ModalAbilitySelector(
+                    abilities = model.abilities,
+                    onUpdateAbilities = { onModelChange(model.copy(abilities = it)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModelFormSectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun ModelFormDivider() {
+    MochiHorizontalDivider(modifier = Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -562,7 +610,8 @@ internal fun AddModelButton(
     }
 
     // U7b-2e：最后一份 currentState 快照 + LaunchedEffect 驱动；退出动画期间读快照不 NPE。
-    val addModelSheet = rememberMochiSheetState()
+    // 表单直接开到大档：半屏放不下三页签内容，打开即所见
+    val addModelSheet = rememberMochiSheetState(detents = listOf(MochiSheetDetent.Large))
     var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
     LaunchedEffect(dialogState.isEditing) {
         if (dialogState.isEditing) {
@@ -591,32 +640,16 @@ internal fun AddModelButton(
                     dialogState.dismiss()
                 },
                 scrollable = false,
+                // 顶栏浮在正文上：标题/添加不再占一行把内容挤下去，正文铺满面板
+                floatingHeader = true,
             ) { _ ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // 原来按窗口高度的 95% 取，再叠上标题栏和确认按钮行就超出 sheet 的
-                        // 可用高度，确认按钮被挤到屏幕外只剩一条边。这里留出标题与按钮行的预算。
-                        .fillMaxHeight(0.72f)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        ModelSettingsForm(
-                            model = modelState,
-                            onModelChange = { dialogState.currentState = it },
-                            isEdit = false,
-                            parentProvider = parentProvider
-                        )
-                    }
-
-                }
+                ModelSettingsForm(
+                    model = modelState,
+                    onModelChange = { dialogState.currentState = it },
+                    isEdit = false,
+                    parentProvider = parentProvider,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
 }

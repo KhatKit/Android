@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
@@ -134,25 +136,31 @@ fun WorkspaceCwdPickerSheet(
             ) {
                 val dirs = entries.filter { it.isDirectory }
                 itemsIndexed(dirs, key = { _, entry -> entry.path }) { index, entry ->
-                    MochiOptionItem(
-                        onClick = { browsePath = entry.path },
+                    KkGroupedColumn(
                         shape = cards.indexedShape(index, dirs.size),
-                        titleContent = {
-                            Text(
-                                text = entry.name,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = folder,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        },
-                    )
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        MochiOptionItem(
+                            onClick = { browsePath = entry.path },
+                            shape = cards.indexedShape(index, dirs.size),
+                            titleContent = {
+                                Text(
+                                    text = entry.name,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = folder,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            },
+                        )
+                    }
                 }
 
                 if (!loading && dirs.isEmpty()) {

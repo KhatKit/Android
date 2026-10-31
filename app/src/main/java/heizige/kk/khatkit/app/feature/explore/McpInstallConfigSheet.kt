@@ -3,8 +3,8 @@ package heizige.kk.khatkit.app.feature.explore
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,15 +75,15 @@ private fun McpInstallConfigHeader(
                     R.string.explore_market_mcp_need_config_keys,
                     missingRequired.joinToString(", "),
                 ),
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.error,
+                style = MochiTheme.textStyles.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MochiTheme.colorScheme.error,
             )
         }
         if (masked.isNotBlank()) {
             Text(
                 text = stringResource(R.string.explore_market_mcp_prefilled, masked),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.bodySmall,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

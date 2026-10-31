@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.hub.LoadedCard
-import heizige.kk.khatkit.ui.UiNode
+import heizige.kk.khatkit.ui.CardWidgetContent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -16,11 +16,16 @@ import kotlinx.coroutines.withTimeout
 internal data class WelcomeWidget(
     val card: LoadedCard,
     val enabled: Boolean,
+    /** 当前格数：用户拖过就用落盘值，否则 manifest 默认值；始终在 [limits] 内。 */
+    val size: WidgetCells,
+    val limits: WidgetSizeLimits,
     val loading: Boolean = false,
-    val content: UiNode? = null,
+    /** 脚本最近一次 ui.show：主树 + 各尺寸版本，渲染时按 [size] 现挑一版。 */
+    val content: CardWidgetContent? = null,
     val error: String? = null,
-    val refreshAction: String = "",
-)
+) {
+    val refreshAction: String get() = content?.refreshAction.orEmpty()
+}
 
 internal data class ChatWelcomeState(
     val widgets: List<WelcomeWidget> = emptyList(),
@@ -59,12 +64,18 @@ internal class ChatWelcomeManager(
             val previous = if (!languageChanged) _state.value.widgets.associateBy { it.card.manifest.name } else emptyMap()
             locales = localeTags
             revision = catalogueRevision
+            // 用户拖过的顺序优先；没排过（或新装）的按安装顺序排在后面。sortedBy 是稳定排序。
+            val order = provider.widgetOrder().withIndex().associate { (index, name) -> name to index }
             _state.value = ChatWelcomeState(
-                widgets = cards.filter { it.manifest.widget != null }.map { card ->
+                widgets = cards.mapNotNull { card -> card.manifest.widget?.let { card to it } }.map { (card, spec) ->
+                    val limits = WidgetSizeLimits.of(spec.size)
+                    val size = limits.clamp(
+                        provider.widgetSize(card.manifest.name)?.let { (w, h) -> WidgetCells(w, h) } ?: limits.default,
+                    )
                     val old = previous[card.manifest.name]?.takeIf { it.card.manifest.version == card.manifest.version }
-                    old?.copy(card = card, enabled = provider.widgetEnabled(card))
-                        ?: WelcomeWidget(card, provider.widgetEnabled(card))
-                },
+                    old?.copy(card = card, enabled = provider.widgetEnabled(card), size = size, limits = limits)
+                        ?: WelcomeWidget(card, provider.widgetEnabled(card), size, limits)
+                }.sortedBy { order[it.card.manifest.name] ?: Int.MAX_VALUE },
                 ideas = if (languageChanged) emptyList() else _state.value.ideas,
             )
             if (languageChanged) ideasAsked = false
@@ -119,7 +130,7 @@ internal class ChatWelcomeManager(
         jobs[name] = scope.launch {
             try {
                 val content = withTimeout(30_000L) { provider.runChatWidget(widget.card, locales, action, values) }
-                publish { it.copy(content = content.root, refreshAction = content.refreshAction, loading = false, error = null) }
+                publish { it.copy(content = content, loading = false, error = null) }
             } catch (timeout: TimeoutCancellationException) {
                 publish { it.copy(loading = false, error = "WIDGET_TIMEOUT") }
             } catch (cancelled: CancellationException) {
@@ -129,6 +140,36 @@ internal class ChatWelcomeManager(
                 publish { it.copy(loading = false, error = error.message?.take(240) ?: "WIDGET_FAILED") }
             }
         }
+    }
+
+    /**
+     * 拖动边框时每越过一格调一次（只改内存，内容按新格数现挑版本，不重跑脚本）；
+     * 松手时 [persist] = true 才落盘。
+     */
+    fun setSize(name: String, size: WidgetCells, persist: Boolean) {
+        update(name) { it.copy(size = it.limits.clamp(size)) }
+        if (persist) {
+            val saved = _state.value.widgets.firstOrNull { it.card.manifest.name == name }?.size ?: return
+            provider.setWidgetSize(name, saved.width, saved.height)
+        }
+    }
+
+    /**
+     * 编辑态拖动换位：把 [name] 挪到已开启组件里的第 [index] 位，只改内存；
+     * 关着的组件留在原位。松手时调 [persistOrder]。
+     */
+    fun move(name: String, index: Int) {
+        _state.update { state ->
+            val enabled = state.widgets.filter { it.enabled }
+            val from = enabled.indexOfFirst { it.card.manifest.name == name }
+            if (from < 0 || index !in enabled.indices || from == index) return@update state
+            val reordered = enabled.toMutableList().apply { add(index, removeAt(from)) }.iterator()
+            state.copy(widgets = state.widgets.map { if (it.enabled) reordered.next() else it })
+        }
+    }
+
+    fun persistOrder() {
+        provider.setWidgetOrder(_state.value.widgets.map { it.card.manifest.name })
     }
 
     /** Auto-loading is read-only; only an explicit header click uses this action. */

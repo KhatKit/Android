@@ -1,6 +1,12 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.KkAnimatedRow
+import heizige.kk.khatkit.uikit.mochi.KkChevron
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListSectionFooter
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.background
@@ -25,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
@@ -37,6 +44,8 @@ private data class CardGroupItem(
     val supportingContent: (@Composable () -> Unit)?,
     val leadingContent: (@Composable () -> Unit)?,
     val trailingContent: (@Composable () -> Unit)?,
+    val visible: Boolean,
+    val chevron: Boolean,
 )
 
 @DslMarker
@@ -44,6 +53,13 @@ private annotation class CardGroupDsl
 
 @CardGroupDsl
 interface CardGroupScope {
+    /**
+     * @param visible 按条件显隐的行用它，不要写 `if (x) item(...)`：行一直占着位置，
+     *   显隐时走 [KkAnimatedRow] 的展开/收起动画；`if` 的写法只能一下蹦出来。
+     *   注意隐藏时内容还会在退场动画里画一会儿，所以只适合内容本身总能渲染的行。
+     * @param chevron 点了进二级页面的行打开，行尾画统一的 [KkChevron]；
+     *   弹窗/选择器/开关/外链行不开。
+     */
     fun item(
         onClick: (() -> Unit)? = null,
         modifier: Modifier = Modifier,
@@ -51,6 +67,8 @@ interface CardGroupScope {
         supportingContent: (@Composable () -> Unit)? = null,
         leadingContent: (@Composable () -> Unit)? = null,
         trailingContent: (@Composable () -> Unit)? = null,
+        visible: Boolean = true,
+        chevron: Boolean = false,
         headlineContent: @Composable () -> Unit,
     )
 }
@@ -65,6 +83,8 @@ private class CardGroupScopeImpl : CardGroupScope {
         supportingContent: (@Composable () -> Unit)?,
         leadingContent: (@Composable () -> Unit)?,
         trailingContent: (@Composable () -> Unit)?,
+        visible: Boolean,
+        chevron: Boolean,
         headlineContent: @Composable () -> Unit,
     ) {
         items.add(
@@ -76,6 +96,8 @@ private class CardGroupScopeImpl : CardGroupScope {
                 supportingContent = supportingContent,
                 leadingContent = leadingContent,
                 trailingContent = trailingContent,
+                visible = visible,
+                chevron = chevron,
             )
         )
     }
@@ -86,12 +108,14 @@ private fun CardGroupListItem(
     item: CardGroupItem,
     count: Int,
     index: Int,
+    topGap: Dp = 0.dp,
 ) {
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
     // onClick 原样传下去（可空）：MochiOptionItem 会按 null 关掉整行的点击与
     // 按压回弹。以前这里兜成空 lambda，纯信息行按下也会缩一下，看着像能点。
     heizige.kk.khatkit.uikit.mochi.MochiOptionItem(
-        modifier = item.modifier.fillMaxWidth(),
+        // topGap：分卡排法下的项间距，放在行里而不是外层 spacedBy，跟着显隐动画一起收放
+        modifier = Modifier.padding(top = topGap).then(item.modifier).fillMaxWidth(),
         onClick = item.onClick,
         shape = cards.indexedShape(index, count),
         leadingContent = item.leadingContent,
@@ -99,6 +123,7 @@ private fun CardGroupListItem(
         titleContent = item.headlineContent,
         supportingContent = item.supportingContent,
         trailingContent = item.trailingContent,
+        chevron = item.chevron,
     )
 }
 
@@ -106,33 +131,66 @@ private fun CardGroupListItem(
 fun CardGroup(
     modifier: Modifier = Modifier,
     title: (@Composable () -> Unit)? = null,
+    footer: String? = null,
     content: CardGroupScope.() -> Unit,
 ) {
     val scope = CardGroupScopeImpl()
     scope.content()
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(cards.gap),
-    ) {
+    Column(modifier = modifier) {
+        // Mochi 分组小标题（MochiListSectionHeader）：和行文字一样大、半粗、次要色，
+        // 左边与行内文字对齐（16dp），下面留 MochiListDefaults.HeaderGap。
         title?.let { t ->
-            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.primary.copy(alpha = 0.54f)) {
-                ProvideTextStyle(
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 14.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                        lineHeight = 20.sp,
-                    )
-                ) {
-                    Box(modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)) {
+            CompositionLocalProvider(LocalContentColor provides MochiListDefaults.colors().secondary) {
+                ProvideTextStyle(MochiTheme.textStyles.navTitle) {
+                    Box(
+                        modifier = Modifier.padding(
+                            start = MochiListDefaults.TextRowPadding,
+                            end = MochiListDefaults.TextRowPadding,
+                            bottom = MochiListDefaults.HeaderGap,
+                        ),
+                    ) {
                         t()
                     }
                 }
             }
         }
-        scope.items.forEachIndexed { index, entry ->
-            CardGroupListItem(item = entry, count = scope.items.size, index = index)
+        if (cards.gap > 0.dp) {
+            // 用户在「列表卡片样式」里调出了项间距：退回每项一张卡片的旧排法。
+            // 位号只数可见项，首末项的大圆角才落在真正的首末行上；隐藏中的行借下一个可见位号。
+            val shown = scope.items.count { it.visible }.coerceAtLeast(1)
+            var position = 0
+            Column {
+                scope.items.forEach { entry ->
+                    val index = if (entry.visible) position++ else position
+                    KkAnimatedRow(visible = entry.visible) {
+                        CardGroupListItem(
+                            item = entry,
+                            count = shown,
+                            index = index.coerceAtMost(shown - 1),
+                            topGap = if (index > 0) cards.gap else 0.dp,
+                        )
+                    }
+                }
+            }
+        } else {
+            KkGroupedColumn(
+                shape = cards.indexedShape(0, 1),
+                containerColor = MochiListDefaults.colors().container,
+                // 行自己用 KkAnimatedRow 收放高度；卡片再套一层尺寸动画会互相追，变两套动画。
+                animateHeight = false,
+            ) {
+                scope.items.forEach { entry ->
+                    KkAnimatedRow(visible = entry.visible) {
+                        CardGroupListItem(item = entry, count = 1, index = 0)
+                    }
+                }
+            }
+        }
+        // 分组说明：走 Mochi 列表的同一套（footnote、次要色、与行文字同缩进、上面留 8dp）
+        footer?.let { text ->
+            MochiListSectionFooter(text, color = MochiListDefaults.colors().secondary)
         }
     }
 }
@@ -184,15 +242,26 @@ fun InlineCardGroup(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(cards.indexedShape(0, 1))
-            .background(inlineGroupContainerColor()),
-        verticalArrangement = Arrangement.spacedBy(cards.gap),
-    ) {
-        CompositionLocalProvider(LocalInlineCardGroup provides InlineCardGroupMarker) {
-            content()
+    CompositionLocalProvider(LocalInlineCardGroup provides InlineCardGroupMarker) {
+        if (cards.gap > 0.dp) {
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    // 分卡排法也要和整卡一样平滑变高（Mochi 同款尺寸弹簧），见 KkGroupedColumn 的同名参数。
+                    .kkAnimateContentSize()
+                    .clip(cards.indexedShape(0, 1))
+                    .background(inlineGroupContainerColor()),
+                verticalArrangement = Arrangement.spacedBy(cards.gap),
+                content = content,
+            )
+        } else {
+            // Mochi 分组：一张卡，行间 0.5dp 分隔线（从行文字起点开始），按下行高亮时分隔线淡出
+            KkGroupedColumn(
+                modifier = modifier,
+                shape = cards.indexedShape(0, 1),
+                containerColor = inlineGroupContainerColor(),
+                content = content,
+            )
         }
     }
 }
@@ -211,7 +280,7 @@ fun InlineCardGroup(
  * 没有第二层圆角与内缩；只有不带底色的子项才「透」出这一层。
  */
 @Composable
-private fun inlineGroupContainerColor(): Color = CustomColors.cardColorsOnSurfaceContainer.containerColor
+private fun inlineGroupContainerColor(): Color = MochiListDefaults.colors().container
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -245,8 +314,8 @@ private fun CardGroupPreview() {
                 )
                 item(
                     onClick = {},
+                    chevron = true,
                     headlineContent = { Text("第三项") },
-                    trailingContent = { Text("→") },
                 )
             }
         }

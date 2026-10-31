@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -244,24 +246,30 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 }
             } else {
                 itemsIndexed(roleChats, key = { _, conversation -> conversation.id.toString() }) { index, conversation ->
-                    MochiOptionItem(
+                    KkGroupedColumn(
                         modifier = Modifier
                             .padding(horizontal = 8.dp)
                             .padding(bottom = if (index == roleChats.lastIndex) 0.dp else cards.gap),
-                        onClick = { navigateToChatPage(navController, conversation.id) },
                         shape = cards.indexedShape(index, roleChats.size),
-                        leadingContent = { Icon(chat, null) },
-                        titleContent = {
-                            Text(
-                                text = conversation.title.ifBlank {
-                                    stringResource(R.string.chat_page_new_chat)
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        supportingContent = { Text(rolePanelTimeLabel(conversation.updateAt)) },
-                    )
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        MochiOptionItem(
+                            onClick = { navigateToChatPage(navController, conversation.id) },
+                            shape = cards.indexedShape(index, roleChats.size),
+                            leadingContent = { Icon(chat, null) },
+                            titleContent = {
+                                Text(
+                                    text = conversation.title.ifBlank {
+                                        stringResource(R.string.chat_page_new_chat)
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            supportingContent = { Text(rolePanelTimeLabel(conversation.updateAt)) },
+                        )
+                    }
                 }
             }
 

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -27,7 +26,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.util.plus
 import javax.inject.Inject
 import kotlin.uuid.Uuid
@@ -73,6 +71,7 @@ fun SettingMemoryPage() {
                                 onClick = {
                                     navController.navigate(Screen.AssistantMemory(assistant.id.toString()))
                                 },
+                                chevron = true,
                                 leadingContent = {
                                     UIAvatar(
                                         name = displayName,
@@ -96,7 +95,6 @@ fun SettingMemoryPage() {
                                     Text(stringResource(R.string.setting_page_memory_count, count))
                                 },
                                 headlineContent = { Text(displayName) },
-                                trailingContent = { Icon(arrowForward, null) },
                             )
                         }
                     }

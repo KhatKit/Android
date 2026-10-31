@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +33,6 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 
 @Composable
@@ -113,14 +110,8 @@ private fun PromptSettingItem(
     CardGroup(title = { Text(title) }) {
         item(
             onClick = { showEditor = true },
+            // 点了是拉起提示词编辑面板（bottom sheet），不是进二级页，所以行尾不放 ›
             headlineContent = { Text(stringResource(R.string.setting_model_page_prompt)) },
-            trailingContent = {
-                Icon(
-                    arrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            },
         )
         if (reasoningLevel != null && onUpdateReasoningLevel != null) {
             item(
@@ -144,7 +135,6 @@ private fun PromptSettingItem(
         ) { _ ->
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
                     .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),

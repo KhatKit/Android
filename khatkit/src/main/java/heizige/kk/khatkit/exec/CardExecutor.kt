@@ -16,6 +16,9 @@ import heizige.kk.khatkit.dependency.DependencyManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
 
 /** 执行 engine: command 形态的命令，由宿主实现（走 shizuku/root）。 */
 fun interface CommandRunner {
@@ -34,6 +37,7 @@ data class CardExecutionOptions(
     val uiMode: UiMode = UiMode.INTERACTIVE,
     val locales: List<String>? = null,
     val deadlineAt: Long = 0L,
+    val interactionId: String? = null,
 )
 
 /**
@@ -53,20 +57,22 @@ class CardExecutor(
         card: LoadedCard,
         args: Map<String, Any?>,
         options: CardExecutionOptions = CardExecutionOptions(),
-    ): EngineResult =
-        withContext(Dispatchers.Default) {
+    ): EngineResult {
+        val run = CardRunContext.current.get() ?: CardRunContext(currentCoroutineContext().job)
+        return withContext(Dispatchers.IO + CardRunContext.current.asContextElement(run)) {
             // 卡片/脚本/宿主任何一环出问题都收敛成 Err，绝不让异常冒泡打断整轮生成
             runCatching {
                 ensureDependencies(card.manifest)?.let { return@runCatching it }
                 when (card.engineKind) {
                     EngineKind.COMMAND -> executeCommand(card.manifest, args)
-                    EngineKind.LUA, EngineKind.JS -> executeScript(card, args, options)
+                    EngineKind.LUA, EngineKind.JS, EngineKind.WASM -> executeScript(card, args, options)
                 }
             }.getOrElse { error ->
                 if (error is CancellationException) throw error
                 EngineResult.Err("CARD_EXECUTOR", error.message ?: error.toString())
             }
         }
+    }
 
     /**
      * 执行前确保卡片声明的原生依赖包已下载、校验并加载为动态 bridge。
@@ -122,7 +128,7 @@ class CardExecutor(
     }
 
     private suspend fun executeScript(card: LoadedCard, args: Map<String, Any?>, options: CardExecutionOptions): EngineResult {
-        val required = card.manifest.requiredBridges
+        val required = card.bridgeSubset ?: card.manifest.requiredBridges
         val available = bridges.availableBridges(options.uiMode, options.ui)
         val missing = required - available
         if (missing.isNotEmpty()) {
@@ -136,19 +142,26 @@ class CardExecutor(
         // 否则 native 引擎句柄可能被换到别的线程使用。
         val modules = libResolver?.resolve(card.manifest.requires.libs, card.engineKind).orEmpty()
 
-        val engine = EngineFactory.create(card.engineKind)
+        // WASM 卡片从 card.dir 读 card.wasm + manifest.json；Lua/JS 不需要目录。
+        val engine = if (card.engineKind == EngineKind.WASM && card.wasmBytes != null) {
+            check(heizige.kk.khatkit.engine.RustScriptEngine.isAvailable) { "RUST_ENGINE_UNAVAILABLE" }
+            heizige.kk.khatkit.engine.WasmScriptEngine.create(card.wasmBytes, requireNotNull(card.wasmManifestJson))
+        } else EngineFactory.create(card.engineKind, card.dir)
         val runResources = mutableListOf<AutoCloseable>()
         return try {
             if (!bridges.inject(
                     engine, card.manifest, approvalGate = approvalGate, runResources = runResources,
                     uiOverride = options.ui, uiMode = options.uiMode,
                     locales = options.locales, deadlineAt = options.deadlineAt,
+                    requiredOverride = card.bridgeSubset, interactionId = options.interactionId,
                 )
             ) {
                 EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")
             } else {
                 modules.forEach { lib -> engine.defineModule(lib.name, lib.source) }
-                engine.eval(card.scriptText, args)
+                if (card.widgetExecution && engine is heizige.kk.khatkit.engine.WasmScriptEngine) {
+                    engine.evalWidget(args)
+                } else engine.eval(card.scriptText, args)
             }
         } finally {
             try {

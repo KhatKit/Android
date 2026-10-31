@@ -34,7 +34,6 @@ import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderSetting
-import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -49,7 +48,6 @@ import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import kotlinx.collections.immutable.persistentListOf
@@ -220,6 +218,7 @@ private fun ModelSettingItem(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        // 点行是拉起模型选择面板（不是进二级页），行尾只放当前值，不放 ›
                         if (onClear != null && state.currentModel != null) {
                             Icon(
                                 imageVector = close,
@@ -228,12 +227,6 @@ private fun ModelSettingItem(
                                     .size(16.dp)
                                     .clickable { onClear() },
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            Icon(
-                                arrowForward,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
@@ -267,15 +260,14 @@ private fun ModelSettingItem(
 /**
  * OCR5：OCR 插件入口。
  *
- * 状态只读 [OcrPluginStore]（安装/卸载都在探索市场做，这里不重复写盘），点击用
- * [LocalKkNavController] 跳探索市场 —— OCR 原生插件是市场里的扩展条目（kind=dependency）。
+ * 状态只读 [OcrPluginStore]（安装/卸载都在探索市场做，这里不重复写盘），点击普通压栈跳探索市场 ——
+ * OCR 原生插件是市场里的扩展条目（kind=dependency）。
  * 文案内联：本阶段只允许改 feature/settings，string 资源不在范围内。
  */
 @Composable
 private fun OcrPluginSettingItem() {
     val context = LocalContext.current
-    val kkNav = LocalKkNavController.current
-    // 没有 Mochi 宿主时（预览/测试）退回普通导航，和 SettingPage 的 openMorph 同一套兜底
+    // 设置里的子页一律普通压栈，不做共享元素形变（和 SettingPage 的列表入口同一套）
     val navController = LocalNavController.current
     val record by produceState<OcrPluginRecord?>(initialValue = null) {
         value = runCatching { OcrPluginStore(context).read() }.getOrNull()
@@ -285,13 +277,8 @@ private fun OcrPluginSettingItem() {
     Column {
         CardGroup(title = { Text("OCR 插件") }) {
             item(
-                onClick = {
-                    if (kkNav != null) {
-                        kkNav.navigate(Screen.ExploreMarket, source = "setting-ocr-plugin")
-                    } else {
-                        navController.navigate(Screen.ExploreMarket)
-                    }
-                },
+                onClick = { navController.navigate(Screen.ExploreMarket) },
+                chevron = true,
                 headlineContent = {
                     Text(if (version == null) "OCR 插件：未安装" else "OCR 插件")
                 },
@@ -301,23 +288,13 @@ private fun OcrPluginSettingItem() {
                     )
                 },
                 trailingContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = version?.let { "v$it" } ?: "去市场安装",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Icon(
-                            arrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+                    Text(
+                        text = version?.let { "v$it" } ?: "去市场安装",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
             )
         }

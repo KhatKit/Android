@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiChipGroup
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
@@ -131,10 +132,12 @@ fun ImageGenPage(
     val isGenerating by vm.isGenerating.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
     // U7a-6：生成中返回 = 弹取消确认，登记到 PageBackInterceptor（不再页面级 BackHandler）。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val genBackTokenRoute = LocalPageRoute.current
     val genBackToken = remember { Any() }
     DisposableEffect(isGenerating) {
         if (isGenerating) {
-            PageBackInterceptor.push(genBackToken) {
+            PageBackInterceptor.push(genBackToken, genBackTokenRoute) {
                 showCancelDialog = true
                 true
             }
@@ -562,11 +565,15 @@ private fun ImageGalleryScreen(
         }
     }
 
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+
+    val selectBackTokenRoute = LocalPageRoute.current
+
     val selectBackToken = remember { Any() }
     val selectBackEnabled = isActive && selectionMode
     DisposableEffect(selectBackEnabled) {
         if (selectBackEnabled) {
-            PageBackInterceptor.push(selectBackToken) {
+            PageBackInterceptor.push(selectBackToken, selectBackTokenRoute) {
                 if (!isDeleting) clearSelection()
                 true
             }
@@ -831,7 +838,7 @@ private fun SettingsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(vertical = 8.dp)
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

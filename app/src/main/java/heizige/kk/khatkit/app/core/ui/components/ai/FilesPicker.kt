@@ -1,42 +1,26 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkSurface
-import androidx.compose.foundation.LocalIndication
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiListItem
-import androidx.compose.runtime.LaunchedEffect
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
-import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,14 +29,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -67,17 +49,15 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.ExtensionSelector
-import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionCamera
-import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
-import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
+import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
-import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
@@ -89,8 +69,23 @@ import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.settings
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
-import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.effect.elastic.mochiPressDeform
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.shape.MochiCapsule
+import ui.feice.mochi.shape.MochiRoundedRectangle
+import ui.feice.mochi.theme.MochiTheme
 
+/**
+ * 输入栏「+」弹出的面板。上下两块：
+ *
+ * - 附件：一排（多了就两排）等宽的方块，图标坐在主色淡底的圆里，按下是 Mochi 的按压形变；
+ *   相机 / 照片 / 文件常驻，视频和音频只在当前模型是 Gemini 时出现，语音模式在 ASR 支持时出现。
+ * - 会话工具：一张分组卡片（和设置页同一套 option item），工作区、工作目录、MCP、扩展、压缩历史，
+ *   条目按当前条件增减，整组圆角跟着首末行走。
+ */
 @Composable
 internal fun FilesPicker(
     conversation: Conversation,
@@ -117,47 +112,34 @@ internal fun FilesPicker(
     val navController = LocalNavController.current
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     val workspaces by workspaceRepository.listFlow().collectAsState(initial = emptyList())
+    val boundWorkspace = remember(workspaces, assistant.workspaceId) {
+        workspaces.find { it.id == assistant.workspaceId?.toString() }
+    }
+    var showCwdSheet by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().wrapContentWidth(Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            TakePicButton(onLaunchCamera = onTakePic)
-
-            ImagePickButton(onClick = onPickImage)
-
-            if (provider != null && provider is ProviderSetting.Google) {
-                VideoPickButton(onClick = onPickVideo)
-
-                AudioPickButton(onClick = onPickAudio)
-            }
-
-            FilePickButton(onClick = onPickFile)
-
-            onStartVoiceMode?.let { start ->
-                BigIconTextButton(
-                    icon = { Icon(graphicEq, contentDescription = null) },
-                    text = { Text(stringResource(R.string.chat_page_voice_title)) },
-                    onClick = start,
-                )
-            }
+    val attachments = buildList {
+        add(Attachment(photoCamera, stringResource(R.string.take_picture), onTakePic))
+        add(Attachment(image, stringResource(R.string.photo), onPickImage))
+        if (provider is ProviderSetting.Google) {
+            add(Attachment(videocam, stringResource(R.string.video), onPickVideo))
+            add(Attachment(musicNote, stringResource(R.string.audio), onPickAudio))
         }
+        add(Attachment(folderCopy, stringResource(R.string.upload_file), onPickFile))
+        onStartVoiceMode?.let { add(Attachment(graphicEq, stringResource(R.string.chat_page_voice_title), it)) }
+    }
 
-        MochiHorizontalDivider(
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (workspaces.isNotEmpty()) {
+    // 工具行按条件增减；先把要出现的行排好，再按序号给首末行圆角。
+    val showWorkspace = workspaces.isNotEmpty()
+    val showCwd = boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name
+    val showMcp = settings.mcpServers.isNotEmpty()
+    val tools = buildList<@Composable (Shape) -> Unit> {
+        if (showWorkspace) add { shape ->
             WorkspacePickerListItem(
+                shape = shape,
                 assistant = assistant,
                 conversation = conversation,
                 workspaces = workspaces,
+                boundWorkspace = boundWorkspace,
                 onUpdateAssistant = onUpdateAssistant,
                 onUpdateConversation = onUpdateConversation,
                 onNavigateToDetail = { id ->
@@ -174,123 +156,89 @@ internal fun FilesPicker(
                 },
             )
         }
-
-        if (settings.mcpServers.isNotEmpty()) {
+        if (showCwd) add { shape ->
+            MochiOptionItem(
+                onClick = { showCwdSheet = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = shape,
+                leadingContent = { Icon(folder, null) },
+                titleContent = { Text(stringResource(R.string.chat_page_working_directory)) },
+                supportingContent = {
+                    Text(
+                        conversation.workspaceCwd ?: "/workspace",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            )
+        }
+        if (showMcp) add { shape ->
             McpPickerListItem(
+                shape = shape,
                 assistant = assistant,
                 servers = settings.mcpServers,
                 mcpManager = mcpManager,
                 onUpdateAssistant = onUpdateAssistant,
             )
         }
-
-        // Extensions (Quick Messages + Prompt Injections + Skills)
-        val modeAndLorebookCount =
-            if (assistant.allowConversationPromptInjection) {
-                conversation.modeInjectionIds.size + conversation.lorebookIds.size
-            } else {
-                assistant.modeInjectionIds.size + assistant.lorebookIds.size
-            }
-        val activeCount =
-            assistant.quickMessageIds.size +
-                modeAndLorebookCount +
-                assistant.enabledSkills.size
-        MochiListItem(
-            leadingContent = {
-                Icon(
-                    imageVector = inventory2,
-                    contentDescription = stringResource(R.string.assistant_page_tab_extensions),
-                )
-            },
-            headlineContent = {
-                Text(stringResource(R.string.assistant_page_tab_extensions))
-            },
-            trailingContent = {
-                if (activeCount > 0) {
-                    Text(
-                        text = activeCount.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+        add { shape ->
+            // 扩展 = 快捷消息 + 提示注入（模式 / 世界书）+ 技能；尾部是已启用的个数。
+            val modeAndLorebookCount =
+                if (assistant.allowConversationPromptInjection) {
+                    conversation.modeInjectionIds.size + conversation.lorebookIds.size
+                } else {
+                    assistant.modeInjectionIds.size + assistant.lorebookIds.size
                 }
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.large)
-                .clickable {
-                    onShowInjectionSheetChange(true)
-                },
-        )
-
-        // Compress History Button
-        MochiListItem(
-            leadingContent = {
-                Icon(
-                    imageVector = package2,
-                    contentDescription = stringResource(R.string.chat_page_compress_context),
-                )
-            },
-            headlineContent = {
-                Text(stringResource(R.string.chat_page_compress_context))
-            },
-            trailingContent = {
-                if (conversation.messageNodes.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.chat_page_message_count, conversation.messageNodes.size),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.large)
-                .clickable {
-                    onShowCompressDialogChange(true)
-                },
-        )
-
-        // Workspace CWD
-        val boundWorkspace = remember(workspaces, assistant.workspaceId) {
-            workspaces.find { it.id == assistant.workspaceId?.toString() }
-        }
-        if (boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name) {
-            var showCwdSheet by remember { mutableStateOf(false) }
-            MochiTextButton(
-                onClick = { showCwdSheet = true },
+            val activeCount = assistant.quickMessageIds.size + modeAndLorebookCount + assistant.enabledSkills.size
+            MochiOptionItem(
+                onClick = { onShowInjectionSheetChange(true) },
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    imageVector = folder,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = conversation.workspaceCwd ?: "/workspace",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            // U7b-6：宿主已改 MochiSheet，state 由这里持有；不再用 if 门控（否则退场动画不播）。
-            val cwdSheet = rememberMochiSheetState()
-            LaunchedEffect(showCwdSheet) { if (showCwdSheet) cwdSheet.show() else cwdSheet.hide() }
-            WorkspaceCwdPickerSheet(
-                    sheetState = cwdSheet,
-                    workspaceId = boundWorkspace.id,
-                    currentCwd = conversation.workspaceCwd,
-                    onSelectCwd = { newCwd ->
-                        onUpdateConversation(conversation.copy(workspaceCwd = newCwd))
-                    },
-                    onDismiss = { showCwdSheet = false },
-                )
+                shape = shape,
+                leadingContent = { Icon(inventory2, null) },
+                titleContent = { Text(stringResource(R.string.assistant_page_tab_extensions)) },
+                trailingContent = if (activeCount > 0) {
+                    { ToolCount(activeCount.toString()) }
+                } else null,
+            )
         }
+        add { shape ->
+            MochiOptionItem(
+                onClick = { onShowCompressDialogChange(true) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = shape,
+                leadingContent = { Icon(package2, null) },
+                titleContent = { Text(stringResource(R.string.chat_page_compress_context)) },
+                trailingContent = if (conversation.messageNodes.isNotEmpty()) {
+                    { ToolCount(stringResource(R.string.chat_page_message_count, conversation.messageNodes.size)) }
+                } else null,
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        AttachmentGrid(attachments)
+        val cards = listCardStyle()
+        InlineCardGroup(Modifier.fillMaxWidth()) {
+            tools.forEachIndexed { index, row -> row(cards.indexedShape(index, tools.size)) }
+        }
+    }
+
+    if (boundWorkspace != null && showCwd) {
+        // U7b-6：宿主已改 MochiSheet，state 由这里持有；不再用 if 门控（否则退场动画不播）。
+        val cwdSheet = rememberMochiSheetState()
+        LaunchedEffect(showCwdSheet) { if (showCwdSheet) cwdSheet.show() else cwdSheet.hide() }
+        WorkspaceCwdPickerSheet(
+            sheetState = cwdSheet,
+            workspaceId = boundWorkspace.id,
+            currentCwd = conversation.workspaceCwd,
+            onSelectCwd = { newCwd ->
+                onUpdateConversation(conversation.copy(workspaceCwd = newCwd))
+            },
+            onDismiss = { showCwdSheet = false },
+        )
     }
 
     // Injection Bottom Sheet：U7b-6 起 state 由这里持有，去 if 门控。
@@ -318,11 +266,68 @@ internal fun FilesPicker(
     }
 }
 
+private data class Attachment(val icon: ImageVector, val label: String, val onClick: () -> Unit)
+
+/** 附件方块：四个以内一排排满；再多就分两排（5 → 3 + 2，6 → 3 + 3），末排不足的位置留空，方块宽度不变。 */
+@Composable
+private fun AttachmentGrid(items: List<Attachment>) {
+    val columns = if (items.size <= 4) items.size else (items.size + 1) / 2
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(columns.coerceAtLeast(1)).forEach { line ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                line.forEach { AttachmentTile(it, Modifier.weight(1f)) }
+                repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttachmentTile(item: Attachment, modifier: Modifier = Modifier) {
+    val shape = MochiRoundedRectangle(listCardStyle().largeCorner)
+    val accent = MochiTheme.colorScheme.primary
+    Column(
+        modifier
+            .mochiPressDeform()
+            .clip(shape)
+            .background(MochiListDefaults.colors().container)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Button,
+                onClick = item.onClick,
+            )
+            .padding(horizontal = 4.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.size(44.dp).background(accent.copy(alpha = 0.12f), MochiCapsule), contentAlignment = Alignment.Center) {
+            Icon(item.icon, null, Modifier.size(22.dp), tint = accent)
+        }
+        Text(
+            item.label,
+            style = MochiTheme.textStyles.footnote,
+            color = MochiTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** 工具行尾部的计数，和 MCP 那一行同一个写法。 */
+@Composable
+private fun ToolCount(text: String) {
+    Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+}
+
 @Composable
 private fun WorkspacePickerListItem(
+    shape: Shape,
     assistant: Assistant,
     conversation: Conversation,
     workspaces: List<WorkspaceEntity>,
+    boundWorkspace: WorkspaceEntity?,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateConversation: (Conversation) -> Unit,
     onNavigateToDetail: (String) -> Unit,
@@ -330,20 +335,13 @@ private fun WorkspacePickerListItem(
     onNavigateToManage: () -> Unit,
 ) {
     var showSheet by remember { mutableStateOf(false) }
-    val boundWorkspace = remember(workspaces, assistant.workspaceId) {
-        workspaces.find { it.id == assistant.workspaceId?.toString() }
-    }
 
-    MochiListItem(
-        leadingContent = {
-            Icon(
-                imageVector = deployedCode,
-                contentDescription = stringResource(R.string.assistant_page_workspace),
-            )
-        },
-        headlineContent = {
-            Text(stringResource(R.string.assistant_page_workspace))
-        },
+    MochiOptionItem(
+        onClick = { showSheet = true },
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = { Icon(deployedCode, null) },
+        titleContent = { Text(stringResource(R.string.assistant_page_workspace)) },
         supportingContent = {
             Text(
                 text = boundWorkspace?.name ?: stringResource(R.string.assistant_page_workspace_unbound),
@@ -351,34 +349,20 @@ private fun WorkspacePickerListItem(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        trailingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (boundWorkspace != null) {
+        trailingContent = if (boundWorkspace != null) {
+            {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     MochiIconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(
-                            imageVector = settings,
-                            contentDescription = stringResource(R.string.workspace_detail),
-                        )
+                        Icon(settings, contentDescription = stringResource(R.string.workspace_detail))
                     }
                     if (boundWorkspace.shellStatus != WorkspaceShellStatus.DISABLED.name) {
                         MochiIconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                imageVector = terminal,
-                                contentDescription = stringResource(R.string.workspace_terminal),
-                            )
+                            Icon(terminal, contentDescription = stringResource(R.string.workspace_terminal))
                         }
                     }
                 }
             }
-        },
-        colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.large)
-            .clickable { showSheet = true },
+        } else null,
     )
 
     // U7b-6：宿主已改 MochiSheet，state 由这里持有，去掉 if 门控让退场动画能播。
@@ -450,109 +434,5 @@ private fun InjectionQuickConfigSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
-    }
-}
-
-@Composable
-private fun ImagePickButton(onClick: () -> Unit = {}) {
-    BigIconTextButton(icon = {
-        Icon(image, null)
-    }, text = {
-        Text(stringResource(R.string.photo))
-    }) {
-        onClick()
-    }
-}
-
-@Composable
-fun TakePicButton(onLaunchCamera: () -> Unit = {}) {
-    BigIconTextButton(icon = {
-        Icon(photoCamera, null)
-    }, text = {
-        Text(stringResource(R.string.take_picture))
-    }) {
-        onLaunchCamera()
-    }
-}
-
-@Composable
-fun VideoPickButton(onClick: () -> Unit = {}) {
-    BigIconTextButton(icon = {
-        Icon(videocam, null)
-    }, text = {
-        Text(stringResource(R.string.video))
-    }) {
-        onClick()
-    }
-}
-
-@Composable
-fun AudioPickButton(onClick: () -> Unit = {}) {
-    BigIconTextButton(icon = {
-        Icon(musicNote, null)
-    }, text = {
-        Text(stringResource(R.string.audio))
-    }) {
-        onClick()
-    }
-}
-
-@Composable
-fun FilePickButton(onClick: () -> Unit = {}) {
-    BigIconTextButton(icon = {
-        Icon(folderCopy, null)
-    }, text = {
-        Text(stringResource(R.string.upload_file))
-    }) {
-        onClick()
-    }
-}
-
-@Composable
-private fun BigIconTextButton(
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-    text: @Composable () -> Unit,
-    onClick: () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(
-                interactionSource = interactionSource, indication = LocalIndication.current, onClick = onClick
-            )
-            .semantics {
-                role = Role.Button
-            }
-            .wrapContentWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        KkSurface(
-            color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)
-        ) {
-            Box(
-                modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp)
-            ) {
-                icon()
-            }
-        }
-        ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
-            text()
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun BigIconTextButtonPreview() {
-    Row(
-        modifier = Modifier.padding(16.dp)
-    ) {
-        BigIconTextButton(icon = {
-            Icon(image, null)
-        }, text = {
-            Text(stringResource(R.string.photo))
-        }) {}
     }
 }

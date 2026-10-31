@@ -232,9 +232,6 @@ fun SettingTriggersPage() {
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
                     item(
-                        // 整行可点 = 翻转开关：之前没给 onClick，卡片点不动，
-                        // 只能去点右边那个小开关。
-                        onClick = { applyMaster(!triggerState.masterEnabled) },
                         headlineContent = { Text("启用自动化触发器") },
                         supportingContent = {
                             Text("按事件自动运行卡片")
@@ -284,6 +281,7 @@ fun SettingTriggersPage() {
                                 onClick = {
                                     navController.navigate(Screen.CreateWorkflow(workflow.id))
                                 },
+                                chevron = true,
                                 headlineContent = { Text(workflow.name) },
                                 supportingContent = {
                                     Text("${workflow.nodes.size} 个节点 · ${if (workflow.enabled) "已启用" else "已停用"}")

@@ -37,7 +37,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.rememberMochiSheetState
-import ui.feice.mochi.basic.mochiSheetBackdrop
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -174,7 +173,6 @@ fun SettingFilesPage() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .mochiSheetBackdrop(cleanSheet)
                 .padding(
                     top = innerPadding.calculateTopPadding(),
                     start = innerPadding.calculateStartPadding(layoutDirection),

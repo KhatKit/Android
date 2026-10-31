@@ -23,4 +23,16 @@
     <string name="chat_widget_loading">Running…</string>
     <string name="chat_widget_failed">Widget could not load</string>
     <string name="chat_widget_empty">Nothing to show yet</string>
+    <string name="chat_widgets_edit">Edit widgets</string>
+    <string name="chat_widgets_done">Done</string>
+    <string name="chat_widget_open">Open card</string>
+    <string name="chat_widget_open_failed">The card couldn’t open</string>
+    <string name="chat_widget_size">%1$s, %2$d by %3$d</string>
+    <string name="chat_widget_wider">Wider</string>
+    <string name="chat_widget_narrower">Narrower</string>
+    <string name="chat_widget_taller">Taller</string>
+    <string name="chat_widget_shorter">Shorter</string>
+    <string name="chat_widget_move_earlier">Move earlier</string>
+    <string name="chat_widget_move_later">Move later</string>
+    <string name="chat_widget_remove">Remove %1$s</string>
 </resources>

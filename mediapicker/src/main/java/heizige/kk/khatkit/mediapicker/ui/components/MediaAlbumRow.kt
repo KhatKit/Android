@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -212,7 +214,7 @@ private fun MediaAlbumChip(
             modifier = Modifier
                 .padding(horizontal = horizontalPadding, vertical = verticalPadding)
                 .heightIn(min = reservedHeight)
-                .animateContentSize(animationSpec = tween(durationMillis = 250)),
+                .animateContentSize(animationSpec = MochiContentSizeSpring),
         ) {
             Text(
                 text = title,
@@ -269,3 +271,13 @@ private fun MediaAlbumChip(
         }
     }
 }
+
+/**
+ * 与 app 的 KkContentSizeSpec（Mochi 的 mochiAnimateHeight 默认弹簧）同参数：阻尼 1、刚度 380。
+ * mediapicker 只依赖 material3 与自身，不引 khatkit-ui，所以在这里自带同一份曲线。
+ */
+private val MochiContentSizeSpring = spring<IntSize>(
+    dampingRatio = 1f,
+    stiffness = 380f,
+    visibilityThreshold = IntSize(1, 1),
+)

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import ui.feice.mochi.basic.MochiBarButton
 import ui.feice.mochi.basic.MochiSheet
@@ -212,58 +214,65 @@ fun AssistantPickerSheet(
                     val checked = assistant.id == currentAssistant.id
                     // 行本身与助手页共用 AssistantItem（core 里的唯一实现）；
                     // 选中态只用行尾一个勾，底色/字色保持 option item 默认值。
-                    AssistantItem(
-                        assistant = assistant,
-                        defaultAssistantName = defaultAssistantName,
+                    // gap 为 0 时逐项拼成一张 Mochi 分组卡片：非首项在顶边补分隔线
+                    KkGroupedColumn(
                         modifier = Modifier
                             .animateItem()
                             .padding(bottom = if (index == filteredAssistants.lastIndex) 0.dp else cards.gap),
                         shape = cards.indexedShape(index, filteredAssistants.size),
-                        avatarSize = 32.dp,
-                        onClick = {
-                            onAssistantSelected(assistant)
-                            onDismiss()
-                        },
-                        supportingContent = {
-                            Column {
-                                Text(
-                                    listOfNotNull(
-                                        if (assistant.canManageRoles) "主管" else null,
-                                        settings.findModelById(assistant.chatModelId ?: settings.chatModelId)?.displayName,
-                                    ).joinToString(" · "),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        },
-                        providerName = settings.findModelProviderName(
-                            assistant.chatModelId ?: settings.chatModelId
-                        ),
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (checked) {
-                                    Icon(
-                                        imageVector = check,
-                                        contentDescription = "当前角色",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(end = 4.dp).size(18.dp),
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        AssistantItem(
+                            assistant = assistant,
+                            defaultAssistantName = defaultAssistantName,
+                            shape = cards.indexedShape(index, filteredAssistants.size),
+                            avatarSize = 32.dp,
+                            onClick = {
+                                onAssistantSelected(assistant)
+                                onDismiss()
+                            },
+                            supportingContent = {
+                                Column {
+                                    Text(
+                                        listOfNotNull(
+                                            if (assistant.canManageRoles) "主管" else null,
+                                            settings.findModelById(assistant.chatModelId ?: settings.chatModelId)?.displayName,
+                                        ).joinToString(" · "),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                MochiIconButton(
-                                    onClick = {
-                                        onDismiss()
-                                        navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
-                                    },
-                                    shapes = IconButtonDefaults.shapes(),
-                                ) {
-                                    Icon(
-                                        imageVector = editNote,
-                                        contentDescription = null
-                                    )
+                            },
+                            providerName = settings.findModelProviderName(
+                                assistant.chatModelId ?: settings.chatModelId
+                            ),
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (checked) {
+                                        Icon(
+                                            imageVector = check,
+                                            contentDescription = "当前角色",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(end = 4.dp).size(18.dp),
+                                        )
+                                    }
+                                    MochiIconButton(
+                                        onClick = {
+                                            onDismiss()
+                                            navController.navigate(Screen.AssistantDetail(assistant.id.toString()))
+                                        },
+                                        shapes = IconButtonDefaults.shapes(),
+                                    ) {
+                                        Icon(
+                                            imageVector = editNote,
+                                            contentDescription = null
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
             }
         }

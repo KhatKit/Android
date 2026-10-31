@@ -19,6 +19,7 @@ data class BridgeContext(
     val approvalGate: ApprovalGate? = null,
     /** 运行硬超时（epoch ms）；0 = 不限。 */
     val deadlineAt: Long = 0L,
+    val interactionId: String = cardName,
 ) {
     /**
      * 运行超时的可变句柄：初始值取 [deadlineAt]，脚本调 `host.setTimeout(ms)` 后改写它。

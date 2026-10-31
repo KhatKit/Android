@@ -13,10 +13,12 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import io.ktor.utils.io.readAvailable
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -168,27 +170,44 @@ class HubClient(
 
     /** 下载卡片包到 destDir，校验 sha256。 */
     suspend fun downloadCard(entry: CardIndexEntry, destDir: File): File =
-        download(resolve(entry.url), File(destDir, "${entry.name}-${entry.version}.zip"), entry.hash)
+        download(resolve(entry.url), File.createTempFile("card-", ".zip", destDir.apply { mkdirs() }), entry.hash)
 
     suspend fun downloadLib(lib: LibIndexEntry, destDir: File): File =
         download(resolve(lib.url), File(destDir, "${lib.name}-${lib.version}"), lib.hash)
 
     private suspend fun download(url: String, target: File, expectedHash: String): File =
         withContext(Dispatchers.IO) {
-            val response = client.get(url)
-            if (!response.status.isSuccess()) {
-                error("下载失败 ${response.status.value}: $url")
-            }
-            val bytes = response.readBytes()
-            if (expectedHash.isNotBlank()) {
-                val actual = sha256(bytes)
-                require(actual.equals(expectedHash, ignoreCase = true)) {
-                    "卡片包 hash 不匹配：期望 $expectedHash，实际 $actual"
+            try {
+                val response = client.get(url)
+                if (!response.status.isSuccess()) {
+                    error("下载失败 ${response.status.value}: $url")
                 }
+                val digest = MessageDigest.getInstance("SHA-256")
+                val channel = response.bodyAsChannel()
+                target.parentFile?.mkdirs()
+                target.outputStream().use { output ->
+                    val buffer = ByteArray(8192)
+                    var total = 0L
+                    while (true) {
+                        val size = channel.readAvailable(buffer, 0, buffer.size)
+                        if (size < 0) break
+                        total += size
+                        require(total <= 8L * 1024 * 1024) { "CARD_DOWNLOAD_TOO_LARGE" }
+                        output.write(buffer, 0, size)
+                        digest.update(buffer, 0, size)
+                    }
+                }
+                val actual = digest.digest().joinToString("") { "%02x".format(it) }
+                if (expectedHash.isNotBlank()) {
+                    require(actual.equals(expectedHash, ignoreCase = true)) {
+                        "卡片包 hash 不匹配：期望 $expectedHash，实际 $actual"
+                    }
+                }
+                target
+            } catch (error: Throwable) {
+                target.delete()
+                throw error
             }
-            target.parentFile?.mkdirs()
-            target.writeBytes(bytes)
-            target
         }
 
     private fun sha256(bytes: ByteArray): String =

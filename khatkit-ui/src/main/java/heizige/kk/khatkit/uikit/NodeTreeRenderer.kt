@@ -1,7 +1,11 @@
 package heizige.kk.khatkit.uikit
 
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.uikit.mochi.MochiButton
+import ui.feice.mochi.basic.MochiButton as MochiRealButton
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.basic.MochiButtonStyle as MochiRealButtonStyle
+import ui.feice.mochi.theme.LocalContentColor as MochiLocalContentColor
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -19,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +33,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
@@ -312,21 +314,34 @@ fun UiNode.Render(
             KkProgressIndicator(progress = number("ratio"), type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
-        "Button" -> MochiButton(
-            onClick = { onAction(text("action")) },
-            enabled = !readOnly && props["disabled"] != true,
-            modifier = m,
-            variant = if (text("tone") == "primary") MochiButtonVariant.Primary else MochiButtonVariant.Secondary,
-        ) {
-            val label = nodeColor(text("color"))
-                ?: if (text("tone") == "danger") style.color("error") else LocalContentColor.current
-            val icon = UiIconVectors.vector(text("icon"))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp).size(16.dp),
-                        tint = label)
+        "Button" -> {
+            val primary = text("tone") == "primary"
+            val buttonStyle = if (primary) MochiRealButtonStyle.Filled else MochiRealButtonStyle.Tonal
+            val scheme = MochiTheme.colorScheme
+            // 次要按钮是中性灰底（和禁用态同一块底，文字换成正文色）：主题的 secondaryContainer 偏色，
+            // 铺在列表卡片上和设置页那批行对不上。
+            val colors = MochiButtonDefaults.colors(buttonStyle).let {
+                if (primary) it else it.copy(container = scheme.onSurface.copy(alpha = 0.12f), content = scheme.onSurface)
+            }
+            MochiRealButton(
+                onClick = { onAction(text("action")) },
+                enabled = !readOnly && props["disabled"] != true,
+                modifier = m,
+                style = buttonStyle,
+                colors = colors,
+            ) {
+                // 前景色读 Mochi 按钮给的 LocalContentColor（实心底上是 onPrimary，禁用时变淡）；
+                // Material 那个 LocalContentColor 是按钮外面的颜色，实心底上会糊成一片。
+                val label = nodeColor(text("color"))
+                    ?: if (text("tone") == "danger") style.color("error") else MochiLocalContentColor.current
+                val icon = UiIconVectors.vector(text("icon"))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (icon != null) {
+                        Icon(icon, contentDescription = null, modifier = Modifier.padding(end = 6.dp).size(16.dp),
+                            tint = label)
+                    }
+                    Text(text("label"), style = style.textStyle("label"), color = label)
                 }
-                Text(text("label"), style = style.textStyle("label"), color = label)
             }
         }
         "IconButton" -> MochiIconButton(

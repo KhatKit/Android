@@ -80,6 +80,7 @@ import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 private const val COLLAPSE_LINES = 10
 private val PREVIEWABLE_LANGUAGES = setOf("html", "svg")
@@ -339,7 +340,7 @@ private fun CodeBlockDefault(
             CodeHighlightText(
                 code = displayCode,
                 language = language,
-                modifier = Modifier.animateContentSize(),
+                modifier = Modifier.kkAnimateContentSize(),
                 fontSize = textStyle.fontSize,
                 lineHeight = textStyle.lineHeight,
                 colors = colorPalette,

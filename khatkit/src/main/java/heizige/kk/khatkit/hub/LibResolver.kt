@@ -38,7 +38,7 @@ class LibResolver(private val providers: List<LibSourceProvider>) {
         val lang = when (engine) {
             EngineKind.LUA -> "lua"
             EngineKind.JS -> "js"
-            EngineKind.COMMAND -> return emptyList()
+            EngineKind.COMMAND, EngineKind.WASM -> return emptyList()
         }
         return requirements
             .filter { it.lang.equals(lang, ignoreCase = true) }

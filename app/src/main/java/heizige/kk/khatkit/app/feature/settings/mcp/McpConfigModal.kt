@@ -134,8 +134,7 @@ internal fun McpServerConfigModal(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.9f)
-                    .padding(16.dp),
+                    .fillMaxHeight(0.9f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 之前是 MD3 SecondaryTabRow，Miuix 下会漏出 MD3 页签。

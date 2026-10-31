@@ -1,15 +1,12 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
-import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import android.Manifest
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -30,8 +27,12 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.core.util.plus
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
 
 @Composable
 fun AssistantLocalToolPage(id: String) {
@@ -98,144 +99,86 @@ private fun AssistantLocalToolContent(
         onUpdate(assistant.copy(localTools = newLocalTools))
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(innerPadding)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = innerPadding + PaddingValues(
+            start = 16.dp,
+            top = PageMetrics.TopContentPadding,
+            end = 16.dp,
+            bottom = 8.dp + PageMetrics.BottomContentPadding,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        CardGroup {
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) },
+        // 八个本地工具同属一组 ⇒ 一张 Mochi 分组卡片；整行可点切换，行尾开关同样可拨。
+        item(key = "local_tools") {
+            MochiListSection {
+                LocalToolRows.forEach { row ->
+                    val checked = assistant.localTools.contains(row.option)
+                    MochiListRow(
+                        title = stringResource(row.title),
+                        subtitle = stringResource(row.desc),
+                        onClick = { toggleLocalTool(row.option, !checked) },
+                        trailing = {
+                            MochiSwitch(
+                                checked = checked,
+                                onCheckedChange = { toggleLocalTool(row.option, it) },
+                            )
+                        },
                     )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.JavascriptEngine,
-                        !assistant.localTools.contains(LocalToolOption.JavascriptEngine),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_time_info_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.TimeInfo,
-                        !assistant.localTools.contains(LocalToolOption.TimeInfo),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_clipboard_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.Clipboard),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.Clipboard,
-                        !assistant.localTools.contains(LocalToolOption.Clipboard),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.Tts),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.Tts,
-                        !assistant.localTools.contains(LocalToolOption.Tts),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.AskUser),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.AskUser,
-                        !assistant.localTools.contains(LocalToolOption.AskUser),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_screen_time_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.ScreenTime),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.ScreenTime, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.ScreenTime,
-                        !assistant.localTools.contains(LocalToolOption.ScreenTime),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_calendar_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.Calendar),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.Calendar, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.Calendar,
-                        !assistant.localTools.contains(LocalToolOption.Calendar),
-                    )
-                },
-            )
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_title)) },
-                supportingContent = { Text(stringResource(R.string.assistant_page_local_tools_chart_display_desc)) },
-                trailingContent = {
-                    KkSwitch(
-                        checked = assistant.localTools.contains(LocalToolOption.ChartDisplay),
-                        onCheckedChange = { toggleLocalTool(LocalToolOption.ChartDisplay, it) },
-                    )
-                },
-                onClick = {
-                    toggleLocalTool(
-                        LocalToolOption.ChartDisplay,
-                        !assistant.localTools.contains(LocalToolOption.ChartDisplay),
-                    )
-                },
-            )
+                }
+            }
         }
     }
 }
+
+private class LocalToolRow(
+    val option: LocalToolOption,
+    @StringRes val title: Int,
+    @StringRes val desc: Int,
+)
+
+/** 显示顺序与改动前一致。 */
+private val LocalToolRows = listOf(
+    LocalToolRow(
+        LocalToolOption.JavascriptEngine,
+        R.string.assistant_page_local_tools_javascript_engine_title,
+        R.string.assistant_page_local_tools_javascript_engine_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.TimeInfo,
+        R.string.assistant_page_local_tools_time_info_title,
+        R.string.assistant_page_local_tools_time_info_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.Clipboard,
+        R.string.assistant_page_local_tools_clipboard_title,
+        R.string.assistant_page_local_tools_clipboard_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.Tts,
+        R.string.assistant_page_local_tools_tts_title,
+        R.string.assistant_page_local_tools_tts_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.AskUser,
+        R.string.assistant_page_local_tools_ask_user_title,
+        R.string.assistant_page_local_tools_ask_user_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.ScreenTime,
+        R.string.assistant_page_local_tools_screen_time_title,
+        R.string.assistant_page_local_tools_screen_time_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.Calendar,
+        R.string.assistant_page_local_tools_calendar_title,
+        R.string.assistant_page_local_tools_calendar_desc,
+    ),
+    LocalToolRow(
+        LocalToolOption.ChartDisplay,
+        R.string.assistant_page_local_tools_chart_display_title,
+        R.string.assistant_page_local_tools_chart_display_desc,
+    ),
+)

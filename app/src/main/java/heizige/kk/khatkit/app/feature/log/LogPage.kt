@@ -143,11 +143,11 @@ private fun RequestLoggingSwitchCard(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
-    // 整行可点 = 翻转开关（之前只能点右侧那个小开关）；按压回弹由 MochiOptionItem 给。
+    // 照 Mochi（iOS）：开关行本身不可点、不高亮，只有开关能拨。
     // 这是偏好行，不是日志条目，所以随其它选项行一起走 OptionItem；上下两条日志卡
     // 仍是内容卡（带可点详情 / 选择容器），不动。
     MochiOptionItem(
-        onClick = { onEnabledChange(!enabled) },
+        onClick = null,
         modifier = Modifier.fillMaxWidth(),
         shape = listCardStyle().indexedShape(0, 1),
         titleContent = {

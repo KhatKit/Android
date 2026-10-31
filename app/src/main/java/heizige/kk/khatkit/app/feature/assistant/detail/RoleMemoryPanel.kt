@@ -1,28 +1,27 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
-import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithSlots
+import heizige.kk.khatkit.app.LocalPageRoute
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import android.content.Intent
 import android.provider.DocumentsContract
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,16 +31,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
-import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryDocument
@@ -49,18 +44,31 @@ import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.save as saveIcon
+import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.mochi.Toast
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import ui.feice.mochi.basic.MochiDialogTextField
+import ui.feice.mochi.basic.MochiProgressBar
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.basic.MochiTextFieldDefaults
+import ui.feice.mochi.basic.Text as MochiText
+import ui.feice.mochi.list.LocalMochiListItemSpacing
+import ui.feice.mochi.list.MochiListCard
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListPickerRow
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 internal fun RoleMemoryPanel(
@@ -77,16 +85,16 @@ internal fun RoleMemoryPanel(
     var newTopic by remember { mutableStateOf<String?>(null) }
     var pendingOpen by remember { mutableStateOf<String?>(null) }
     var confirmExit by remember { mutableStateOf(false) }
-    var showFiles by remember { mutableStateOf(false) }
     val navigator = LocalNavController.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val cards = listCardStyle()
     val dirty = document != null && draft != document?.content
     // U7a-6：改用 PageBackInterceptor 登记（有未保存改动/正忙时先收返回），不再挂页面级 BackHandler。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val memoryBackTokenRoute = LocalPageRoute.current
     val memoryBackToken = remember { Any() }
     DisposableEffect(dirty || busy) {
         if (dirty || busy) {
-            PageBackInterceptor.push(memoryBackToken) {
+            PageBackInterceptor.push(memoryBackToken, memoryBackTokenRoute) {
                 if (!busy) confirmExit = true
                 true
             }
@@ -161,113 +169,133 @@ internal fun RoleMemoryPanel(
                 }
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).imePadding()
-                .verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // 两个开关成一组：行内容、底色、按压反馈交给 MochiOptionItem，
-            // 组内圆角与项间距由 listCardStyle() 统一（Miuix 下 gap=0 贴成一整张卡）。
-            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-                MochiOptionItem(
-                    onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = cards.groupItemShape(isFirst = true, isLast = false),
-                    titleContent = { Text("角色记忆", style = MaterialTheme.typography.bodyMedium) },
-                    trailingContent = {
-                        KkSwitch(checked = assistant.enableMemory, onCheckedChange = {
-                            vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
-                        })
-                    },
-                )
-                MochiOptionItem(
-                    onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = cards.groupItemShape(isFirst = false, isLast = true),
-                    titleContent = { Text("自动整理", style = MaterialTheme.typography.bodyMedium) },
-                    trailingContent = {
-                        KkSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
-                            vm.update(assistant.copy(autoExtractMemory = it))
-                        })
-                    },
-                )
-            }
-            // 文件操作行：整行点按 = 打开文件下拉，尾部放重载/保存两个图标按钮。
-            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
-                Box {
-                    MochiOptionItem(
-                        onClick = { if (!busy) showFiles = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = cards.groupItemShape(isFirst = true, isLast = true),
-                        leadingContent = {
-                            Icon(folder, "记忆文件", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                        },
-                        titleContent = {
-                            Text(document?.path ?: "MEMORY.md", maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.titleMedium)
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(keyboardArrowDown, "选择记忆文件", Modifier.size(18.dp))
-                                MochiTextTooltipBox("重新加载") {
-                                    MochiIconButton(onClick = {
-                                        val path = document?.path ?: "MEMORY.md"
-                                        if (dirty) pendingOpen = path
-                                        else scope.launch { files = vm.roleMemoryFiles(); open(path) }
-                                    }, enabled = !busy) { Icon(refresh, "重新加载") }
-                                }
-                                MochiTextTooltipBox("保存") {
-                                    MochiIconButton(onClick = { save() }, enabled = !busy && dirty) { Icon(saveIcon, "保存") }
+        val current = document
+        val options = remember(files, current?.path) {
+            (files + listOfNotNull(current?.path)).distinct().toImmutableList()
+        }
+        CompositionLocalProvider(LocalMochiListItemSpacing provides MemorySectionSpacing) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().imePadding(),
+                contentPadding = innerPadding + PaddingValues(
+                    start = 16.dp,
+                    top = PageMetrics.TopContentPadding,
+                    end = 16.dp,
+                    bottom = 8.dp + PageMetrics.BottomContentPadding,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MemorySectionSpacing),
+            ) {
+                // 两个开关成一组：点整行即切换
+                item(key = "switches") {
+                    MochiListSection {
+                        MochiListRow(
+                            title = "角色记忆",
+                            onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
+                            trailing = {
+                                MochiSwitch(checked = assistant.enableMemory, onCheckedChange = {
+                                    vm.update(assistant.copy(enableMemory = it, useGlobalMemory = false))
+                                })
+                            },
+                        )
+                        MochiListRow(
+                            title = "自动整理",
+                            onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
+                            trailing = {
+                                MochiSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
+                                    vm.update(assistant.copy(autoExtractMemory = it))
+                                })
+                            },
+                        )
+                    }
+                }
+                // 文件：菜单式选择行切换记忆文件，下面两行是重新加载 / 保存
+                item(key = "file") {
+                    MochiListSection {
+                        MochiListPickerRow(
+                            title = "记忆文件",
+                            options = options,
+                            selectedIndex = options.indexOf(current?.path ?: "MEMORY.md"),
+                            onSelect = { index ->
+                                val path = options[index]
+                                if (dirty) pendingOpen = path else scope.launch { open(path) }
+                            },
+                            leading = { MemoryEntryIcon(folder) },
+                            enabled = !busy,
+                        )
+                        MochiListRow(
+                            title = "重新加载",
+                            leading = { MemoryEntryIcon(refresh) },
+                            enabled = !busy,
+                            onClick = {
+                                val path = document?.path ?: "MEMORY.md"
+                                if (dirty) pendingOpen = path
+                                else scope.launch { files = vm.roleMemoryFiles(); open(path) }
+                            },
+                        )
+                        MochiListRow(
+                            title = "保存",
+                            leading = { MemoryEntryIcon(saveIcon) },
+                            enabled = !busy && dirty,
+                            onClick = { save() },
+                        )
+                    }
+                }
+                if (current != null) {
+                    if (current.path == "MEMORY.md") {
+                        item(key = "budget") {
+                            val loaded = minOf(draft.length, RoleMemoryRepository.CURATED_BUDGET)
+                            MochiListCard {
+                                Column(
+                                    Modifier.padding(MochiListDefaults.RowPadding),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Row(Modifier.fillMaxWidth()) {
+                                        MochiText(
+                                            "加载预算",
+                                            style = MochiTheme.textStyles.body,
+                                            color = MochiTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f).alignByBaseline(),
+                                        )
+                                        MochiText(
+                                            "$loaded / ${RoleMemoryRepository.CURATED_BUDGET} 字符",
+                                            style = MochiTheme.textStyles.subhead,
+                                            color = MochiTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.alignByBaseline(),
+                                        )
+                                    }
+                                    MochiProgressBar(loaded.toFloat() / RoleMemoryRepository.CURATED_BUDGET)
                                 }
                             }
-                        },
-                    )
-                    // U6d 保留 MochiMenuPopup（第 2/3 处）：锚点是设置行本身（MochiOptionItem），
-                    // 行尾还嵌着「重新加载/保存」两个图标按钮；MochiDropdown 的按钮槽会吞掉这两个嵌套点击。
-                    MochiMenuPopup(expanded = showFiles, onDismissRequest = { showFiles = false }) {
-                        files.forEach { path ->
-                            MochiMenuRow(
-                                text = { Text(path, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                trailingIcon = if (path == document?.path) { { Icon(check, null) } } else null,
-                                onClick = {
-                                    showFiles = false
-                                    if (dirty) pendingOpen = path else scope.launch { open(path) }
-                                },
+                        }
+                    }
+                    item(key = "editor") {
+                        val label = when {
+                            current.path == "MEMORY.md" -> "精选记忆"
+                            current.path.startsWith("daily/") -> "每日日志"
+                            else -> "主题笔记"
+                        }
+                        // 小标题 = 原输入框的 label，说明 = 保存状态 / 字数；输入框底色交给卡片
+                        MochiListSection(
+                            header = label,
+                            footer = if (busy) "正在保存…" else if (dirty) "未保存" else "${current.content.length} 字符",
+                        ) {
+                            MochiTextField(
+                                value = draft,
+                                onValueChange = { draft = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = EditorMinHeight)
+                                    .padding(vertical = 6.dp),
+                                placeholder = label,
+                                enabled = !busy,
+                                singleLine = false,
+                                maxLines = 22,
+                                clearButton = false,
+                                textStyle = MochiTheme.textStyles.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                                colors = MochiTextFieldDefaults.colors(container = Color.Transparent),
                             )
                         }
                     }
                 }
-            }
-            val current = document
-            if (current != null) {
-                if (current.path == "MEMORY.md") {
-                    val loaded = minOf(draft.length, RoleMemoryRepository.CURATED_BUDGET)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("加载预算", style = MaterialTheme.typography.labelSmall)
-                        Text("$loaded / ${RoleMemoryRepository.CURATED_BUDGET} 字符", style = MaterialTheme.typography.labelSmall)
-                    }
-                    LinearProgressIndicator(
-                        progress = { loaded.toFloat() / RoleMemoryRepository.CURATED_BUDGET },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                val editorStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
-                CompositionLocalProvider(LocalTextStyle provides editorStyle) {
-                    Md3TextFieldWithSlots(
-                        value = draft, onValueChange = { draft = it },
-                        modifier = Modifier.fillMaxWidth(), textStyle = editorStyle,
-                        minLines = 12, maxLines = 22, enabled = !busy, shape = RoundedCornerShape(8.dp),
-                        label = { Text(when {
-                            current.path == "MEMORY.md" -> "精选记忆"
-                            current.path.startsWith("daily/") -> "每日日志"
-                            else -> "主题笔记"
-                        }) },
-                    )
-                }
-                Text(
-                    if (busy) "正在保存…" else if (dirty) "未保存" else "${current.content.length} 字符",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
@@ -313,8 +341,10 @@ internal fun RoleMemoryPanel(
         AppDialog(
             onDismissRequest = { newTopic = null },
             title = { Text("新建主题笔记") },
-            text = { Md3TextFieldWithSlots(value = name, onValueChange = { newTopic = it },
-                singleLine = true, label = { Text("文件名") }) },
+            text = {
+                MochiDialogTextField(value = name, onValueChange = { newTopic = it },
+                    placeholder = "文件名", autoFocus = false)
+            },
             confirmButton = { MochiTextButton(onClick = {
                 val path = "topics/$name.md"
                 newTopic = null
@@ -323,4 +353,20 @@ internal fun RoleMemoryPanel(
             dismissButton = { MochiTextButton(onClick = { newTopic = null }) { Text("取消") } },
         )
     }
+}
+
+/** 分组之间的间距；mochiListSection / 懒加载里相邻卡片的间距，同值提供给 LocalMochiListItemSpacing */
+private val MemorySectionSpacing = 16.dp
+
+/** 编辑框最小高度：约 12 行等宽正文（原 minLines = 12） */
+private val EditorMinHeight = 240.dp
+
+@Composable
+private fun MemoryEntryIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(20.dp),
+        tint = MochiTheme.colorScheme.primary,
+    )
 }

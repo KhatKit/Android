@@ -48,6 +48,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 /**
  * 以时间线/步骤卡片的形式展示一组思考过程。
@@ -101,9 +102,7 @@ fun <T> ChainOfThought(
                         PaddingValues(horizontal = 0.dp, vertical = 4.dp)
                     }
                 )
-                .animateContentSize(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                ),
+                .kkAnimateContentSize(),
         ) {
             val visibleSteps = if (expanded || !canCollapse) {
                 steps

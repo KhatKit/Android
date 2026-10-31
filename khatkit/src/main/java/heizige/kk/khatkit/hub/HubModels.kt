@@ -37,6 +37,8 @@ data class CardIndexEntry(
     val privilege: String = "none",
     val engine: String = "auto",
     val bridges: List<String> = emptyList(),
+    /** Manifest-level hint; runtime still enforces the actual UI bridge. */
+    val hasUi: Boolean = false,
     /** 触发方式：ai（AI 工具）/ user（用户手动），未提供时按旧卡片默认两者都允许 */
     val triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
     /** 卡片包下载地址（相对 CDN 根或绝对 URL） */

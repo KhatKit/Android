@@ -1,37 +1,54 @@
 package heizige.kk.khatkit.app.feature.onboarding
 
+import heizige.kk.khatkit.app.LocalPageRoute
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.ExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
-import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.key
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.exp
+import kotlinx.coroutines.delay
+import ui.feice.mochi.basic.MochiButton as MochiRealButton
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.basic.MochiPageControl
+import ui.feice.mochi.basic.Text as MochiText
+import ui.feice.mochi.effect.content.MochiBlurText
+import ui.feice.mochi.effect.content.mochiBlur
+import ui.feice.mochi.effect.content.mochiBlurAlpha
+import ui.feice.mochi.effect.content.mochiBlurReveal
+import ui.feice.mochi.effect.mask.mochiScrollFadeMask
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.navigation.MochiBackButton
+import ui.feice.mochi.navigation.MochiTitleBarDefaults
+import ui.feice.mochi.shape.MochiRoundedRectangle
+import ui.feice.mochi.theme.MochiDefaults
+import ui.feice.mochi.theme.emphasized
 
-import android.Manifest
-import android.app.Activity
-import android.app.AlarmManager
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -40,25 +57,19 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -66,45 +77,26 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.BottomAppBarDefaults
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderManager
@@ -122,58 +114,24 @@ import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.khatkit.app.feature.automation.KhatKitAccessibilityService
-import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
-import heizige.kk.khatkit.bridge.impl.AllFilesAccess
-import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
-import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 
-import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khatkit.uikit.mochi.fadingEdge
 import heizige.kk.khatkit.uikit.mochi.KkOptionsText
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
-import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
-import heizige.kk.khatkit.uikit.mochi.MochiWarningCard
 import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.accessibility
 import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.bluetooth
-import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.brightnessAuto
-import heizige.kk.khatkit.app.core.ui.icons.calendarMonth
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.checkCircle
 import heizige.kk.khatkit.app.core.ui.icons.darkMode
-import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.lightMode
-import heizige.kk.khatkit.app.core.ui.icons.locationOn
-import heizige.kk.khatkit.app.core.ui.icons.menuBook
-import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.core.ui.icons.neurology
-import heizige.kk.khatkit.app.core.ui.icons.notifications
 import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.khatkit.app.core.ui.icons.photoCamera
-import heizige.kk.khatkit.app.core.ui.icons.pictureInPicture
-import heizige.kk.khatkit.app.core.ui.icons.power
-import heizige.kk.khatkit.app.core.ui.icons.schedule
 import heizige.kk.khatkit.app.core.ui.icons.smartphone
-import heizige.kk.khatkit.app.core.ui.icons.tune
-import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
-import heizige.kk.khatkit.app.core.ui.icons.wavingHand
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
@@ -183,11 +141,12 @@ private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Sett
 private const val KEY_GREETING_COMPLETED = "greeting_completed"
 
 /**
- * 首次启动引导：欢迎 → 用户协议 → 权限。
+ * 首次启动引导：欢迎 → 用户协议 → 权限 → AI 服务 → 初始化设置。
  *
- * 样式参考 KodeHead 的 Greeting：渐变发光标题、步骤切换动画、
- * 顶栏/底栏同色 + 步骤图标、fadingEdge 滚动渐隐；完成或跳过后写入
- * [KEY_GREETING_COMPLETED]。
+ * 照 Mochi 示例的引导（`DemoOnboarding`）：分组底色整页，顶栏只有一个按需出现的返回键；
+ * 新页从右边整页推进来、带一点模糊，旧页往左挪一小段、缩小、糊掉、淡出；
+ * 每页标题、副标题依次糊着浮上来；底部页码点 + 一颗通栏大按钮。完成后由 [onFinish] 写入
+ * [KEY_GREETING_COMPLETED]。返回仍走 [PageBackInterceptor]（全 app 只有 RouteActivity 接返回）。
  */
 @Composable
 fun GreetingPage(onFinish: () -> Unit) {
@@ -195,24 +154,37 @@ fun GreetingPage(onFinish: () -> Unit) {
     var agreementAccepted by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
+    val pageCount = GreetingStep.entries.size
+    val pager = remember { Animatable(step.ordinal.toFloat()) }
+    val staggers = remember { List(pageCount) { Animatable(0f) } }
+    LaunchedEffect(step) { pager.animateTo(step.ordinal.toFloat(), spring(dampingRatio = 0.92f, stiffness = 210f)) }
+    // 刚启动时欢迎页稍等一下再开始：先让首帧的排版过去，标题再出场
+    var firstWelcome by remember { mutableStateOf(true) }
+    LaunchedEffect(step) {
+        val stagger = staggers[step.ordinal]
+        stagger.snapTo(0f)
+        if (step == GreetingStep.Welcome && firstWelcome) delay(WelcomeLeadMillis)
+        if (step != GreetingStep.Welcome) firstWelcome = false
+        stagger.animateTo(1f, tween(StaggerMillis.toInt(), easing = LinearEasing))
+    }
 
     val goBack: () -> Unit = {
-        step = when (step) {
-            GreetingStep.Welcome -> GreetingStep.Welcome
-            GreetingStep.Agreement -> GreetingStep.Welcome
-            GreetingStep.Permissions -> GreetingStep.Agreement
-            GreetingStep.AiSetup -> GreetingStep.Permissions
-            GreetingStep.Settings -> GreetingStep.AiSetup
-        }
+        if (step != GreetingStep.Welcome) step = GreetingStep.entries[step.ordinal - 1]
+    }
+    // 协议没同意前不能越过协议页（底部按钮和页码点都受这条约束）
+    val canEnter: (GreetingStep) -> Boolean = { target ->
+        target.ordinal <= GreetingStep.Agreement.ordinal || agreementAccepted
     }
 
     // U7a-6：页面级返回收敛到 PageBackInterceptor（返回单点仍是 Mochi 的 PredictiveBackHandler）。
     // 只在引导流程可回退的步骤登记；Welcome 步不登记，否则会常驻抢走系统返回、磨掉预测动画。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val stepBackTokenRoute = LocalPageRoute.current
     val stepBackToken = remember { Any() }
     val stepBackEnabled = step != GreetingStep.Welcome
     DisposableEffect(stepBackEnabled) {
         if (stepBackEnabled) {
-            PageBackInterceptor.push(stepBackToken) {
+            PageBackInterceptor.push(stepBackToken, stepBackTokenRoute) {
                 goBack()
                 true
             }
@@ -222,414 +194,345 @@ fun GreetingPage(onFinish: () -> Unit) {
         onDispose { PageBackInterceptor.pop(stepBackToken) }
     }
 
-    // 骨架也走 Kedge：MD3Exp 下等价于原生 Scaffold，Miuix 下换成 Miuix Scaffold
-    // （inset 只垫水平方向，竖向由顶/底栏各自的 navigationBarsPadding /
-    // windowInsetsPadding 负责，和这两条自定义栏的写法对齐）。
-    // 之前用 MD3 Scaffold 只手动分了底色，Miuix 下滚动与 inset 仍是 MD3 那套。
-    MochiPageScaffold(
-        // 顶栏/底栏已经按 false 分流；Scaffold 自身的底色默认取 MD3 的
-        // background，Miuix 下会漏出 MD3 配色，所以这里显式给 Miuix 的 surface。
-        containerColor = if (false) {
-            MochiTheme.colorScheme.surface
-        } else {
-            MaterialTheme.colorScheme.background
-        },
-        topBar = {
-            AnimatedVisibility(
-                visible = step != GreetingStep.Welcome,
-                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
-                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-            ) {
-                GreetingTopAppBar(step = step)
-            }
-        },
-        bottomBar = {
-            GreetingBottomBar(
-                step = step,
-                agreementAccepted = agreementAccepted,
-                canScrollForward = scrollState.canScrollForward,
-                onBack = goBack,
-                onScrollToEnd = {
-                    scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
-                },
-                onNext = { step = nextStep(step) },
-                onFinish = onFinish,
-            )
-        },
-    ) { padding ->
-        AnimatedContent(
-            targetState = step,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            transitionSpec = {
-                val forward = targetState.ordinal > initialState.ordinal
-                if (forward) {
-                    slideInHorizontally { it } togetherWith
-                        slideOutHorizontally { (-it * 0.4f).toInt() }
-                } else {
-                    slideInHorizontally { (-it * 0.4f).toInt() } + fadeIn() togetherWith
-                        slideOutHorizontally { it } + fadeOut(targetAlpha = 0.6f)
-                }
-            },
-            label = "greetingStep",
-        ) { current ->
-            when (current) {
-                GreetingStep.Welcome -> GreetingWelcomeScreen()
-                GreetingStep.Agreement -> GreetingAgreementScreen(
-                    scrollState = scrollState,
-                    accepted = agreementAccepted,
-                    onAcceptedChange = { agreementAccepted = it },
-                )
-
-                GreetingStep.Permissions -> GreetingPermissionsScreen()
-
-                GreetingStep.AiSetup -> GreetingAiSetupScreen()
-
-                GreetingStep.Settings -> GreetingSettingsScreen()
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MochiDefaults.groupedBackground())
+            .systemBarsPadding(),
+    ) {
+        // 和 MochiTitleBar 同一套顶栏尺寸，返回键和其它页面的顶栏按钮对齐
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(MochiTitleBarDefaults.Height)
+                .padding(horizontal = MochiButtonDefaults.BarHorizontalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GreetingTopIcon(visible = step != GreetingStep.Welcome) {
+                MochiBackButton(onClick = goBack)
             }
         }
-    }
-}
+        BoxWithConstraints(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
+            val width = constraints.maxWidth.toFloat()
+            GreetingStep.entries.forEach { page ->
+                val i = page.ordinal
+                key(page) {
+                    // 前后两页提前组合好（下一页在屏幕右边外面、上一页透明度 0）：第一次翻到某页时不在翻页那一帧现组合
+                    val present by remember { derivedStateOf { abs(i - pager.value) < 0.999f || abs(i - step.ordinal) == 1 } }
+                    if (present) {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val d = i - pager.value
+                                    if (d >= 0f) {
+                                        translationX = d * width
+                                    } else {
+                                        translationX = d * width * 0.28f
+                                        val s = 1f + d * 0.06f
+                                        scaleX = s
+                                        scaleY = s
+                                        mochiBlurAlpha((1f + d).coerceIn(0f, 1f), 10.dp * -d, continuous = true)
+                                    }
+                                }
+                                .mochiBlur(continuous = true) {
+                                    val d = i - pager.value
+                                    if (d >= 0f) 12.dp * d else 10.dp * -d
+                                }
+                                .graphicsLayer {
+                                    val d = i - pager.value
+                                    val moving = abs(d) > 0.001f
+                                    clip = moving
+                                    if (moving) shape = MochiRoundedRectangle(PageCorner * (abs(d) * 6f).coerceAtMost(1f))
+                                },
+                        ) {
+                            val t = { staggers[i].value }
+                            when (page) {
+                                GreetingStep.Welcome -> GreetingWelcomeScreen(t)
+                                GreetingStep.Agreement -> GreetingAgreementScreen(
+                                    t = t,
+                                    scrollState = scrollState,
+                                    accepted = agreementAccepted,
+                                    onAcceptedChange = { agreementAccepted = it },
+                                )
 
-private fun nextStep(step: GreetingStep): GreetingStep = when (step) {
-    GreetingStep.Welcome -> GreetingStep.Agreement
-    GreetingStep.Agreement -> GreetingStep.Permissions
-    GreetingStep.Permissions -> GreetingStep.AiSetup
-    GreetingStep.AiSetup -> GreetingStep.Settings
-    GreetingStep.Settings -> GreetingStep.Settings
-}
-
-private fun stepIcon(step: GreetingStep): ImageVector = when (step) {
-    GreetingStep.Welcome -> wavingHand
-    GreetingStep.Agreement -> menuBook
-    GreetingStep.Permissions -> verifiedUser
-    GreetingStep.AiSetup -> neurology
-    GreetingStep.Settings -> tune
-}
-
-@Composable
-private fun greetingTitle(step: GreetingStep): String = when (step) {
-    GreetingStep.Agreement -> stringResource(R.string.greeting_title_agreement)
-    GreetingStep.Permissions -> stringResource(R.string.greeting_title_permissions)
-    GreetingStep.AiSetup -> stringResource(R.string.greeting_title_ai)
-    GreetingStep.Settings -> stringResource(R.string.greeting_title_settings)
-    GreetingStep.Welcome -> ""
-}
-
-@Composable
-private fun greetingSubtitle(step: GreetingStep): String? = when (step) {
-    GreetingStep.Permissions -> stringResource(R.string.greeting_permissions_subtitle)
-    GreetingStep.AiSetup -> stringResource(R.string.greeting_ai_subtitle)
-    GreetingStep.Settings -> stringResource(R.string.greeting_settings_subtitle)
-    else -> null
-}
-
-@Composable
-private fun GreetingStepBadge(step: GreetingStep) {
-    Box(
-        modifier = Modifier
-            .padding(8.dp)
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
-                CircleShape,
-            )
-            .padding(8.dp),
-    ) {
-        Icon(
-            imageVector = stepIcon(step),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
-        )
-    }
-}
-
-@Composable
-private fun GreetingTopAppBar(step: GreetingStep) {
-    if (false) {
-        MochiTopAppBar(
-            title = greetingTitle(step),
-            subtitle = greetingSubtitle(step),
-            navigationIcon = { GreetingStepBadge(step) },
-        )
-        return
-    }
-    CenterAlignedTopAppBar(
-        title = {
-            AnimatedContent(
-                targetState = step,
-                transitionSpec = {
-                    (scaleIn(spring(), initialScale = 0.2f) + fadeIn()) togetherWith
-                        (scaleOut(spring(), targetScale = 0.2f) + fadeOut())
-                },
-                label = "greetingTitle",
-            ) { current ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = greetingTitle(current),
-                        modifier = Modifier.alpha(0.87f),
-                    )
-                    val subtitle = greetingSubtitle(current)
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.alpha(0.87f),
-                        )
+                                GreetingStep.Permissions -> GreetingPermissionsScreen(t)
+                                GreetingStep.AiSetup -> GreetingAiSetupScreen(t)
+                                GreetingStep.Settings -> GreetingSettingsScreen(t)
+                            }
+                        }
                     }
                 }
             }
-        },
-        navigationIcon = {
-            AnimatedContent(
-                targetState = step,
-                transitionSpec = {
-                    (scaleIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow,
-                        ),
-                        initialScale = 0.2f,
-                    ) + fadeIn()) togetherWith
-                        (scaleOut(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow,
-                            ),
-                            targetScale = 0.2f,
-                        ) + fadeOut())
+        }
+        Box(Modifier.align(Alignment.CenterHorizontally)) {
+            MochiPageControl(
+                pageCount = pageCount,
+                position = { pager.value },
+                onPageSelect = { target ->
+                    val page = GreetingStep.entries[target]
+                    if (canEnter(page)) step = page
                 },
-                label = "greetingStepIcon",
-            ) { current ->
-                GreetingStepBadge(current)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors()
-            .copy(containerColor = BottomAppBarDefaults.containerColor),
-    )
-}
-
-@Composable
-private fun GreetingBottomBar(
-    step: GreetingStep,
-    agreementAccepted: Boolean,
-    canScrollForward: Boolean,
-    onBack: () -> Unit,
-    onScrollToEnd: () -> Unit,
-    onNext: () -> Unit,
-    onFinish: () -> Unit,
-) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = (step.ordinal + 1).toFloat() / GreetingStep.entries.size.toFloat(),
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "progress",
-    )
-
-    if (false) {
-        KkSurface(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GreetingBottomActions(
-                    step = step,
-                    agreementAccepted = agreementAccepted,
-                    canScrollForward = canScrollForward,
-                    animatedProgress = animatedProgress,
-                    onBack = onBack,
-                    onScrollToEnd = onScrollToEnd,
-                    onNext = onNext,
-                    onFinish = onFinish,
-                )
+                modifier = Modifier.mochiBlurReveal({ pager.value.coerceIn(0f, 1f) }, blur = 6.dp),
+            )
+            if (step == GreetingStep.Welcome) {
+                // 欢迎页上页码点是隐藏的，盖一层接住点击
+                Box(Modifier.matchParentSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } })
             }
         }
-    } else {
-        BottomAppBar(
-            windowInsets = WindowInsets(16.dp, 0.dp, 16.dp, 0.dp),
+        Spacer(Modifier.height(12.dp))
+        val isReadAction = step == GreetingStep.Agreement && scrollState.canScrollForward
+        MochiRealButton(
+            onClick = {
+                when {
+                    step == GreetingStep.Settings -> onFinish()
+                    isReadAction -> scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                    else -> step = GreetingStep.entries[step.ordinal + 1]
+                }
+            },
+            enabled = step != GreetingStep.Agreement || isReadAction || agreementAccepted,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            minHeight = 54.dp,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GreetingBottomActions(
-                    step = step,
-                    agreementAccepted = agreementAccepted,
-                    canScrollForward = canScrollForward,
-                    animatedProgress = animatedProgress,
-                    onBack = onBack,
-                    onScrollToEnd = onScrollToEnd,
-                    onNext = onNext,
-                    onFinish = onFinish,
-                )
+            MochiBlurText(
+                when {
+                    step == GreetingStep.Settings -> stringResource(R.string.greeting_action_finish)
+                    isReadAction -> stringResource(R.string.greeting_action_read)
+                    else -> stringResource(R.string.greeting_action_next)
+                },
+                style = MochiTheme.textStyles.bodyLarge.emphasized(),
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+private val PageCorner = 32.dp
+private const val StaggerMillis = 1300f
+private const val WelcomeLeadMillis = 500L
+
+@Composable
+private fun GreetingTopIcon(visible: Boolean, content: @Composable () -> Unit) {
+    // 出现 / 消失：模糊淡入淡出 + 轻微缩放；看不见时不接收点击
+    val a by animateFloatAsState(if (visible) 1f else 0f, spring(dampingRatio = 0.8f, stiffness = 500f), label = "top")
+    Box(
+        Modifier
+            .graphicsLayer {
+                val s = 0.8f + 0.2f * a
+                scaleX = s
+                scaleY = s
             }
+            .mochiBlurReveal({ a }, blur = 6.dp),
+    ) {
+        content()
+        if (!visible) Box(Modifier.matchParentSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } })
+    }
+}
+
+/** 页内元素按顺序依次升起：第 [i] 个比前一个晚 70ms，各自 480ms 从下面糊着浮上来 */
+private fun Modifier.rise(t: () -> Float, i: Int): Modifier = mochiBlurReveal({
+    val v = ((t() * StaggerMillis - i * 70f) / 480f).coerceIn(0f, 1f)
+    1f - (1f - v) * (1f - v) * (1f - v)
+}, blur = 10.dp, rise = 22.dp)
+
+/** 卡片类元素弹出来：和 [rise] 同样按顺序浮上来，同时从 0.82 带回弹放大到 1 */
+private fun Modifier.pop(t: () -> Float, i: Int): Modifier = graphicsLayer {
+    val ms = t() * StaggerMillis - i * 70f
+    val k = if (ms <= 0f) 0f else 1f - exp(-ms / 120f) * cos(ms / 75f)
+    val sc = 0.82f + 0.18f * k
+    scaleX = sc
+    scaleY = sc
+}.mochiBlurReveal({
+    val v = ((t() * StaggerMillis - i * 70f) / 360f).coerceIn(0f, 1f)
+    1f - (1f - v) * (1f - v) * (1f - v)
+}, blur = 10.dp, rise = 18.dp)
+
+/** 每页顶部的大标题 + 说明，跟着页一起滚 */
+@Composable
+private fun GreetingHeading(title: String, subtitle: String?, t: () -> Float) {
+    val ts = MochiTheme.textStyles
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MochiText(title, style = ts.largeTitle.copy(textAlign = TextAlign.Center), modifier = Modifier.rise(t, 0))
+        if (subtitle != null) {
+            Spacer(Modifier.height(8.dp))
+            MochiBlurText(
+                subtitle,
+                style = ts.bodyLarge.copy(textAlign = TextAlign.Center),
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.rise(t, 1),
+            )
         }
     }
 }
 
 @Composable
-private fun RowScope.GreetingBottomActions(
-    step: GreetingStep,
-    agreementAccepted: Boolean,
-    canScrollForward: Boolean,
-    animatedProgress: Float,
-    onBack: () -> Unit,
-    onScrollToEnd: () -> Unit,
-    onNext: () -> Unit,
-    onFinish: () -> Unit,
-) {
-    val isReadAction = step == GreetingStep.Agreement && canScrollForward
-    val nextEnabled = when (step) {
-        GreetingStep.Agreement -> canScrollForward || agreementAccepted
-        else -> true
+private fun GreetingHeading(step: GreetingStep, t: () -> Float) {
+    val subtitle = when (step) {
+        GreetingStep.Agreement -> stringResource(R.string.greeting_agreement_subtitle)
+        GreetingStep.Permissions -> stringResource(R.string.greeting_permissions_subtitle)
+        GreetingStep.AiSetup -> stringResource(R.string.greeting_ai_subtitle)
+        GreetingStep.Settings -> stringResource(R.string.greeting_settings_subtitle)
+        GreetingStep.Welcome -> null
     }
+    val title = when (step) {
+        GreetingStep.Agreement -> stringResource(R.string.greeting_title_agreement)
+        GreetingStep.Permissions -> stringResource(R.string.greeting_title_permissions)
+        GreetingStep.AiSetup -> stringResource(R.string.greeting_title_ai)
+        GreetingStep.Settings -> stringResource(R.string.greeting_title_settings)
+        GreetingStep.Welcome -> ""
+    }
+    GreetingHeading(title, subtitle, t)
+}
 
-    MochiTextButton(
-        modifier = Modifier.animateContentSize(),
-        onClick = onBack,
-        enabled = step != GreetingStep.Welcome,
-    ) {
-        Text(stringResource(R.string.greeting_action_back))
-    }
-    Spacer(modifier = Modifier.weight(1f))
-    KkProgressIndicator(
-        modifier = Modifier.width(64.dp),
-        progress = animatedProgress,
-        type = KkProgressIndicatorType.Linear,
+/** 页内滚动列：还能往哪边滚，那一边渐隐 */
+@Composable
+private fun GreetingPageColumn(
+    scrollState: androidx.compose.foundation.ScrollState = rememberScrollState(),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .mochiScrollFadeMask(scrollState)
+            .verticalScroll(scrollState, flingBehavior = MochiScrollDefaults.flingBehavior())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        content = content,
     )
-    Spacer(modifier = Modifier.weight(1f))
-    MochiButton(
-        modifier = Modifier.animateContentSize(),
-        onClick = {
-            when {
-                step == GreetingStep.Settings -> onFinish()
-                isReadAction -> onScrollToEnd()
-                else -> onNext()
-            }
-        },
-        enabled = nextEnabled,
-    ) {
-        Text(
-            when {
-                step == GreetingStep.Settings -> stringResource(R.string.greeting_action_finish)
-                isReadAction -> stringResource(R.string.greeting_action_read)
-                else -> stringResource(R.string.greeting_action_next)
-            }
-        )
-    }
 }
 
 @Composable
-private fun GreetingWelcomeScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        var textWidth by remember { mutableFloatStateOf(360f) }
-        val infiniteTransition = rememberInfiniteTransition(label = "glow")
-        val glowAlpha by infiniteTransition.animateFloat(
-            initialValue = 0.87f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 6000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "glowAlpha",
-        )
-        val glowOffset by infiniteTransition.animateFloat(
-            initialValue = -textWidth,
-            targetValue = textWidth,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 6000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "glowOffset",
-        )
-
-        val gradientColors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = glowAlpha),
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = glowAlpha),
-            MaterialTheme.colorScheme.secondary.copy(alpha = glowAlpha),
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = glowAlpha),
-            MaterialTheme.colorScheme.tertiary.copy(alpha = glowAlpha),
-            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = glowAlpha),
-        )
-
-        Text(
-            text = stringResource(R.string.app_name),
-            onTextLayout = { textWidth = it.size.width.toFloat() },
-            style = MaterialTheme.typography.headlineMedium.copy(
-                brush = Brush.linearGradient(
-                    colors = gradientColors,
-                    start = Offset(glowOffset, 0f),
-                    end = Offset(glowOffset + textWidth, 0f),
-                )
-            ),
-            fontSize = 64.sp,
-            textAlign = TextAlign.Center,
-        )
+private fun GreetingWelcomeScreen(t: () -> Float) {
+    val ts = MochiTheme.textStyles
+    val scroll = rememberScrollState()
+    // 内容居中：不长也能上下拖出越界回弹
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scroll, flingBehavior = MochiScrollDefaults.flingBehavior())
+                .heightIn(min = maxHeight)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            AsyncImage(
+                model = R.mipmap.ic_launcher,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .pop(t, 0)
+                    .size(112.dp)
+                    .clip(CircleShape),
+            )
+            Spacer(Modifier.height(28.dp))
+            MochiText(
+                stringResource(R.string.greeting_welcome_title, stringResource(R.string.app_name)),
+                style = ts.titleLarge.emphasized(),
+                modifier = Modifier.rise(t, 2),
+            )
+            Spacer(Modifier.height(8.dp))
+            MochiText(
+                stringResource(R.string.greeting_welcome_desc),
+                style = ts.bodyLarge.copy(textAlign = TextAlign.Center),
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rise(t, 3),
+            )
+        }
     }
 }
 
 @Composable
 private fun GreetingAgreementScreen(
+    t: () -> Float,
     scrollState: androidx.compose.foundation.ScrollState,
     accepted: Boolean,
     onAcceptedChange: (Boolean) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-    ) {
-        Text(
+    val cards = listCardStyle()
+    GreetingPageColumn(scrollState) {
+        GreetingHeading(GreetingStep.Agreement, t)
+        MochiText(
             text = stringResource(R.string.greeting_agreement_text),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { onAcceptedChange(!accepted) }
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Md3Checkbox(
-                checked = accepted,
-                onCheckedChange = null,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.greeting_agreement_accept),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
+                .padding(horizontal = 8.dp)
+                .rise(t, 2),
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        MochiOptionItem(
+            onClick = { onAcceptedChange(!accepted) },
+            modifier = Modifier.rise(t, 3),
+            shape = cards.groupItemShape(isFirst = true, isLast = true),
+            leadingContent = {
+                Md3Checkbox(
+                    checked = accepted,
+                    onCheckedChange = null,
+                )
+            },
+            titleContent = { Text(stringResource(R.string.greeting_agreement_accept)) },
+        )
     }
 }
 
 @Composable
-private fun GreetingSettingsScreen() {
+private fun GreetingSettingsScreen(t: () -> Float) {
     val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val colorMode = rememberColorMode()
+    val changeColorMode = heizige.kk.khatkit.app.core.ui.theme.rememberColorModeChanger(colorMode)
     val scope = rememberCoroutineScope()
-    var showCustomColor by remember { mutableStateOf(false) }
-    var customColor by remember { mutableStateOf(PresetThemes[0].standardLight.primary) }
     val cards = listCardStyle()
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    // 莫奈色板回显：预设主题取主色，自定义主题取保存的种子色
+    val selectedSeedColor: Color? = if (settings.dynamicColor) {
+        null
+    } else {
+        PresetThemes.firstOrNull { it.id == settings.themeId }?.standardLight?.primary
+            ?: settings.customThemes.firstOrNull { it.id == settings.themeId }
+                ?.let { Color(it.primaryColorArgb.toInt()) }
+    }
+
+    // 色板选到预设之外的颜色：复用同种子的自定义主题，没有就建一个并选中
+    fun applyCustomSeed(color: Color) {
+        val argb = color.toArgb().toLong() and 0xFFFFFFFFL
+        scope.launch {
+            settingsStore.update { current ->
+                val existing = current.customThemes.firstOrNull { it.primaryColorArgb == argb }
+                if (existing != null) {
+                    current.copy(dynamicColor = false, themeId = existing.id)
+                } else {
+                    val custom = CustomTheme(
+                        name = String.format("#%08X", color.toArgb()),
+                        primaryColorArgb = argb,
+                    )
+                    current.copy(
+                        dynamicColor = false,
+                        customThemes = current.customThemes + custom,
+                        themeId = custom.id,
+                        customColorHistory = (
+                            listOf(argb) +
+                                current.customColorHistory.filterNot { it == argb }
+                            ).take(8),
+                    )
+                }
+            }
+        }
+    }
 
     val currentColorModeLabel = when (colorMode.value) {
         ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
@@ -637,14 +540,8 @@ private fun GreetingSettingsScreen() {
         ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
+    GreetingPageColumn {
+        GreetingHeading(GreetingStep.Settings, t)
         KkOptionsText(stringResource(R.string.greeting_settings_theme_mode))
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -677,7 +574,7 @@ private fun GreetingSettingsScreen() {
         ) {
             MorphThemeModeSelector(
                 selected = colorMode.value,
-                onSelect = { colorMode.value = it },
+                onSelect = changeColorMode,
             )
         }
 
@@ -738,18 +635,13 @@ private fun GreetingSettingsScreen() {
                     ) + fadeOut(),
                 ) {
                     PresetThemeColorDots(
-                        modifier = Modifier
-                            .padding(top = cards.gap)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f),
-                                RoundedCornerShape(4.dp),
-                            )
-                            .padding(vertical = 12.dp),
+                        modifier = Modifier.padding(top = cards.gap, bottom = 4.dp),
                         selectedThemeId = settings.themeId,
                         onSelectTheme = { themeId ->
                             scope.launch { settingsStore.update { it.copy(themeId = themeId) } }
                         },
-                        onCustomColorClick = { showCustomColor = true },
+                        onCustomColor = { applyCustomSeed(it) },
+                        selectedSeedColor = selectedSeedColor,
                     )
                 }
             }
@@ -757,43 +649,15 @@ private fun GreetingSettingsScreen() {
 
             }
 
-    ThemeCustomColorSheet(
-        visible = showCustomColor,
-        initialColor = customColor,
-        history = settings.customColorHistory,
-        onDismiss = { showCustomColor = false },
-        onColorChanged = { customColor = it },
-        onConfirm = { color ->
-            val hex = String.format("#%08X", color.toArgb())
-            val custom = CustomTheme(
-                name = hex,
-                primaryColorArgb = color.toArgb().toLong() and 0xFFFFFFFFL,
-            )
-            scope.launch {
-                settingsStore.update {
-                    it.copy(
-                        dynamicColor = false,
-                        customThemes = it.customThemes + custom,
-                        themeId = custom.id,
-                        customColorHistory = (
-                            listOf(color.toArgb().toLong() and 0xFFFFFFFFL) +
-                                it.customColorHistory.filter { c -> c != (color.toArgb().toLong() and 0xFFFFFFFFL) }
-                            ).take(8),
-                    )
-                }
-            }
-            showCustomColor = false
-        },
-    )
 }
 
 @Composable
-private fun GreetingPermissionsScreen() {
-    PermissionChecklist()
+private fun GreetingPermissionsScreen(t: () -> Float) {
+    PermissionChecklist(header = { GreetingHeading(GreetingStep.Permissions, t) })
 }
 
 @Composable
-private fun GreetingAiSetupScreen() {
+private fun GreetingAiSetupScreen(t: () -> Float) {
     val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
     val providerManager: ProviderManager = rememberAppEntryPoint().providerManager()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
@@ -839,69 +703,84 @@ private fun GreetingAiSetupScreen() {
         }
     }
 
+    val listState = rememberLazyListState()
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .fadingEdge(top = 32.dp, bottom = 56.dp, strength = 1f),
-        contentPadding = PaddingValues(16.dp),
+            .mochiScrollFadeMask(listState),
+        state = listState,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(cards.gap),
+        flingBehavior = MochiScrollDefaults.flingBehavior(),
     ) {
+        item(key = "heading") {
+            GreetingHeading(GreetingStep.AiSetup, t)
+        }
         item(key = "custom_header") {
             KkOptionsText(stringResource(R.string.greeting_ai_enabled_models))
         }
         items(configuredProviders, key = { it.id }) { provider ->
-            AiProviderItem(
-                provider = provider,
-                configured = true,
-                shape = cards.indexedShape(
-                    configuredProviders.indexOf(provider),
-                    configuredProviders.size + 1,
-                ),
+            val index = configuredProviders.indexOf(provider)
+            KkGroupedColumn(
                 modifier = Modifier.animateItem(),
-                onClick = {
-                    draftKey = provider.apiKeyOrEmpty()
-                    draftBaseUrl = provider.baseUrlOrEmpty()
-                    sheetProvider = provider
-                },
-                onToggle = { enabled ->
-                    scope.launch {
-                        settingsStore.update { current ->
-                            current.copy(
-                                providers = current.providers.map {
-                                    if (it.id == provider.id) it.withEnabled(enabled) else it
-                                }
-                            )
+                shape = cards.indexedShape(index, configuredProviders.size + 1),
+                containerColor = MochiListDefaults.colors().container,
+                topDivider = index > 0 && cards.gap == 0.dp,
+            ) {
+                AiProviderItem(
+                    provider = provider,
+                    configured = true,
+                    shape = cards.indexedShape(index, configuredProviders.size + 1),
+                    onClick = {
+                        draftKey = provider.apiKeyOrEmpty()
+                        draftBaseUrl = provider.baseUrlOrEmpty()
+                        sheetProvider = provider
+                    },
+                    onToggle = { enabled ->
+                        scope.launch {
+                            settingsStore.update { current ->
+                                current.copy(
+                                    providers = current.providers.map {
+                                        if (it.id == provider.id) it.withEnabled(enabled) else it
+                                    }
+                                )
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
 
         item(key = "custom_button") {
-            MochiOptionItem(
-                shape = cards.indexedShape(
-                    configuredProviders.size,
-                    configuredProviders.size + 1,
-                ),
-                onClick = {
-                    sheetProvider = null
-                    customType = ProviderSetting.OpenAI::class
-                    draftName = ""
-                    draftKey = ""
-                    draftBaseUrl = defaultBaseUrlFor(ProviderSetting.OpenAI::class)
-                    customSheetVisible = true
-                },
-                leadingContent = {
-                    Icon(
-                        imageVector = add,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
-                    )
-                },
-                titleContent = { Text(stringResource(R.string.greeting_ai_custom_key)) },
-                supportingContent = { Text(stringResource(R.string.greeting_ai_custom_desc)) },
-            )
+            KkGroupedColumn(
+                shape = cards.indexedShape(configuredProviders.size, configuredProviders.size + 1),
+                containerColor = MochiListDefaults.colors().container,
+                topDivider = configuredProviders.size > 0 && cards.gap == 0.dp,
+            ) {
+                MochiOptionItem(
+                    shape = cards.indexedShape(
+                        configuredProviders.size,
+                        configuredProviders.size + 1,
+                    ),
+                    onClick = {
+                        sheetProvider = null
+                        customType = ProviderSetting.OpenAI::class
+                        draftName = ""
+                        draftKey = ""
+                        draftBaseUrl = defaultBaseUrlFor(ProviderSetting.OpenAI::class)
+                        customSheetVisible = true
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = add,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
+                        )
+                    },
+                    titleContent = { Text(stringResource(R.string.greeting_ai_custom_key)) },
+                    supportingContent = { Text(stringResource(R.string.greeting_ai_custom_desc)) },
+                )
+            }
         }
 
         item(key = "providers_header") {
@@ -909,21 +788,25 @@ private fun GreetingAiSetupScreen() {
             KkOptionsText(stringResource(R.string.greeting_ai_providers))
         }
         items(unconfiguredProviders, key = { it.id }) { provider ->
-            AiProviderItem(
-                provider = provider,
-                configured = false,
-                shape = cards.indexedShape(
-                    unconfiguredProviders.indexOf(provider),
-                    unconfiguredProviders.size,
-                ),
+            val index = unconfiguredProviders.indexOf(provider)
+            KkGroupedColumn(
                 modifier = Modifier.animateItem(),
-                onClick = {
-                    draftKey = provider.apiKeyOrEmpty()
-                    draftBaseUrl = provider.baseUrlOrEmpty()
-                    sheetProvider = provider
-                },
-                onToggle = {},
-            )
+                shape = cards.indexedShape(index, unconfiguredProviders.size),
+                containerColor = MochiListDefaults.colors().container,
+                topDivider = index > 0 && cards.gap == 0.dp,
+            ) {
+                AiProviderItem(
+                    provider = provider,
+                    configured = false,
+                    shape = cards.indexedShape(index, unconfiguredProviders.size),
+                    onClick = {
+                        draftKey = provider.apiKeyOrEmpty()
+                        draftBaseUrl = provider.baseUrlOrEmpty()
+                        sheetProvider = provider
+                    },
+                    onToggle = {},
+                )
+            }
         }
 
     }

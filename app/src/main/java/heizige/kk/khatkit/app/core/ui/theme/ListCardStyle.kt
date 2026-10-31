@@ -10,14 +10,15 @@ import androidx.compose.ui.unit.dp
 /**
  * 全局列表卡片圆角与间距（照搬 KodeHead）。
  *
- * 组内规则：首项上圆角、末项下圆角用 [largeCorner]（默认 20dp），
- * 其余角用 [smallCorner]（默认 4dp），项间距 [gap]（默认 2dp）。
+ * 组内规则：首项上圆角、末项下圆角用 [largeCorner]（默认 26dp，Mochi 的 SectionCorner），
+ * 其余角用 [smallCorner]（默认 0），项间距 [gap]（默认 0）。gap 为 0 时整组是一张 Mochi
+ * 分组卡片（行间分隔线），见 `CardGroup` / `InlineCardGroup`。
  * 数值可在 设置 → 界面 → 列表卡片样式 中自定义。
  */
 data class ListCardStyle(
-    val largeCorner: Dp = 20.dp,
-    val smallCorner: Dp = 4.dp,
-    val gap: Dp = 2.dp,
+    val largeCorner: Dp = 26.dp,
+    val smallCorner: Dp = 0.dp,
+    val gap: Dp = 0.dp,
     /**
      * Miuix 模式下每项都是独立圆角卡片（不分组）。
      * 见 `Theme.kt`：Miuix 用 largeCorner=20dp / gap=12dp / 每项同圆角。

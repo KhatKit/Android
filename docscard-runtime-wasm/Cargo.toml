@@ -1,0 +1,35 @@
+[package]
+name = "docscard-runtime-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WASM card runtime (ABI v1) for KhatKit docscard, based on wasmi"
+license = "Apache-2.0"
+
+[lib]
+name = "docscard_runtime_wasm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "docscard"
+path = "src/bin/docscard.rs"
+
+[dependencies]
+# simd：MoonBit 的 wasm1 后端无条件使用 v128（core 的字符串/JSON 路径），必须开启。
+wasmi = { version = "0.44", features = ["simd"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# .kkcard = zip；只启用 deflate，避免 bzip2/zstd/lzma 的 C 依赖拖慢构建。
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+wat = "1"
+# 供集成测试构造 .kkcard 包、计算 sha256（与 dependencies 同版本，保证可独立使用）。
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

@@ -9,6 +9,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSlider
+import heizige.kk.khatkit.app.core.ui.components.ui.SliderValueText
 import ui.feice.mochi.theme.MochiTheme
 
 import androidx.compose.foundation.combinedClickable
@@ -39,7 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.app.core.ui.components.ui.LocalInlineCardGroup
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 /**
@@ -139,8 +139,7 @@ private fun PreferenceSummary(text: String) {
 /**
  * 开关项。[icon] 为空时不显示前置图标。
  *
- * 整行点击 = 翻转开关（`onClick` 交给 [MochiOptionItem]，两种风格都既有整行点击、
- * 又有按压回弹）；右侧开关自己消费掉它的点击，不会冒泡回来，所以不会翻两次。
+ * 与 Mochi 的开关行一致：行本身不可点，只有右侧开关能拨。
  */
 @Composable
 fun PreferenceSwitch(
@@ -153,7 +152,8 @@ fun PreferenceSwitch(
     enabled: Boolean = true,
 ) {
     MochiOptionItem(
-        onClick = if (enabled) ({ onCheckedChange(!checked) }) else null,
+        // 照 Mochi（iOS）：开关行本身不可点、不高亮，只有开关能拨
+        onClick = null,
         modifier = modifier,
         shape = preferenceRowShape(),
         leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
@@ -189,16 +189,11 @@ fun PreferenceArrow(
         leadingContent = startAction ?: icon?.let { { PreferenceIcon(it, title, enabled) } },
         titleContent = { PreferenceTitle(title) },
         supportingContent = summary?.let { s -> { PreferenceSummary(s) } },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                endAction?.invoke(this)
-                Icon(
-                    imageVector = chevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        // 行尾 › 统一走 MochiOptionItem 的 chevron（KkChevron），不再各自画 24dp 箭头
+        trailingContent = endAction?.let { action ->
+            { Row(verticalAlignment = Alignment.CenterVertically) { action(this) } }
         },
+        chevron = true,
     )
 }
 
@@ -235,30 +230,33 @@ fun PreferenceSlider(
         modifier = modifier,
         shape = preferenceRowShape(),
         leadingContent = icon?.let { { PreferenceIcon(it, title, enabled) } },
-        titleContent = { PreferenceTitle(title) },
+        // Mochi 滑块行：标题与数值同一行，滑块在下一行占满（不再把数值挤在滑块右边）
+        titleContent = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(modifier = Modifier.weight(1f)) { PreferenceTitle(title) }
+                if (valueText != null) {
+                    SliderValueText(valueText)
+                }
+            }
+        },
         supportingContent = {
             Column {
                 if (summary != null) {
                     PreferenceSummary(summary)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    KkSlider(
-                        value = value,
-                        onValueChange = onValueChange,
-                        modifier = Modifier.weight(1f),
-                        enabled = enabled,
-                        valueRange = valueRange,
-                        steps = steps,
-                        onValueChangeFinished = onValueChangeFinished,
-                    )
-                    if (valueText != null) {
-                        Text(
-                            text = valueText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
+                KkSlider(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = enabled,
+                    valueRange = valueRange,
+                    steps = steps,
+                    onValueChangeFinished = onValueChangeFinished,
+                )
             }
         },
     )

@@ -55,6 +55,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 @Composable
 fun LanguageSelectionDialog(
@@ -283,7 +284,7 @@ fun CollapsibleTranslationText(
                         onClickCitation = onClickCitation,
                         modifier = Modifier
                             .padding(12.dp)
-                            .animateContentSize()
+                            .kkAnimateContentSize()
                     )
                 }
             }

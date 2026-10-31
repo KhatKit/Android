@@ -1,7 +1,13 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import ui.feice.mochi.navigation.MochiSidebarHeader
+import ui.feice.mochi.navigation.MochiSidebarDefaults
+import ui.feice.mochi.effect.mask.mochiFadeMask
+import ui.feice.mochi.effect.mask.MochiFadeEdges
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
+import androidx.compose.material3.IconButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.rememberMochiSheetState
@@ -179,36 +185,17 @@ fun ChatDrawerContent(
 
     val roleChats by drawerVm.roleChats.collectAsStateWithLifecycle()
 
-    // 抽屉顶栏的折叠变色（**只作用于 MD3Exp**，Miuix 仍走毛玻璃那套）。
-    //
-    // 与页面顶栏同一套联动：静止态取页面底色（栏与内容连成一片，看不出有一条栏），
-    // 角色列表往上滚、内容压到栏下面之后，M3 按 `collapsedFraction` 在
-    // containerColor → scrolledContainerColor（surfaceContainer）之间插值，色块才浮出来。
-    //
-    // ⚠️ 必须是**同一个实例**既喂给 TopAppBar、又经 [activeNestedScroll] 挂到列表上：
-    // 前者只负责按 fraction 取色，后者负责喂滚动增量。两处各 remember 一个的话
-    // fraction 恒为 0 —— 表现就是「顶栏永远一个颜色」（页面顶栏踩过的同一个坑）。
-    val drawerBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
     val conversationJobs by vm.conversationJobs.collectAsStateWithLifecycle(
         initialValue = emptyMap(),
     )
 
-    // 顶栏搜索（复刻 ImageToolbox 侧边栏：TopAppBar 内联搜索框）
+    // 侧栏搜索（MochiSidebarHeader 的搜索框）
     //
     // 关键字非空 = 搜索态：检索范围是**当前角色下所有会话的消息正文**（FTS 命中，见
     // ChatDrawerViewModel.messageSearch），结果行给会话标题 + 命中片段（关键词高亮）+ 时间，
     // 点进会话并定位到命中消息（nodeId）。关键字为空则完全回到原来的角色列表 / 会话列表。
     val searchKeyword by drawerVm.searchKeyword.collectAsStateWithLifecycle()
     val messageSearch by drawerVm.messageSearch.collectAsStateWithLifecycle()
-    var showSearch by rememberSaveable { mutableStateOf(false) }
-    val searchFocus = remember { FocusRequester() }
-    LaunchedEffect(showSearch) {
-        if (showSearch) {
-            delay(100)
-            searchFocus.requestFocus()
-        }
-    }
 
     // 打开一条消息命中：跳到具体会话并定位到 nodeId。id 解析失败（脏数据）就什么都不做，
     // 不许把抽屉崩掉。
@@ -245,269 +232,32 @@ fun ChatDrawerContent(
         }
     }
 
-    // 抽屉不垫状态栏/导航栏 insets：由 TopAppBar / BottomAppBar 自己消费，
-    // 这样两条 bar 的背景能画到状态栏/导航栏后面，和系统栏颜色一致。
+    // SIDE2：照 Mochi 侧边栏示例排版 —— 顶部是 MochiSidebarHeader（搜索框 + 圆钮），
+    // 中间列表占满剩余高度、上下缘渐隐，底部一排入口。状态栏/导航栏 insets 由
+    // MochiSidebarLayout 统一垫好（宽屏常驻侧栏在 ChatPage 那层自己垫），这里不再叠加。
     val sheetContent: @Composable () -> Unit = {
-        // 顶栏/底栏叠在内容之上，毛玻璃才有东西可透（见 MochiOverlayScaffold）。
-        // 毛玻璃只有 Miuix 风格有；MD3Exp 下把 backdrop 置空，各层就退化成
-        // 不透明底色，不会出现 MD3 主题上的半透明糊层。
-        // U4d：Kedge 的 LayerBackdrop 毛玻璃下线。抽屉是 overlay 层，MochiGlassSurface 的
-        // backdrop 采样在 NavDisplay 重建时不稳定，这里退回 MD3 不透明底色：
-        // 视觉差异 = 顶栏/底栏没有背景模糊，只靠层次色（surfaceContainer）区分。
-        val backdrop: Any? = null
-
-        // 搜索展开进度：预测返回手势跟手收起。组合位置在 ModalDrawerSheet 内容里，
-        // 晚于抽屉自身的预测返回处理器，因此搜索展开时返回手势优先收起搜索。
-        val searchExpand = rememberSearchExpandState(
-            expanded = showSearch,
-            onCollapse = {
-                drawerVm.updateSearchKeyword("")
-                showSearch = false
-            },
-        )
-        val searchProgress = searchExpand.progress
-        val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
-        val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
-        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-        // 这个 Compose 版本里 WindowInsets.navigationBars 解析不到，用 systemBars
-        // 的底部值减去状态栏顶部值得到导航栏高度（竖屏下等价）。
-        val navBarBottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-        MochiOverlayScaffold(
-            backdrop = backdrop,
-            // 不用 contentInset 内缩：那样列表与顶栏之间会留一道死间隙，滚不上去。
-            // 改成内容用 Spacer / padding 顶开栏高，列表照样能一路滚到栏下面。
-            contentInsetTop = 0.dp,
-            contentInsetBottom = 0.dp,
-            topBar = {
-                // 这里刻意用裸 MD3 TopAppBar（不分流），不用 MochiTopAppBar：
-                // Kedge 的 Miuix 分支走 KedgeMiuixCustomTitleBar，标题区套 26dp
-                // TitlePadding 而 actions 侧只有 16dp ActionIconPadding，左右留白
-                // 不对称（实测 43.7dp vs 27.7dp）。抽屉顶栏要的是左右对齐。
-                Box {
-                TopAppBar(
-                    colors =                     // MD3Exp：走 CustomColors.topBarColors（surfaceContainer），但把
-                    // **静止态**换成页面底色（surface）—— 与页面顶栏同一条
-                    // [scrollLinkedTopBarColors]：顶栏静止时与抽屉内容连成一片，
-                    // 列表滚上来才渐变到 surfaceContainer 分出层次。
-                    // 若这里仍写死 surfaceContainer，两色相同 ⇒ M3 的插值空转，
-                    // 就回到「顶栏永远一个颜色、跟下面的滚动无关」。
-                    scrollLinkedTopBarColors(CustomColors.topBarColors, drawerBarScrollBehavior)
-                ,
-                    // Miuix 不接 MD3 的滚动行为（那边由毛玻璃 + backdrop 负责外观）。
-                    scrollBehavior =                     drawerBarScrollBehavior
-                ,
-                navigationIcon = {
-                    if (searchVisible) {
-                        MochiIconButton(
-                            onClick = {
-                                drawerVm.updateSearchKeyword("")
-                                showSearch = false
-                            },
-                            modifier = Modifier.graphicsLayer {
-                                alpha = searchProgress.value
-                                translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                            },
-                        ) {
-                            Icon(arrowBack, contentDescription = null)
-                        }
-                    }
-                },
-                title = {
-                    // 标题与搜索输入框共用 topBarTitle()，保证两边字号严格相等
-                    // （MD3 22sp / Miuix 24sp）。
-                    val topBarStyle = MaterialTheme.typography.titleLarge
-                    Box {
-                        if (titleVisible) {
-                            Text(
-                                text = "角色",
-                                style = topBarStyle,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = 1f - searchProgress.value
-                                    translationX = -searchProgress.value * 24.dp.toPx()
-                                },
-                            )
-                        }
-                        if (searchVisible) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.65f + 0.35f * searchProgress.value)
-                                    .graphicsLayer {
-                                        alpha = searchProgress.value
-                                        translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                                    },
-                            ) {
-                                if (searchKeyword.isBlank()) {
-                                    // 搜索范围是消息正文（不再按角色名/会话标题过滤）。占位文案
-                                    // 与上面搜索图标的 contentDescription 复用同一个 res key，
-                                    // 读屏与视觉上的这一处措辞只有一个来源。
-                                    Text(
-                                        text = stringResource(R.string.chat_page_search_chats),
-                                        style = topBarStyle,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    )
-                                }
-                                BasicTextField(
-                                    value = searchKeyword,
-                                    onValueChange = drawerVm::updateSearchKeyword,
-                                    singleLine = true,
-                                    textStyle = topBarStyle.copy(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(searchFocus),
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-                    // search↔close 同槽交叉淡化，三态判定照 ImageToolbox
-                    // SettingsContent：!searching → search；
-                    // searching && hasQuery → close；搜索态但还没输入时留空。
-                    val searching = searchProgress.value >= 0.5f
-                    val hasQuery = searchProgress.value >= 0.5f && searchKeyword.isNotEmpty()
-                    MochiIconButton(
-                        onClick = {
-                            if (!showSearch) {
-                                showSearch = true
-                            } else {
-                                drawerVm.updateSearchKeyword("")
-                            }
-                        },
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (!searching) {
-                                Icon(
-                                    imageVector = search,
-                                    contentDescription = stringResource(R.string.chat_page_search_chats),
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = 1f - searchProgress.value
-                                    },
-                                )
-                            }
-                            if (searching && hasQuery) {
-                                Icon(
-                                    imageVector = close,
-                                    // 叉号是「关闭搜索」，不再借用搜索图标的描述（读屏会误报「搜索聊天」）
-                                    contentDescription = stringResource(R.string.chat_drawer_search_clear),
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = searchProgress.value
-                                    },
-                                )
-                            }
-                        }
-                    }
-                },
-            )
-                }
-            },
-            bottomBar = {
-                // MochiOverlayScaffold 内部是普通 Box，顶/底栏各自负责对齐；
-                // 不写 align 的话底栏会被摆在 Box 的左上角（表现为"浮在天上"）。
-                //
-                // 底色与顶栏同一套来源：Miuix 有 backdrop 时透明走毛玻璃，否则退回
-                // Miuix surface；MD3Exp 用 BottomAppBar 的默认容器色
-                // （BottomAppBarTokens.ContainerColor = surfaceContainer），
-                // 不再靠抽屉底色透出来。
-                val bottomBarColor = MaterialTheme.colorScheme.surfaceContainer
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .background(bottomBarColor),
-                ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        // 原 MD3 BottomAppBar 自带 windowInsets，去掉外壳后要自己补
-                        .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 16.dp)
-                ) {
-                    DrawerAction(
-                        icon = {
-                            Icon(settingsIcon, null)
-                        },
-                        label = stringResource(R.string.settings),
-                        onClick = {
-                            navController.navigate(Screen.Setting)
-                        },
-                    )
-
-                    MochiTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
-                        MochiButton(
-                            onClick = {
-                                navController.navigate(Screen.SettingPackage)
-                            },
-                            modifier = Modifier.height(32.dp),
-                            variant = MochiButtonVariant.Secondary,
-                            // Secondary 在两种风格下都偏淡（MD3 是 secondaryContainer、
-                            // Miuix 是 secondaryVariant），抽屉底色接近时几乎看不出按钮
-                            // 边界，这里各自往上抬到容器色档 secondaryContainer。
-                            // 别再往实色 secondary 走——抽屉里已有实心按钮，实色会显得
-                            // 过重。
-                            colors = KedgeDrawerButtonColors.md3(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                text = subscriptionLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.weight(1f))
-
-                    // 探索市场入口：原先这里是「卡片市场」（跳 Screen.KhatKitMarket），
-                    // cd20c4f6 把卡片市场页并进 Screen.ExploreMarket 时连入口一起删了，
-                    // 结果这个页只剩设置页一个入口。入口加回来，跳合并后的市场页。
-                    DrawerAction(
-                        icon = {
-                            Icon(extension, null)
-                        },
-                        label = stringResource(R.string.explore_market_title),
-                        onClick = {
-                            sidebarState?.close()
-                            navController.navigate(Screen.ExploreMarket)
-                        },
-                    )
-
-                    DrawerAction(
-                        icon = {
-                            Icon(download, null)
-                        },
-                        label = stringResource(R.string.chat_drawer_download_center),
-                        onClick = {
-                            navController.navigate(Screen.DownloadCenter)
-                        },
-                    )
-                }
-                }
-            },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // 只留横向内边距；上下由列表内的顶/底 Spacer 负责
-                    .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        Column(modifier = Modifier.fillMaxSize()) {
+            MochiSidebarHeader(
+                query = searchKeyword,
+                onQueryChange = drawerVm::updateSearchKeyword,
+                // 搜索范围是当前角色的消息正文（不按角色名/会话标题过滤）
+                placeholder = stringResource(R.string.chat_page_search_chats),
             ) {
+                // 与设置页顶栏同一套图标按钮：栏按钮（圆底 + 栏玻璃/模糊 + 栏颜色）
+                KkBarIconScope {
+                    MochiIconButton(
+                        onClick = { navController.navigate(Screen.Assistant) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(edit, contentDescription = null)
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    // 喂抽屉顶栏的折叠变色：会话列表的滚动增量往上冒到这一层，
-                    // 接到 drawerBarScrollBehavior 上（MD3 才挂，Miuix 下是空 Modifier）。
-                    // ⚠️ 挂在这层**父节点**而不是列表自己：`Modifier.nestedScroll` 要靠
-                    // 节点树找到下面的 scrollable 派发器，父节点这条路径与页面把连接挂在
-                    // Scaffold 上（`ExploreMarketPage.kt:1211`）是同一种结构，最稳。
-                    // 也不能挂在 MochiOverlayScaffold 的 modifier 上：它 MD3 分支会
-                    // 把这个 modifier 丢掉（只有 Miuix 分支透传给 MiuixScaffold）。
-                    .then(activeNestedScroll(drawerBarScrollBehavior)),
+                    .mochiFadeMask(MochiFadeEdges.vertical()),
             ) {
                 if (searchKeyword.isNotBlank()) {
                     // 搜索态：命中**当前角色**会话的消息正文（角色名 + 「标题/片段/时间」行），
@@ -519,10 +269,7 @@ fun ChatDrawerContent(
                             .firstOrNull { it.id == settings.assistantId }?.name
                             ?: "当前角色",
                         groupByConversation = false,
-                        contentPadding = PaddingValues(
-                            top = DrawerTopBarHeight + statusBarTop + 8.dp,
-                            bottom = DrawerBottomBarHeight + navBarBottom + 68.dp,
-                        ),
+                        contentPadding = DrawerListPadding,
                         listTag = "drawer_role_search_list",
                         onOpenHit = openMessageHit,
                         onOpenConversation = { conversation ->
@@ -539,10 +286,7 @@ fun ChatDrawerContent(
                         chats = roleChats,
                         running = conversationJobs.filterValues { it?.isActive == true }.keys,
                         keyword = searchKeyword,
-                        contentPadding = PaddingValues(
-                            top = DrawerTopBarHeight + statusBarTop + 8.dp,
-                            bottom = DrawerBottomBarHeight + navBarBottom + 68.dp,
-                        ),
+                        contentPadding = DrawerListPadding,
                         onRole = { role ->
                             vm.switchRole(role.id) { target ->
                                 sidebarState?.close()
@@ -559,13 +303,66 @@ fun ChatDrawerContent(
                         },
                     )
                 }
-
-                // 抽屉底栏上方原来还有一条 footer（记忆 / 角色设置两个图标）：记忆已搬到
-                // 设置 → 数据设置，角色设置入口随之取消，整块删掉，不留空分隔线。
-                // 列表底部留白由各自 contentPadding（DrawerBottomBarHeight + navBarBottom
-                // + 68.dp）负责，与此处无关。
             }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MochiSidebarDefaults.ItemInset, vertical = 8.dp),
+            ) {
+                DrawerAction(
+                    icon = {
+                        Icon(settingsIcon, null)
+                    },
+                    label = stringResource(R.string.settings),
+                    onClick = {
+                        navController.navigate(Screen.Setting)
+                    },
+                )
 
+                MochiTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
+                    MochiButton(
+                        onClick = {
+                            navController.navigate(Screen.SettingPackage)
+                        },
+                        modifier = Modifier.height(32.dp),
+                        variant = MochiButtonVariant.Secondary,
+                        colors = KedgeDrawerButtonColors.md3(),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    ) {
+                        Text(
+                            text = subscriptionLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                // 探索市场入口：卡片市场并进 Screen.ExploreMarket 后从这里进合并后的市场页。
+                DrawerAction(
+                    icon = {
+                        Icon(extension, null)
+                    },
+                    label = stringResource(R.string.explore_market_title),
+                    onClick = {
+                        sidebarState?.close()
+                        navController.navigate(Screen.ExploreMarket)
+                    },
+                )
+
+                DrawerAction(
+                    icon = {
+                        Icon(download, null)
+                    },
+                    label = stringResource(R.string.chat_drawer_download_center),
+                    onClick = {
+                        navController.navigate(Screen.DownloadCenter)
+                    },
+                )
             }
         }
     }
@@ -661,13 +458,8 @@ private fun DrawerAction(
 }
 
 
-// 抽屉底栏高度：MochiIconButton 48.dp + 上下各 8.dp 内边距
-// 抽屉顶栏高度：MD3 TopAppBar 内容高 64.dp（不含状态栏 inset）
-private val DrawerTopBarHeight = 64.dp
-
-// 抽屉底栏高度：图标按钮 48.dp + 上下各 16.dp 内边距 = 80.dp，
-// 与原先 MD3 BottomAppBar 的高度一致（去掉它之后曾缩到 64.dp，手感偏挤）。
-private val DrawerBottomBarHeight = 80.dp
+// 侧栏列表的留白：上下缘有渐隐遮罩，底部照 Mochi 示例留 12dp，横向与 MochiSidebarItem 自带的内缩一致（0）
+private val DrawerListPadding = PaddingValues(bottom = 12.dp)
 
 private object KedgeDrawerButtonColors {
     /**

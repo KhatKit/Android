@@ -24,7 +24,8 @@ object ScreenRoutes {
         "assistant", "assistant-detail", "assistant-basic", "assistant-prompt",
         "assistant-memory", "assistant-request", "assistant-mcp", "assistant-local-tool",
         "assistant-injections", "translator", "setting", "backup", "image-gen", "web-view",
-        "setting-preferences-theme", "setting-preferences-notification",
+        "setting-preferences-theme", "setting-theme-colors", "setting-theme-materials",
+        "setting-theme-list-cards", "setting-preferences-notification",
         "setting-preferences-general", "setting-preferences-ui", "setting-preferences-ui-message",
         "setting-preferences-ui-font", "setting-preferences-ui-code", "setting-permissions",
         "setting-preferences-network", "setting-provider", "setting-provider-detail",
@@ -74,6 +75,9 @@ object ScreenRoutes {
             str("contentId", screen.contentId)
         }.build()
         Screen.SettingPreferencesTheme -> "setting-preferences-theme"
+        Screen.SettingThemeColors -> "setting-theme-colors"
+        Screen.SettingThemeMaterials -> "setting-theme-materials"
+        Screen.SettingThemeListCards -> "setting-theme-list-cards"
         Screen.SettingPreferencesNotification -> "setting-preferences-notification"
         Screen.SettingPreferencesGeneral -> "setting-preferences-general"
         Screen.SettingPreferencesUI -> "setting-preferences-ui"
@@ -94,6 +98,7 @@ object ScreenRoutes {
         is Screen.ExploreCards -> Route("explore-cards").str("initialQuery", screen.initialQuery).build()
         Screen.ExploreLocal -> "explore-local"
         Screen.CardRuns -> "card-runs"
+        is Screen.CardWidget -> Route("card-widget").str("name", screen.name).str("title", screen.title).build()
         Screen.SettingDonate -> "setting-donate"
         Screen.SettingFiles -> "setting-files"
         Screen.SettingMemory -> "setting-memory"
@@ -162,6 +167,9 @@ object ScreenRoutes {
                 contentId = params.str("contentId") ?: return null,
             )
             "setting-preferences-theme" -> Screen.SettingPreferencesTheme
+            "setting-theme-colors" -> Screen.SettingThemeColors
+            "setting-theme-materials" -> Screen.SettingThemeMaterials
+            "setting-theme-list-cards" -> Screen.SettingThemeListCards
             "setting-preferences-notification" -> Screen.SettingPreferencesNotification
             "setting-preferences-general" -> Screen.SettingPreferencesGeneral
             "setting-preferences-ui" -> Screen.SettingPreferencesUI
@@ -182,6 +190,7 @@ object ScreenRoutes {
             "explore-cards" -> Screen.ExploreCards(initialQuery = params.str("initialQuery") ?: return null)
             "explore-local" -> Screen.ExploreLocal
             "card-runs" -> Screen.CardRuns
+            "card-widget" -> Screen.CardWidget(params.str("name") ?: return null, params.str("title") ?: return null)
             "setting-donate" -> Screen.SettingDonate
             "setting-files" -> Screen.SettingFiles
             "setting-memory" -> Screen.SettingMemory

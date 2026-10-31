@@ -1,13 +1,10 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +16,8 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import heizige.kk.khatkit.app.core.util.plus
 
 @Composable
 fun AssistantRequestPage(id: String) {
@@ -26,14 +25,8 @@ fun AssistantRequestPage(id: String) {
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    // 页面外壳统一走 KedgeSettingsPageScaffold（内部按风格分流：Miuix 走 Miuix
-    // Scaffold + 页面级毛玻璃，MD3 走 MochiPageScaffold）。内容**直接透传**给页面
-    // 自己滚动。
-    //
-    // 不能写成 MiuixSettingsPage { item { ... } }：AssistantRequestContent 自己是
-    // verticalScroll 的 Column，塞进 LazyColumn 的 item 后 maxHeight 变成 Infinity，
-    // 一进页面就崩（"Vertically scrollable component was measured with an infinity
-    // maximum height constraints"）。
+    // 页面外壳统一走 KedgeSettingsPageScaffold；内容是 LazyColumn，每个分组（请求头 /
+    // 请求体）一项，每项是一张 Mochi 分组卡片，留白与设置页一致。
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_tab_request),
         scrollBehavior = scrollBehavior,
@@ -53,35 +46,42 @@ internal fun AssistantRequestContent(
     assistant: Assistant,
     onUpdate: (Assistant) -> Unit
 ) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(innerPadding)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = innerPadding + PaddingValues(
+            start = 16.dp,
+            top = PageMetrics.TopContentPadding,
+            end = 16.dp,
+            bottom = 8.dp + PageMetrics.BottomContentPadding,
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        CustomHeaders(
-            headers = assistant.customHeaders,
-            onUpdate = {
-                onUpdate(
-                    assistant.copy(
-                        customHeaders = it
+        item(key = "custom_headers") {
+            CustomHeaders(
+                headers = assistant.customHeaders,
+                onUpdate = {
+                    onUpdate(
+                        assistant.copy(
+                            customHeaders = it
+                        )
                     )
-                )
-            }
-        )
+                }
+            )
+        }
 
-        CustomBodies(
-            customBodies = assistant.customBodies,
-            onUpdate = {
-                onUpdate(
-                    assistant.copy(
-                        customBodies = it
+        item(key = "custom_bodies") {
+            CustomBodies(
+                customBodies = assistant.customBodies,
+                onUpdate = {
+                    onUpdate(
+                        assistant.copy(
+                            customBodies = it
+                        )
                     )
-                )
-            }
-        )
+                }
+            )
+        }
     }
 }

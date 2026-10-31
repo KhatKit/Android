@@ -1,419 +1,308 @@
 package heizige.kk.khatkit.app.feature.stats
 
-import heizige.kk.khatkit.uikit.mochi.KkCard
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.data.db.dao.UsageBySource
+import heizige.kk.khatkit.app.core.data.db.dao.UsageTrendPoint
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.icons.barChart
+import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.memory
+import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiEmptyState
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.basic.Text
+import ui.feice.mochi.effect.content.MochiCounterText
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.navigation.MochiLazyLargeTitleScaffold
+import ui.feice.mochi.shape.MochiRoundedRectangle
+import ui.feice.mochi.theme.MochiTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
-import java.util.Locale
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.chat
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.uikit.mochi.SegmentedItem
-import heizige.kk.khatkit.app.core.data.db.dao.UsageByModel
-import heizige.kk.khatkit.app.core.data.db.dao.UsageBySource
-import heizige.kk.khatkit.app.core.data.db.dao.UsageTrendPoint
 
+/**
+ * 统计页（Mochi / iOS 26 分组列表）。
+ *
+ * 骨架是 [MochiLazyLargeTitleScaffold]，正文全部落在 [MochiListSection] 分组卡片里：
+ *  1. 概览：两个主数字（会话 / 消息）用 Mochi 计数器滚动，下面 2x2 收起 token 与启动次数；
+ *  2. 热力：近 52 周的聊天热力，连续圆角小格 + 5 档主色深浅，底部报连续天数；
+ *  3. 用量：Mochi 分段选择器（7/30/90/全部）+ 面积趋势图 + 模型 / 来源排行行；
+ *  4. 任务路由：按任务聚合的模型路由次数，都是标准 [MochiListRow]。
+ *
+ * 主题色、字阶、圆角全部取 MochiTheme；页面底色、分组卡片、行高与分隔线由 Mochi 脚手架
+ * 和 MochiListSection 统一给，页面自己不再画卡片底。
+ */
 @Composable
 fun StatsPage(vm: StatsVM = hiltViewModel()) {
     val stats by vm.stats.collectAsStateWithLifecycle()
     val usage by vm.usage.collectAsStateWithLifecycle()
     val usageRange by vm.range.collectAsStateWithLifecycle()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // 路由快照只在进页时取一次：它是进程级计数器，没必要跟着每一次重组重读。
+    val routeRows = remember { routeSummary() }
 
-    KedgeSettingsPageScaffold(
+    MochiLazyLargeTitleScaffold(
         title = stringResource(R.string.stats_page_title),
-        scrollBehavior = scrollBehavior,
-    ) { padding ->
-        if (stats.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                KkProgressIndicator(modifier = Modifier.size(24.dp))
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = padding + PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    HeatmapCard(
-                        conversationsPerDay = stats.conversationsPerDay,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                }
-                item {
-                    StatsGrid(
-                        stats = stats,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                }
-                // UI-5：用量（趋势 / 模型排行 / 来源拆分），数据来自 usage_record 流水
-                item {
-                    UsageCard(
-                        usage = usage,
-                        range = usageRange,
-                        onSelectRange = { vm.selectRange(it) },
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                }
-                item {
-                    RouteStatsCard(modifier = Modifier.padding(horizontal = 8.dp))
-                }
+        navigationIcon = { BackButton() },
+    ) {
+        item(key = "overview") {
+            if (stats.isLoading) StatsSkeleton() else OverviewCard(stats = stats)
+        }
+        item(key = "heatmap") {
+            HeatmapCard(conversationsPerDay = stats.conversationsPerDay)
+        }
+        item(key = "usage") {
+            UsageCard(
+                usage = usage,
+                range = usageRange,
+                onSelectRange = { vm.selectRange(it) },
+            )
+        }
+        if (routeRows.isNotEmpty()) {
+            item(key = "routes") {
+                RouteCard(rows = routeRows)
             }
         }
     }
 }
 
+/** 分组卡片里的一行主数字：上面小字标签，下面 Mochi 计数器。 */
 @Composable
-private fun UsageCard(
-    usage: UsageStats,
-    range: UsageRange,
-    onSelectRange: (UsageRange) -> Unit,
+private fun HeroMetric(value: Long, label: String, modifier: Modifier = Modifier) {
+    val cs = MochiTheme.colorScheme
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MochiTheme.textStyles.subhead,
+            color = cs.onSurfaceVariant,
+            maxLines = 1,
+        )
+        MochiCounterText(
+            value = value,
+            style = MochiTheme.textStyles.largeTitle,
+            color = cs.onSurface,
+            format = { formatCount(it) },
+        )
+    }
+}
+
+/** 概览里的次要指标：小图标 + 数字 + 标签。 */
+@Composable
+private fun SmallMetric(
+    value: String,
+    label: String,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    KkCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = stringResource(R.string.stats_page_usage_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = stringResource(R.string.stats_page_usage_requests, formatCount(usage.requests)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // 时间窗口：7 / 30 / 90 / 全部
-            KkSingleChoiceSegmentedRow(
-                items = UsageRange.entries.map { r ->
-                    SegmentedItem(
-                        label = stringResource(r.labelRes()),
-                        selected = r == range,
-                        onClick = { onSelectRange(r) },
-                    )
-                },
-            )
-
-            if (usage.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    KkProgressIndicator(modifier = Modifier.size(20.dp))
-                }
-            } else if (usage.trend.isEmpty() && usage.byModel.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.stats_page_no_usage),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    TokenTotal(
-                        label = stringResource(R.string.stats_page_input_tokens),
-                        value = usage.promptTokens,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TokenTotal(
-                        label = stringResource(R.string.stats_page_output_tokens),
-                        value = usage.completionTokens,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                Text(
-                    text = stringResource(R.string.stats_page_trend_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                TrendBarChart(points = usage.trend)
-
-                if (usage.byModel.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.stats_page_by_model_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    usage.byModel.take(MAX_RANKING_ROWS).forEach { model ->
-                        RankingRow(
-                            name = model.modelName ?: model.modelId ?: "-",
-                            promptTokens = model.promptTokens,
-                            completionTokens = model.completionTokens,
-                            requests = model.requests,
-                            fraction = proportion(
-                                model.promptTokens + model.completionTokens,
-                                usage.totalTokens,
-                            ),
-                        )
-                    }
-                }
-
-                if (usage.bySource.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.stats_page_by_source_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    usage.bySource.forEach { source ->
-                        RankingRow(
-                            name = sourceLabel(source),
-                            promptTokens = source.promptTokens,
-                            completionTokens = source.completionTokens,
-                            requests = source.requests,
-                            fraction = proportion(
-                                source.promptTokens + source.completionTokens,
-                                usage.totalTokens,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private const val MAX_RANKING_ROWS = 8
-
-private fun UsageRange.labelRes(): Int = when (this) {
-    UsageRange.WEEK -> R.string.stats_page_range_7d
-    UsageRange.MONTH -> R.string.stats_page_range_30d
-    UsageRange.QUARTER -> R.string.stats_page_range_90d
-    UsageRange.ALL -> R.string.stats_page_range_all
-}
-
-/** 来源名（usage_record.source 里存的是 UsageSource 的名字）首字母大写，空值兜底成 "-" */
-private fun sourceLabel(source: UsageBySource): String =
-    source.source.takeIf { it.isNotBlank() }
-        ?.lowercase()
-        ?.replaceFirstChar { it.uppercase() }
-        ?: "-"
-
-private fun proportion(value: Long, total: Long): Float =
-    if (total <= 0L) 0f else (value.toDouble() / total).toFloat().coerceIn(0f, 1f)
-
-@Composable
-private fun TokenTotal(label: String, value: Long, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
+    val cs = MochiTheme.colorScheme
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = cs.primary,
+        )
         Text(
-            text = formatTokens(value),
-            style = MaterialTheme.typography.headlineSmall,
+            text = value,
+            style = MochiTheme.textStyles.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = cs.onSurface,
+            maxLines = 1,
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.footnote,
+            color = cs.onSurfaceVariant,
+            maxLines = 1,
         )
     }
 }
 
-/** 趋势图：Canvas 画等宽圆角柱，避免为一个折线引第三方图表库。 */
+/* -------------------------------------------------------------------------------------------- */
+/* 1. 概览                                                                                       */
+/* -------------------------------------------------------------------------------------------- */
+
 @Composable
-private fun TrendBarChart(
-    points: List<UsageTrendPoint>,
-    modifier: Modifier = Modifier,
-) {
-    val barColor = MaterialTheme.colorScheme.primary
-    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(modifier = modifier.fillMaxWidth()) {
-        Canvas(
+private fun OverviewCard(stats: AppStats) {
+    val cs = MochiTheme.colorScheme
+    val divider = cs.outlineVariant.copy(alpha = 0.5f)
+
+    MochiListSection(header = "概览") {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(96.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (points.isEmpty()) return@Canvas
-            val max = points.maxOf { it.promptTokens + it.completionTokens }.coerceAtLeast(1L)
-            val slot = size.width / points.size
-            val gap = (slot * 0.25f).coerceAtMost(6f)
-            val barWidth = (slot - gap).coerceAtLeast(1f)
-            val corner = CornerRadius(barWidth / 3f, barWidth / 3f)
-            points.forEachIndexed { index, point ->
-                val value = point.promptTokens + point.completionTokens
-                val ratio = value.toFloat() / max
-                val barHeight = (size.height * ratio).coerceAtLeast(if (value > 0L) 2f else 0f)
-                drawRoundRect(
-                    color = if (value > 0L) barColor else emptyColor.copy(alpha = 0.35f),
-                    topLeft = Offset(index * slot + gap / 2f, size.height - barHeight),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = corner,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                HeroMetric(
+                    value = stats.totalConversations.toLong(),
+                    label = stringResource(R.string.stats_page_total_conversations),
+                    modifier = Modifier.weight(1f),
+                )
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(56.dp)
+                        .background(divider),
+                )
+                HeroMetric(
+                    value = stats.totalMessages.toLong(),
+                    label = stringResource(R.string.stats_page_total_messages),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Box(Modifier.fillMaxWidth().height(1.dp).background(divider))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SmallMetric(
+                    value = formatTokens(stats.totalPromptTokens),
+                    label = stringResource(R.string.stats_page_input_tokens),
+                    icon = memory,
+                    modifier = Modifier.weight(1f),
+                )
+                SmallMetric(
+                    value = formatTokens(stats.totalCompletionTokens),
+                    label = stringResource(R.string.stats_page_output_tokens),
+                    icon = memory,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                SmallMetric(
+                    value = formatTokens(stats.totalCachedTokens),
+                    label = stringResource(R.string.stats_page_cached_tokens),
+                    icon = bolt,
+                    modifier = Modifier.weight(1f),
+                )
+                SmallMetric(
+                    value = formatCount(stats.launchCount.toLong()),
+                    label = stringResource(R.string.stats_page_launch_count),
+                    icon = rocketLaunch,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = points.firstOrNull()?.bucket.orEmpty(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = points.lastOrNull()?.bucket.orEmpty(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
-/** 排行/来源的一行：名称 + 占比条 + token 数 + 次数。 */
+/* -------------------------------------------------------------------------------------------- */
+/* 2. 聊天热力                                                                                   */
+/* -------------------------------------------------------------------------------------------- */
+
 @Composable
-private fun RankingRow(
-    name: String,
-    promptTokens: Long,
-    completionTokens: Long,
-    requests: Long,
-    fraction: Float,
-) {
-    val barColor = MaterialTheme.colorScheme.primary
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = stringResource(R.string.stats_page_row_requests, formatCount(requests)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = formatTokens(promptTokens + completionTokens),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-        Box(
+private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>) {
+    val cs = MochiTheme.colorScheme
+    val today = LocalDate.now()
+    val activeDays = remember(conversationsPerDay) {
+        conversationsPerDay.count { it.value > 0 }
+    }
+    val streak = remember(conversationsPerDay, today) { currentStreak(conversationsPerDay, today) }
+
+    MochiListSection(
+        header = stringResource(R.string.stats_page_heatmap_title),
+        footer = if (streak > 0) "连续 " + streak + " 天" else "活跃 " + activeDays + " 天",
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
-                .clip(MaterialTheme.shapes.small)
-                .background(trackColor)
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(fraction)
-                    .height(4.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(barColor)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>, modifier: Modifier = Modifier) {
-    KkCard(
-        modifier = modifier.fillMaxWidth(),
-        ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.stats_page_heatmap_title), style = MaterialTheme.typography.titleMedium)
-
             ChatHeatmap(conversationsPerDay = conversationsPerDay)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = stringResource(R.string.stats_page_heatmap_less),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.footnote,
+                    color = cs.onSurfaceVariant,
                 )
-                Spacer(Modifier.width(2.dp))
-                listOf(0f, 0.25f, 0.5f, 0.75f, 1f).forEach { alpha ->
+                listOf(0.18f, 0.38f, 0.62f, 0.80f, 1f).forEach { alpha ->
                     HeatmapCell(alpha = alpha, sizeDp = 10)
                 }
-                Spacer(Modifier.width(2.dp))
                 Text(
                     text = stringResource(R.string.stats_page_heatmap_more),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.footnote,
+                    color = cs.onSurfaceVariant,
                 )
             }
         }
     }
+}
+
+/** 从今天往回数，连续有聊天的天数（今天没聊就从昨天起算，别让「今天还没开聊」显示成 0）。 */
+private fun currentStreak(perDay: Map<LocalDate, Int>, today: LocalDate): Int {
+    var day = if ((perDay[today] ?: 0) > 0) today else today.minusDays(1)
+    var streak = 0
+    while ((perDay[day] ?: 0) > 0) {
+        streak++
+        day = day.minusDays(1)
+    }
+    return streak
 }
 
 @Composable
@@ -429,11 +318,9 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
     val q2 = activeCounts.getOrElse((activeCounts.size * 0.50).toInt()) { 2 }
     val q3 = activeCounts.getOrElse((activeCounts.size * 0.75).toInt()) { 3 }
     val cellSize = 11.dp
-    val cellSpacing = 2.dp
-    // Month label row height
-    val monthLabelHeight = 14.dp
+    val cellSpacing = 3.dp
+    val monthLabelHeight = 15.dp
 
-    // Day-of-week labels (only Mon/Wed/Fri to save space, Sun=0)
     val dowLabels = listOf(
         "",
         stringResource(R.string.stats_page_dow_mon),
@@ -441,14 +328,13 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
         stringResource(R.string.stats_page_dow_wed),
         "",
         stringResource(R.string.stats_page_dow_fri),
-        ""
+        "",
     )
 
-    // Shared scroll state so month labels + grid scroll together
+    // 一次滚动带着月份标签一起走，初值拉到最右（最近的日子）
     val scrollState = rememberScrollState(initial = Int.MAX_VALUE)
 
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Fixed left column: spacer for month label row + DOW labels
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Column(
             modifier = Modifier.width(12.dp),
             verticalArrangement = Arrangement.spacedBy(cellSpacing),
@@ -462,21 +348,21 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                     if (label.isNotEmpty()) {
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.7,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.footnote.copy(
+                                fontSize = MochiTheme.textStyles.footnote.fontSize * 0.72,
+                            ),
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
                         )
                     }
                 }
             }
         }
 
-        // Scrollable area: month labels + heatmap grid share one scroll state
         Column(
             modifier = Modifier.horizontalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(cellSpacing),
         ) {
-            // Month labels row
             Row(horizontalArrangement = Arrangement.spacedBy(cellSpacing)) {
                 for (weekIdx in 0 until numWeeks) {
                     val weekStart = startSunday.plusDays((weekIdx * 7).toLong())
@@ -495,12 +381,16 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                                     labelDate.year.toString()
                                 } else {
                                     // LocalConfiguration 可观察：语言切换后重组（Locale.getDefault() 不会）
-                                    labelDate.month.getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0])
+                                    labelDate.month.getDisplayName(
+                                        TextStyle.SHORT,
+                                        LocalConfiguration.current.locales[0],
+                                    )
                                 },
                                 modifier = Modifier.wrapContentWidth(unbounded = true),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.75,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MochiTheme.textStyles.footnote.copy(
+                                    fontSize = MochiTheme.textStyles.footnote.fontSize * 0.72,
+                                ),
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
                                 softWrap = false,
                                 maxLines = 1,
                             )
@@ -509,7 +399,6 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                 }
             }
 
-            // Heatmap grid
             Row(horizontalArrangement = Arrangement.spacedBy(cellSpacing)) {
                 for (weekIdx in 0 until numWeeks) {
                     Column(verticalArrangement = Arrangement.spacedBy(cellSpacing)) {
@@ -520,10 +409,10 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
                             val alpha = when {
                                 isFuture -> -1f
                                 count == 0 -> 0f
-                                count <= q1 -> 0.25f
-                                count <= q2 -> 0.5f
-                                count <= q3 -> 0.75f
-                                else -> 1f
+                                count <= q1 -> 0.18f
+                                count <= q2 -> 0.38f
+                                count <= q3 -> 0.62f
+                                else -> 0.88f
                             }
                             HeatmapCell(alpha = alpha, sizeDp = cellSize.value.toInt())
                         }
@@ -536,123 +425,411 @@ private fun ChatHeatmap(conversationsPerDay: Map<LocalDate, Int>) {
 
 @Composable
 private fun HeatmapCell(alpha: Float, sizeDp: Int) {
+    val cs = MochiTheme.colorScheme
     val color = when {
-        alpha < 0f -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) // future
-        alpha == 0f -> MaterialTheme.colorScheme.surfaceVariant
-        else -> MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+        alpha < 0f -> cs.onSurface.copy(alpha = 0.03f)
+        alpha == 0f -> cs.onSurface.copy(alpha = 0.07f)
+        else -> cs.primary.copy(alpha = alpha)
     }
     Box(
         modifier = Modifier
             .size(sizeDp.dp)
-            .clip(MaterialTheme.shapes.extraSmall)
-            .background(color)
+            .clip(MochiRoundedRectangle(3.dp))
+            .background(color),
     )
 }
 
+/* -------------------------------------------------------------------------------------------- */
+/* 3. 用量                                                                                       */
+/* -------------------------------------------------------------------------------------------- */
+
 @Composable
-private fun RouteStatsCard(modifier: Modifier = Modifier) {
-    val rows = heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot().entries.sortedBy { it.key }
-    if (rows.isEmpty()) return
-    KkCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+private fun UsageCard(
+    usage: UsageStats,
+    range: UsageRange,
+    onSelectRange: (UsageRange) -> Unit,
+) {
+    val cs = MochiTheme.colorScheme
+    val ranges = UsageRange.entries
+    val labels = ranges.map { stringResource(it.labelRes()) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing)) {
+        MochiListSection(
+            header = stringResource(R.string.stats_page_usage_title),
+            footer = stringResource(R.string.stats_page_usage_requests, formatCount(usage.requests)),
         ) {
-            Text("Route", style = MaterialTheme.typography.titleMedium)
-            rows.forEach { (key, count) ->
-                Text("$key  $count", style = MaterialTheme.typography.bodyMedium)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                MochiSegmentedControl(
+                    selectedIndex = ranges.indexOf(range).coerceAtLeast(0),
+                    onSelect = { index -> ranges.getOrNull(index)?.let(onSelectRange) },
+                    items = persistentListOf(*labels.toTypedArray()),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                when {
+                    usage.isLoading -> {
+                        UsageSkeleton()
+                    }
+                    usage.trend.isEmpty() && usage.byModel.isEmpty() -> {
+                        MochiEmptyState(
+                            title = stringResource(R.string.stats_page_no_usage),
+                            message = "在这个时间窗口里发一条消息，曲线和排行就会出现",
+                            icon = {
+                                Icon(
+                                    imageVector = barChart,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(44.dp),
+                                    tint = cs.onSurfaceVariant,
+                                )
+                            },
+                        )
+                    }
+                    else -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        ) {
+                            TokenTotal(
+                                label = stringResource(R.string.stats_page_input_tokens),
+                                value = usage.promptTokens,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TokenTotal(
+                                label = stringResource(R.string.stats_page_output_tokens),
+                                value = usage.completionTokens,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        if (usage.trend.isNotEmpty()) {
+                            SectionLabel(stringResource(R.string.stats_page_trend_title))
+                            TrendAreaChart(points = usage.trend)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 排行：模型 / 来源各自一张分组卡，行是标准 MochiListRow（名称 + 次数 + token）。
+        if (!usage.isLoading && usage.byModel.isNotEmpty()) {
+            MochiListSection(header = stringResource(R.string.stats_page_by_model_title)) {
+                usage.byModel.take(MAX_RANKING_ROWS).forEach { model ->
+                    RankingRow(
+                        name = model.modelName ?: model.modelId ?: "-",
+                        requests = model.requests,
+                        tokens = model.promptTokens + model.completionTokens,
+                    )
+                }
+            }
+        }
+
+        if (!usage.isLoading && usage.bySource.isNotEmpty()) {
+            MochiListSection(header = stringResource(R.string.stats_page_by_source_title)) {
+                usage.bySource.forEach { source ->
+                    RankingRow(
+                        name = sourceLabel(source),
+                        requests = source.requests,
+                        tokens = source.promptTokens + source.completionTokens,
+                    )
+                }
             }
         }
     }
 }
 
+private const val MAX_RANKING_ROWS = 8
+
 @Composable
-private fun StatsGrid(stats: AppStats, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = barChart,
-                label = stringResource(R.string.stats_page_total_conversations),
-                value = formatCount(stats.totalConversations.toLong()),
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = chat,
-                label = stringResource(R.string.stats_page_total_messages),
-                value = formatCount(stats.totalMessages.toLong()),
-            )
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = memory,
-                label = stringResource(R.string.stats_page_input_tokens),
-                value = formatTokens(stats.totalPromptTokens),
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = memory,
-                label = stringResource(R.string.stats_page_output_tokens),
-                value = formatTokens(stats.totalCompletionTokens),
-            )
-        }
-        if (stats.totalCachedTokens > 0) {
-            StatCard(
-                modifier = Modifier.fillMaxWidth(),
-                icon = bolt,
-                label = stringResource(R.string.stats_page_cached_tokens),
-                value = formatTokens(stats.totalCachedTokens),
-            )
-        }
-        StatCard(
-            modifier = Modifier.fillMaxWidth(),
-            icon = rocketLaunch,
-            label = stringResource(R.string.stats_page_launch_count),
-            value = formatCount(stats.launchCount.toLong()),
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.SemiBold),
+        color = MochiTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+private fun UsageRange.labelRes(): Int = when (this) {
+    UsageRange.WEEK -> R.string.stats_page_range_7d
+    UsageRange.MONTH -> R.string.stats_page_range_30d
+    UsageRange.QUARTER -> R.string.stats_page_range_90d
+    UsageRange.ALL -> R.string.stats_page_range_all
+}
+
+/** 来源名（usage_record.source 里存的是 UsageSource 的名字）首字母大写，空值兜底成 "-" */
+private fun sourceLabel(source: UsageBySource): String =
+    source.source.takeIf { it.isNotBlank() }
+        ?.lowercase()
+        ?.replaceFirstChar { it.uppercase() }
+        ?: "-"
+
+@Composable
+private fun TokenTotal(label: String, value: Long, modifier: Modifier = Modifier) {
+    val cs = MochiTheme.colorScheme
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        MochiCounterText(
+            value = value,
+            style = MochiTheme.textStyles.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = cs.onSurface,
+            format = { formatTokens(it) },
+        )
+        Text(
+            text = label,
+            style = MochiTheme.textStyles.footnote,
+            color = cs.onSurfaceVariant,
+            maxLines = 1,
         )
     }
 }
 
 @Composable
-private fun StatCard(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    label: String,
-    value: String,
-) {
-    KkCard(modifier = modifier, colors = CustomColors.cardColorsOnSurfaceContainer) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun TrendAreaChart(points: List<UsageTrendPoint>) {
+    if (points.isEmpty()) return
+    val cs = MochiTheme.colorScheme
+    val values = remember(points) { points.map { it.promptTokens + it.completionTokens } }
+    val maxValue = values.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+    val reveal = remember { Animatable(0f) }
+    LaunchedEffect(values) {
+        reveal.snapTo(0f)
+        reveal.animateTo(1f, tween(durationMillis = 720, easing = FastOutSlowInEasing))
+    }
+    val gridColor = cs.onSurface.copy(alpha = 0.07f)
+    val labelStyle = MochiTheme.textStyles.footnote
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(132.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+            val top = 10.dp.toPx()
+            val bottom = size.height - 4.dp.toPx()
+            val chartHeight = bottom - top
+            repeat(3) { index ->
+                val y = top + chartHeight * index / 2f
+                drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+            }
+            if (values.isEmpty()) return@Canvas
+
+            val n = values.size
+            // 左右各留 4dp：最后一个点的圆点画在 x = width 上会被画布切掉一半
+            val left = 4.dp.toPx()
+            val right = size.width - 4.dp.toPx()
+            val span = (right - left).coerceAtLeast(1f)
+            val stepX = if (n > 1) span / (n - 1).toFloat() else 0f
+            val dots = values.mapIndexed { index, value ->
+                val x = if (n > 1) left + index * stepX else size.width / 2f
+                Offset(x, bottom - chartHeight * (value.toFloat() / maxValue.toFloat()))
+            }
+            val line = Path().apply {
+                moveTo(dots.first().x, dots.first().y)
+                for (i in 1 until dots.size) {
+                    val prev = dots[i - 1]
+                    val current = dots[i]
+                    val midX = (prev.x + current.x) / 2f
+                    cubicTo(midX, prev.y, midX, current.y, current.x, current.y)
+                }
+            }
+            val area = Path().apply {
+                addPath(line)
+                lineTo(dots.last().x, bottom)
+                lineTo(dots.first().x, bottom)
+                close()
+            }
+            clipRect(right = size.width * reveal.value) {
+                drawPath(
+                    path = area,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(cs.primary.copy(alpha = 0.32f), cs.primary.copy(alpha = 0f)),
+                        startY = top,
+                        endY = bottom,
+                    ),
+                )
+                drawPath(
+                    path = line,
+                    color = cs.primary,
+                    style = Stroke(
+                        width = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
+                )
+                if (n <= 12) {
+                    dots.forEach { dot ->
+                        drawCircle(cs.primary, radius = 2.5.dp.toPx(), center = dot)
+                    }
+                } else {
+                    drawCircle(cs.primary, radius = 3.5.dp.toPx(), center = dots.last())
+                    drawCircle(cs.surface, radius = 1.6.dp.toPx(), center = dots.last())
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = bucketLabel(points.first().bucket),
+                style = labelStyle,
+                color = cs.onSurfaceVariant,
             )
             Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                text = "峰值 " + formatTokens(maxValue),
+                style = labelStyle,
+                color = cs.onSurfaceVariant,
             )
             Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = bucketLabel(points.last().bucket),
+                style = labelStyle,
+                color = cs.onSurfaceVariant,
             )
         }
     }
 }
+
+/** 桶标签：日桶（yyyy-MM-dd）只留「MM-dd」，周桶（yyyy-Www）只留「Www」。 */
+private fun bucketLabel(bucket: String): String = when {
+    bucket.contains("-W") -> "W" + bucket.substringAfter("-W")
+    bucket.length >= 10 -> bucket.takeLast(5)
+    else -> bucket
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* 排行行                                                                                        */
+/* -------------------------------------------------------------------------------------------- */
+
+/** 排行一行：模型/来源名 + 次数，行尾是 token 总量（标准 iOS 列表行样式）。 */
+@Composable
+private fun RankingRow(
+    name: String,
+    requests: Long,
+    tokens: Long,
+) {
+    MochiListRow(
+        title = name,
+        subtitle = stringResource(R.string.stats_page_row_requests, formatCount(requests)),
+        value = formatTokens(tokens),
+    )
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* 4. 任务路由                                                                                   */
+/* -------------------------------------------------------------------------------------------- */
+
+private data class RouteSummary(val label: String, val count: Int)
+
+/** TaskRoutes 的 key 是「任务:模型ID」，这里只按任务聚合，把 UUID 从界面上拿掉。 */
+private fun routeSummary(): List<RouteSummary> =
+    heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot()
+        .entries
+        .groupBy { it.key.substringBefore(':') }
+        .map { (task, entries) -> RouteSummary(taskLabel(task), entries.sumOf { it.value }) }
+        .sortedByDescending { it.count }
+
+private fun taskLabel(task: String): String = when (task) {
+    "CHAT" -> "对话"
+    "MEMORY" -> "记忆"
+    "SUMMARY" -> "摘要"
+    "TITLE" -> "标题"
+    "OCR" -> "OCR"
+    "TRANSLATION" -> "翻译"
+    "UI_CONTROL" -> "界面操作"
+    else -> task
+}
+
+@Composable
+private fun RouteCard(rows: List<RouteSummary>) {
+    MochiListSection(header = "任务路由", footer = "按任务聚合的模型路由次数，进程内计数器。") {
+        rows.forEach { row ->
+            MochiListRow(
+                title = row.label,
+                leading = {
+                    Icon(
+                        imageVector = bolt,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MochiTheme.colorScheme.primary,
+                    )
+                },
+                value = row.count.toString(),
+            )
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* 加载态                                                                                        */
+/* -------------------------------------------------------------------------------------------- */
+
+@Composable
+private fun StatsSkeleton(modifier: Modifier = Modifier) {
+    val pulse by rememberInfiniteTransition(label = "stats_skeleton").animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "stats_skeleton_alpha",
+    )
+    val color = MochiTheme.colorScheme.onSurface
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
+    ) {
+        repeat(2) { index ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (index == 0) 188.dp else 132.dp)
+                    .clip(MochiTheme.shapes.extraLarge)
+                    .background(color.copy(alpha = 0.05f + 0.04f * pulse)),
+            )
+        }
+    }
+}
+
+@Composable
+private fun UsageSkeleton() {
+    val pulse by rememberInfiniteTransition(label = "usage_skeleton").animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "usage_skeleton_alpha",
+    )
+    val color = MochiTheme.colorScheme.onSurface
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.55f)
+                .height(30.dp)
+                .clip(MochiRoundedRectangle(8.dp))
+                .background(color.copy(alpha = 0.05f + 0.04f * pulse)),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(MochiRoundedRectangle(14.dp))
+                .background(color.copy(alpha = 0.05f + 0.04f * pulse)),
+        )
+    }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* 数字格式                                                                                      */
+/* -------------------------------------------------------------------------------------------- */
 
 private fun formatCount(count: Long): String = when {
     count >= 1_000_000 -> "%.1fM".format(count / 1_000_000.0)

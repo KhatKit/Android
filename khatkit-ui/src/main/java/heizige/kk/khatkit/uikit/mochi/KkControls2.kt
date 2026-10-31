@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +21,7 @@ data class SegmentedItem(
     val enabled: Boolean = true,
 )
 
-/** 开关：material3 Switch（自带 thumb 平移动画）。 */
+/** 开关：同 [KkSwitch]，走 Mochi 开关（全 app 只有一种开关）。 */
 @Composable
 fun KkOptionSwitch(
     checked: Boolean,
@@ -31,7 +29,7 @@ fun KkOptionSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Switch(checked = checked, onCheckedChange = onCheckedChange, modifier = modifier, enabled = enabled)
+    KkSwitch(checked = checked, onCheckedChange = onCheckedChange, modifier = modifier, enabled = enabled)
 }
 
 /** 分组小标题（替代 Khromia OptionsText）。 */
@@ -50,7 +48,7 @@ fun KkOptionText(text: String) {
     Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
 }
 
-/** 带值的滑块：material3 Slider 底座。 */
+/** 带值的滑块：同 [KkSlider]，走 Mochi 滑杆（全 app 只有一种滑杆）。 */
 @Composable
 fun KkFancySlider(
     value: Float,
@@ -61,7 +59,7 @@ fun KkFancySlider(
     enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    Slider(
+    KkSlider(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,

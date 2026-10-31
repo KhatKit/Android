@@ -176,20 +176,19 @@ fun SettingPackagePage(
                         headlineContent = { Text(if (busy) "正在刷新…" else "刷新额度") },
                         supportingContent = { Text("重新拉取额度与到期时间") },
                     )
-                    if (activated) {
-                        item(
-                            onClick = {
-                                scope.launch {
-                                    busy = true
-                                    status = provider.clearHubActivation()
-                                    busy = false
-                                }
-                            },
-                            leadingContent = { Icon(cleaningServices, null) },
-                            headlineContent = { Text("清除本机激活信息") },
-                            supportingContent = { Text("仅清本机令牌，不影响账户") },
-                        )
-                    }
+                    item(
+                        onClick = {
+                            scope.launch {
+                                busy = true
+                                status = provider.clearHubActivation()
+                                busy = false
+                            }
+                        },
+                        leadingContent = { Icon(cleaningServices, null) },
+                        headlineContent = { Text("清除本机激活信息") },
+                        supportingContent = { Text("仅清本机令牌，不影响账户") },
+                        visible = activated,
+                    )
                 }
             }
 

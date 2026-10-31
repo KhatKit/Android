@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
@@ -43,7 +42,6 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
@@ -114,9 +112,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                                 }
                             )
                         },
-                        trailingContent = {
-                            Icon(arrowForward, contentDescription = null)
-                        },
+                        // 点了是弹出暂停时长对话框，不是进二级页，所以行尾不放 ›
                     )
                     settingItem(
                         SwitchSetting(
@@ -131,16 +127,15 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             },
                         )
                     )
-                    if (displaySetting.enableNotificationOnMessageGeneration) {
-                        settingItem(
-                            SwitchSetting(
-                                R.string.setting_display_page_live_update_notification,
-                                R.string.setting_display_page_live_update_notification_desc,
-                                checked = displaySetting.enableLiveUpdateNotification,
-                                onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it)) },
-                            )
-                        )
-                    }
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_live_update_notification,
+                            R.string.setting_display_page_live_update_notification_desc,
+                            checked = displaySetting.enableLiveUpdateNotification,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it)) },
+                        ),
+                        visible = displaySetting.enableNotificationOnMessageGeneration,
+                    )
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_floating_chat,

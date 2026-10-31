@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.theme
 
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.MochiDefaults
 
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
@@ -182,8 +183,10 @@ object CustomColors {
      * 页面底色会比顶栏深，正好又成了「配色反了」。
      */
     val pageContainerColor: Color
-        @Composable get() =         colorScheme.surface
-    
+        // Mochi 分组页底色（iOS systemGroupedBackground）：浅色 surfaceContainer、深色 surfaceContainerLowest，
+        // 卡片/分组行用 MochiDefaults.groupedContainer()（浅色纯白、深色 surfaceContainer），两级刚好反向拉开。
+        @Composable get() = MochiDefaults.groupedBackground()
+
 
     /**
      * 顶栏配色。MD3Exp 下**深浅主题都给 surfaceContainer**：顶栏必须比页面底色
@@ -215,16 +218,16 @@ object CustomColors {
     //   页面 → 组 → 行 三级各差一档：surface → surfaceContainer → surfaceContainerHigh。
     val cardColors: CardColors
         @Composable get() = CardDefaults.cardColors(
-            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainer
+            containerColor = MochiDefaults.groupedContainer()
         )
 
     val cardColorsOnSurfaceContainer: CardColors
         @Composable get() = CardDefaults.cardColors(
-            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainerHigh
+            containerColor = MochiDefaults.groupedContainer()
         )
 
     val listItemColors: ListItemColors
         @Composable get() = ListItemDefaults.colors(
-            containerColor = if (isMiuix) MochiTheme.colorScheme.surfaceContainer else colorScheme.surfaceContainer
+            containerColor = MochiDefaults.groupedContainer()
         )
 }

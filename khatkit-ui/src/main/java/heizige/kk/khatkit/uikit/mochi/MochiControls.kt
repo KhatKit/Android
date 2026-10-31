@@ -1,9 +1,13 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiSwitch
 import ui.feice.mochi.basic.MochiSlider
+import ui.feice.mochi.basic.MochiTextFieldDefaults
+import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.utils.MochiHapticProfile
 import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.MaterialTheme
@@ -35,10 +39,12 @@ import androidx.compose.material.icons.Icons
 import ui.feice.mochi.list.MochiListDefaults
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.LocalIndication
@@ -47,11 +53,14 @@ import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.TextRange
@@ -60,6 +69,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.MochiDefaults
+import ui.feice.mochi.theme.MochiIcon
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 /**
  * P4b：Kedge 按钮/标签/表单族的 Mochi 版。
@@ -129,6 +145,18 @@ fun MochiTextButton(
     ) { content() }
 }
 
+/**
+ * 顶栏里的图标按钮是否按「栏按钮」画（有底色 + 玻璃/模糊，和设置页左上返回同一套）。
+ * 由顶栏组件（MochiTitleBar 的各处包装）下发，页面不用自己判断。
+ */
+val LocalKkBarIconButton = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+/** 顶栏按钮槽的包装：里面用 [MochiIconButton] 会按栏按钮（圆底 + 栏玻璃/模糊 + 栏颜色）画。 */
+@Composable
+fun KkBarIconScope(content: @Composable () -> Unit) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalKkBarIconButton provides true, content = content)
+}
+
 @Composable
 fun MochiIconButton(
     onClick: () -> Unit,
@@ -140,15 +168,27 @@ fun MochiIconButton(
     colors: Any? = null,
     content: @Composable () -> Unit,
 ) {
-    // INT2①：图标按钮直连 Mochi 真组件（Standard→Text/Tonal→Tonal/Filled→Filled），按压形变与触觉随库走。
+    // 顶栏上下文：和 MochiBackButton 同一枚栏按钮（圆底、栏的玻璃材质与颜色）
+    if (LocalKkBarIconButton.current) {
+        MochiBarIconButton(
+            onClick = onClick,
+            modifier = modifier,
+            enabled = enabled,
+            content = content,
+        )
+        return
+    }
+    // INT2①：图标按钮直连 Mochi 真组件，按压形变与触觉随库走。
+    // 带底色的两种走玻璃样式（Tonal→Glass、Filled→ProminentGlass）：主题材质里按钮是玻璃时和顶栏按钮一样画玻璃，
+    // 设置里选了实心（材质没有 control 玻璃）时库自动退回 Tonal / Filled，全 app 的圆钮跟着一个开关走。
     MochiRealIconButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
         style = when (variant) {
             MochiIconButtonVariant.Standard -> MochiRealButtonStyle.Text
-            MochiIconButtonVariant.Tonal -> MochiRealButtonStyle.Tonal
-            MochiIconButtonVariant.Filled -> MochiRealButtonStyle.Filled
+            MochiIconButtonVariant.Tonal -> MochiRealButtonStyle.Glass
+            MochiIconButtonVariant.Filled -> MochiRealButtonStyle.ProminentGlass
         },
     ) { content() }
 }
@@ -179,6 +219,118 @@ private fun MochiFieldFrame(
                 color = if (isError) scheme.error else scheme.onSurfaceVariant,
                 style = MochiTheme.textStyles.footnote,
             )
+        }
+    }
+}
+
+/**
+ * 带 composable 槽位的 Mochi 输入框（[Md3OutlinedTextFieldWithSlots] / [Md3TextFieldWithSlots] 的底座）。
+ *
+ * 外观照库里的 MochiTextField：填充底色、不描边，单行是 48dp 胶囊、多行是圆角矩形；
+ * label 放在框上方（footnote、次要色），placeholder 用次要色，supporting 在框下方，
+ * 错误态只换底色（error 12%），不做 MD3 的整圈描边。
+ *
+ * 保留「槽位」这层 API：label / placeholder / supportingText / leading / trailing 仍是 composable，
+ * 存量 100+ 个调用点不用改签名。
+ */
+@Composable
+private fun MochiSlotField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier,
+    label: (@Composable () -> Unit)?,
+    placeholder: (@Composable () -> Unit)?,
+    enabled: Boolean,
+    readOnly: Boolean,
+    isError: Boolean,
+    supportingText: (@Composable () -> Unit)?,
+    leadingIcon: (@Composable () -> Unit)?,
+    trailingIcon: (@Composable () -> Unit)?,
+    singleLine: Boolean,
+    minLines: Int,
+    maxLines: Int,
+    keyboardOptions: KeyboardOptions,
+    keyboardActions: KeyboardActions,
+    visualTransformation: VisualTransformation,
+    shapeOverride: Shape?,
+    textStyle: TextStyle?,
+) {
+    val cs = MochiTheme.colorScheme
+    val colors = MochiTextFieldDefaults.colors()
+    val fieldShape = shapeOverride ?: if (singleLine) {
+        MochiTextFieldDefaults.Shape
+    } else {
+        MochiRoundedRectangle(18.dp)
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            // 单行/多行切换、说明行出现时高度平滑变化
+            .kkAnimateContentSize()
+            .graphicsLayer { alpha = if (enabled) 1f else MochiDefaults.DisabledAlpha },
+    ) {
+        label?.let { slot ->
+            CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides cs.onSurfaceVariant,
+            ) {
+                ProvideTextStyle(MochiTheme.textStyles.footnote) {
+                    Box(Modifier.padding(bottom = 6.dp)) { slot() }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (isError) colors.errorContainer else colors.container, fieldShape)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = if (singleLine) 0.dp else 12.dp,
+                    bottom = if (singleLine) 0.dp else 12.dp,
+                )
+                .heightIn(min = if (singleLine) MochiTextFieldDefaults.Height else 0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            leadingIcon?.invoke()
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                enabled = enabled,
+                readOnly = readOnly,
+                singleLine = singleLine,
+                minLines = minLines,
+                maxLines = maxLines,
+                cursorBrush = SolidColor(cs.primary),
+                textStyle = (textStyle ?: MochiTheme.textStyles.body).copy(color = cs.onSurface),
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                visualTransformation = visualTransformation,
+                decorationBox = { inner ->
+                    Box {
+                        if (value.isEmpty() && placeholder != null) {
+                            CompositionLocalProvider(
+                                androidx.compose.material3.LocalContentColor provides colors.placeholder,
+                            ) {
+                                ProvideTextStyle(MochiTheme.textStyles.body) { placeholder() }
+                            }
+                        }
+                        inner()
+                    }
+                },
+            )
+            trailingIcon?.invoke()
+        }
+        supportingText?.let { slot ->
+            CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides
+                    if (isError) cs.error else cs.onSurfaceVariant,
+            ) {
+                ProvideTextStyle(MochiTheme.textStyles.footnote) {
+                    Box(Modifier.padding(top = 6.dp, start = 4.dp)) { slot() }
+                }
+            }
         }
     }
 }
@@ -250,26 +402,26 @@ fun Md3TextField(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    // U3：输入类回 material3 TextField（配色/圆角由 U2 Bridge 提供）。
-    androidx.compose.material3.TextField(
+    MochiSlotField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
+        label = label?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it) } },
         enabled = enabled,
         readOnly = readOnly,
-        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
-        label = label?.let { { androidx.compose.material3.Text(it) } },
-        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
+        isError = isError,
+        supportingText = supportingText?.let { { Text(it) } },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        supportingText = supportingText?.let { { androidx.compose.material3.Text(it) } },
-        isError = isError,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
+        shapeOverride = null,
+        textStyle = textStyle,
     )
 }
 
@@ -297,27 +449,26 @@ fun Md3OutlinedTextField(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    // U3：输入类回 material3 TextField（配色/圆角由 U2 Bridge 提供）。
-    androidx.compose.material3.OutlinedTextField(
+    MochiSlotField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
+        label = label?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it) } },
         enabled = enabled,
         readOnly = readOnly,
-        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
-        label = label?.let { { androidx.compose.material3.Text(it) } },
-        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
+        isError = isError,
+        supportingText = supportingText?.let { { Text(it) } },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        supportingText = supportingText?.let { { androidx.compose.material3.Text(it) } },
-        isError = isError,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
-        shape = shape,
+        shapeOverride = null,
+        textStyle = textStyle,
     )
 }
 
@@ -407,35 +558,31 @@ fun MochiOptionItem(
     selected: Boolean = false,
     // UI-2：行最小高，默认取 Mochi 真行件度量（MochiListDefaults.RowMinHeight = 52dp），需要更高时按页覆盖。
     minHeight: Dp = MochiListDefaults.RowMinHeight,
+    // 行尾「›」：点进去是下一级页面的行才开（同 MochiListRow 的 chevron）。
+    // 弹窗/选择器/开关/外链行不开。画在 trailingContent 之后，见 [KkChevron]。
+    chevron: Boolean = false,
 ) {
-    // INT2①③ + OPT1：选项行走 Mochi 真按压形变（mochiPressDeform：缩 0.96 + 跟手偏移）+ kkPressState 高光
-    // + 打开触觉；三者都受 LocalKkEffectsEnabled 控制，关掉时整行退回普通 clickable。
-    val effects = LocalKkEffectsEnabled.current
-    val haptics = rememberKkHaptics()
-    val interaction = remember { MutableInteractionSource() }
+    // 交互照 Mochi 列表行（MochiListRow）：不形变、没有水波纹和触觉，按下整行灰底高亮、松手淡出。
+    // 分组卡片（KkGroupedColumn）里的行把按下强度交给组，分隔线跟着淡出；底色默认透明，透出组的底色。
+    // 独立一行就是一张单行卡片，高亮裁在它自己的外形里。
+    val grouped = rememberKkGroupedRow()
+    val ownPress = remember { Animatable(0f) }
+    val container = when {
+        backgroundColor != Color.Unspecified -> backgroundColor
+        grouped != null -> Color.Transparent
+        else -> MochiListDefaults.colors().container
+    }
+    // 组内的行不自带圆角：高亮铺满整行，首尾两行的大圆角由组的外形裁出来（同 MochiListCard）
+    val rowShape = if (grouped != null) RectangleShape else shape
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (effects) Modifier.mochiPressDeform() else Modifier)
-            .kkPressState(interaction, enabled = effects && onClick != null)
-            .background(
-                if (backgroundColor == Color.Unspecified) MochiTheme.colorScheme.surfaceContainer else backgroundColor,
-                shape,
-            )
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interaction,
-                        indication = LocalIndication.current,
-                        onClick = {
-                            if (effects) haptics.open()
-                            onClick()
-                        },
-                    )
-                } else {
-                    Modifier
-                },
-            )
+            // 行内容增减（副标题出现 / 消失、行内展开说明）走 Mochi 的尺寸弹簧
+            .kkAnimateContentSize()
+            .kkGroupedRowPosition(grouped)
+            .background(container, rowShape)
+            .clip(rowShape)
+            .kkRowTap(onClick, enabled = true, press = grouped?.press ?: ownPress, selected = selected)
             // UI-1：行高对齐 Mochi 列表行 56dp。40dp 头像/图标 + 上下各 8dp = 56dp；
             // 纯文字行靠 heightIn 托到 56dp（原来上下各 12dp，带 40dp 头像时是 64dp）。
             .heightIn(min = minHeight)
@@ -445,7 +592,7 @@ fun MochiOptionItem(
     ) {
         leadingContent?.invoke()
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).kkGroupedTextStart(grouped),
             // 标题与 supporting（「记忆: 0」chip / 标签）之间给 2dp：原来是 0，chip 直接贴字基线
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -453,7 +600,19 @@ fun MochiOptionItem(
             titleContent()
             supportingContent?.invoke()
         }
-        trailingContent?.invoke()
+        if (chevron && trailingContent != null) {
+            // 行尾值/按钮与 › 之间照 Mochi 行尾的 8dp（行内其余间隔是 12dp）
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                trailingContent()
+                KkChevron()
+            }
+        } else {
+            trailingContent?.invoke()
+            if (chevron) KkChevron()
+        }
         // UI-2：选中态用 Mochi 行件同款对勾（行尾、12dp 间隔、主色），不额外加底色。
         if (selected) {
             Spacer(Modifier.width(12.dp))
@@ -463,6 +622,33 @@ fun MochiOptionItem(
                 tint = MochiTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
+        }
+    }
+}
+
+/**
+ * 行尾「下一级」箭头 ›：所有「点了进二级页」的行共用这一枚，字形/大小/颜色只在这里定。
+ *
+ * 照搬 Mochi 的 `MochiGlyphs.Chevron(colors.chevron, size = 14.dp)`（Mochi 里是 internal，拿不到）：
+ * 先找 `LocalMochiIconProvider` 里的同名图标（`chevron-forward`），没有才手画 2dp 圆头折线，
+ * 颜色取 `MochiListDefaults.colors().chevron`（次要色 70%）。只做指示，不接点击（点击归整行）。
+ */
+@Composable
+fun KkChevron(modifier: Modifier = Modifier) {
+    val tint = MochiListDefaults.colors().chevron
+    MochiIcon("chevron-forward", modifier.size(14.dp), tint = tint) { slot ->
+        Canvas(slot) {
+            val w = 2.dp.toPx()
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val hh = size.height * 0.36f
+            val hw = hh * 0.55f
+            val p = Path().apply {
+                moveTo(cx - hw, cy - hh)
+                lineTo(cx + hw, cy)
+                lineTo(cx - hw, cy + hh)
+            }
+            drawPath(p, tint, style = Stroke(w, cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
     }
 }
@@ -497,7 +683,6 @@ fun MochiExpandableOptionItem(
                 onClick?.invoke()
                 onExpandedChange(!expanded)
             },
-            modifier = modifier,
             shape = shape,
             backgroundColor = backgroundColor,
             leadingContent = leadingContent,
@@ -597,27 +782,27 @@ fun Md3OutlinedTextFieldWithSlots(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    // U3：带槽位的输入框同样回 material3 OutlinedTextField（槽位直接透传）。
-    androidx.compose.material3.OutlinedTextField(
+    // INT：输入框统一走 Mochi 外观（填充胶囊），槽位原样透传、调用点零改。
+    MochiSlotField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        enabled = enabled,
-        readOnly = readOnly,
-        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
         label = label,
         placeholder = placeholder,
+        enabled = enabled,
+        readOnly = readOnly,
+        isError = isError,
+        supportingText = supportingText,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        supportingText = supportingText,
-        isError = isError,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
-        shape = shape,
+        shapeOverride = null,
+        textStyle = textStyle,
     )
 }
 
@@ -634,16 +819,32 @@ fun Md3TextFieldWithState(
     shape: Shape? = null,
     colors: Any? = null,
 ) {
-    // U3：state 版输入框走 material3 的 TextFieldState 重载。
-    androidx.compose.material3.OutlinedTextField(
-        state = state,
+    // state 版输入框同样走 Mochi 外观：把 state 当成受控值（text 是 snapshot state，
+    // 外部 setText 后这里会跟着重组），避免再维护一条 BasicTextField(state) 的渲染分支。
+    val limits = lineLimits ?: androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine
+    val singleLine = limits is androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine
+    // 多行时把调用方的行数上限接过来：输入框长到上限就在框内滚动，不会把对话框越撑越高
+    val multiline = limits as? androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine
+    MochiSlotField(
+        value = state.text.toString(),
+        onValueChange = { state.setTextAndPlaceCursorAtEnd(it) },
         modifier = modifier,
+        label = null,
+        placeholder = placeholder?.let { { Text(it) } },
         enabled = enabled,
         readOnly = readOnly,
-        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
-        placeholder = placeholder?.let { { androidx.compose.material3.Text(it) } },
-        lineLimits = lineLimits ?: androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine,
-        shape = shape ?: MochiTheme.shapes.medium,
+        isError = false,
+        supportingText = null,
+        leadingIcon = null,
+        trailingIcon = null,
+        singleLine = singleLine,
+        minLines = multiline?.minHeightInLines ?: 1,
+        maxLines = if (singleLine) 1 else (multiline?.maxHeightInLines ?: Int.MAX_VALUE),
+        keyboardOptions = KeyboardOptions.Default,
+        keyboardActions = KeyboardActions.Default,
+        visualTransformation = VisualTransformation.None,
+        shapeOverride = shape,
+        textStyle = textStyle,
     )
 }
 
@@ -672,25 +873,25 @@ fun Md3TextFieldWithSlots(
     textStyle: TextStyle? = null,
     colors: Any? = null,
 ) {
-    // U3：填充式带槽位输入框也回 material3 TextField。
-    androidx.compose.material3.TextField(
+    MochiSlotField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        enabled = enabled,
-        readOnly = readOnly,
-        textStyle = textStyle ?: MochiTheme.textStyles.bodyLarge,
         label = label,
         placeholder = placeholder,
+        enabled = enabled,
+        readOnly = readOnly,
+        isError = isError,
+        supportingText = supportingText,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
-        supportingText = supportingText,
-        isError = isError,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
+        shapeOverride = shape,
+        textStyle = textStyle,
     )
 }

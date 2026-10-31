@@ -40,6 +40,14 @@ class UpdateChecker(
         initialValue = UiState.Loading,
     )
 
+    /** 页面里点「检测更新」用的一次性检查：不复用 [updateState]（那个只查一次、之后是缓存）。 */
+    suspend fun checkNow(): UiState<UpdateCheckResponse> =
+        runCatching { fetchUpdateInfo() }
+            .fold(
+                onSuccess = { UiState.Success(it) },
+                onFailure = { UiState.Error(it) },
+            )
+
     private fun checkUpdate(): Flow<UiState<UpdateCheckResponse>> = flow {
         emit(UiState.Loading)
         emit(

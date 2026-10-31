@@ -9,6 +9,25 @@ import heizige.kk.khatkit.uikit.mochi.BasicBottomSheet
 import heizige.kk.khatkit.uikit.mochi.LocalBottomSheetDismiss
 import heizige.kk.khatkit.uikit.mochi.KkSheetShell
 import heizige.kk.khatkit.ui.UiSheetOptions
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.uikit.mochi.MochiButton
+
+/**
+ * 为 true 时 [KhatKitSheet] 不弹层，把内容直接铺进当前页面（卡片整页承载用）。
+ * 标题、返回由页面自己给；只保留内容与确认按钮。
+ */
+val LocalKhatKitSheetInline = staticCompositionLocalOf { false }
 
 /**
  * BottomSheet 拖柄顶行右侧的一个动作（`ui.sheet` / `web.openLogin` 的 action）。
@@ -59,6 +78,11 @@ fun KhatKitSheet(
     pagerState: PagerState? = null,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
+    if (LocalKhatKitSheetInline.current) {
+        InlineSheet(confirmText, onConfirm, onDismiss, scrolls = lazyListState == null && pagerState == null, content)
+        return
+    }
+
     val hasTopBar = headerActions.isNotEmpty() ||
         (overflowIcon != null && overflowActions.isNotEmpty())
 
@@ -141,4 +165,26 @@ private fun TopBarSheet(
         bottomBar = { SheetCloseBar(dismissText) },
         content = { content(LocalBottomSheetDismiss.current) },
     )
+}
+
+/** 页面里的「弹层」：内容占满剩余高度，自己不滚动的内容由这里滚；确认按钮贴底。 */
+@Composable
+private fun InlineSheet(
+    confirmText: String?,
+    onConfirm: (() -> Unit)?,
+    onDismiss: () -> Unit,
+    scrolls: Boolean,
+    content: @Composable (onDismiss: () -> Unit) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f).fillMaxWidth().then(if (scrolls) Modifier.verticalScroll(rememberScrollState()) else Modifier)) {
+            content(onDismiss)
+        }
+        if (confirmText != null && onConfirm != null) {
+            MochiButton(
+                onClick = onConfirm,
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
+            ) { Text(confirmText) }
+        }
+    }
 }

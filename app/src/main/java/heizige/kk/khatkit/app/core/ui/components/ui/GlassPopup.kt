@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -114,10 +115,12 @@ fun GlassPopup(
     // PredictiveBackHandler 抢返回。代价：这条浮层失去了原来的「跟手进度」，卡片改为
     // 走 dismiss 的退场动画；保留 backProgress 只为下面两处绘制读值（恒为 0）。
     val backProgress = remember { Animatable(0f) }
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val popupBackTokenRoute = LocalPageRoute.current
     val popupBackToken = remember { Any() }
     DisposableEffect(!closing) {
         if (!closing) {
-            PageBackInterceptor.push(popupBackToken) {
+            PageBackInterceptor.push(popupBackToken, popupBackTokenRoute) {
                 dismiss()
                 true
             }
@@ -133,7 +136,7 @@ fun GlassPopup(
         label = "glass_popup_scrim",
     )
     val dark = rememberIsDarkTheme()
-    val cardColor = CustomColors.pageContainerColor
+    val cardColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
     // 半透明度取 0.82：再透就压不住背后的碎细节（当系统不支持 RenderEffect 时尤其明显），
     // 再实就看不出底下是模糊的页面，跟普通对话框没差别。
     val glassColor = cardColor.copy(alpha = 0.82f)

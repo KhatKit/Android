@@ -22,6 +22,9 @@ data class CardManifest(
 
     /** lua | js | auto | command */
     val engine: String = "auto",
+    val runtime: String? = null,
+    @SerialName("abi_version") val abiVersion: Int? = null,
+    val capabilities: List<String> = emptyList(),
     val entry: Entry = Entry(),
 
     /** none | elevated */
@@ -63,6 +66,7 @@ data class CardManifest(
     data class Entry(
         val lua: String? = null,
         val js: String? = null,
+        val wasm: String? = null,
     )
 
     @Serializable
@@ -72,7 +76,22 @@ data class CardManifest(
         val title: String = "",
         /** Optional least-privilege subset of requires.bridges for this entry. */
         val bridges: List<String>? = null,
+        /** 网格格数 `[列, 行]`；缺省时宿主按 [WidgetSize] 的默认值摆放。 */
+        val size: WidgetSize? = null,
     )
+
+    /** 欢迎页网格 4 列；行数上限 [MAX_ROWS]。用户拖动边框时只能落在 [min, max] 之间。 */
+    @Serializable
+    data class WidgetSize(
+        val default: List<Int> = listOf(4, 2),
+        val min: List<Int> = listOf(2, 1),
+        val max: List<Int> = listOf(MAX_COLUMNS, MAX_ROWS),
+    ) {
+        companion object {
+            const val MAX_COLUMNS = 4
+            const val MAX_ROWS = 6
+        }
+    }
 
     @Serializable
     data class Requires(
@@ -228,7 +247,27 @@ data class CardManifest(
     val isCommand: Boolean get() = engine == "command"
 
     /** 卡片要求的能力集合，供能力协商过滤 */
-    val requiredBridges: Set<String> get() = requires.bridges.toSet()
+    val requiredBridges: Set<String> get() = requires.bridges.toSet() + capabilities.flatMap { cap ->
+        when {
+            cap == "host" -> listOf("host", "time", "i18n")
+            cap == "ui:render" -> listOf("ui")
+            cap == "ai:chat" -> listOf("ai")
+            cap == "fs:workspace" -> listOf("fs")
+            cap == "media:pick" -> listOf("mediaPicker")
+            cap == "image:toolbox" -> listOf("imageToolbox")
+            cap == "haptics" -> listOf("system")
+            cap == "clipboard" -> listOf("tool")
+            cap.startsWith("net:") -> listOf("net")
+            cap.startsWith("dep:") -> listOf(cap.substringAfter(':'))
+            else -> listOf(cap)
+        }
+    }
+
+    /** Declared interaction capability; a particular invocation can still run headless. */
+    val hasUi: Boolean get() = requiredBridges.any { it in setOf("ui", "mediaPicker", "web") } ||
+        ui.isNotEmpty() || widget != null
+
+    val isWasm: Boolean get() = runtime == "wasm" || engine == "wasm"
 
     /** 卡片依赖的原生依赖包 */
     val requiredDependencies: List<DependencyReq> get() = requires.dependencies

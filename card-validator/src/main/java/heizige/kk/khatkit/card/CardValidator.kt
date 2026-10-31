@@ -19,7 +19,7 @@ data class CardIssue(
  * 传入脚本正文后，会扫描脚本里出现的 bridge 调用与域名是否已声明。
  */
 object CardValidator {
-    val ENGINES = setOf("lua", "js", "auto", "command")
+    val ENGINES = setOf("lua", "js", "wasm", "auto", "command")
     val PRIVILEGES = setOf("none", "elevated")
     val BRIDGES = setOf("tool", "net", "fs", "json", "crypto", "time", "host", "system", "ai", "mediaPicker", "ui", "web", "browser", "download", "store", "shizuku", "root", "accessibility", "imageToolbox", "schedule", "i18n")
     private val BRIDGE_METHODS = mapOf(
@@ -79,16 +79,31 @@ object CardValidator {
                     error("WIDGET_BRIDGES", "widget.bridges 必须包含 ui，且只能使用 requires.bridges 的子集")
                 }
             }
-            val entries = listOfNotNull(widget.entry.lua, widget.entry.js)
-            if (entries.isEmpty() ||
-                (manifest.engine == "lua" && widget.entry.lua.isNullOrBlank()) ||
-                (manifest.engine == "js" && widget.entry.js.isNullOrBlank())
-            ) error("WIDGET_ENTRY", "小组件需要与 engine 匹配的独立入口")
+            val entries = if (manifest.isWasm) listOfNotNull(widget.entry.wasm) else listOfNotNull(widget.entry.lua, widget.entry.js)
+            val matchesEngine = when {
+                manifest.isWasm -> widget.entry.wasm == "card.wasm"
+                manifest.engine == "lua" -> !widget.entry.lua.isNullOrBlank()
+                manifest.engine == "js" -> !widget.entry.js.isNullOrBlank()
+                else -> entries.isNotEmpty()
+            }
+            if (!matchesEngine) error("WIDGET_ENTRY", "小组件需要与 engine 匹配的入口")
+            widget.size?.let { size ->
+                val cells = listOf(size.min, size.default, size.max)
+                val valid = cells.all {
+                    it.size == 2 && it[0] in 1..CardManifest.WidgetSize.MAX_COLUMNS &&
+                        it[1] in 1..CardManifest.WidgetSize.MAX_ROWS
+                } && (0..1).all { axis -> size.min[axis] <= size.default[axis] && size.default[axis] <= size.max[axis] }
+                if (!valid) error(
+                    "WIDGET_SIZE",
+                    "widget.size 的 min/default/max 须为 [列, 行]，列 1..${CardManifest.WidgetSize.MAX_COLUMNS}、" +
+                        "行 1..${CardManifest.WidgetSize.MAX_ROWS}，且 min ≤ default ≤ max",
+                )
+            }
             entries.forEach { path ->
                 if (path.isBlank() || path.startsWith("/") || '\\' in path ||
                     path.split('/').any { it == ".." || it == "." || it.isEmpty() }
                 ) error("WIDGET_PATH", "小组件入口必须位于卡片目录内：$path")
-                if (path == manifest.entry.lua || path == manifest.entry.js) {
+                if (!manifest.isWasm && (path == manifest.entry.lua || path == manifest.entry.js)) {
                     error("WIDGET_MAIN_ENTRY", "小组件不能使用工具任务的入口：$path")
                 }
                 if (scripts.isNotEmpty() && path !in scripts) {
@@ -331,7 +346,7 @@ object CardValidator {
         }
 
         // engine 与 entry 一致
-        when (manifest.engine) {
+        when (if (manifest.isWasm) "wasm" else manifest.engine) {
             "lua" -> if (manifest.entry.lua.isNullOrBlank()) {
                 error("ENTRY_MISSING", "engine=lua 需要 entry.lua")
             }

@@ -4,19 +4,25 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.theme.MochiDefaults
+import ui.feice.mochi.theme.MochiTheme
 
 /**
- * 页面骨架的统一入口（U1b 起单树：MD3 骨架，旧双风格 分支已删除）。
+ * 设置/详情类页面的统一骨架：Mochi 紧凑标题栏 + Mochi 分组页底色，正文拿到 PaddingValues。
  *
- * 页面只提供 [title] 与 [content]；内容布局完全交给页面自己（不要把 content 塞进外层
- * LazyColumn 的 item，否则页面再套 LazyColumn 会拿到 maxHeight = Infinity）。
+ * 顶栏是 Mochi 自己的 MochiTitleBar（状态栏内边距、栏里的按钮、滚动边缘渐隐都由组件给），
+ * 页面底色取 MochiDefaults.groupedBackground()，正文左右边距由各页面自己负责 ——
+ * 与 Mochi 分组列表 MochiListSection 的 16dp 外边对齐即可。
  *
- * @param largeTitle 用大标题栏（默认）还是小标题栏（如 WebView 这类工具页）。
- * @param scrollBehavior MD3 折叠滚动行为；非空时由本层挂 nestedScroll 连接。
+ * largeTitle / scrollBehavior 只为兼容旧调用点保留，不再参与渲染：
+ * Mochi 的大标题页有自己的滚动接线（MochiLargeTitleScaffold），而这些页面的正文自带
+ * 滚动容器，套进大标题骨架会变成嵌套滚动。
  */
 @Composable
 fun KedgeSettingsPageScaffold(
@@ -29,43 +35,31 @@ fun KedgeSettingsPageScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: androidx.compose.material3.FabPosition =
         androidx.compose.material3.FabPosition.End,
-    largeTitle: Boolean = true,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
+    @Suppress("UNUSED_PARAMETER") largeTitle: Boolean = true,
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val nested = if (scrollBehavior != null) {
-        Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-    } else {
-        Modifier
-    }
     MochiPageScaffold(
-        modifier = modifier.then(nested),
+        modifier = modifier,
         topBar = {
-            if (largeTitle) {
-                heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar(
-                    title = title,
-                    navigationIcon = navigationIcon,
-                    actions = actions,
-                    scrollBehavior = scrollBehavior,
-                    colors = CustomColors.topBarColors,
-                )
-            } else {
-                heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar(
-                    title = title,
-                    navigationIcon = navigationIcon,
-                    actions = actions,
-                    scrollBehavior = scrollBehavior,
-                    colors = CustomColors.topBarColors,
-                )
-            }
+            MochiTitleBar(
+                title = title,
+                navigationIcon = { KkBarIconScope { navigationIcon() } },
+                actions = { KkBarIconScope { actions() } },
+                background = MochiTheme.colorScheme.background,
+                // 骨架（MochiPageScaffold）统一录正文、下发来源；材质没开玻璃时它是 null
+                backdrop = LocalKkBarBackdrop.current,
+            )
         },
         bottomBar = bottomBar,
         rail = rail,
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
-        md3ScrollBehavior = scrollBehavior,
-        containerColor = CustomColors.pageContainerColor,
+        containerColor = MochiDefaults.groupedBackground(),
     ) { innerPadding ->
         content(innerPadding)
     }
 }
+
+/** 与 Mochi 分组卡片一致的内容左右边距（页面正文自己 padding 时用它，别再写死 16dp）。 */
+val MochiPageContentPadding = PaddingValues(horizontal = 16.dp)

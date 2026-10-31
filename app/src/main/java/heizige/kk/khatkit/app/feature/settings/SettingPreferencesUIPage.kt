@@ -59,24 +59,28 @@ fun SettingPreferencesUIPage() {
                 ) {
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesTheme) },
+                        chevron = true,
                         leadingContent = { Icon(dashboard, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_themes_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_themes)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },
+                        chevron = true,
                         leadingContent = { Icon(chatBubble, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_message_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_message)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesUIFont) },
+                        chevron = true,
                         leadingContent = { Icon(title, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_font_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_font)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesUICode) },
+                        chevron = true,
                         leadingContent = { Icon(code, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_preferences_ui_code_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_preferences_ui_code)) },

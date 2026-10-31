@@ -99,6 +99,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.videocam
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 
@@ -221,7 +222,7 @@ fun ChatMessage(
             exit = slideOutVertically { it / 2 } + fadeOut()
         ) {
             Column(
-                modifier = Modifier.animateContentSize()
+                modifier = Modifier.kkAnimateContentSize()
             ) {
                 ChatMessageActionButtons(
                     message = message,
@@ -432,7 +433,7 @@ private fun MessagePartsBlock(
                     val isOptionItemOnlyBlock = block.steps.fastAll { it.usesOptionItemStyle() }
                     val hasOptionItemStep = block.steps.any { it.usesOptionItemStyle() }
                     ChainOfThought(
-                        modifier = Modifier.animateContentSize(),
+                        modifier = Modifier.kkAnimateContentSize(),
                         steps = block.steps,
                         showTimeline = !isOptionItemOnlyBlock,
                         cardColors = CardDefaults.cardColors(
@@ -481,7 +482,7 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 KkSurface(
-                                    modifier = Modifier.animateContentSize(),
+                                    modifier = Modifier.kkAnimateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
                                     onClick = { onUserMessageClick?.invoke() },
@@ -504,7 +505,7 @@ private fun MessagePartsBlock(
                                 // 所以「装完看不见气泡」不会再复发。关掉后退回裸 Markdown 是
                                 // 用户主动选择，与用户侧 primaryContainer 气泡左右不对称属预期。
                                 KkSurface(
-                                    modifier = Modifier.animateContentSize(),
+                                    modifier = Modifier.kkAnimateContentSize(),
                                     shape = RoundedCornerShape(16.dp),
                                     color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
                                 ) {
@@ -527,7 +528,7 @@ private fun MessagePartsBlock(
                                         visual = true,
                                     ),
                                     onClickCitation = handleClickCitation,
-                                    modifier = Modifier.animateContentSize(),
+                                    modifier = Modifier.kkAnimateContentSize(),
                                 )
                             }
                         }
@@ -696,7 +697,7 @@ private fun MessagePartsBlock(
     // Annotations (always rendered at the end)
     if (annotations.isNotEmpty()) {
         Column(
-            modifier = Modifier.animateContentSize(),
+            modifier = Modifier.kkAnimateContentSize(),
         ) {
             var expand by remember { mutableStateOf(false) }
             if (expand) {

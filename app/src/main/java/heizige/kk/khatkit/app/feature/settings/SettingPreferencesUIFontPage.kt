@@ -42,6 +42,7 @@ import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.icons.deleteForever
@@ -189,36 +190,25 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                             }
                         }
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_font_size_title)) },
-                        supportingContent = {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    KkFancySlider(
-                                        value = displaySetting.fontSizeRatio,
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(fontSizeRatio = it))
-                                        },
-                                        valueRange = 0.5f..2f,
-                                        steps = 11,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(text = "${(displaySetting.fontSizeRatio * 100).toInt()}%")
-                                }
-                                MarkdownBlock(
-                                    content = stringResource(R.string.setting_display_page_font_size_preview),
-                                    style = LocalTextStyle.current.copy(
-                                        fontSize = LocalTextStyle.current.fontSize * displaySetting.fontSizeRatio,
-                                        lineHeight = LocalTextStyle.current.lineHeight * displaySetting.fontSizeRatio,
-                                        fontFamily = chatFontFamily
-                                    )
+                    sliderItem(
+                        title = { stringResource(R.string.setting_display_page_font_size_title) },
+                        value = displaySetting.fontSizeRatio,
+                        onValueChange = { updateDisplaySetting(displaySetting.copy(fontSizeRatio = it)) },
+                        valueRange = 0.5f..2f,
+                        defaultValue = 1.0f,
+                        steps = 11,
+                        displayScale = 100f,
+                        suffix = "%",
+                        supporting = {
+                            MarkdownBlock(
+                                content = stringResource(R.string.setting_display_page_font_size_preview),
+                                style = LocalTextStyle.current.copy(
+                                    fontSize = LocalTextStyle.current.fontSize * displaySetting.fontSizeRatio,
+                                    lineHeight = LocalTextStyle.current.lineHeight * displaySetting.fontSizeRatio,
+                                    fontFamily = chatFontFamily
                                 )
-                            }
-                        }
+                            )
+                        },
                     )
                 }
             }

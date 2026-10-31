@@ -11,13 +11,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import ui.feice.mochi.ios.iosMaterials
 import ui.feice.mochi.theme.ColorSchemeMode
+import ui.feice.mochi.theme.DefaultKeyColor
 import ui.feice.mochi.theme.MochiMaterials
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.theme.ThemeController
+import ui.feice.mochi.theme.animateMochiColorScheme
+import ui.feice.mochi.effect.content.MochiThemeRevealHost
+import ui.feice.mochi.effect.content.MochiThemeRevealState
+import ui.feice.mochi.effect.content.rememberMochiThemeRevealState
+import ui.feice.mochi.effect.content.revealIfShadeChanges
+import androidx.compose.runtime.staticCompositionLocalOf
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
@@ -90,9 +98,30 @@ fun KhatKitTheme(
     // 调色板明暗必须由**本 app 的 ColorMode** 决定，不能交给 MochiTheme 的默认 controller：
     // 默认 controller 是 ColorSchemeMode.System，只看 isSystemInDarkTheme()，
     // 于是「设置里选浅色 + 系统是深色」会得到一套深色配色（而 LocalDarkMode/扩展色/系统栏图标
-    // 都按浅色走），这就是浅/深色适配错位的根因。预设主题运行期不注入，只换明暗。
-    val mochiController = remember(colorMode) {
-        ThemeController(colorSchemeMode = colorMode.toMochiColorSchemeMode())
+    // 都按浅色走），这就是浅/深色适配错位的根因。
+    //
+    // 种子色：关掉动态取色时用当前主题（预设 / 自定义）的种子色，开启时交给系统壁纸取色（Monet）。
+    // 之前这里只传了明暗、没传 keyColor，于是换预设主题只改了设置里的 id、界面颜色不动 —— 选色形同虚设。
+    val themeSeed: Color? = if (settings.dynamicColor) {
+        null
+    } else {
+        PresetThemes.firstOrNull { it.id == settings.themeId }?.standardLight?.primary
+            ?: settings.customThemes.firstOrNull { it.id == settings.themeId }
+                ?.let { Color(it.primaryColorArgb.toInt()) }
+    }
+    val mochiController = remember(colorMode, settings.dynamicColor, themeSeed) {
+        ThemeController(
+            colorSchemeMode = if (settings.dynamicColor) {
+                when (colorMode) {
+                    ColorMode.SYSTEM -> ColorSchemeMode.MonetSystem
+                    ColorMode.LIGHT -> ColorSchemeMode.MonetLight
+                    ColorMode.DARK -> ColorSchemeMode.MonetDark
+                }
+            } else {
+                colorMode.toMochiColorSchemeMode()
+            },
+            keyColor = themeSeed ?: DefaultKeyColor,
+        )
     }
 
     val isMiuix = false
@@ -144,9 +173,13 @@ fun KhatKitTheme(
     //  玻璃只作用在 bars / menus / sheets / alerts（MochiMaterials 的语义，§7-4）；
     //  正文按钮是否玻璃由按钮样式决定，这里不碰，也不在页面里写外观分支。
     val effectsEnabled = settings.displaySetting.effectsEnabled
-    val mochiMaterials = remember(effectsEnabled, darkTheme) {
+    val glassButtons = settings.displaySetting.glassButtons
+    val mochiMaterials = remember(effectsEnabled, glassButtons, darkTheme) {
         if (effectsEnabled) {
-            iosMaterials(isDark = darkTheme, themeAccent = true)
+            val ios = iosMaterials(isDark = darkTheme, themeAccent = true)
+            // 按钮选实心：按钮的玻璃（control）是从 bar 回退来的，把 bar 一起拿掉；
+            // 警告框原本也跟 bar（「透」档），显式留住，菜单 / 面板本来就是单独的「实」档不受影响
+            if (glassButtons) ios else ios.copy(bar = null, alert = ios.bar, clear = null)
         } else {
             MochiMaterials()
         }
@@ -154,8 +187,14 @@ fun KhatKitTheme(
 
     // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
     // colorScheme / textStyles / shapes，由 MochiTheme 独家管理系统栏图标对比度。
+    // 换主题的转场照 Mochi demo（MainActivity / DemoTheme）：揭开宿主包在主题外面，只拍画面；
+    // 揭开 / 交叉淡化期间配色一步到位，洞里露出来的已经是最终颜色。嵌套的 KhatKitTheme 共用最外层那一个。
+    val outerReveal = LocalKkThemeReveal.current
+    val ownReveal = rememberMochiThemeRevealState()
+    val reveal = outerReveal ?: ownReveal
+    val themed: @Composable () -> Unit = {
     MochiTheme(
-        controller = mochiController,
+        colors = animateMochiColorScheme(mochiController.currentColorScheme(), animate = !reveal.isRevealing),
         systemBarAppearance = !darkTheme,
         materials = mochiMaterials,
     ) {
@@ -188,5 +227,31 @@ fun KhatKitTheme(
                 }
             }
         }
+    }
+    }
+    CompositionLocalProvider(LocalKkThemeReveal provides reveal) {
+        if (outerReveal == null) {
+            MochiThemeRevealHost(reveal, androidx.compose.ui.Modifier.fillMaxSize(), themed)
+        } else {
+            themed()
+        }
+    }
+}
+
+/**
+ * 换主题的转场（Mochi 的 [MochiThemeRevealState]），由最外层 [KhatKitTheme] 提供。
+ * 换明暗用 `revealIfShadeChanges`（从手指处揭开），换整套外观（效果开关等）用 `crossfadeOrChange`。
+ */
+val LocalKkThemeReveal = staticCompositionLocalOf<MochiThemeRevealState?> { null }
+
+/**
+ * 切颜色模式的统一入口（照 Mochi demo）：深浅真的变了才从手指处揭开，没变（系统浅色时在「浅色」「跟随系统」间切）就直接改。
+ */
+@Composable
+fun rememberColorModeChanger(state: androidx.compose.runtime.MutableState<ColorMode>): (ColorMode) -> Unit {
+    val reveal = LocalKkThemeReveal.current
+    val systemDark = isSystemInDarkTheme()
+    return { mode ->
+        reveal.revealIfShadeChanges(state.value.resolveDark(systemDark), mode.resolveDark(systemDark)) { state.value = mode }
     }
 }

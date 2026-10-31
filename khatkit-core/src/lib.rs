@@ -2,6 +2,7 @@ mod host;
 mod js_engine;
 mod json_util;
 mod lua_engine;
+mod wasm;
 
 use host::Host;
 use jni::objects::{JClass, JObject, JString};

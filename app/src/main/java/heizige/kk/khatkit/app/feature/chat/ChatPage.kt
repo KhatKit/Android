@@ -1,5 +1,14 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.effect.content.mochiBlurReveal
+import androidx.compose.runtime.SideEffect
+import ui.feice.mochi.navigation.MochiTitleBarDefaults
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.effect.content.MochiBlurCrossfade
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -13,6 +22,8 @@ import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -47,6 +58,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
+import heizige.kk.khatkit.app.core.ui.components.ui.greetingMessage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -266,7 +278,14 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
             // 大屏（永久侧栏）：Mochi 没有"常驻"样式，这里用一排定宽栏放同一份内容，
             // 侧栏开着时抽屉语义不需要（没有遮罩/手势），所以 state 传 null。
             Row(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.width(320.dp).fillMaxHeight()) {
+                // 常驻侧栏不经过 MochiSidebarLayout，系统栏 insets 在这里自己垫（抽屉内容不再垫）
+                Box(
+                    modifier = Modifier
+                        .width(320.dp)
+                        .fillMaxHeight()
+                        .statusBarsPadding()
+                        .navigationBarsPadding(),
+                ) {
                     ChatDrawerContent(
                         navController = navController,
                         current = conversation,
@@ -528,6 +547,8 @@ internal fun ChatScaffold(
                         // getAssistantById(conversation.assistantId) ?: getCurrentAssistant()
                         // 解析过，这里不再让顶栏自己解析一遍（两处各解析一次正是历史 bug 的温床）。
                         role = assistant,
+                        // 和下面的欢迎层同一个条件：空会话顶栏显示问候语，发出第一条就换回角色名 + 模型名
+                        welcome = !archived && !previewMode && conversation.messageNodes.isEmpty(),
                         hazeState = hazeState,
                         bigScreen = bigScreen,
                         sidebarState = sidebarState,
@@ -539,17 +560,7 @@ internal fun ChatScaffold(
                             previewSearchQuery = ""
                         },
                         scrollBehavior = scrollBehavior,
-                        onOpenRolePanel = { roleId ->
-                            // 右上角三横杠：进角色聊天面板。roleId 是顶栏**已解析出的那个
-                            // 角色**（topBarRole.id，含 `?: 当前角色` 回退），导航与面板查询
-                            // 同源；会话 id 只给「重命名当前聊天」用。
-                            navController.navigate(
-                                Screen.RoleChatPanel(
-                                    roleId = roleId.toString(),
-                                    conversationId = conversation.id.toString(),
-                                )
-                            )
-                        },
+                        listState = chatListState,
                         onClickMenu = {
                             previewMode = !previewMode
                         },
@@ -834,6 +845,8 @@ private fun TopBar(
      * 顶栏与正文背景（[AssistantBackground]）共用同一个实例，避免两处各解析一次而分叉。
      */
     role: Assistant,
+    /** 空会话：标题换成时段问候语、副标题换成「今天想完成什么?」，有消息后模糊交叉淡化回角色名 + 模型名。 */
+    welcome: Boolean,
     /** 与正文背景同一个 haze 源，供顶栏在角色有自定义背景时做毛玻璃。 */
     hazeState: HazeState,
     sidebarState: MochiSidebarState,
@@ -843,12 +856,15 @@ private fun TopBar(
     onSearchQueryChange: (String) -> Unit,
     onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
+    /** 消息列表：顶栏底色 / 渐隐跟着它是否滚进栏下面（照 Mochi demo 的聊天页）。 */
+    listState: LazyListState,
     onClickMenu: () -> Unit,
-    onOpenRolePanel: (roleId: Uuid) -> Unit,
     onRoleClick: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    val navController = LocalNavController.current
+    // 照 Mochi demo 的聊天页（SidebarPage 的 ChatScreen）：MochiTitleBar 盖在列表上，标题居中、
+    // 副标题是模型名；左边侧边栏按钮，右边搜索 + 角色面板，都是栏按钮。内容停在顶部时栏没有底色，
+    // 滚进栏下面才渐渐出来。栏高固定，不再折叠：把共享折叠行为的可折叠高度设成 0，否则它会吃掉全部滚动。
+    SideEffect { scrollBehavior.state.heightOffsetLimit = 0f }
 
     // 搜索（预览）展开进度：预测返回手势跟手收起
     val searchExpand = rememberSearchExpandState(
@@ -857,49 +873,25 @@ private fun TopBar(
     )
     val searchProgress = searchExpand.progress
     val searchVisible by remember { derivedStateOf { searchProgress.value > 0.001f } }
-    val titleVisible by remember { derivedStateOf { searchProgress.value < 0.999f } }
 
     val searchFocus = remember { FocusRequester() }
-    var focusLargeTitleRow by remember { mutableStateOf(true) }
     LaunchedEffect(previewMode) {
         if (previewMode) {
-            if (true) {
-                focusLargeTitleRow = scrollBehavior.state.collapsedFraction < 0.5f
-            }
             delay(100)
             searchFocus.requestFocus()
         }
     }
 
     // 顶栏角色 = 调用方传入的那个角色（与正文背景同一个 Assistant 实例）。
+    // 标题是角色名、副标题是模型名；会话标题不上顶栏，改名入口在角色聊天面板（ChatRolePanelPage）。
     val topBarRole = role
     val topBarModel = settings.findModelById(topBarRole.chatModelId ?: settings.chatModelId)
-    // 顶栏标题区改成「角色」驱动：头像 + 角色名，副标题是模型名。
-    // 会话标题（conversation.title）不再上顶栏 —— 它是会话属性，不是角色身份；
-    // 改名入口随长按标题一起移到角色聊天面板（ChatRolePanelPage）。
-    val roleName = topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
+    val roleName = if (settings.init) "" else topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
     val roleModelName = topBarModel?.displayName.orEmpty()
 
-    // 角色有没有自定义底色（背景图 / 流光）。有的话顶栏不能再自带一块不透明色：
-    // 正文里的 AssistantBackground 是按整页铺的（Scaffold 的 content 从 (0,0) 起布局，
-    // innerPadding 只是传给列表当 contentPadding），顶栏只要画了实色就是「盖住角色背景」，
-    // 也正是用户说的「顶栏和正文不是一个角色」的观感来源之一。
+    // 角色有自定义底色（背景图 / 流光）时栏不画底色，把底色让给正文那张背景；开模糊时叠一层 haze。
     val roleHasCustomBackground = role.background != null
-    // MD3 顶栏底色：
-    //  - 无自定义背景 → 与改造前逐像素一致（静止态 pageContainerColor，滚动后渐变到
-    //    CustomColors.topBarColors 的 surfaceContainer）；
-    //  - 有自定义背景 → 两态都透明，把底色让给正文那张背景；开模糊时再叠一层 haze
-    //    （与 Miuix 侧 backdrop 毛玻璃口径对齐），关模糊时就是纯透明。
-    // 折叠态与展开态吃的是同一份 colors，不会出现「展开透明、收起变灰块」。
-    val chatTopBarColors = if (roleHasCustomBackground) {
-        TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent,
-        )
-    } else {
-        scrollLinkedTopBarColors(CustomColors.topBarColors, scrollBehavior)
-    }
-    val chatTopBarModifier =
+    val barModifier =
         if (roleHasCustomBackground && settings.displaySetting.enableBlurEffect) {
             Modifier.hazeBlur(
                 input = HazeInput.Sources(hazeState),
@@ -908,222 +900,131 @@ private fun TopBar(
         } else {
             Modifier
         }
+    val cs = MochiTheme.colorScheme
+    val edgeProgress = MochiScrollEdgeDefaults.progress(listState)
 
-    /**
-     * 标题区的富内容（头像 + 角色名 / 模型）。两条风格分支共用同一份：
-     * - MD3：作为 `LargeFlexibleTopAppBar` 的 `title` 槽，展开行与收起行各渲染一次，
-     *   行内字阶由栏下发（沿用改造前按 `LocalTextStyle` 判行的写法）；
-     * - Miuix：`KedgeMiuixMorphingTitleBar` 的 `titleContent` 覆盖层，组件通过
-     *   [LocalMorphingTitleLarge] 明确告知当前是折叠行还是大标题行。
-     * 点击仍走 onRoleClick（Miuix 靠组件自带的透明点击覆盖层，MD3 靠下面 combinedClickable）。
-     */
-    val roleTitleContent: @Composable () -> Unit = {
-        val largeRow = false ||
-            LocalTextStyle.current.fontSize > MaterialTheme.typography.titleLarge.fontSize
-        if (settings.init) {
-            RoleTitlePlaceholder(largeRow = largeRow)
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (largeRow) 12.dp else 8.dp),
-            ) {
-                UIAvatar(
-                    name = roleName,
-                    value = topBarRole.avatar,
-                    avatarShape = topBarRole.avatarShape,
-                    defaultIconName = settings.findModelProviderName(
-                        topBarRole.chatModelId ?: settings.chatModelId
-                    ),
-                    avatarColor = topBarRole.avatarColor,
-                    onUpdate = null,
-                    // 折叠行/大标题行同尺寸 32dp（= UIAvatar 内部默认值）。
-                    // 原来按 largeRow 分 40/26：Miuix 覆盖层的字阶判定不可靠，折叠行实际会拿到
-                    // 大标题字阶而画成 40dp，26dp 分支等于空操作；顶栏高度两态都容得下 32dp。
-                    // 需要改尺寸时只改这里，UIAvatar 内部的 `size(32.dp)` 会被外层固定尺寸覆盖
-                    // （enforceIncoming），不会再抬回 32dp。
-                    modifier = Modifier.size(32.dp),
-                )
-                Column {
-                    Text(
-                        roleName,
-                        style = LocalTextStyle.current,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (roleModelName.isNotBlank()) {
-                        Text(
-                            roleModelName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LocalContentColor.current.copy(0.65f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    val largeTitle: @Composable () -> Unit = {
-        val titleStyle = LocalTextStyle.current
-        val isLargeTitleRow = titleStyle.fontSize > MaterialTheme.typography.titleLarge.fontSize
-        Box {
-            if (titleVisible) {
-                KkSurface(
-                    modifier = Modifier.graphicsLayer {
-                        alpha = 1f - searchProgress.value
-                        translationX = -searchProgress.value * 24.dp.toPx()
-                    }
+    Box(barModifier.fillMaxWidth()) {
+        // 标题区的点击（切换角色）与搜索框，放在 MochiTitleBar **下面**画：
+        // 栏里的按钮（搜索 / 角色面板）在上面先吃触摸，标题区没有 pointerInput，
+        // 点标题才会落到这一层。以前这层画在栏上面，左右各让 64dp 仍压住搜索按钮左半边，
+        // 点搜索像没反应 —— 现在把层级换过来，两边都能点。
+        // 栏高 56、左右各让出 64 给按钮
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(MochiTitleBarDefaults.Height)
+                .padding(horizontal = MochiButtonDefaults.BarHorizontalPadding + 64.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (!searchVisible) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
                         .combinedClickable(
                             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                             indication = null,
                             onClick = { if (!settings.init) onRoleClick() },
                         ),
-                    color = Color.Transparent,
+                )
+            } else {
+                val navTitle = MochiTheme.textStyles.navTitle
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .mochiBlurReveal({ searchProgress.value }, rise = 6.dp),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    roleTitleContent()
-                }
-            }
-            if (searchVisible) {
-                Box(Modifier.fillMaxWidth(0.65f + 0.35f * searchProgress.value).graphicsLayer {
-                    alpha = searchProgress.value
-                    translationX = (1f - searchProgress.value) * 24.dp.toPx()
-                }) {
                     if (searchQuery.isBlank()) {
                         Text(
-                            stringResource(R.string.history_page_search), style = titleStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            stringResource(R.string.history_page_search),
+                            style = navTitle,
+                            color = cs.onSurfaceVariant.copy(alpha = 0.5f),
                         )
                     }
                     BasicTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
                         singleLine = true,
-                        textStyle = titleStyle.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.fillMaxWidth().then(
-                            if (isLargeTitleRow == focusLargeTitleRow) Modifier.focusRequester(searchFocus) else Modifier
-                        ),
+                        textStyle = navTitle.copy(color = cs.onSurface),
+                        cursorBrush = SolidColor(cs.primary),
+                        modifier = Modifier.fillMaxWidth().focusRequester(searchFocus),
                     )
                 }
             }
         }
-    }
-
-    // 会话重命名弹窗已随「长按标题改名」一起移到角色聊天面板（ChatRolePanelPage 的
-    // 「重命名当前聊天」option item），顶栏不再持有 EditState。
-
-    
-
-    // MD3 顶栏走 M3 的 LargeFlexibleTopAppBar，而不是 `KedgePageLargeTopBar`：
-    // 后者内部用 `scrollLinkedTopBarColors` 把 containerColor 硬写成
-    // `CustomColors.pageContainerColor`（不透明），调用方传进去的 colors 的 containerColor
-    // 会被丢掉 —— 角色有自定义背景时无论传什么都盖在背景上。这里改成由本页决定底色
-    // （见上面的 `chatTopBarColors` / `chatTopBarModifier`）：
-    //   - 无自定义背景：`scrollLinkedTopBarColors(CustomColors.topBarColors, scrollBehavior)`，
-    //     与走 wrapper 时逐像素一致（静止态页面色、滚动后渐到 surfaceContainer）；
-    //   - 有自定义背景：两态透明 + 可选 haze 毛玻璃，底色就是正文那张角色背景。
-    // 折叠/展开共用同一份 colors，不会出现「展开透明、收起变灰块」。
-    LargeFlexibleTopAppBar(
-        title = largeTitle,
-        modifier = chatTopBarModifier,
-        colors = chatTopBarColors,
-        scrollBehavior = scrollBehavior,
-        navigationIcon = {
-            // 菜单 ↔ 返回在**同一个槽位**交叉淡化：返回箭头替换菜单图标。
-            // 一个按钮槽内画两张图标（手法照侧边栏：只 alpha + 横移，不叠 scale）；
-            // 此前用两个按钮靠 enabled 互斥切换，0.5 附近既会被染成 disabled 色，
-            // 叠 scale 还会把跳变放大。
-            val p = searchProgress.value
-            Box(
-                // 大屏槽位随进度从 0 长到 48dp（小屏菜单常驻 48dp）：原本大屏没有
-                // 导航图标，搜索态才让位给返回箭头，槽宽跟着长，标题/输入框不会
-                // 因为占位突变而左右跳。
-                modifier = Modifier.width(if (bigScreen) 48.dp * p else 48.dp),
-                contentAlignment = if (bigScreen) Alignment.CenterStart else Alignment.Center,
-            ) {
+        // MochiBlurText 换字时自己做模糊交叉淡化，这里只换字符串
+        MochiTitleBar(
+            title = if (welcome) greetingMessage() else roleName,
+            subtitle = if (welcome) {
+                stringResource(R.string.chat_welcome_question)
+            } else {
+                roleModelName.takeIf { it.isNotBlank() && !settings.init }
+            },
+            background = if (roleHasCustomBackground) Color.Transparent else CustomColors.pageContainerColor,
+            // 搜索展开时标题模糊退场，让位给搜索框
+            titleProgress = { 1f - searchProgress.value },
+            backgroundProgress = edgeProgress,
+            // 页面骨架（MochiPageScaffold）统一录正文、下发来源；材质没开玻璃时它是 null
+            backdrop = LocalKkBarBackdrop.current,
+            navigationIcon = { KkBarIconScope {
+                // 侧边栏 ↔ 返回在同一个按钮里交叉淡化。大屏常驻侧边栏，只有搜索态才出返回键。
+                val p = searchProgress.value
                 if (!bigScreen || p > 0.001f) {
-                    MochiIconButton(
-                        onClick = {
-                            if (p >= 0.5f) {
-                                onCollapseSearch()
-                            } else {
-                                sidebarState.open()
-                            }
-                        },
-                        shapes = IconButtonDefaults.shapes(),
+                    MochiBarIconButton(
+                        onClick = { if (p >= 0.5f) onCollapseSearch() else sidebarState.open() },
+                        modifier = if (bigScreen) Modifier.graphicsLayer { alpha = searchProgress.value } else Modifier,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             if (!bigScreen) {
                                 Icon(
                                     imageVector = menu,
                                     contentDescription = "Messages",
-                                    modifier = Modifier.graphicsLayer {
-                                        alpha = 1f - p
-                                        translationX = p * 24.dp.toPx()
+                                    tint = cs.onSurface,
+                                    modifier = Modifier.size(22.dp).graphicsLayer {
+                                        alpha = 1f - searchProgress.value
+                                        translationX = searchProgress.value * 12.dp.toPx()
                                     },
                                 )
                             }
                             Icon(
                                 imageVector = arrowBack,
                                 contentDescription = null,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = p
-                                    translationX = (1f - p) * -24.dp.toPx()
+                                tint = cs.onSurface,
+                                modifier = Modifier.size(22.dp).graphicsLayer {
+                                    alpha = searchProgress.value
+                                    translationX = (1f - searchProgress.value) * -12.dp.toPx()
                                 },
                             )
                         }
                     }
-                }
-            }
-        },
-        // 标题槽只放一份富内容（头像 + 角色名 / 模型）：大标题行与折叠行都由
-        // `LargeFlexibleTopAppBar` 各渲染一次同一个 lambda，行内字阶由栏下发。
-        // roleName / roleModelName 只用于 Miuix 的量具文本与无障碍，不再重复传给 MD3 栏。
-        actions = {
-            MochiIconButton(
-                onClick = {
-                    onClickMenu()
-                },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                // search↔close 同槽交叉淡化，判定照 ImageToolbox SettingsContent：
-                // searching && hasQuery → close；!searching → search；
-                // 搜索态但还没输入时图标槽留空（两边都不命中）。
-                val searching = searchProgress.value >= 0.5f
-                val hasQuery = searchProgress.value >= 0.5f && searchQuery.isNotEmpty()
-                Box(contentAlignment = Alignment.Center) {
-                    if (!searching) {
-                        Icon(
-                            search,
-                            contentDescription = "Chat Options",
-                            modifier = Modifier.graphicsLayer {
-                                val progress = searchProgress.value
-                                alpha = 1f - progress
-                            },
-                        )
-                    }
-                    if (searching && hasQuery) {
-                        Icon(
-                            close,
-                            contentDescription = "Chat Options",
-                            modifier = Modifier.graphicsLayer {
-                                alpha = searchProgress.value
-                            },
-                        )
+                } }
+            },
+            actions = {
+                KkBarIconScope {
+                // 和设置页顶栏同一套图标按钮（MochiIconButton + shapes），不再单独用栏里的圆钮
+                MochiIconButton(
+                    onClick = onClickMenu,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    // 搜索 ↔ 清除：没在搜 → 放大镜；在搜且有字 → ×；在搜还没字 → 空
+                    val searching = searchProgress.value >= 0.5f
+                    MochiBlurCrossfade(
+                        when {
+                            !searching -> 0
+                            searchQuery.isNotEmpty() -> 1
+                            else -> 2
+                        },
+                    ) { icon ->
+                        when (icon) {
+                            0 -> Icon(search, "Chat Options")
+                            1 -> Icon(close, "Chat Options")
+                            else -> Box(Modifier.size(24.dp))
+                        }
                     }
                 }
-            }
-
-            // 右上角：原来这里是「新建会话」(addComment)。三横杠打开角色聊天面板。
-            MochiIconButton(
-                onClick = {
-                    if (!settings.init) onOpenRolePanel(topBarRole.id)
-                },
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(menu, stringResource(R.string.chat_role_panel_title))
-            }
-        },
-    )
+                }
+            },
+        )
+    }
 }

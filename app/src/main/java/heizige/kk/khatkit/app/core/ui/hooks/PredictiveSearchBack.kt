@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.hooks
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
@@ -42,10 +43,12 @@ fun rememberSearchExpandState(
     // U7a-6：返回收敛到 PageBackInterceptor（只在展开时登记），不再自己挂 PredictiveBackHandler。
     // 代价：搜索框收起不再跟手，改为直接把展开布尔置 false（progress 由上面的 LaunchedEffect 补间）。
     // dragging 恒为 false，保留给调用方兼容（它们据此判断是否直接用 progress）。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val expandBackTokenRoute = LocalPageRoute.current
     val expandBackToken = remember { Any() }
     DisposableEffect(expanded) {
         if (expanded) {
-            PageBackInterceptor.push(expandBackToken) {
+            PageBackInterceptor.push(expandBackToken, expandBackTokenRoute) {
                 onCollapse()
                 true
             }

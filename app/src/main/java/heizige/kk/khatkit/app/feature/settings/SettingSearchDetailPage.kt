@@ -81,6 +81,7 @@ import heizige.kk.khatkit.app.feature.settings.search.TinyfishOptions
 import heizige.kk.khatkit.app.feature.settings.search.GrokOptions
 import heizige.kk.khatkit.app.feature.settings.search.CustomJsOptions
 import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 @Composable
 fun SettingSearchDetailPage(
@@ -164,7 +165,7 @@ internal fun SearchConfigCard(
     modifier: Modifier = Modifier,
     onUpdate: (SearchOptions) -> Unit
 ) {
-    KedgeFormCard(modifier = modifier.animateContentSize()) {
+    KedgeFormCard(modifier = modifier) {
         // 标题块是组内「不带底色的子项」，卡片底由 InlineCardGroup 那层透出来；
         // 内边距由调用点补（组容器不加内边距，行组件自带的 16dp 是行的）。
         Column(
@@ -280,7 +281,6 @@ internal fun SearchTestSection(
     ) {
         Column(
             modifier = Modifier
-                .animateContentSize()
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)

@@ -4,7 +4,6 @@ import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -31,7 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,6 +44,7 @@ import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
+import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 private enum class AsrDisplayState {
     Idle, Connecting, Active
@@ -93,7 +92,7 @@ internal fun AsrButton(
         modifier = Modifier
             .height(36.dp)
             .widthIn(min = 36.dp)
-            .animateContentSize(animationSpec = MotionScheme.expressive().defaultSpatialSpec()),
+            .kkAnimateContentSize(),
         shape = CircleShape,
         tonalElevation = if (isIdle) 0.dp else 2.dp,
         color = containerColor,

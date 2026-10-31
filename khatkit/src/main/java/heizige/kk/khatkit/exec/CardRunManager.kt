@@ -7,8 +7,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 
 /**
  * 卡片并发闸门：同时运行的卡片数不超过 [maxConcurrent]。
@@ -30,8 +33,12 @@ class CardRunManager(
     ): EngineResult {
         val completion = CompletableDeferred<EngineResult>()
         val job = scope.launch(Dispatchers.Default) {
+            val lease = ExecutionLease(semaphore, currentCoroutineContext().job)
             try {
-                semaphore.withPermit {
+                lease.acquire()
+                withContext(Dispatchers.IO + CardRunContext.current.asContextElement(
+                    CardRunContext(currentCoroutineContext().job, lease),
+                )) {
                     val result = try {
                         execution(card, args)
                     } catch (e: CancellationException) {
@@ -44,7 +51,15 @@ class CardRunManager(
             } catch (e: CancellationException) {
                 completion.complete(EngineResult.Err("CARD_CANCELLED", "已取消"))
                 throw e
+            } finally {
+                lease.release()
             }
+        }
+        job.invokeOnCompletion { cause ->
+            // A scope cancelled before launch must still complete the caller's wait.
+            if (!completion.isCompleted) completion.complete(
+                EngineResult.Err("CARD_CANCELLED", cause?.message ?: "已取消"),
+            )
         }
         try {
             return completion.await()

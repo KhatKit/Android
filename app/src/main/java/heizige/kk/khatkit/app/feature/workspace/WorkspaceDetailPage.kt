@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -154,11 +155,13 @@ fun WorkspaceDetailPage(id: String) {
     }
 
     // U7a-6：文件浏览在子目录时返回先回上级目录（登记到 PageBackInterceptor）。
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val upBackTokenRoute = LocalPageRoute.current
     val upBackToken = remember { Any() }
     val upBackEnabled = pagerState.currentPage == 1 && state.path.isNotBlank()
     DisposableEffect(upBackEnabled) {
         if (upBackEnabled) {
-            PageBackInterceptor.push(upBackToken) {
+            PageBackInterceptor.push(upBackToken, upBackTokenRoute) {
                 vm.goUp()
                 true
             }
@@ -634,11 +637,13 @@ private fun WorkspaceFilesPage(
     fun toggleSelection(entry: WorkspaceFileEntry) {
         selectedPaths = if (entry.path in selectedPaths) selectedPaths - entry.path else selectedPaths + entry.path
     }
+    // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    val pickBackTokenRoute = LocalPageRoute.current
     val pickBackToken = remember { Any() }
     val pickBackEnabled = selecting && isActive
     DisposableEffect(pickBackEnabled) {
         if (pickBackEnabled) {
-            PageBackInterceptor.push(pickBackToken) {
+            PageBackInterceptor.push(pickBackToken, pickBackTokenRoute) {
                 selecting = false
                 selectedPaths = emptySet()
                 true

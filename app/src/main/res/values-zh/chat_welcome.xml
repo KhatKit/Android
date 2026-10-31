@@ -23,4 +23,16 @@
     <string name="chat_widget_loading">正在运行…</string>
     <string name="chat_widget_failed">小组件暂时无法加载</string>
     <string name="chat_widget_empty">暂时没有内容</string>
+    <string name="chat_widgets_edit">编辑小组件</string>
+    <string name="chat_widgets_done">完成</string>
+    <string name="chat_widget_open">打开卡片</string>
+    <string name="chat_widget_open_failed">卡片没能打开</string>
+    <string name="chat_widget_size">%1$s，%2$d × %3$d</string>
+    <string name="chat_widget_wider">加宽</string>
+    <string name="chat_widget_narrower">变窄</string>
+    <string name="chat_widget_taller">加高</string>
+    <string name="chat_widget_shorter">变矮</string>
+    <string name="chat_widget_move_earlier">前移</string>
+    <string name="chat_widget_move_later">后移</string>
+    <string name="chat_widget_remove">移除%1$s</string>
 </resources>

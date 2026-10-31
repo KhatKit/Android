@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.activity
 
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.ClipData
@@ -252,33 +254,39 @@ private fun AssistantPickerSheet(
             ) {
                 itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                     val checked = assistant.id == settings.assistantId
-                    MochiOptionItem(
-                        onClick = {
-                            onAssistantSelected(assistant.id)
-                            onDismiss()
-                        },
+                    KkGroupedColumn(
                         modifier = Modifier.animateItem(),
                         shape = cards.indexedShape(index, filteredAssistants.size),
-                        backgroundColor = if (checked) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surface,
-                        titleContent = {
-                            Text(
-                                text = assistant.name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        trailingContent = if (checked) {
-                            {
-                                Icon(
-                                    imageVector = check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MochiListDefaults.colors().container,
+                        topDivider = index > 0 && cards.gap == 0.dp,
+                    ) {
+                        MochiOptionItem(
+                            onClick = {
+                                onAssistantSelected(assistant.id)
+                                onDismiss()
+                            },
+                            shape = cards.indexedShape(index, filteredAssistants.size),
+                            backgroundColor = if (checked) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                            titleContent = {
+                                Text(
+                                    text = assistant.name.ifEmpty { stringResource(R.string.safe_mode_default_assistant) },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (checked) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurface,
                                 )
-                            }
-                        } else null,
-                    )
+                            },
+                            trailingContent = if (checked) {
+                                {
+                                    Icon(
+                                        imageVector = check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                }
+                            } else null,
+                        )
+                    }
                 }
             }
         }

@@ -135,8 +135,11 @@ class BridgeRegistry(
         uiOverride: UiBridge? = null,
         uiMode: UiMode = UiMode.INTERACTIVE,
         locales: List<String>? = null,
+        requiredOverride: Set<String>? = null,
+        interactionId: String? = null,
     ): Boolean {
-        val required = manifest.requiredBridges
+        val required = requiredOverride ?: manifest.requiredBridges
+        require(manifest.requiredBridges.containsAll(required))
         val delegateUi = uiDelegate(uiOverride, uiMode)
         val available = availableBridges(uiMode, uiOverride)
         if (!available.containsAll(required)) return false
@@ -144,10 +147,13 @@ class BridgeRegistry(
             cardName = manifest.name,
             engine = manifest.engine,
             quotaMb = manifest.store.quotaMb,
-            networkAllow = manifest.network.allow.map { it.lowercase().substringBefore(':') }.toSet(),
+            networkAllow = manifest.network.allow.ifEmpty {
+                manifest.capabilities.filter { it.startsWith("net:") }.map { it.substringAfter(':') }
+            }.map { it.lowercase().substringBefore(':') }.toSet(),
             permissions = manifest.permissions.methods,
             approvalGate = approvalGate,
             deadlineAt = deadlineAt,
+            interactionId = interactionId ?: manifest.name,
         )
         val strings = CardStrings(manifest, locales ?: localeTags())
         engine.define("i18n", scopedBridge(context, "i18n", CardI18nBridge(strings)))

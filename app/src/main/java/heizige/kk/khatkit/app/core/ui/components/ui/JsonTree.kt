@@ -79,8 +79,7 @@ fun JsonTree(
                     fontFamily = JetbrainsMono,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .verticalScroll(rememberScrollState()),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

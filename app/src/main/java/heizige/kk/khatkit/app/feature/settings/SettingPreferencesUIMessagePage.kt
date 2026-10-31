@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
@@ -79,26 +80,15 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
                         )
                     )
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_bubble_opacity_title)) },
-                        supportingContent = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                KkFancySlider(
-                                    value = displaySetting.bubbleOpacity,
-                                    onValueChange = {
-                                        updateDisplaySetting(displaySetting.copy(bubbleOpacity = it))
-                                    },
-                                    valueRange = 0.1f..1.0f,
-                                    steps = 8,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(text = "${(displaySetting.bubbleOpacity * 100).roundToInt()}%")
-                            }
-                        }
+                    sliderItem(
+                        title = { stringResource(R.string.setting_display_page_bubble_opacity_title) },
+                        value = displaySetting.bubbleOpacity,
+                        onValueChange = { updateDisplaySetting(displaySetting.copy(bubbleOpacity = it)) },
+                        valueRange = 0.1f..1.0f,
+                        defaultValue = 1.0f,
+                        steps = 8,
+                        displayScale = 100f,
+                        suffix = "%",
                     )
                     settingItem(
                         SwitchSetting(

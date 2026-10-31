@@ -333,7 +333,6 @@ fun UIAvatar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .padding(16.dp)
             )
         }
 

@@ -607,9 +607,9 @@ data class Settings(
     val themeId: String = PresetThemes[0].id,
     val customThemes: List<CustomTheme> = emptyList(),
     val customColorHistory: List<Long> = emptyList(),
-    val listCardLargeCorner: Float = 20f,
-    val listCardSmallCorner: Float = 4f,
-    val listCardGap: Float = 2f,
+    val listCardLargeCorner: Float = 26f,
+    val listCardSmallCorner: Float = 0f,
+    val listCardGap: Float = 0f,
     val developerMode: Boolean = false,
     val displaySetting: DisplaySetting = DisplaySetting(),
     val networkSetting: NetworkSetting = NetworkSetting(),
@@ -763,6 +763,11 @@ data class DisplaySetting(
      * 不需要迁移（对比 [showAssistantBubble] 那种「老安装显式写了 false」的情况）。
      */
     val effectsEnabled: Boolean = true,
+    /**
+     * 图标按钮的样式：true = 液态玻璃（顶栏按钮、返回键、带底色的圆钮都画玻璃），false = 实心底色。
+     * 只在 [effectsEnabled] 开着时有意义（总开关关了一律实心）。新增字段，老安装取默认 true。
+     */
+    val glassButtons: Boolean = true,
 )
 
 @Serializable

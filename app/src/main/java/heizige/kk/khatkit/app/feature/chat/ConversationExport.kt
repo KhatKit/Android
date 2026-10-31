@@ -91,7 +91,6 @@ import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.search
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.Switch
 import com.dokar.sonner.ToastType
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -146,7 +145,7 @@ fun ChatExportSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                    .padding(vertical = 32.dp),
                 // 面板里各张卡之间的间距仍按原样 8dp：这里换的是行容器，不是卡片节奏。
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

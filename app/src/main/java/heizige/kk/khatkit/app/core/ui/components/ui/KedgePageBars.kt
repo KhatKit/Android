@@ -14,7 +14,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
+import ui.feice.mochi.basic.MochiButtonDefaults
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
+import ui.feice.mochi.effect.glass.MochiBackdrop
+import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.navigation.MochiTitleBarDefaults
+import ui.feice.mochi.theme.MochiTheme
+import kotlin.math.roundToInt
 
 /**
  * 顶栏底色与滚动的联动：静止态 = 本页底色，折叠/滚动后才渐变到 topBarColors 的
@@ -60,11 +84,21 @@ internal fun scrollLinkedTopBarColors(
 fun activeNestedScroll(scrollBehavior: TopAppBarScrollBehavior): Modifier =
         Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
 
+/** 0..1 之间的平滑过渡（与 Mochi 大标题页同一条曲线）。 */
+private fun smoothstep(edge0: Float, edge1: Float, x: Float): Float {
+    val t = ((x - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
+}
+
 /**
- * 页面大标题栏：Miuix 走 Kedge，MD3Exp 保持原样。
+ * 页面大标题栏，照 Mochi 大标题页（MochiLargeTitleScaffold）的样子：
+ * 上面一条 [MochiTitleBar]（返回 / 操作 + 居中小标题），下面一块左对齐的大标题。
  *
- * Miuix 的 TopAppBar 只接受字符串标题，因此这里以 [title] 为准；
- * 需要图标/多行等富标题时用 [titleContent]，但 Miuix 下仍显示 [title]。
+ * Mochi 的大标题长在正文里跟着滚；这里的页面都是「Scaffold 顶栏 + MD3 折叠行为」结构，
+ * 所以改成大标题区跟着 [scrollBehavior] 的 heightOffset 收起：往上滚时大标题区被
+ * 裁掉、淡出，收到一半后栏里的小标题模糊淡入，收完栏底色才浮出来（与 Mochi 同一顺序）。
+ * heightOffsetLimit 由这里按大标题区实测高度写入（原先是 M3 顶栏写的），否则
+ * exitUntilCollapsed 会把滚动全吃掉。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,40 +108,72 @@ fun KedgePageLargeTopBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    @Suppress("UNUSED_PARAMETER") colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
     titleContent: (@Composable () -> Unit)? = null,
     subtitle: String? = null,
     /** 标题整体透明度。0=标题隐藏（仅留返回按钮），随滚动淡入即 KSU 的 About 页行为。 */
     titleAlpha: Float = 1f,
+    /** 栏里玻璃控件（返回键等）要取样的背景来源；null 时材质按 fallback 画纯色，没有模糊。 */
+    backdrop: MochiBackdrop? = null,
 ) {
     val alpha = titleAlpha.coerceIn(0f, 1f)
-    LargeFlexibleTopAppBar(
-        // 用 graphicsLayer 而不是 colors，才能压住 LargeFlexibleTopAppBar
-        // 内部自绘的大标题 + 收起后的小标题（两者同一 slot）。
-        title = titleContent ?: {
-            Text(
-                text = title,
-                modifier = Modifier.graphicsLayer { this.alpha = alpha },
-            )
-        },
-        modifier = modifier,
-        // 调用方传了 titleContent 时，副标题由 titleContent 自行渲染
-        // （ChatPage 的 titleContent 内含「助手/模型/提供商」一行）。
-        // 此处再传 subtitle 会出现两个副标题。
-        subtitle = if (titleContent != null) {
-            null
-        } else {
-            subtitle?.let { { Text(it) } }
-        },
-        navigationIcon = navigationIcon,
-        actions = actions,
-        scrollBehavior = scrollBehavior,
-        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
-    )
+    // 没显式传时用页面骨架下发的来源：这样所有走 MochiPageScaffold 的页面都拿到同一份栏材质
+    val effectiveBackdrop = backdrop ?: LocalKkBarBackdrop.current
+    val state = scrollBehavior?.state
+    val background = CustomColors.pageContainerColor
+    val collapsed = { state?.collapsedFraction ?: 0f }
+    Column(modifier = modifier.fillMaxWidth().background(background)) {
+        MochiTitleBar(
+            title = title,
+            navigationIcon = { KkBarIconScope { navigationIcon() } },
+            actions = { KkBarIconScope { actions() } },
+            background = background,
+            titleProgress = { smoothstep(0.5f, 1f, collapsed()) * alpha },
+            backgroundProgress = { smoothstep(0.9f, 1f, collapsed()) },
+            backdrop = effectiveBackdrop,
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clipToBounds()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+                    val full = placeable.height
+                    if (state != null && state.heightOffsetLimit != -full.toFloat()) {
+                        state.heightOffsetLimit = -full.toFloat()
+                    }
+                    val shown = (full + (state?.heightOffset ?: 0f)).roundToInt().coerceIn(0, full)
+                    layout(placeable.width, shown) { placeable.place(0, shown - full) }
+                }
+                .graphicsLayer { this.alpha = (1f - smoothstep(0f, 0.7f, collapsed())) * alpha }
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        ) {
+            if (titleContent != null) {
+                ProvideTextStyle(MochiTheme.textStyles.largeTitle) { titleContent() }
+            } else {
+                Text(
+                    text = title,
+                    style = MochiTheme.textStyles.largeTitle,
+                    color = MochiTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MochiTheme.textStyles.subhead,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+        }
+    }
 }
 
-
-/** 页面中等标题栏（MD3 MediumTopAppBar，高度用组件默认值）。 */
+/** 页面中等标题栏：Mochi 只有大标题 / 紧凑两种，中等标题并到大标题。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KedgePageMediumTopBar(
@@ -119,18 +185,25 @@ fun KedgePageMediumTopBar(
     colors: TopAppBarColors = TopAppBarDefaults.mediumTopAppBarColors(),
     subtitle: String? = null,
     titleContent: (@Composable () -> Unit)? = null,
+    backdrop: MochiBackdrop? = null,
 ) {
-        MediumTopAppBar(
-        title = titleContent ?: { Text(title) },
+    KedgePageLargeTopBar(
+        title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
         actions = actions,
         scrollBehavior = scrollBehavior,
-        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
+        colors = colors,
+        titleContent = titleContent,
+        subtitle = subtitle,
+        backdrop = backdrop,
     )
 }
 
-/** 页面小标题栏。 */
+/**
+ * 页面小标题栏：Mochi 紧凑标题栏（[MochiTitleBar]，居中小标题），内容滚进栏下面后底色才浮出来。
+ * 折叠行为的 heightOffsetLimit 写 0（这条栏不收起），否则 exitUntilCollapsed 会吃掉滚动。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KedgePageTopBar(
@@ -139,16 +212,48 @@ fun KedgePageTopBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    @Suppress("UNUSED_PARAMETER") colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
     subtitle: String? = null,
     titleContent: (@Composable () -> Unit)? = null,
+    backdrop: MochiBackdrop? = null,
 ) {
-        TopAppBar(
-        title = titleContent ?: { Text(title) },
-        modifier = modifier,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        scrollBehavior = scrollBehavior,
-        colors = scrollLinkedTopBarColors(colors, scrollBehavior),
-    )
+    val state = scrollBehavior?.state
+    val effectiveBackdrop = backdrop ?: LocalKkBarBackdrop.current
+    SideEffect {
+        if (state != null && state.heightOffsetLimit != 0f) state.heightOffsetLimit = 0f
+    }
+    val background = CustomColors.pageContainerColor
+    if (titleContent != null) {
+        // 富标题（图标 + 文字等）：MochiTitleBar 只收字符串，这里沿用它的度量自己摆
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(background)
+                .statusBarsPadding()
+                .height(MochiTitleBarDefaults.Height)
+                .padding(horizontal = MochiButtonDefaults.BarHorizontalPadding),
+        ) {
+            Row(Modifier.align(Alignment.CenterStart), verticalAlignment = Alignment.CenterVertically) { navigationIcon() }
+            Box(Modifier.align(Alignment.Center).padding(horizontal = 64.dp)) {
+                ProvideTextStyle(MochiTheme.textStyles.navTitle) { titleContent() }
+            }
+            Row(
+                Modifier.align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions,
+            )
+        }
+    } else {
+        MochiTitleBar(
+            title = title,
+            modifier = modifier.background(background),
+            subtitle = subtitle,
+            navigationIcon = { KkBarIconScope { navigationIcon() } },
+            actions = { KkBarIconScope { actions() } },
+            background = background,
+            backgroundProgress = { state?.overlappedFraction ?: 0f },
+            backdrop = effectiveBackdrop,
+        )
+    }
 }

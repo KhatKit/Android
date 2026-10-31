@@ -29,6 +29,8 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceBoolean
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
@@ -98,16 +100,15 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showMessageJumper = it)) },
                         )
                     )
-                    if (displaySetting.showMessageJumper) {
-                        settingItem(
-                            SwitchSetting(
-                                R.string.setting_display_page_message_jumper_position_title,
-                                R.string.setting_display_page_message_jumper_position_desc,
-                                checked = displaySetting.messageJumperOnLeft,
-                                onCheckedChange = { updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it)) },
-                            )
-                        )
-                    }
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_message_jumper_position_title,
+                            R.string.setting_display_page_message_jumper_position_desc,
+                            checked = displaySetting.messageJumperOnLeft,
+                            onCheckedChange = { updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it)) },
+                        ),
+                        visible = displaySetting.showMessageJumper,
+                    )
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_enable_auto_scroll_title,
@@ -134,27 +135,26 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBlurEffect = it)) },
                         )
                     )
-                    if (displaySetting.enableBlurEffect) {
-                        item(
-                            headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_type)) },
-                            supportingContent = {
-                                Select(
-                                    options = BackgroundEffectType.entries,
-                                    selectedOption = displaySetting.backgroundEffectType,
-                                    onOptionSelected = {
-                                        updateDisplaySetting(displaySetting.copy(backgroundEffectType = it))
-                                    },
-                                    modifier = Modifier.padding(top = 4.dp).fillMaxWidth(),
-                                    optionToString = {
-                                        when (it) {
-                                            BackgroundEffectType.BLUR -> stringResource(R.string.setting_display_page_background_effect_blur)
-                                            BackgroundEffectType.GLASS -> stringResource(R.string.setting_display_page_background_effect_glass)
-                                        }
-                                    },
-                                )
-                            },
-                        )
-                    }
+                    item(
+                        headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_type)) },
+                        supportingContent = {
+                            Select(
+                                options = BackgroundEffectType.entries,
+                                selectedOption = displaySetting.backgroundEffectType,
+                                onOptionSelected = {
+                                    updateDisplaySetting(displaySetting.copy(backgroundEffectType = it))
+                                },
+                                modifier = Modifier.padding(top = 4.dp).fillMaxWidth(),
+                                optionToString = {
+                                    when (it) {
+                                        BackgroundEffectType.BLUR -> stringResource(R.string.setting_display_page_background_effect_blur)
+                                        BackgroundEffectType.GLASS -> stringResource(R.string.setting_display_page_background_effect_glass)
+                                    }
+                                },
+                            )
+                        },
+                        visible = displaySetting.enableBlurEffect,
+                    )
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_enable_message_generation_haptic_effect_title,
@@ -179,28 +179,16 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(pasteLongTextAsFile = it)) },
                         )
                     )
-                    if (displaySetting.pasteLongTextAsFile) {
-                        item(
-                            headlineContent = { Text(stringResource(R.string.setting_display_page_paste_long_text_threshold_title)) },
-                            supportingContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    KkFancySlider(
-                                        value = displaySetting.pasteLongTextThreshold.toFloat(),
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = it.toInt()))
-                                        },
-                                        valueRange = 100f..10000f,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(text = "${displaySetting.pasteLongTextThreshold}")
-                                }
-                            },
-                        )
-                    }
+                    sliderItem(
+                        title = { stringResource(R.string.setting_display_page_paste_long_text_threshold_title) },
+                        value = displaySetting.pasteLongTextThreshold.toFloat(),
+                        onValueChange = {
+                            updateDisplaySetting(displaySetting.copy(pasteLongTextThreshold = it.toInt()))
+                        },
+                        valueRange = 100f..10000f,
+                        defaultValue = 1000f,
+                        visible = displaySetting.pasteLongTextAsFile,
+                    )
                     settingItem(
                         SwitchSetting(
                             R.string.setting_display_page_volume_key_scroll_title,
@@ -209,29 +197,19 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableVolumeKeyScroll = it)) },
                         )
                     )
-                    if (displaySetting.enableVolumeKeyScroll) {
-                        item(
-                            headlineContent = { Text(stringResource(R.string.setting_display_page_volume_key_scroll_ratio)) },
-                            supportingContent = {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    KkFancySlider(
-                                        value = displaySetting.volumeKeyScrollRatio,
-                                        onValueChange = {
-                                            updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = it))
-                                        },
-                                        valueRange = 0.25f..1.0f,
-                                        steps = 2,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(text = "${(displaySetting.volumeKeyScrollRatio * 100).toInt()}%")
-                                }
-                            }
-                        )
-                    }
+                    sliderItem(
+                        title = { stringResource(R.string.setting_display_page_volume_key_scroll_ratio) },
+                        value = displaySetting.volumeKeyScrollRatio,
+                        onValueChange = {
+                            updateDisplaySetting(displaySetting.copy(volumeKeyScrollRatio = it))
+                        },
+                        valueRange = 0.25f..1.0f,
+                        defaultValue = 1.0f,
+                        steps = 2,
+                        displayScale = 100f,
+                        suffix = "%",
+                        visible = displaySetting.enableVolumeKeyScroll,
+                    )
                 }
             }
 
@@ -240,35 +218,20 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                     modifier = Modifier.padding(horizontal = 8.dp),
                     title = { Text(stringResource(R.string.setting_page_tts_settings)) },
                 ) {
-                    item(
-                        headlineContent = {
-                            Text(stringResource(R.string.setting_tts_page_default_playback_speed))
-                        },
-                        supportingContent = {
-                            Column {
-                                Text(stringResource(R.string.setting_tts_page_default_playback_speed_description))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    KkFancySlider(
-                                        value = ttsPlaybackSpeed,
-                                        onValueChange = {
-                                            ttsPlaybackSpeed = (it * 10).roundToInt() / 10f
-                                        },
-                                        onValueChangeFinished = {
-                                            vm.updateSettings(
-                                                settings.copy(defaultTTSPlaybackSpeed = ttsPlaybackSpeed)
-                                            )
-                                        },
-                                        valueRange = 0.5f..2.0f,
-                                        steps = 14,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Text(text = "x${"%.1f".format(ttsPlaybackSpeed)}")
-                                }
-                            }
+                    sliderItem(
+                        title = { stringResource(R.string.setting_tts_page_default_playback_speed) },
+                        value = ttsPlaybackSpeed,
+                        onValueChange = { ttsPlaybackSpeed = (it * 10).roundToInt() / 10f },
+                        valueRange = 0.5f..2.0f,
+                        defaultValue = 1.0f,
+                        steps = 14,
+                        prefix = "x",
+                        decimals = 1,
+                        description = { stringResource(R.string.setting_tts_page_default_playback_speed_description) },
+                        onValueChangeFinished = {
+                            vm.updateSettings(
+                                settings.copy(defaultTTSPlaybackSpeed = ttsPlaybackSpeed)
+                            )
                         },
                     )
                     settingItem(

@@ -33,6 +33,31 @@ impl Host {
             }
         }
     }
+
+    pub fn interrupt_reason(&self) -> i32 {
+        let Ok(mut env) = self.jvm.attach_current_thread() else { return 1 };
+        match env.call_method(self.dispatcher.as_obj(), "interruptReason", "()I", &[]) {
+            Ok(value) => value.i().unwrap_or(1),
+            Err(_) => {
+                let _ = env.exception_clear();
+                1
+            }
+        }
+    }
+
+    pub fn wasm_allowed(&self, cap: &str, method: &str, args: &str) -> bool {
+        let Ok(mut env) = self.jvm.attach_current_thread() else { return false };
+        let result = (|| -> jni::errors::Result<bool> {
+            let cap = env.new_string(cap)?;
+            let method = env.new_string(method)?;
+            let args = env.new_string(args)?;
+            env.call_method(self.dispatcher.as_obj(), "wasmAllowed",
+                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z",
+                &[JValue::Object(&cap), JValue::Object(&method), JValue::Object(&args)])?.z()
+        })();
+        if result.is_err() { let _ = env.exception_clear(); }
+        result.unwrap_or(false)
+    }
 }
 
 fn dispatch_inner(
@@ -58,6 +83,5 @@ fn dispatch_inner(
 }
 
 fn error_json(message: &str) -> String {
-    let escaped = message.replace('\\', "\\\\").replace('"', "\\\"");
-    format!("{{\"__error\":\"{escaped}\"}}")
+    serde_json::json!({"__error": message}).to_string()
 }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
+import heizige.kk.khatkit.exec.CardRunContext
 
 /** 弹层导航底栏的一个条目（`options.nav.items[]`）。 */
 data class UiSheetNavItem(
@@ -311,6 +312,17 @@ data class SheetAction(
 
 /** 一个等待宿主 UI 处理的请求。 */
 sealed interface UiRequest {
+    /**
+     * 能不能铺进一张普通页面（而不是弹层）：只有节点树，且不依赖弹层自己的底部导航、
+     * 分页、顶栏动作这些外框。确认框、动作面板、网页登录仍然弹层。
+     */
+    val pageHostable: Boolean
+        get() = when (this) {
+            is FormTree, is ShowTree -> true
+            is Screen -> pages.isEmpty() && options.navigation == null && options.topActions.isEmpty()
+            else -> false
+        }
+
     data class Sheet(
         val title: String,
         val url: String? = null,
@@ -440,6 +452,11 @@ class UiBridgeHost(
     val timeouts: StateFlow<Long> = _timeouts.asStateFlow()
 
     private val requestCards = ConcurrentHashMap<UiRequest, String>()
+    private val requestRuns = ConcurrentHashMap<UiRequest, String>()
+    private val requestReady = ConcurrentHashMap<UiRequest, CompletableDeferred<Unit>>()
+    private val queueLock = Any()
+    private val queued = ArrayDeque<UiRequest>()
+    private val observedRuns = ConcurrentHashMap.newKeySet<String>()
     private val expired: MutableSet<UiRequest> = Collections.newSetFromMap(ConcurrentHashMap<UiRequest, Boolean>())
 
     /**
@@ -450,6 +467,59 @@ class UiBridgeHost(
      */
     var onLateAnswer: ((cardName: String, answer: LateUiAnswer) -> Unit)? = null
 
+    fun hasPendingInteraction(interactionId: String): Boolean =
+        expired.any { requestCards[it] == interactionId }
+
+    /** 发出这条请求的交互 id（用户/AI 运行是 runId，其余是卡片名）；宿主自己弹的参数表单为 null。 */
+    fun interactionOf(request: UiRequest): String? = requestCards[request]?.takeIf { it.isNotEmpty() }
+
+    private fun enqueue(request: UiRequest) = synchronized(queueLock) {
+        val ready = CompletableDeferred<Unit>()
+        requestReady[request] = ready
+        val run = CardRunContext.current.get()
+        val owner = run?.id ?: "thread:${Thread.currentThread().id}"
+        requestRuns[request] = owner
+        requestCards[request] = cardNameContext.get().orEmpty()
+        if (run != null && observedRuns.add(owner)) {
+            run.job.invokeOnCompletion {
+                synchronized(queueLock) {
+                    (queued.toList() + listOfNotNull(_request.value))
+                        .filter { requestRuns[it] == owner && it !in expired &&
+                            it !is UiRequest.Show && it !is UiRequest.ShowTree }
+                        .forEach(::removeRequest)
+                    observedRuns.remove(owner)
+                }
+            }
+        }
+        // Display-only results survive completion and yield to a new UI request.
+        val current = _request.value
+        if (current != null && expired.remove(current)) {
+            dispatchLate(current, null)
+            removeRequest(current)
+        }
+        if (current is UiRequest.Show || current is UiRequest.ShowTree ||
+            current is UiRequest.Screen && requestRuns[current] == owner && current.deferred.isCompleted) {
+            removeRequest(current)
+        }
+        if (_request.value == null) {
+            ready.complete(Unit)
+            _request.value = request
+        } else queued.addLast(request)
+        ready
+    }
+
+    private fun removeRequest(request: UiRequest) = synchronized(queueLock) {
+        queued.remove(request)
+        if (_request.value === request) {
+            val next = queued.removeFirstOrNull()
+            next?.let { requestReady[it]?.complete(Unit) }
+            _request.value = next
+        }
+        requestReady.remove(request)?.cancel()
+        requestRuns.remove(request)
+        requestCards.remove(request)
+    }
+
     fun onHostAttached() {
         _hostAttached.value = true
     }
@@ -459,14 +529,12 @@ class UiBridgeHost(
     }
 
     /** 宿主宽限等待：不在场时不阻塞脚本，返回 false。 */
-    private fun awaitHostAttached(): Boolean {
+    private suspend fun awaitHostAttached(): Boolean {
         if (_hostAttached.value) return true
-        return runBlocking {
-            withTimeoutOrNull(HOST_ATTACH_GRACE_MS) {
+        return withTimeoutOrNull(HOST_ATTACH_GRACE_MS) {
                 _hostAttached.first { it }
                 true
             } ?: false
-        }
     }
 
     /**
@@ -480,24 +548,39 @@ class UiBridgeHost(
         deferred: CompletableDeferred<T>,
         budget: Long,
     ): T? {
-        requestCards[request] = cardNameContext.get().orEmpty()
-        if (!awaitHostAttached()) {
+        var timedOut = false
+        val result = try {
+            CardRunContext.awaitInteraction {
+                if (!awaitHostAttached()) return@awaitInteraction null
+                val ready = enqueue(request)
+                // Queueing is cancellable and does not consume the user's answer budget.
+                // A fast UI can answer before this thread observes the StateFlow.
+                ready.await()
+                withTimeoutOrNull(budget.coerceAtLeast(1L)) { deferred.await() }.also {
+                    timedOut = it == null && !deferred.isCompleted
+                    if (timedOut) synchronized(queueLock) {
+                        if (_request.value === request) {
+                            expired += request
+                            _timeouts.value += 1
+                            if (queued.isNotEmpty()) {
+                                expired.remove(request)
+                                dispatchLate(request, null)
+                                removeRequest(request)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error: Throwable) {
             deferred.cancel()
-            requestCards.remove(request)
-            return null
+            removeRequest(request)
+            throw error
         }
-        _request.value = request
-        val result = runBlocking { withTimeoutOrNull(budget) { deferred.await() } }
-        if (result == null && !deferred.isCompleted && _request.value === request) {
-            // 超时，但弹层仍在屏幕上：标记过期，等用户之后提交时续跑
-            expired += request
-            _timeouts.value += 1
-        } else {
+        if (!timedOut) {
             // 操作屏（Screen）在提交后继续留在组合里：脚本下一次 ui.screen 直接替换内容，
             // 不再「关掉再重开」。运行结束时由 [endScreen] 收掉。
             if (request !is UiRequest.Screen) {
-                _request.compareAndSet(request, null)
-                requestCards.remove(request)
+                removeRequest(request)
             }
             if (!deferred.isCompleted) deferred.cancel()
         }
@@ -590,11 +673,11 @@ class UiBridgeHost(
         if (card.containsKey("__ui")) {
             val root = UiNodeParser.parse(card)
             _shown.value = card
-            _request.value = UiRequest.ShowTree(options?.get("title") as? String ?: "", root, UiSheetOptions.from(options))
+            enqueue(UiRequest.ShowTree(options?.get("title") as? String ?: "", root, UiSheetOptions.from(options)))
             return
         }
         _shown.value = card
-        _request.value = UiRequest.Show(card, UiSheetOptions.from(options))
+        enqueue(UiRequest.Show(card, UiSheetOptions.from(options)))
     }
 
     override fun automationStatus(label: String, detail: String) {
@@ -604,7 +687,7 @@ class UiBridgeHost(
         onAutomationStatus(label, detail)
     }
 
-    override fun isCancelled(): Boolean = onCancelled()
+    override fun isCancelled(): Boolean = CardRunContext.current.get()?.cancelled == true || onCancelled()
 
     fun submitForm(values: Map<String, Any?>?) {
         val current = _request.value ?: return
@@ -618,8 +701,8 @@ class UiBridgeHost(
         }
         if (expired.remove(current)) {
             // 脚本已按超时继续；这次提交属于「迟到」，交给宿主续跑
-            _request.compareAndSet(current, null)
             dispatchLate(current, collected)
+            removeRequest(current)
             return
         }
         when (current) {
@@ -627,20 +710,19 @@ class UiBridgeHost(
             is UiRequest.FormTree -> current.deferred.complete(collected)
             else -> return
         }
-        _request.compareAndSet(current, null)
-        requestCards.remove(current)
+        removeRequest(current)
     }
 
     fun selectSheetAction(event: String, values: Map<String, Any?> = emptyMap()) {
         val current = _request.value as? UiRequest.Sheet ?: return
         val result = mapOf("event" to event, "values" to values)
-        _request.value = null
         if (expired.remove(current)) {
             dispatchLate(current, result)
+            removeRequest(current)
             return
         }
         current.deferred.complete(result)
-        requestCards.remove(current)
+        removeRequest(current)
     }
 
     fun submitScreen(event: String, values: Map<String, Any?>) {
@@ -665,6 +747,7 @@ class UiBridgeHost(
             if (page != null) mapOf("page" to pageId) else emptyMap()
         if (expired.remove(screen)) {
             dispatchLate(screen, result)
+            removeRequest(screen)
             return
         }
         screen.deferred.complete(result)
@@ -678,23 +761,23 @@ class UiBridgeHost(
     fun endScreen() {
         val current = _request.value as? UiRequest.Screen ?: return
         if (current in expired) return
-        _request.compareAndSet(current, null)
-        requestCards.remove(current)
+        removeRequest(current)
     }
 
     fun answerConfirm(confirmed: Boolean) {
         val current = _request.value as? UiRequest.Confirm ?: return
-        _request.value = null
         if (expired.remove(current)) {
             dispatchLate(current, mapOf("confirmed" to confirmed))
+            removeRequest(current)
             return
         }
         current.deferred.complete(confirmed)
-        requestCards.remove(current)
+        removeRequest(current)
     }
 
     fun dismiss() {
-        when (val current = _request.value) {
+        val current = _request.value
+        when (current) {
             is UiRequest.Form -> current.deferred.complete(null)
             is UiRequest.FormTree -> current.deferred.complete(null)
             is UiRequest.Screen -> current.deferred.complete(null)
@@ -702,13 +785,10 @@ class UiBridgeHost(
             is UiRequest.Sheet -> current.deferred.complete(null)
             else -> Unit
         }
-        val current = _request.value
-        _request.value = null
         if (current != null && expired.remove(current)) {
             dispatchLate(current, null)
-        } else if (current != null) {
-            requestCards.remove(current)
         }
+        if (current != null) removeRequest(current)
     }
 
     /** 迟到提交交给宿主续跑；`values == null` 表示用户取消。 */
