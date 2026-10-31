@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import ui.feice.mochi.basic.MochiChipGroup
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -826,10 +827,8 @@ private fun SettingsBottomSheet(
 
             KedgeFormRow(
                 label = { Text("Image Size") }) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                // CH1：单选 chip 组统一用 MochiChipGroup（wrap = true 自动换行）。
+                MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp)) {
                     ImageGenSize.entries.forEach { sizeOption ->
                         KkFilterChip(
                             selected = size == sizeOption.value,

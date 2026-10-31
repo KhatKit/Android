@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit
 
+import ui.feice.mochi.basic.MochiChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -301,10 +302,11 @@ fun KhatKitMarketContent(
                     modifier = Modifier.padding(vertical = 12.dp)
                 ) {
                     items(filterOptions) { (key, label) ->
-                        FilterChip(
+                        MochiChip(
+                            label = label,
                             selected = selectedFilter == key,
                             onClick = { selectedFilter = key },
-                            label = { Text(label, style = MaterialTheme.typography.labelMedium) }
+                            showCheck = true,
                         )
                     }
                 }

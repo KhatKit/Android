@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import ui.feice.mochi.basic.MochiChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -171,13 +172,14 @@ fun KkAssistChip(
     enabled: Boolean = true,
     @Suppress("UNUSED_PARAMETER") containerColor: Color? = null,
 ) {
-    AssistChip(
+    // CH1：内容是纯文本，直接走 MochiChip（Mochi 的 Chip 自带按压/形变反馈）。
+    MochiChip(
+        label = label.orEmpty(),
+        selected = false,
         onClick = onClick,
-        label = { label?.let { Text(it) } },
         modifier = modifier,
         enabled = enabled,
         leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
     )
 }
 
