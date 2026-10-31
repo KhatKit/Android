@@ -1798,4 +1798,8 @@
   <string name="setting_provider_page_scan_qr_code">扫描二维码</string>
   <string name="setting_provider_page_scan_fallback">无法使用相机扫码，请改为手动粘贴或从相册选择</string>
   <string name="setting_provider_page_qr_decode_failed">二维码解析失败：%1$s</string>
+  <string name="setting_model_page_memory_model">记忆整理模型</string>
+  <string name="setting_model_page_memory_model_desc">后台把对话整理进长期记忆时用的模型；没设置时跟快速模型</string>
+  <string name="setting_model_page_memory_model_follow_fast">跟随快速模型</string>
+  <string name="model_list_clear_model">清除</string>
 </resources>

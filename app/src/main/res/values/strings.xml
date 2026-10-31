@@ -1797,4 +1797,8 @@
   <string name="setting_provider_page_scan_qr_code">Scan QR Code</string>
   <string name="setting_provider_page_scan_fallback">Cannot use the camera to scan, please paste the config or pick an image instead</string>
   <string name="setting_provider_page_qr_decode_failed">Failed to parse the QR code: %1$s</string>
+  <string name="setting_model_page_memory_model">Memory consolidation model</string>
+  <string name="setting_model_page_memory_model_desc">Model used in the background to organize conversations into long-term memory. The fast model is used when unset.</string>
+  <string name="setting_model_page_memory_model_follow_fast">Follow fast model</string>
+  <string name="model_list_clear_model">Clear</string>
 </resources>

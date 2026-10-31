@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +38,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
@@ -123,6 +125,23 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
             )
         }
         item {
+            // 记忆整理模型：没设置时跟快速模型（上游 72d419171）
+            ModelSettingItem(
+                title = stringResource(R.string.setting_model_page_memory_model),
+                description = stringResource(R.string.setting_model_page_memory_model_desc),
+                modelId = settings.memoryModelId,
+                providers = settings.providers,
+                onSelect = { vm.updateSettings(settings.copy(memoryModelId = it.id)) },
+                emptyText = stringResource(R.string.setting_model_page_memory_model_follow_fast),
+                onClear = { vm.updateSettings(settings.copy(memoryModelId = null)) },
+                // 没设置时推理强度也跟着快速模型，所以只有选了模型才显示这一行
+                reasoningLevel = settings.memoryModelReasoningLevel.takeIf { settings.memoryModelId != null },
+                onUpdateReasoningLevel = {
+                    vm.updateSettings(settings.copy(memoryModelReasoningLevel = it))
+                },
+            )
+        }
+        item {
             ModelSettingItem(
                 title = stringResource(R.string.setting_model_page_translate_model),
                 modelId = settings.translateModeId,
@@ -160,6 +179,10 @@ private fun ModelSettingItem(
     onSelect: (Model) -> Unit,
     reasoningLevel: ReasoningLevel? = null,
     onUpdateReasoningLevel: ((ReasoningLevel) -> Unit)? = null,
+    /** 没选模型时显示的文字（例如「跟随快速模型」） */
+    emptyText: String? = null,
+    /** 给了清除入口时，选了模型后行尾显示清除图标；用于「不设置 = 跟随别的模型」的槽位 */
+    onClear: (() -> Unit)? = null,
 ) {
     val state = rememberModelListState(
         modelId = modelId,
@@ -179,17 +202,29 @@ private fun ModelSettingItem(
                     ) {
                         Text(
                             text = state.currentModel?.displayName
+                                ?: emptyText
                                 ?: stringResource(R.string.model_list_select_model),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Icon(
-                            arrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
+                        if (onClear != null && state.currentModel != null) {
+                            Icon(
+                                imageVector = close,
+                                contentDescription = stringResource(R.string.model_list_clear_model),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onClear() },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            Icon(
+                                arrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
                     }
                 },
             )

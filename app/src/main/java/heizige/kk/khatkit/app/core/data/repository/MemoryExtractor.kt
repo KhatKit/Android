@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.data.repository
 
 import android.util.Log
+import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -123,6 +124,7 @@ class MemoryExtractor(
                     model = modelDef,
                     temperature = 0.2f,
                     maxTokens = 512,
+                    reasoningLevel = settings.memoryConsolidationReasoningLevel(),
                 ),
             )
             parseAndStore(
@@ -145,6 +147,10 @@ class MemoryExtractor(
         val provider = model.findProvider(settings.providers) ?: return null
         return provider to model
     }
+
+    /** 推理强度跟着实际用上的模型：设了记忆整理模型用它自己的，否则跟快速模型（上游 72d419171） */
+    private fun Settings.memoryConsolidationReasoningLevel(): ReasoningLevel =
+        if (memoryModelId != null) memoryModelReasoningLevel else fastModelReasoningLevel
 
     internal suspend fun parseAndStore(
         spaceId: String,

@@ -130,6 +130,8 @@ class SettingsRepository @Inject constructor(
         val SELECT_MODEL = stringPreferencesKey("chat_model")
         val FAST_MODEL = stringPreferencesKey("fast_model")
         val FAST_MODEL_REASONING_LEVEL = stringPreferencesKey("fast_model_reasoning_level")
+        val MEMORY_MODEL = stringPreferencesKey("memory_model")
+        val MEMORY_MODEL_REASONING_LEVEL = stringPreferencesKey("memory_model_reasoning_level")
         val TRANSLATE_MODEL = stringPreferencesKey("translate_model")
         val IMAGE_GENERATION_MODEL = stringPreferencesKey("image_generation_model")
         val TITLE_PROMPT = stringPreferencesKey("title_prompt")
@@ -209,6 +211,14 @@ class SettingsRepository @Inject constructor(
                 preferences[SELECT_MODEL] = settings.chatModelId.toString()
                 preferences[FAST_MODEL] = settings.fastModelId.toString()
                 preferences[FAST_MODEL_REASONING_LEVEL] = settings.fastModelReasoningLevel.name
+                // 没设置时把 key 删掉，否则清除后重启会读回旧值
+                val memoryModelId = settings.memoryModelId
+                if (memoryModelId != null) {
+                    preferences[MEMORY_MODEL] = memoryModelId.toString()
+                } else {
+                    preferences.remove(MEMORY_MODEL)
+                }
+                preferences[MEMORY_MODEL_REASONING_LEVEL] = settings.memoryModelReasoningLevel.name
                 preferences[TRANSLATE_MODEL] = settings.translateModeId.toString()
                 preferences[IMAGE_GENERATION_MODEL] = settings.imageGenerationModelId.toString()
                 preferences[TITLE_PROMPT] = settings.titlePrompt
@@ -276,6 +286,10 @@ class SettingsRepository @Inject constructor(
                 fastModelId = preferences[FAST_MODEL]?.let { Uuid.parse(it) }
                     ?: DEFAULT_AUTO_MODEL_ID,
                 fastModelReasoningLevel = preferences[FAST_MODEL_REASONING_LEVEL]
+                    ?.let { value -> ReasoningLevel.entries.find { it.name == value } }
+                    ?: ReasoningLevel.AUTO,
+                memoryModelId = preferences[MEMORY_MODEL]?.let { Uuid.parse(it) },
+                memoryModelReasoningLevel = preferences[MEMORY_MODEL_REASONING_LEVEL]
                     ?.let { value -> ReasoningLevel.entries.find { it.name == value } }
                     ?: ReasoningLevel.AUTO,
                 translateModeId = preferences[TRANSLATE_MODEL]?.let { Uuid.parse(it) }
@@ -592,6 +606,9 @@ data class Settings(
     val chatModelId: Uuid = Uuid.random(),
     val fastModelId: Uuid = Uuid.random(),
     val fastModelReasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
+    // 记忆整理用的模型；没设置时用快速模型（上游 72d419171）
+    val memoryModelId: Uuid? = null,
+    val memoryModelReasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
     val imageGenerationModelId: Uuid = Uuid.random(),
     val titlePrompt: String = DEFAULT_TITLE_PROMPT,
     val translateModeId: Uuid = Uuid.random(),

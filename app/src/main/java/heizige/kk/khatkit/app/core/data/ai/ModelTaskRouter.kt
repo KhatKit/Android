@@ -92,7 +92,8 @@ fun Settings.taskBinding(task: ModelTaskType, preferredId: kotlin.uuid.Uuid? = n
     val selectedId = preferredId ?: when (task) {
         ModelTaskType.CHAT,
         ModelTaskType.UI_CONTROL -> chatModelId
-        ModelTaskType.MEMORY,
+        // 记忆整理：装了记忆整理模型就用它，没设置时跟快速模型（上游 72d419171）
+        ModelTaskType.MEMORY -> memoryModelId ?: fastModelId
         ModelTaskType.TITLE -> fastModelId
         ModelTaskType.SUMMARY -> compressModelId
         ModelTaskType.OCR -> ocrModelId
