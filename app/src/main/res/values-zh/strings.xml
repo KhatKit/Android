@@ -1793,4 +1793,6 @@
   <string name="skill_detail_page_builtin_readonly">内置技能不可修改</string>
   <string name="skill_detail_page_name_change_error">不允许修改技能名称（name 字段必须为「%1$s」）</string>
   <string name="skill_detail_page_save_failed">保存失败</string>
+  <string name="image_preview_saving">保存中…</string>
+  <string name="image_preview_saved">图片已保存</string>
 </resources>

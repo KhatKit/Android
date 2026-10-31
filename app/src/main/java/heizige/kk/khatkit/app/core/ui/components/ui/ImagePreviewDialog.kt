@@ -24,6 +24,7 @@ import com.jvziyaoyao.scale.image.pager.ImagePager
 import com.jvziyaoyao.scale.zoomable.pager.rememberZoomablePagerState
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.uikit.mochi.Toast
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -66,12 +67,20 @@ fun ImagePreviewDialog(
                 MochiIconButton(
                     onClick = {
                         lifecycleOwner.lifecycleScope.launch {
+                            // 保存完成前一直显示这条「进行中」提示，结束后先收起再给结果
+                            // （对应上游 96a9bed4d：进度提示与结果提示不再叠在一起）。
+                            val saving = Toast.showProgress(context.getString(R.string.image_preview_saving))
                             runCatching {
-                                Toast.show("正在保存")
                                 val imgUrl = images[state.currentPage]
                                 filesManager.saveMessageImage(context, imgUrl)
-                                Toast.show(message = "已保存图片", isError = false)
+                            }.onSuccess {
+                                saving.dismiss()
+                                Toast.show(
+                                    message = context.getString(R.string.image_preview_saved),
+                                    isError = false,
+                                )
                             }.onFailure {
+                                saving.dismiss()
                                 it.printStackTrace()
                                 Toast.show(
                                     message = it.toString(),

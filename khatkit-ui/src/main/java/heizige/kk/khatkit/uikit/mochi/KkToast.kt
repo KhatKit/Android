@@ -6,6 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,24 +29,56 @@ data class ToastModel(
     val iconVector: ImageVector? = null,
     val iconPainter: Painter? = null,
     val durationMillis: Long = Toast.SHORT_DURATION,
+    /** 每条提示的序号：同文案连着来两次也要能再放一次（host 的 LaunchedEffect 按它取 key）。 */
+    val id: Long = 0L,
 )
+
+/**
+ * [Toast.showProgress] 返回的句柄：操作结束时调用 [dismiss] 收起那条「进行中」提示。
+ * 只有队里当前那条还是它时才收（后来居上的结果提示不会被误收）。
+ */
+class ToastHandle internal constructor(private val id: Long) {
+    fun dismiss() = Toast.dismiss(id)
+}
 
 object Toast {
     const val SHORT_DURATION: Long = 2200L
 
+    /** 「进行中」提示的时长：不自动消失，只能靠 [ToastHandle.dismiss] 收起。 */
+    const val INFINITE_DURATION: Long = Long.MAX_VALUE
+
     internal val queue = MutableStateFlow<ToastModel?>(null)
     private val seq = AtomicLong()
 
+    private fun nextId(): Long = seq.incrementAndGet()
+
     fun show(message: String, isError: Boolean = false) {
-        queue.value = ToastModel(message = message, isError = isError)
+        queue.value = ToastModel(message = message, isError = isError, id = nextId())
     }
 
     fun show(message: String, icon: ImageVector, isError: Boolean = false) {
-        queue.value = ToastModel(message = message, isError = isError, iconVector = icon)
+        queue.value = ToastModel(message = message, isError = isError, iconVector = icon, id = nextId())
     }
 
     fun show(message: String, painter: Painter, isError: Boolean = false) {
-        queue.value = ToastModel(message = message, isError = isError, iconPainter = painter)
+        queue.value = ToastModel(message = message, isError = isError, iconPainter = painter, id = nextId())
+    }
+
+    /**
+     * 显示一条「进行中」提示（如「保存中…」）：**不会自动消失**，操作结束后调
+     * [ToastHandle.dismiss] 收起，再 [show] 结果提示 —— 两者不会叠在一起。
+     *
+     * 对应上游 96a9bed4d 的 ToasterState.showProgress。
+     */
+    fun showProgress(message: String, icon: ImageVector? = null): ToastHandle {
+        val id = nextId()
+        queue.value = ToastModel(
+            message = message,
+            iconVector = icon,
+            durationMillis = INFINITE_DURATION,
+            id = id,
+        )
+        return ToastHandle(id)
     }
 
     /** 调用方自带 Composable 内容：收起后只剩 message（Mochi 胶囊不支持自定义槽）。 */
@@ -52,11 +87,16 @@ object Toast {
         duration: Long = SHORT_DURATION,
         content: @Composable () -> Unit,
     ) {
-        queue.value = ToastModel(message = "", durationMillis = duration)
+        queue.value = ToastModel(message = "", durationMillis = duration, id = nextId())
     }
 
     fun dismiss() {
         queue.value = null
+    }
+
+    /** 按 id 收：只有当前那条还是它时才清队列（结果提示已经顶上来时不要被后到的句柄收掉）。 */
+    internal fun dismiss(id: Long) {
+        if (queue.value?.id == id) queue.value = null
     }
 
     /** 根 host 用：把最新一条转成 Mochi 的 show 调用。 */
@@ -72,14 +112,26 @@ object Toast {
 fun KkToastHost(modifier: Modifier = Modifier) {
     val state = rememberMochiToastState()
     val model = Toast.collectForHost()
-    LaunchedEffect(model) {
-        val m = model ?: return@LaunchedEffect
+    // 上一条是不是「进行中」提示：只有它需要主动收胶囊（定时提示由 Mochi 自己按 duration 收）。
+    var progressShown by remember { mutableStateOf(false) }
+    // key 用 id 而不是整条 model：同文案连来两次也能再放一次（原实现靠 show 完立刻 dismiss 达到同样效果）。
+    LaunchedEffect(model?.id) {
+        val m = model
+        if (m == null) {
+            if (progressShown) {
+                progressShown = false
+                state.dismiss()
+            }
+            return@LaunchedEffect
+        }
+        progressShown = m.durationMillis == Toast.INFINITE_DURATION
         state.show(
             title = m.message,
             icon = m.iconVector?.let { vec -> { tint: Color -> Icon(vec, contentDescription = null, tint = tint) } },
             durationMillis = m.durationMillis,
         )
-        Toast.dismiss()
+        // 定时提示立刻从队列消费掉，让位给下一条；进行中的提示留在队里，等句柄收起
+        if (!progressShown) Toast.dismiss(m.id)
     }
     MochiToastHost(state = state, modifier = modifier)
 }

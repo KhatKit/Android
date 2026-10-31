@@ -1792,4 +1792,6 @@
   <string name="skill_detail_page_builtin_readonly">Built-in skills cannot be modified</string>
   <string name="skill_detail_page_name_change_error">The skill name cannot be changed (the name field must be "%1$s")</string>
   <string name="skill_detail_page_save_failed">Save failed</string>
+  <string name="image_preview_saving">Saving…</string>
+  <string name="image_preview_saved">Image saved</string>
 </resources>

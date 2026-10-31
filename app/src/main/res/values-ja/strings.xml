@@ -1380,4 +1380,6 @@
 <string name="chart_mode_table">表格</string>
 <string name="chart_series">數列</string>
 <string name="chart_series_name">數列 %1$d</string>
+  <string name="image_preview_saving">保存中…</string>
+  <string name="image_preview_saved">画像を保存しました</string>
 </resources>
