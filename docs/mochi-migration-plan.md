@@ -294,6 +294,44 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
   10 OnFixed←onPrimaryContainer/向黑插值；30 OnFixedVariant←10→40 插值/primaryContainer。
 - 不注入旧色板/旧字阶：extend 调色板与 GoogleSans 只在功能点直接引用，不进主题。
 
+
+### 14.5 对话框：AppDialog 宿主 + MochiDialog 直连（DG1/DG2 收口）
+
+> 形态：**Mochi 警告框（MochiDialog）统一渲染**；保留一层 `AppDialog` 兼容宿主承接旧签名。
+> 数字实测 HEAD 98ac25256。
+
+1. **`AppAlertDialog` → `AppDialog`**（`core/ui/components/ui/AppDialog.kt`）：
+   签名保留、**38 个调用点零逻辑改动**（`grep -rn 'AppDialog(' --include=*.kt app/src/main | wc -l` = 39，含 1 个函数定义）；
+   内部改为 `MochiDialog`（`AppDialog.kt:56`）。`shape/containerColor/tonalElevation/properties` 只收不用
+   （圆角/底色/阴影/窗口属性由 Mochi 主题统一给）。按钮仍右下横排、取消在左、确认在右。
+2. **全仓 material3 `AlertDialog` 41 → 1**：仅剩 `core/ui/components/ui/TextArea.kt:201` 的
+   `BasicAlertDialog`——全屏纯文本编辑器需要平台全宽 + IME 直接控制，不适合 Mochi 警告框；
+   这是**有意保留**，不是遗漏。
+3. **直连 `MochiDialog`（12 处）**：
+   `ChatInput.kt:850`（ASR 未配置）、`ReasoningPicker.kt:144`（思考强度）、
+   `CompressContextDialog.kt:65`（压缩上下文）、`MessageQueuePanel.kt:166`（队列编辑）、
+   `ChatMessageTools.kt:464`（工具拒绝理由）、`PermissionRationaleDialog.kt:50`（权限说明，限高滚动）、
+   `ConfirmDialog.kt:28`（标准确认）、`Export.kt:33`（导出选项）、`TagList.kt:116`（标签重名留框）、
+   `AppDialog.kt:56`（兼容宿主内部）、`ChatSizeChecker.kt:66`、`ChatRolePanelPage.kt:146`。
+   `MochiConfirmationDialog` 1 处：`MessageQueuePanel.kt:203`。
+4. **行为与视觉差异（验收要点）**：
+   - 遮罩/圆角/投影/弹出退场动效由 Mochi 提供；点外部关闭由 `dismissOnOutsideTap` 控制（各调用点不同）；
+   - **压缩中不可关**：`CompressContextDialog.kt` 在 `currentJob.isActive` 时点外/返回都不关，任务结束后
+     `LaunchedEffect` 收口 `onDismiss()`；
+   - **拒绝理由是危险色**：`ChatMessageTools.kt` 的「拒绝」用 `MochiDialogActionRole.Destructive`；
+   - **TagList 重名留框**：`TagList.kt:55` 注释与实现——MochiDialog 点按钮必调 `onDismissRequest`，
+     重名校验失败时靠「不调 dismiss」留在原地继续改；
+   - **actions 为空**：`AppDialog.kt:60` 传 `persistentListOf()`，纯内容对话框底部可能多出一段留白
+     （**34dp 留白候选**，见 §15 第 8 条，待视觉确认）；
+   - 长内容（权限说明/导出/压缩预览）限高滚动，按钮不随内容滚走。
+5. **复算命令**：
+   ```bash
+   grep -rn 'AppDialog(' --include=*.kt app/src/main | wc -l          # 39（38 调用点 + 定义）
+   grep -rn 'MochiDialog(' --include=*.kt app/src/main | wc -l        # 12
+   grep -rn 'MochiConfirmationDialog(' --include=*.kt app/src/main | wc -l  # 1
+   grep -rn 'AlertDialog(' --include=*.kt app/src/main | grep -v Mochi | wc -l  # 1（TextArea BasicAlertDialog）
+   ```
+
 ## 15. 遗留清单（下一会话按此接）
 
 1. **EditState**：已新增 `EditStateSheetHost`（快照 + state 驱动），`EditState` 接口未改；
@@ -313,3 +351,4 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -l   # 0
    ```
 7. **死代码**：`RecordCardSheet.kt:83` 无调用点（同 §14.2）。
+8. **对话框底部留白（候选）**：`AppDialog.kt:60` 的 actions 为空时，MochiDialog 底部可能多出约 34dp 留白；属视觉差异候选，待主人确认是否需要在宿主层补 padding 处理。
