@@ -10,7 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
@@ -326,7 +325,17 @@ class RouteActivity : ComponentActivity() {
                 ) {
                     // ── U7a-3：60 条路由全部由 MochiNavHost 渲染，Nav3 外壳已删除 ──────────
                     // route ⇄ Screen 由 [ScreenRoutes] 保证（单测守 60 条互逆）；未知 route 不画、不崩。
-                    MochiNavHost(navigator = mochiNavigator, modifier = Modifier.fillMaxSize()) { route ->
+                    //
+                    // NAV3：有页内浮层登记返回（PageBackInterceptor.hasHandlers）时，把 Mochi 的
+                    // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时 predictiveBack
+                    // 保持 true，预测手势（跟手预览/取消回弹）完全由 MochiNavHost 内部处理。
+                    // 这样任一时刻只有一条处理器接返回，不会出现「第一次白按、第二次才退层」。
+                    val hasOverlay = PageBackInterceptor.hasHandlers
+                    MochiNavHost(
+                        navigator = mochiNavigator,
+                        modifier = Modifier.fillMaxSize(),
+                        predictiveBack = !hasOverlay,
+                    ) { route ->
                         // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
                         // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。
                         if (route == mochiNavigator.current) {
@@ -536,15 +545,10 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
 @Composable
 private fun PageBackGuard(onPop: () -> Unit) {
     val hasOverlay = PageBackInterceptor.hasHandlers
+    // NAV3：只保留这一条处理器。调用方已按 hasOverlay 把 MochiNavHost 切到「非预测模式」，
+    // 所以有浮层时它是唯一接管点（浮层先消费，否则退一层）；无浮层时它根本不注册，
+    // 预测性返回（跟手预览 + 取消回弹）全部由 MochiNavHost.PredictiveBackHandler 负责。
     BackHandler(enabled = hasOverlay) {
-        if (!PageBackInterceptor.intercept()) onPop()
-    }
-    PredictiveBackHandler(enabled = hasOverlay) { events ->
-        try {
-            events.collect { }
-        } catch (c: CancellationException) {
-            throw c
-        }
         if (!PageBackInterceptor.intercept()) onPop()
     }
 }

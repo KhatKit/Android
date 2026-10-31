@@ -323,7 +323,8 @@ fun ChatInput(
     }
 
     // 预测返回：手风琴展开时返回手势跟手收起面板（KodeHead 同款）
-    PredictiveBackHandler(enabled = progress.value > 0.01f && !editorOpen) { backEvents ->
+    // NAV3：抬高启用阈值，避免面板收起尾帧还挂着 handler 多吃一次返回。
+    PredictiveBackHandler(enabled = progress.value > 0.02f && !editorOpen) { backEvents ->
         try {
             backEvents.collect { event ->
                 progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
@@ -1369,7 +1370,8 @@ private fun FullScreenEditor(
     // 单一预测性返回实现（原 BackHandler + PredictiveBackHandler 合并为一条）：
     // 编辑器现在是**同一 window 内的页内浮层**，这里的 handler 与 NavDisplay 注册在同一个
     // 页面 dispatcher 上、且注册更晚 ⇒ 返回先跟手收起编辑器，不会 pop 掉 ChatPage。
-    PredictiveBackHandler(enabled = reveal > 0.01f) { events ->
+    // NAV3：只在编辑器确实展开（reveal 稳定 > 0.02）时接管，尾帧不抢返回。
+    PredictiveBackHandler(enabled = reveal > 0.02f) { events ->
         try {
             events.collect { event ->
                 onRevealProgress((1f - event.progress).coerceIn(0f, 1f))
