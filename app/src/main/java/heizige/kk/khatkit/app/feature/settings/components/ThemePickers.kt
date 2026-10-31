@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheetDetent
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.getValue
@@ -346,7 +347,9 @@ fun ThemeCustomColorSheet(
     var showHexDialog by remember { mutableStateOf(false) }
 
     // U7b-2d：调用页传了 state 就用它（退出动画 + 页根 backdrop）；没传的旧调用点走内部兼容层。
-    val internalSheet = rememberMochiSheetState()
+    // U7b-3：取色是多字段表单（滑杆 + HEX 输入 + 预设），只保留全屏一档 —— 半屏档拖拽没有意义，
+    // 内容在 Medium 高度会被截一半；调用方传了自己的 state 时仍以调用方 detents 为准。
+    val internalSheet = rememberMochiSheetState(detents = listOf(MochiSheetDetent.Large))
     val effectiveSheet = sheetState ?: internalSheet
     if (sheetState == null) {
         LaunchedEffect(visible) { if (visible) effectiveSheet.show() else effectiveSheet.hide() }
