@@ -35,6 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.basic.mochiSheetBackdrop
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,9 +124,13 @@ fun SettingFilesPage() {
         )
     }
 
-    if (showCleanSheet) {
-        PrimaryBottomSheet(
-            visible = true,
+    // U7b-2b：去门控，显隐走 MochiSheetState（内容只读 selectedCleanRange 等独立状态，无 NPE 风险）。
+    val cleanSheet = rememberMochiSheetState()
+    LaunchedEffect(showCleanSheet) {
+        if (showCleanSheet) cleanSheet.show() else cleanSheet.hide()
+    }
+    PrimaryBottomSheet(
+            state = cleanSheet,
             title = stringResource(R.string.setting_files_page_clean_title),
             imageVector = cleaningServices,
             confirmText = stringResource(R.string.setting_files_page_clean_action),
@@ -146,7 +153,6 @@ fun SettingFilesPage() {
                 onRangeSelected = { selectedCleanRange = it },
             )
         }
-    }
 
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.setting_files_page_title),
@@ -168,6 +174,7 @@ fun SettingFilesPage() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .mochiSheetBackdrop(cleanSheet)
                 .padding(
                     top = innerPadding.calculateTopPadding(),
                     start = innerPadding.calculateStartPadding(layoutDirection),
