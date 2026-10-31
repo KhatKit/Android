@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-<style name="Theme.KhatKit" parent="Theme.Material3.DayNight.NoActionBar" />
+  <!-- SZ-D：窗口主题改用系统 Theme.Material，不再继承 Material Components 的 Material3.DayNight，
+       R8 可裁掉 MDC 的样式/属性资源；窗口背景沿用原 Material3 background 色。 -->
+  <style name="Theme.KhatKit" parent="android:Theme.Material.Light.NoActionBar">
+    <item name="android:windowBackground">#FFFEF7FF</item>
+  </style>
 </resources>

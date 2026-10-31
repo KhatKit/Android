@@ -100,6 +100,8 @@ android {
     }
     androidResources {
         generateLocaleConfig = true
+        // SZ-D：只保留 app 自己翻译过的语言（依赖库带的其它语言资源不打包，resources.arsc 变小）
+        localeFilters += listOf("en", "ar", "ja", "ko", "ko-rKR", "ru", "zh", "zh-rTW")
     }
     packaging {
         jniLibs {
@@ -141,6 +143,12 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
     }
+}
+
+// SZ-D：kotlin-reflect 只由 ktor-server-core 传递引入；它在 classpath 上时 stdlib 的 Reflection
+// 会 Class.forName 加载 ReflectionFactoryImpl，R8 因此保留整个实现（约 0.7MB dex）。
+configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-reflect")
 }
 
 // Local JVM tests need the desktop native library instead of the Android AAR.
@@ -339,7 +347,6 @@ dependencies {
     implementation(libs.mochi.ios)
     implementation(libs.mochi.icons)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
-    implementation(kotlin("reflect"))
 
     // Leak Canary
     // debugImplementation(libs.leakcanary.android)
