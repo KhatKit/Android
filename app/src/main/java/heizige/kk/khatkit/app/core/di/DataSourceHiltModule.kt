@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.di
 
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
+import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountCredentialProvider
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -267,7 +268,13 @@ object DataSourceHiltModule {
     fun provideProviderManager(
         client: OkHttpClient,
         @ApplicationContext context: Context,
-    ): ProviderManager = ProviderManager(client = client, context = context)
+        // 账号类提供商（ChatGPT/Grok）的凭据来源：请求前按需刷新、401 自动续期（OA-3）
+        accountCredentials: ProviderAccountCredentialProvider,
+    ): ProviderManager = ProviderManager(
+        client = client,
+        context = context,
+        accountCredentials = accountCredentials,
+    )
 
     @Provides
     @Singleton
