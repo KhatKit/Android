@@ -84,6 +84,9 @@ fun PrimaryBottomSheet(
     state: MochiSheetState,
     modifier: Modifier = Modifier,
     title: String,
+    // 图标槽沿用旧重载：护栏测试要求每个调用点都显式传 painter=/imageVector=（Mochi 顶栏用文字按钮，这里只收不用）。
+    @Suppress("UNUSED_PARAMETER") painter: Painter? = null,
+    @Suppress("UNUSED_PARAMETER") imageVector: ImageVector? = null,
     dismissText: String? = null,
     confirmText: String? = null,
     onConfirm: (() -> Unit)? = null,
