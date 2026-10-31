@@ -353,6 +353,8 @@ dependencies {
 
     // tests
     testImplementation(libs.junit)
+    // SZ-D：kotlin-reflect 只在运行期排除（dex 不打包）；单测需要它（sealedSubclasses / 序列化测试）。
+    testImplementation(kotlin("reflect"))
     androidTestImplementation(libs.bundles.androidTest)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
