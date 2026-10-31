@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawWithCache
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
@@ -430,8 +432,20 @@ fun ChatInput(
         }
     }
 
+    // P1（上游 97060dd51）：底部渐变遮罩 —— 从输入区顶部过渡到屏幕底部（键盘弹出时到键盘上沿），
+    // 避免消息透到系统导航栏。
+    val scrimColor = MaterialTheme.colorScheme.background
+    val imeInsets = WindowInsets.ime
     KkSurface(
         color = Color.Transparent,
+        modifier = Modifier.drawWithCache {
+            val brush = Brush.verticalGradient(
+                colors = listOf(scrimColor.copy(alpha = 0f), scrimColor),
+                startY = 0f,
+                endY = (size.height - imeInsets.getBottom(this)).coerceAtLeast(1f),
+            )
+            onDrawBehind { drawRect(brush) }
+        },
     ) {
         Column(
             modifier = modifier
