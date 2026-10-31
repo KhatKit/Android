@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.explore
 
+import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
 import ui.feice.mochi.navigation.mochiNavSource
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
