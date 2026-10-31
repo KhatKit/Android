@@ -86,9 +86,13 @@ fun <T> EditState<T>.EditStateSheetHost(
     content: @Composable (value: T, updateValue: (T) -> Unit) -> Unit,
 ) {
     var lastValue by remember { mutableStateOf(this.currentState) }
-    LaunchedEffect(this.isEditing) {
-        if (this.isEditing) {
-            this.currentState?.let { lastValue = it }
+    // LaunchedEffect 的块 receiver 是 CoroutineScope，会遮蔽 EditState 扩展接收者；
+    // 先进组合作用域取好值，块内只用捕获值（不能用 this.isEditing）。
+    val editing = this.isEditing
+    val editingValue = this.currentState
+    LaunchedEffect(editing) {
+        if (editing) {
+            editingValue?.let { lastValue = it }
             sheetState.show()
         } else {
             sheetState.hide()
