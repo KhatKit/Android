@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import ui.feice.mochi.basic.rememberMochiSheetState
+import androidx.compose.runtime.LaunchedEffect
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -559,10 +561,20 @@ internal fun AddModelButton(
         }
     }
 
-    if (dialogState.isEditing) {
-        dialogState.currentState?.let { modelState ->
+    // U7b-2e：最后一份 currentState 快照 + LaunchedEffect 驱动；退出动画期间读快照不 NPE。
+    val addModelSheet = rememberMochiSheetState()
+    var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
+    LaunchedEffect(dialogState.isEditing) {
+        if (dialogState.isEditing) {
+            lastEditingModel = dialogState.currentState
+            addModelSheet.show()
+        } else {
+            addModelSheet.hide()
+        }
+    }
+    lastEditingModel?.let { modelState ->
             PrimaryBottomSheet(
-                visible = true,
+                state = addModelSheet,
                 title = stringResource(R.string.setting_provider_page_add_model),
                 imageVector = memory,
                 confirmText = stringResource(R.string.setting_provider_page_add),
@@ -607,5 +619,4 @@ internal fun AddModelButton(
                 }
             }
         }
-    }
 }

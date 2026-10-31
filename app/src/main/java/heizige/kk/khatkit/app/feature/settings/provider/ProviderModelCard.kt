@@ -79,10 +79,20 @@ internal fun ModelCard(
     val swipeToDismissBoxState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
 
-    if (dialogState.isEditing) {
-        dialogState.currentState?.let { editingModel ->
+    // U7b-2e：保留最后一份 currentState 快照，LaunchedEffect 驱动 show/hide；退出动画期间读快照不 NPE。
+    val editModelSheet = rememberMochiSheetState()
+    var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
+    LaunchedEffect(dialogState.isEditing) {
+        if (dialogState.isEditing) {
+            lastEditingModel = dialogState.currentState
+            editModelSheet.show()
+        } else {
+            editModelSheet.hide()
+        }
+    }
+    lastEditingModel?.let { editingModel ->
             PrimaryBottomSheet(
-                visible = true,
+                state = editModelSheet,
                 title = stringResource(R.string.setting_provider_page_edit_model),
                 imageVector = memory,
                 confirmText = stringResource(R.string.confirm),
@@ -122,7 +132,6 @@ internal fun ModelCard(
                 }
             }
         }
-    }
 
     KkSwipeToDismissBox(
         state = swipeToDismissBoxState,
@@ -383,10 +392,21 @@ internal fun ProviderOverrideSettings(
         }
 
         // Provider configuration modal
-        if (showProviderConfig && editingProvider != null) {
-            var internalProvider by remember(editingProvider) { mutableStateOf(editingProvider!!) }
+        // U7b-2e：同上，config 面板用最后一份 editingProvider 快照 + state。
+        val providerConfigSheet = rememberMochiSheetState()
+        var lastEditingProvider by remember { mutableStateOf(editingProvider) }
+        LaunchedEffect(showProviderConfig, editingProvider) {
+            if (showProviderConfig && editingProvider != null) {
+                lastEditingProvider = editingProvider
+                providerConfigSheet.show()
+            } else {
+                providerConfigSheet.hide()
+            }
+        }
+        lastEditingProvider?.let { provider ->
+            var internalProvider by remember(provider) { mutableStateOf(provider) }
             PrimaryBottomSheet(
-                visible = true,
+                state = providerConfigSheet,
                 title = stringResource(R.string.setting_provider_page_configure_provider_override),
                 imageVector = dns,
                 confirmText = stringResource(R.string.setting_provider_page_save),

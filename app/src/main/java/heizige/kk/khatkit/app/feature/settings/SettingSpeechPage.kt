@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import ui.feice.mochi.basic.MochiDropdown
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
@@ -160,11 +162,22 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     }
 
     // Edit TTS Provider Bottom Sheet
-    editingTTSProvider?.let { provider ->
+    // U7b-2e：保留最后一份 provider 快照 + LaunchedEffect 驱动 show/hide；退出动画期间内容读快照，不 NPE。
+    val ttsEditSheet = rememberMochiSheetState()
+    var lastTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
+    LaunchedEffect(editingTTSProvider) {
+        if (editingTTSProvider != null) {
+            lastTTSProvider = editingTTSProvider
+            ttsEditSheet.show()
+        } else {
+            ttsEditSheet.hide()
+        }
+    }
+    lastTTSProvider?.let { provider ->
         var currentProvider by remember(provider) { mutableStateOf(provider) }
 
         PrimaryBottomSheet(
-            visible = true,
+            state = ttsEditSheet,
             title = stringResource(R.string.setting_tts_page_edit_provider),
             imageVector = volumeUp,
             confirmText = stringResource(R.string.chat_page_save),
@@ -198,11 +211,22 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
         }
     }
 
-    editingASRProvider?.let { provider ->
+    // 同上：ASR 编辑面板用最后一份快照 + state 驱动。
+    val asrEditSheet = rememberMochiSheetState()
+    var lastASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
+    LaunchedEffect(editingASRProvider) {
+        if (editingASRProvider != null) {
+            lastASRProvider = editingASRProvider
+            asrEditSheet.show()
+        } else {
+            asrEditSheet.hide()
+        }
+    }
+    lastASRProvider?.let { provider ->
         var currentProvider by remember(provider) { mutableStateOf(provider) }
 
         PrimaryBottomSheet(
-            visible = true,
+            state = asrEditSheet,
             title = stringResource(R.string.setting_asr_page_edit_provider),
             imageVector = mic,
             confirmText = stringResource(R.string.chat_page_save),
@@ -412,9 +436,11 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
         Icon(add, stringResource(R.string.setting_tts_page_add_provider_content_description))
     }
 
-    if (showBottomSheet) {
+    // U7b-2e：if 门控换 sheetState（内容只读 currentProvider，无解引用）。
+    val ttsAddSheet = rememberMochiSheetState()
+    LaunchedEffect(showBottomSheet) { if (showBottomSheet) ttsAddSheet.show() else ttsAddSheet.hide() }
         PrimaryBottomSheet(
-            visible = true,
+            state = ttsAddSheet,
             title = stringResource(R.string.setting_tts_page_add_provider),
             imageVector = volumeUp,
             confirmText = stringResource(R.string.setting_tts_page_add),
@@ -443,7 +469,6 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
                 )
             }
         }
-    }
 }
 
 @Composable
@@ -481,9 +506,11 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
         )
     }
 
-    if (showBottomSheet) {
+    // U7b-2e：if 门控换 sheetState（内容只读 currentProvider，无解引用）。
+    val asrAddSheet = rememberMochiSheetState()
+    LaunchedEffect(showBottomSheet) { if (showBottomSheet) asrAddSheet.show() else asrAddSheet.hide() }
         PrimaryBottomSheet(
-            visible = true,
+            state = asrAddSheet,
             title = stringResource(R.string.setting_asr_page_add_provider),
             imageVector = mic,
             confirmText = stringResource(R.string.setting_tts_page_add),
@@ -512,7 +539,6 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
                 )
             }
         }
-    }
 }
 
 @Composable
