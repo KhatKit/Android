@@ -221,6 +221,19 @@ internal fun ModelCard(
                     ModelTypeTag(model = model)
                     ModelModalityTag(model = model)
                     ModelAbilityTag(model = model)
+                    // OA-4：账号类提供商（ChatGPT / Grok）的模型标出「账号来源」，
+                    // 与 API Key 类模型一眼区分开（凭据来自 OAuth 登录，不是手填 key）。
+                    (parentProvider as? ProviderSetting.Account)?.let { account ->
+                        Tag(type = TagType.SUCCESS) {
+                            Text(
+                                when (account) {
+                                    is ProviderSetting.ChatGPT -> "ChatGPT 账号"
+                                    is ProviderSetting.Grok -> "Grok 账号"
+                                    else -> account.name
+                                }
+                            )
+                        }
+                    }
                 }
             },
             // Edit button

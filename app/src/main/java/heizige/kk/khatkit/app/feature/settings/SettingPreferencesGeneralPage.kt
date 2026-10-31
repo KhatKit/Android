@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkFancySlider
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
-import heizige.kk.khatkit.app.feature.settings.components.AccountOAuthSection
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -67,16 +66,6 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // UI-6：订阅账号（ChatGPT / Grok）登录状态 / 登录退出 / 设备码。
-            // 用量条（额度条）要的数据 ai 侧还没有（ProviderQuota/QuotaQueryRunner 缺），
-            // 所以这里 quota 传 null：AccountOAuthSection 只在非 null 时画进度条。
-            item {
-                AccountOAuthSection(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    quota = null,
-                )
-            }
-
             item {
                 var createNewConversationOnStart by rememberSharedPreferenceBoolean(
                     "create_new_conversation_on_start",

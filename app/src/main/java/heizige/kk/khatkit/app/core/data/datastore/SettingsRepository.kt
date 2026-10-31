@@ -45,6 +45,7 @@ import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV3Mig
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV4Migration
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV5Migration
 import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV6Migration
+import heizige.kk.khatkit.app.core.data.datastore.migration.PreferenceStoreV7Migration
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
@@ -100,6 +101,7 @@ private fun createSettingsDataStore(context: Context): DataStore<Preferences> {
             PreferenceStoreV4Migration(),
             PreferenceStoreV5Migration(),
             PreferenceStoreV6Migration(),
+            PreferenceStoreV7Migration(),
         ),
         produceFile = { file },
     )

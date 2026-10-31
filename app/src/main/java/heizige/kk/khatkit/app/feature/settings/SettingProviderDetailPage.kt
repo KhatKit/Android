@@ -97,6 +97,8 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomBodies
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
+import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountManager
+import heizige.kk.khatkit.app.feature.settings.components.ProviderAccountSection
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConnectionTester
 import heizige.kk.khatkit.app.feature.settings.components.SettingProviderBalanceOption
@@ -228,6 +230,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
                 0 -> {
                     SettingProviderConfigPage(
                         provider = provider,
+                        accountManager = vm.providerAccountManager,
                         // 即改即存：编辑器里已经没有任何保存按钮，每次编辑都直接写进 Settings。
                         onEdit = onEdit,
                         onDelete = {
@@ -290,6 +293,8 @@ internal fun SettingProviderConfigPage(
      * [SAVE_FEEDBACK_DEBOUNCE_MS] 的输入停顿后只回调一次。
      */
     onCommitted: (() -> Unit)? = null,
+    /** OA-4：账号类提供商的登录/退出入口；非账号类型不需要，默认 null。 */
+    accountManager: ProviderAccountManager? = null,
 ) {
     var internalProvider by remember(provider) { mutableStateOf(provider) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -326,6 +331,18 @@ internal fun SettingProviderConfigPage(
             // 每敲一次就落库；开关、分段选择、以及「更换提供商类型」都走同一个入口。
             onEdit = { commit(it) }
         )
+
+        // OA-4：账号类提供商（ChatGPT / Grok）的账号区 —— 登录成功把凭据写回 ProviderSetting，
+        // 运行期由 AccountCredentialProvider 读它并自动续期；退出即把 credential 置空。
+        // 额度条：ai 侧还没有 ProviderQuota/QuotaQueryRunner（两个账号 Provider 的 getBalance 仍是 TODO），
+        // 所以这里不传 quota，ProviderAccountSection 只在非 null 时画进度条。
+        if (internalProvider is ProviderSetting.Account && accountManager != null) {
+            ProviderAccountSection(
+                provider = internalProvider,
+                manager = accountManager,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         if (internalProvider is ProviderSetting.OpenAI) {
             SettingProviderBalanceOption(
