@@ -74,6 +74,19 @@ import kotlin.time.Clock
 
 private const val TAG = "ResponseAPI"
 
+/**
+ * 一次 Responses 调用的端点描述：地址、协议差异（capabilities）与请求头/鉴权装配。
+ *
+ * 抽出来的目的：OpenAI（api key + 可配 baseUrl）、ChatGPT 订阅（Codex 固定地址 + OAuth 凭据）
+ * 与后续 Grok 共用同一套请求体构建与流式解码，只有这三件事不同。
+ */
+internal class ResponsesEndpoint(
+    val url: String,
+    val capabilities: ResponseProviderCapabilities = ResponseProviderCapabilities(),
+    /** 构建请求时调用，负责请求头和鉴权；可挂起，以便先刷新 token */
+    val configureRequest: suspend Request.Builder.() -> Unit = {},
+)
+
 class ResponseAPI(
     private val client: OkHttpClient,
     private val keyRoulette: KeyRoulette = KeyRoulette.default()
@@ -82,25 +95,25 @@ class ResponseAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams
+    ): TextGenerationResult = generateText(providerSetting.toResponsesEndpoint(params), messages, params)
+
+    internal suspend fun generateText(
+        endpoint: ResponsesEndpoint,
+        messages: List<UIMessage>,
+        params: TextGenerationParams
     ): TextGenerationResult = withContext(Dispatchers.IO) {
         val requestBody = buildRequestBody(
-            providerSetting = providerSetting,
+            capabilities = endpoint.capabilities,
             messages = messages,
             params = params,
             stream = false,
         )
-        val request = Request.Builder()
-            .url("${providerSetting.baseUrl}${providerSetting.responsesPath}")
-            .headers(providerSetting.mergeCustomHeaders(params.customHeaders))
+        val builder = Request.Builder()
+            .url(endpoint.url)
             .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
-            .addHeader(
-                "Authorization",
-                "Bearer ${keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())}"
-            )
             .addHeader("Content-Type", "application/json")
-            .configureReferHeaders(providerSetting.baseUrl)
-            .configureSessionHeaders(providerSetting.baseUrl, params.sessionId)
-            .build()
+        endpoint.configureRequest(builder)
+        val request = builder.build()
 
         Log.i(TAG, "generateText: ${json.encodeToString(requestBody)}")
 
@@ -121,24 +134,24 @@ class ResponseAPI(
         providerSetting: ProviderSetting.OpenAI,
         messages: List<UIMessage>,
         params: TextGenerationParams
+    ): Flow<StreamChunk> = streamText(providerSetting.toResponsesEndpoint(params), messages, params)
+
+    internal suspend fun streamText(
+        endpoint: ResponsesEndpoint,
+        messages: List<UIMessage>,
+        params: TextGenerationParams
     ): Flow<StreamChunk> = callbackFlow {
         val requestBody = buildRequestBody(
-            providerSetting = providerSetting,
+            capabilities = endpoint.capabilities,
             messages = messages,
             params = params,
             stream = true,
         )
-        val request = Request.Builder()
-            .url("${providerSetting.baseUrl}${providerSetting.responsesPath}")
-            .headers(providerSetting.mergeCustomHeaders(params.customHeaders))
+        val builder = Request.Builder()
+            .url(endpoint.url)
             .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
-            .addHeader(
-                "Authorization",
-                "Bearer ${keyRoulette.next(providerSetting.apiKey, providerSetting.id.toString())}"
-            )
-            .configureReferHeaders(providerSetting.baseUrl)
-            .configureSessionHeaders(providerSetting.baseUrl, params.sessionId)
-            .build()
+        endpoint.configureRequest(builder)
+        val request = builder.build()
 
         Log.i(TAG, "streamText: ${json.encodeToString(requestBody)}")
 
@@ -173,9 +186,19 @@ class ResponseAPI(
         messages: List<UIMessage>,
         params: TextGenerationParams,
         stream: Boolean
+    ): JsonObject = buildRequestBody(
+        capabilities = resolveResponseProviderCapabilities(providerSetting.baseUrl.toHttpUrl().host),
+        messages = messages,
+        params = params,
+        stream = stream,
+    )
+
+    internal fun buildRequestBody(
+        capabilities: ResponseProviderCapabilities,
+        messages: List<UIMessage>,
+        params: TextGenerationParams,
+        stream: Boolean
     ): JsonObject {
-        val host = providerSetting.baseUrl.toHttpUrl().host
-        val capabilities = resolveResponseProviderCapabilities(host)
         return buildJsonObject {
             put("model", params.model.modelId)
             put("stream", stream)
@@ -261,6 +284,18 @@ class ResponseAPI(
             }
         }.mergeCustomBody(params.customBody)
     }
+
+    /** OpenAI 的端点：可配 baseUrl + api key，能力按 baseUrl 的 host 决定 */
+    private fun ProviderSetting.OpenAI.toResponsesEndpoint(params: TextGenerationParams) = ResponsesEndpoint(
+        url = baseUrl + responsesPath,
+        capabilities = resolveResponseProviderCapabilities(baseUrl.toHttpUrl().host),
+        configureRequest = {
+            headers(mergeCustomHeaders(params.customHeaders))
+            addHeader("Authorization", "Bearer " + keyRoulette.next(apiKey, id.toString()))
+            configureReferHeaders(baseUrl)
+            configureSessionHeaders(baseUrl, params.sessionId)
+        },
+    )
 
     internal fun buildMessages(messages: List<UIMessage>) = buildJsonArray {
         messages
