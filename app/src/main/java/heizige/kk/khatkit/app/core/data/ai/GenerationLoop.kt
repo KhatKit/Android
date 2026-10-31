@@ -302,6 +302,8 @@ class GenerationLoop(
 
                     else -> {
                         // Auto or Approved - execute the tool
+                        // P1-1（上游 8bb488e3a）：只给真正运行的工具计时，界面才能在执行中实时显示耗时
+                        val toolStartedAt = Clock.System.now()
                         runCatching {
                             val toolDef = tools.find { toolDef -> toolDef.name == tool.toolName }
                                 ?: error("Tool ${tool.toolName} not found")
@@ -319,7 +321,9 @@ class GenerationLoop(
                             val result = toolDef.execute(hookedArgs)
                             val hasShellAccess = tools.any { it.name == "workspace_shell" }
                             executedTools += tool.copy(
-                                output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess)
+                                output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess),
+                                startedAt = toolStartedAt,
+                                finishedAt = Clock.System.now(),
                             )
                         }.onFailure {
                             // 取消必须向上传播，否则停止生成会被误报为工具执行错误

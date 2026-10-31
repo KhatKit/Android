@@ -1227,7 +1227,9 @@ class ChatManager(
                 UIMessagePart.Text(
                     """{"status":"cancelled","error":"Generation cancelled by user before tool execution completed."}"""
                 )
-            )
+            ),
+            // P1-1：执行到一半被停止的工具，耗时算到取消为止
+            finishedAt = tool.finishedAt ?: tool.startedAt?.let { kotlin.time.Clock.System.now() },
         )
     }
 

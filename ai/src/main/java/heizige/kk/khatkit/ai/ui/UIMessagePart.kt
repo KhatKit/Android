@@ -135,7 +135,11 @@ sealed class UIMessagePart {
         val toolName: String,
         val arguments: String,
         val approvalState: ToolApprovalState = ToolApprovalState.Auto,
-        override var metadata: JsonObject? = null
+        override var metadata: JsonObject? = null,
+        // P1-1（上游 8bb488e3a）：本地执行的起止时间，只统计真正运行工具的耗时；
+        // 拒绝、问答和旧消息都为空。
+        val startedAt: kotlin.time.Instant? = null,
+        val finishedAt: kotlin.time.Instant? = null,
     ) : UIMessagePart() {
         fun merge(other: ToolCall): ToolCall {
             return ToolCall(
@@ -144,6 +148,8 @@ sealed class UIMessagePart {
                 arguments = arguments + other.arguments,
                 approvalState = approvalState,
                 metadata = if (other.metadata != null) other.metadata else metadata,
+                startedAt = startedAt,
+                finishedAt = finishedAt,,
             )
         }
     }

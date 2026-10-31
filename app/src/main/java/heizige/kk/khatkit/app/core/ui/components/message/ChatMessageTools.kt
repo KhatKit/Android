@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -97,6 +99,27 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
     )
 }
 
+/** P1-1（上游 8bb488e3a）：工具执行耗时；执行中每 100ms 刷新，没有计时（拒绝/问答/旧消息）返回 null。 */
+@Composable
+private fun rememberToolDuration(tool: UIMessagePart.Tool, loading: Boolean): kotlin.time.Duration? {
+    val startedAt = tool.startedAt
+    val finishedAt = tool.finishedAt
+    val running = loading && startedAt != null && finishedAt == null
+    val now by androidx.compose.runtime.produceState(kotlin.time.Clock.System.now(), running) {
+        while (running) {
+            value = kotlin.time.Clock.System.now()
+            kotlinx.coroutines.delay(100)
+        }
+    }
+    return when {
+        startedAt == null -> null
+        finishedAt != null -> finishedAt - startedAt
+        running -> now - startedAt
+        else -> null
+    }
+}
+
+@Composable
 @Composable
 fun ChainOfThoughtScope.ChatMessageToolStep(
     tool: UIMessagePart.Tool,
@@ -158,14 +181,25 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
             }
         },
         label = {
-            Text(
-                text = renderer.title(context),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.shimmer(isLoading = loading),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = renderer.title(context),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.shimmer(isLoading = loading).weight(1f, fill = false),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // P1-1：执行耗时（执行中实时走字）；不足 100ms 与无计时的不显示
+                rememberToolDuration(tool, loading)?.takeIf { it >= kotlin.time.Duration.Companion.milliseconds * 100 }?.let { d ->
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = d.toString(kotlin.time.DurationUnit.SECONDS, 1),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                    )
+                }
+            }
         },
         extra = if (isPending && onToolApproval != null) {
             {
