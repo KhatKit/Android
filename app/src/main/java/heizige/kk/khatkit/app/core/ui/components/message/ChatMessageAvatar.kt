@@ -29,6 +29,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 internal fun assistantMessageLabel(
     speakerName: String?,
     model: Model?,
+    modelNameFallback: String? = null,
     assistant: Assistant?,
 ): String? {
     speakerName?.let { return it }
@@ -36,6 +37,7 @@ internal fun assistantMessageLabel(
     return if (assistant?.useAssistantAvatar == true) {
         assistant.name.ifEmpty { stringResource(R.string.assistant_page_default_assistant) }
     } else {
-        model?.displayName
+        // MSG-1：模型被删/编辑后 modelId 查不到模型，回退到消息上留的模型名快照
+        model?.displayName ?: modelNameFallback
     }
 }

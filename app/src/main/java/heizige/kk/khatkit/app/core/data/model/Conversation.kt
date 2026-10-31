@@ -5,10 +5,12 @@ import androidx.core.net.toUri
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.ai.util.InstantSerializer
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANT_ID
+import heizige.kk.khatkit.app.core.data.datastore.Settings
 import java.time.Instant
 import kotlin.uuid.Uuid
 
@@ -125,6 +127,15 @@ data class MessageNode(
     val id: Uuid = Uuid.random(),
     val messages: List<UIMessage>,
     val selectIndex: Int = 0,
+    /**
+     * 消息 id（字符串）→ 生成它的模型名快照。
+     *
+     * 对齐上游 4a7a39c47：消息只存 modelId，名称要拿"当前"提供商配置现查，模型一删就查不到。
+     * 这里在节点上留一份快照，查不到模型时用它显示。放在节点而不是消息上，是因为
+     * UIMessage 在 ai 模块（分工上不归本棒改，AI-1 负责加 modelSnapshot 字段）；
+     * 等 ai 侧字段到位后这里的读写点可平滑并过去（key 都是消息 id）。
+     */
+    val modelSnapshots: Map<String, ModelSnapshot> = emptyMap(),
 ) {
     val currentMessage get() = if (messages.isEmpty() || selectIndex !in messages.indices) {
         throw IllegalStateException("MessageNode has no valid current message: messages.size=${messages.size}, selectIndex=$selectIndex")
@@ -134,12 +145,50 @@ data class MessageNode(
 
     val role get() = messages.firstOrNull()?.role ?: MessageRole.USER
 
+    /** 这条消息的模型名快照（没有就 null）。展示层查不到模型时用它回退。 */
+    fun snapshotFor(messageId: Uuid): ModelSnapshot? = modelSnapshots[messageId.toString()]
+
+    /** 展示用：模型名快照的 displayName。 */
+    fun snapshotDisplayName(messageId: Uuid): String? = snapshotFor(messageId)?.displayName
+
     companion object {
         fun of(message: UIMessage) = MessageNode(
             messages = listOf(message),
             selectIndex = 0
         )
     }
+}
+
+/** 生成消息的模型名快照，对应 [Model.modelId] 与 [Model.displayName]。 */
+@Serializable
+data class ModelSnapshot(
+    val modelId: String,
+    val displayName: String,
+)
+
+/**
+ * 给还没有模型快照的消息补上快照，没有可补的消息时原样返回。
+ *
+ * 在保存会话时调用（ChatManager.saveConversation）：新生成的消息由此带上快照，引入快照之前的
+ * 旧消息也在会话下次保存时补齐。模型已经被删掉的旧消息无从补起，保持原样。
+ */
+fun Conversation.fillModelSnapshots(settings: Settings): Conversation {
+    val models = settings.providers.flatMap { it.models }.associateBy { it.id }
+    val nodes = messageNodes.map { node ->
+        var changed = false
+        val snapshots = buildMap {
+            putAll(node.modelSnapshots)
+            node.messages.forEach { message ->
+                val key = message.id.toString()
+                if (containsKey(key)) return@forEach
+                val model = message.modelId?.let(models::get) ?: return@forEach
+                changed = true
+                put(key, ModelSnapshot(modelId = model.modelId, displayName = model.displayName))
+            }
+        }
+        if (changed) node.copy(modelSnapshots = snapshots) else node
+    }
+    return if (nodes == messageNodes) this else copy(messageNodes = nodes)
 }
 
 fun UIMessage.toMessageNode(): MessageNode {

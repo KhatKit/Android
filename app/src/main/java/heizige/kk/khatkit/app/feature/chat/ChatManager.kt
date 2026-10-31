@@ -90,6 +90,7 @@ import heizige.kk.khatkit.app.core.data.model.SpeakerStep
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.AssistantAffectScope
 import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.fillModelSnapshots
 import heizige.kk.khatkit.app.core.data.model.localFileUrls
 import heizige.kk.khatkit.app.core.data.model.replaceRegexes
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
@@ -1597,7 +1598,9 @@ class ChatManager(
             return // 新会话且为空时不保存
         }
 
-        val updatedConversation = conversation.copy()
+        // MSG-1（对齐上游 4a7a39c47）：落库前给还没有模型名快照的消息补一份，
+        // 模型以后被删也还能显示"由谁生成"。旧消息在会话下次保存时自动补齐。
+        val updatedConversation = conversation.fillModelSnapshots(settingsStore.settingsFlow.value)
         updateConversation(conversationId, updatedConversation)
 
         if (!exists) {
@@ -1702,12 +1705,22 @@ class ChatManager(
             }
             edited = true
 
+            // 编辑的是原消息的内容，来源仍是生成它的模型：新版本继承 modelId 与模型名快照
+            val original = node.messages.first { it.id == messageId }
+            val newMessage = UIMessage(
+                role = node.role,
+                parts = processedParts,
+                modelId = original.modelId,
+            )
+            val inherited = node.snapshotFor(original.id)
             node.copy(
-                messages = node.messages + UIMessage(
-                    role = node.role,
-                    parts = processedParts,
-                ),
-                selectIndex = node.messages.size
+                messages = node.messages + newMessage,
+                selectIndex = node.messages.size,
+                modelSnapshots = if (inherited == null) {
+                    node.modelSnapshots
+                } else {
+                    node.modelSnapshots + (newMessage.id.toString() to inherited)
+                },
             )
         }
 

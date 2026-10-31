@@ -284,6 +284,8 @@ fun ChatMessage(
             val label = assistantMessageLabel(
                 speakerName = speakerName,
                 model = model,
+                // 模型已被删除时 modelId 查不到模型，用节点上记的模型名快照兜底
+                modelNameFallback = node.snapshotDisplayName(message.id),
                 assistant = assistant,
             )
             if (label != null || speakerBadge != null) {
