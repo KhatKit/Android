@@ -141,10 +141,6 @@
       android:exported="true"
       android:noHistory="true"
       android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-    <activity
-      android:name="com.yalantis.ucrop.UCropActivity"
-      android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
-
     <service
       android:name=".feature.chat.ChatGenerationForegroundService"
       android:exported="false"

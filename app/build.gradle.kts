@@ -166,7 +166,7 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
 // 同样报这两条），但它会让 :app:debugCompileClasspath 在 --offline 下直接失败，
 // 因此必须在此处钉死。
 //
-// - exifinterface：app 显式声明了 1.4.1（ImageHelper 读 EXIF 方向、UCrop 用），
+// - exifinterface：app 显式声明了 1.4.1（ImageHelper 读 EXIF 方向），
 //   而 debugRuntimeClasspath 实际解析到的是 1.4.2。编译期与运行期选到不同版本，
 //   离线时编译期找不到 1.4.1 的 aar 就整包失败。这里统一顶到 1.4.2（补丁版本，
 //   API 兼容），顺带消除这个长期存在的编译/运行不一致。
@@ -182,9 +182,9 @@ configurations.configureEach {
 dependencies {
     implementation(libs.quickjs)
     implementation(libs.androidx.core.ktx)
-    // UCropActivity 的父类是 AppCompatActivity，必须带上 appcompat
+    // AppCompatResources（RabbitLoading 用）需要 appcompat
     implementation(libs.androidx.appcompat)
-    // ImageHelper 读 EXIF 方向，UCrop 也不直接暴露它，靠显式声明避免依赖树变化时断掉
+    // ImageHelper 读 EXIF 方向，靠显式声明避免依赖树变化时断掉
     implementation("androidx.exifinterface:exifinterface:1.4.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
@@ -245,9 +245,6 @@ dependencies {
     implementation(libs.ktor.client.websockets)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-
-    // ucrop
-    implementation(libs.ucrop)
 
     // pebble (template engine)
     implementation(libs.pebble)

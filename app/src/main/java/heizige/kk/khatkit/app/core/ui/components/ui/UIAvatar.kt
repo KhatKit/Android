@@ -122,7 +122,7 @@ fun UIAvatar(
 
     // 头像走自研媒体网格选择器（对齐 ImageToolbox），单选
     var showImagePicker by remember { mutableStateOf(false) }
-    val (_, launchImageCrop) = useCropLauncher(
+    val launchImageCrop = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
             saveAvatarImage(croppedUri)
         },

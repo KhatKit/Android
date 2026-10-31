@@ -55,7 +55,7 @@ internal fun rememberChatAttachmentPickerActions(
 
     var cameraOutputUri by remember { mutableStateOf<Uri?>(null) }
     var cameraOutputFile by remember { mutableStateOf<File?>(null) }
-    val (_, launchCameraCrop) = useCropLauncher(
+    val launchCameraCrop = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
             inputState.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
             onAttachmentAdded()
@@ -96,7 +96,7 @@ internal fun rememberChatAttachmentPickerActions(
     }
 
     var preCropTempFile by remember { mutableStateOf<File?>(null) }
-    val (_, launchImageCrop) = useCropLauncher(
+    val launchImageCrop = useCropLauncher(
         onCroppedImageReady = { croppedUri ->
             inputState.addImages(filesManager.createChatFilesByContents(listOf(croppedUri)))
             onAttachmentAdded()
@@ -171,7 +171,7 @@ internal fun rememberChatAttachmentPickerActions(
                 val source = selectedUris.first()
                 val tempFile = File(context.appTempFolder, "pick_temp_${System.currentTimeMillis()}.jpg")
                 runCatching {
-                    // HEIF/HEIC（尤其 HDR HEIF）交给 UCrop 前先解码转为 JPEG，规避裁剪解码失败
+                    // HEIF/HEIC（尤其 HDR HEIF）交给裁剪对话框前先解码转为 JPEG，规避解码失败
                     val converted = ImageHelper.isHeifImage(context, source) &&
                         ImageHelper.convertHeifToJpeg(context, source, tempFile)
                     if (!converted) {

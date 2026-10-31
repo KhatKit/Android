@@ -162,7 +162,7 @@ object ImageHelper {
 
     /**
      * 将 HEIF/HEIC 图片解码后重编码为 JPEG 写入 [target]
-     * 用于规避部分组件（如 UCrop）对 HEIF（尤其 HDR HEIF）解码兼容性不佳的问题
+     * 用于规避部分组件对 HEIF（尤其 HDR HEIF）解码兼容性不佳的问题
      *
      * @return 转换成功返回 true，失败（如系统无法解码 HEIF）返回 false
      */
