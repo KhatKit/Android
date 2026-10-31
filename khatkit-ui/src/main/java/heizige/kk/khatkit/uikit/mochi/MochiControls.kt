@@ -17,6 +17,7 @@ import ui.feice.mochi.effect.elastic.mochiPressDeform
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -426,12 +427,19 @@ fun MochiOptionItem(
                     Modifier
                 },
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            // UI-1：行高对齐 Mochi 列表行 56dp。40dp 头像/图标 + 上下各 8dp = 56dp；
+            // 纯文字行靠 heightIn 托到 56dp（原来上下各 12dp，带 40dp 头像时是 64dp）。
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         leadingContent?.invoke()
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            // 标题与 supporting（「记忆: 0」chip / 标签）之间给 2dp：原来是 0，chip 直接贴字基线
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             overlineContent?.invoke()
             titleContent()
             supportingContent?.invoke()

@@ -197,7 +197,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 val cards = listCardStyle()
                 LazyColumn(
                     modifier = listModifier,
-                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    // UI-1：底部留 16dp，最后一行不再贴着导航条/手势区
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     // 项间距取全局列表卡片样式：整列看起来是一张分组卡片，
                     // 圆角按 index/count 逐项算（首项只圆上边、末项只圆下边）。
                     // 这里刻意没用 CardGroup：那一版是一次性把所有项收进 Column，
@@ -339,9 +340,11 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
                 // MD3 侧留白由组件自己给（跟提供商/搜索页同款 16dp），Miuix 侧才要调用点补。
+                // UI-1：MD3 分支的 Md3SearchBar 自身不带外边距（注释里那句「组件自己给 16dp」
+                // 是旧 Kedge 版的说法）。两种风格统一在这里给 16dp，与列表卡片同一条竖线。
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = if (isMiuix) 16.dp else 0.dp),
+                    .padding(horizontal = 16.dp),
                 expandedContent = { NoHeroTransition { NoHeroTransition { assistantList(Modifier.fillMaxSize()) } } },
                 // 不传 showResultsWhenEmpty，用默认的 false：点开搜索后先是一片空白，
                 // 输入才把助手列表淡入（"不输入就不展示"）。收起后列表回到页面里，
@@ -513,12 +516,15 @@ private fun AssistantCreationSheet(
                     .heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState())
                     .imePadding()
-                    .padding(horizontal = 16.dp, vertical = 32.dp),
+                    // UI-1：PrimarySheetShell 已经给了 16dp 左右 + 16dp 上下内边距，这里再给
+                    // 16/32 会让内容和面板边距变成 32/48dp（按钮因此比内容区宽、被面板裁掉）。
+                    .padding(horizontal = 0.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    // 模板胶囊 → 头像 → 表单行的间距统一到 Mochi 的 16dp
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val templates = listOf("自定义角色", "Toolbox 主管")
@@ -546,37 +552,40 @@ private fun AssistantCreationSheet(
                         ),
                         avatarColor = assistant.avatarColor,
                         onUpdate = { update(assistant.copy(avatar = it)) },
-                        modifier = Modifier.size(64.dp),
+                        // UI-1：表单里的头像按 Mochi 表单尺度给 96dp（原来 64dp，比标题还小一圈）
+                        modifier = Modifier.size(96.dp),
                     )
-                    // 表单行收口到 MochiOptionItem：标题走 titleContent，输入框走
-                    // supportingContent（不再经项目内的转接层）。
-                    MochiOptionItem(
-                        onClick = null,
-                        titleContent = {
-                            Text(
-                                text = stringResource(R.string.assistant_page_name),
-                                style = MaterialTheme.typography.titleMedium,
+                    // UI-1：角色名称原来套了一层「卡片里放标题 + 一个没有 label 的空框」，
+                    // 屏幕上就是「角色名称」四个字下面再一个空框，而且框高被压到 56dp 以下。
+                    // 现在和「职责描述」同一套：单行 outlined field，label + placeholder 都在框内，
+                    // 高度走 MD3 的 56dp 最小高。
+                    Md3OutlinedTextField(
+                        value = assistant.name,
+                        onValueChange = {
+                            update(
+                                assistant.copy(
+                                    name = it
+                                )
                             )
                         },
-                        supportingContent = {
-                            Md3OutlinedTextField(
-                                value = assistant.name, onValueChange = {
-                                    update(
-                                        assistant.copy(
-                                            name = it
-                                        )
-                                    )
-                                }, modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                        },
+                        label = stringResource(R.string.assistant_page_name),
+                        placeholder = "输入角色名称",
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
+                        shape = RoundedCornerShape(16.dp),
                     )
 
                     Md3OutlinedTextField(
                         value = assistant.description,
                         onValueChange = { update(assistant.copy(description = it)) },
                         label = "职责描述",
-                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = "输入职责描述",
+                        minLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
                         shape = RoundedCornerShape(16.dp),
                     )
                     ModelSelector(

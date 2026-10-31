@@ -9,7 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SplitButtonLayout
 import androidx.compose.material3.Text
@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -125,15 +126,23 @@ private fun SillyTavernImporter(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // UI-1：按钮占满内容宽度并按内容截断。原来是「自适应宽度 + 超长中文标题」，
+        // 文本把 MochiButton 撑到比面板内容区还宽，左右两边被面板圆角裁掉（截图里那道切边）。
+        // 图标与文字的间距交给 MochiButton 自己的 spacedBy(8dp)，不再重复加 padding。
         MochiButton(
             onClick = {
                 pngPickerLauncher.launch(arrayOf("image/png"))
             },
             enabled = !isLoading,
             shapes = ButtonDefaults.shapes(),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            AutoAIIcon(name = "tavern", modifier = Modifier.padding(end = 8.dp))
-            Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_png))
+            AutoAIIcon(name = "tavern")
+            Text(
+                text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_png),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         MochiButton(
@@ -142,9 +151,14 @@ private fun SillyTavernImporter(
             },
             enabled = !isLoading,
             shapes = ButtonDefaults.shapes(),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            AutoAIIcon(name = "tavern", modifier = Modifier.padding(end = 8.dp))
-            Text(text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_json))
+            AutoAIIcon(name = "tavern")
+            Text(
+                text = if (isLoading) stringResource(R.string.assistant_importer_importing) else stringResource(R.string.assistant_importer_import_tavern_json),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         val cardJson = assistant?.tavernCardJson
         if (!cardJson.isNullOrBlank()) {

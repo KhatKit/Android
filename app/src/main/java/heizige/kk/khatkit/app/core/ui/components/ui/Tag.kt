@@ -60,8 +60,10 @@ fun Tag(
     } else {
         MaterialTheme.typography.labelSmall.copy(color = textColor)
     }
-    val hPad = if (isMiuix) 10.dp else 6.dp
-    val vPad = if (isMiuix) 4.dp else 1.dp
+    // UI-1：MD3 侧 6/1dp 的 chip 只有 ~15dp 高，比同一行的标签（8/2dp）矮一截；
+    // 统一到 8/2dp，行内「记忆: 0」「主管」与用户标签同高。
+    val hPad = if (isMiuix) 10.dp else 8.dp
+    val vPad = if (isMiuix) 4.dp else 2.dp
 
     ProvideTextStyle(finalTextStyle) {
         Row(

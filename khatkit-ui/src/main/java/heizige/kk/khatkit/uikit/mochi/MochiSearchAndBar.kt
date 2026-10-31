@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,30 +55,35 @@ fun Md3SearchBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(scheme.surfaceContainer, MochiTheme.shapes.full)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                // UI-1：高度/圆角对齐 Mochi 度量（40dp 胶囊 = 40/2 的 20dp 圆角）。
+                // 之前是 MD3 TextField 的 56dp 最小高 + 上下各 10dp，实际 76dp，比参考高近一倍。
+                .height(40.dp)
+                .background(scheme.surfaceContainer, RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            androidx.compose.material3.TextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                enabled = enabled,
-                singleLine = true,
-                textStyle = MochiTheme.textStyles.body.copy(color = scheme.onSurface),
-                placeholder = {
-                    Text(text = placeholder, color = scheme.onSurfaceVariant, style = MochiTheme.textStyles.body)
-                },
-                colors = androidx.compose.material3.TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                ),
-            )
+            // 输入用 BasicTextField：MD3 TextField 有 56dp 最小高，塞不进 40dp 的胶囊
+            //（会上下裁字）。外观/占位符仍取 Mochi token，交互（聚焦、清空、取消）不变。
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        color = scheme.onSurfaceVariant,
+                        style = MochiTheme.textStyles.body,
+                        maxLines = 1,
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = enabled,
+                    singleLine = true,
+                    textStyle = MochiTheme.textStyles.body.copy(color = scheme.onSurface),
+                    cursorBrush = SolidColor(scheme.primary),
+                )
+            }
             trailingIcon?.invoke()
             if (cancelLabel != null && (active || value.isNotEmpty())) {
                 Text(
