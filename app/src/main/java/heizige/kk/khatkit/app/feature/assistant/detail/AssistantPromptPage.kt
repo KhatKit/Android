@@ -318,9 +318,9 @@ private fun AssistantPromptContent(
                                 minLines = 5,
                                 maxLines = 15,
                                 isError = missingMessage,
-                                supportingText = { Text(if (missingMessage) {
-                                    { Text(stringResource(R.string.assistant_page_message_template_missing_message)) }
-                                } else null) },
+                                supportingText = {
+                                    if (missingMessage) Text(stringResource(R.string.assistant_page_message_template_missing_message))
+                                },
                                 textStyle = LocalTextStyle.current.copy(
                                     fontSize = 12.sp,
                                     fontFamily = JetbrainsMono,

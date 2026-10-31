@@ -778,11 +778,9 @@ private fun ColorPickerRow(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             isError = hslCodeError,
-            supportingText = { Text(if (hslCodeError) {
-                { Text("Use hsl(267 36% 48%)") }
-            } else {
-                null
-            }) },
+            supportingText = {
+                if (hslCodeError) Text("Use hsl(267 36% 48%)")
+            },
             shape = RoundedCornerShape(16.dp)
         )
     }
