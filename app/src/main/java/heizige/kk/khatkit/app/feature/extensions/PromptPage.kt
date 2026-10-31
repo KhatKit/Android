@@ -121,7 +121,7 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.prompt_page_title),
         scrollBehavior = scrollBehavior,
-        bottomBar = {
+        rail = {
             MochiNavBottomBar(
                 items = listOf(
                     MochiNavTab(

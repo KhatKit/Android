@@ -190,7 +190,7 @@ fun WorkspaceDetailPage(id: String) {
                 }
             }
         },
-        bottomBar = {
+        rail = {
             MochiNavBottomBar(
                 items = listOf(
                     MochiNavTab(

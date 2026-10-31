@@ -118,7 +118,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             }
         },
-        bottomBar = {
+        rail = {
             MochiNavBottomBar(
                 items = listOf(
                     MochiNavTab(

@@ -20,6 +20,18 @@ import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowDpSize
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 
 /**
  * P3a 外壳层：把原来走 Kedge 的「页面骨架 + 底部导航栏」换成 Mochi 实现。
@@ -48,6 +60,44 @@ fun MochiNavBottomBar(
 ) {
     if (items.isEmpty()) return
     val selected = items.indexOfFirst { it.selected }.coerceAtLeast(0)
+    val windowWidth = currentWindowDpSize().width
+    if (windowWidth >= 600.dp && windowWidth < 840.dp) {
+        // C1：600-840dp 用左侧导航轨代替底部 TabBar（只换形状，选中/点击语义不变）
+        Column(
+            modifier = modifier
+                .fillMaxHeight()
+                .padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            items.forEachIndexed { index, tab ->
+                val active = index == selected
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { tab.onClick() }
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = tab.label,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        return
+    }
     MochiTabBar(
         selectedIndex = selected,
         onSelect = { index -> items.getOrNull(index)?.onClick?.invoke() },
@@ -82,6 +132,11 @@ fun MochiPageScaffold(
     modifier: Modifier = Modifier,
     topBar: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    /**
+     * C1：导航条槽。宽度 600-840dp 时放到左侧当导航轨，其它宽度仍放底部（页面不用关心方向）。
+     * 传了 rail 就别再传 bottomBar。
+     */
+    rail: (@Composable () -> Unit)? = null,
     snackbarHost: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     containerColor: Color = MochiTheme.colorScheme.background,
@@ -122,12 +177,27 @@ fun MochiPageScaffold(
         return
     }
     Box(modifier = modifier.fillMaxSize().background(containerColor)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            topBar()
-            Box(modifier = Modifier.weight(1f)) {
-                content(PaddingValues.Zero)
+        val windowWidth = currentWindowDpSize().width
+        val railOnSide = rail != null && windowWidth >= 600.dp && windowWidth < 840.dp
+        if (railOnSide) {
+            androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.width(96.dp).fillMaxHeight()) { rail?.invoke() }
+                Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    topBar()
+                    Box(modifier = Modifier.weight(1f)) {
+                        content(PaddingValues.Zero)
+                    }
+                }
             }
-            bottomBar()
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                topBar()
+                Box(modifier = Modifier.weight(1f)) {
+                    content(PaddingValues.Zero)
+                }
+                bottomBar()
+                rail?.invoke()
+            }
         }
         Box(modifier = Modifier.align(Alignment.BottomCenter)) { snackbarHost() }
         Box(modifier = Modifier.align(Alignment.BottomEnd)) { floatingActionButton() }
