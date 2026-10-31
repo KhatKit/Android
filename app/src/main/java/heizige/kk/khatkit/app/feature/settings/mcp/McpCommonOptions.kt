@@ -171,9 +171,9 @@ internal fun McpCommonOptionsConfigure(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(R.string.setting_mcp_page_name_placeholder)) },
                 isError = nameInvalid,
-                supportingText = if (nameInvalid) {
+                supportingText = { Text(if (nameInvalid) {
                     { Text(stringResource(R.string.setting_mcp_page_name_invalid)) }
-                } else null,
+                } else null) },
                 shape = RoundedCornerShape(16.dp)
             )
         }

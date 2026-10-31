@@ -1033,7 +1033,7 @@ private fun RegexInjectionEditDialog(
                         KkRichInputChip(
                             selected = false,
                             onClick = {},
-                            label = keyword,
+                            label = { Text(keyword) },
                             trailingIcon = {
                                 MochiIconButton(
                                     onClick = {

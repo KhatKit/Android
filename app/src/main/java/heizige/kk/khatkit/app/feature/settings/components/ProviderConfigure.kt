@@ -452,9 +452,9 @@ private fun ProviderConfigureGoogle(
             isError = provider.baseUrl.isNotBlank() && (
                 !provider.baseUrl.isValidBaseUrl() || !provider.baseUrl.endsWith("/v1beta")
                 ),
-            supportingText = if (!provider.baseUrl.endsWith("/v1beta")) {
+            supportingText = { Text(if (!provider.baseUrl.endsWith("/v1beta")) {
                 { Text("The base URL usually ends with `/v1beta`") }
-            } else null,
+            } else null) },
             shape = RoundedCornerShape(16.dp)
         )
 

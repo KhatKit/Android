@@ -343,7 +343,7 @@ internal fun McpImportModal(
                     .weight(1f),
                 placeholder = { Text("{ \"mcpServers\": { ... } }") },
                 isError = errorMessage != null,
-                supportingText = errorMessage?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } },
+                supportingText = { Text(errorMessage?.let { msg -> { Text(msg, color = MaterialTheme.colorScheme.error) } }) },
                 shape = RoundedCornerShape(16.dp)
             )
         }

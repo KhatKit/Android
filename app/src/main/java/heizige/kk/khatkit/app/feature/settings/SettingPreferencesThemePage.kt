@@ -657,7 +657,7 @@ private fun ImportThemeDialog(
                     minLines = 4,
                     maxLines = 8,
                     isError = errorMessage != null,
-                    supportingText = errorMessage?.let { msg -> { Text(msg) } },
+                    supportingText = { Text(errorMessage?.let { msg -> { Text(msg) } }) },
                     shape = RoundedCornerShape(16.dp)
                 )
             }
@@ -778,11 +778,11 @@ private fun ColorPickerRow(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             isError = hslCodeError,
-            supportingText = if (hslCodeError) {
+            supportingText = { Text(if (hslCodeError) {
                 { Text("Use hsl(267 36% 48%)") }
             } else {
                 null
-            },
+            }) },
             shape = RoundedCornerShape(16.dp)
         )
     }

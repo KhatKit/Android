@@ -270,9 +270,9 @@ private fun EditWorkspaceDialog(
                 label = { Text(stringResource(R.string.workspace_page_name)) },
                 singleLine = true,
                 isError = isDuplicate,
-                supportingText = if (isDuplicate) {
+                supportingText = { Text(if (isDuplicate) {
                     { Text(stringResource(R.string.workspace_page_name_duplicate)) }
-                } else null,
+                } else null) },
                 shape = RoundedCornerShape(16.dp)
             )
         },

@@ -707,7 +707,7 @@ private fun TextStateField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        placeholder = placeholder?.let { { Text(it) } },
+        placeholder = { Text(placeholder?.let { { Text(it) } }) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
