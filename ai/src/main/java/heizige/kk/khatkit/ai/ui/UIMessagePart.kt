@@ -149,7 +149,7 @@ sealed class UIMessagePart {
                 approvalState = approvalState,
                 metadata = if (other.metadata != null) other.metadata else metadata,
                 startedAt = startedAt,
-                finishedAt = finishedAt,,
+                finishedAt = finishedAt,
             )
         }
     }
