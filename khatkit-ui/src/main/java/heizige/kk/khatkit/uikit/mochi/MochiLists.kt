@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import ui.feice.mochi.effect.elastic.mochiPressDeform
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -143,19 +144,21 @@ private fun MenuList(items: List<MochiMenuItem>, onDismiss: () -> Unit) {
             .padding(vertical = 6.dp),
     ) {
         items.forEach { item ->
-            // INT2①③：菜单行也挂按压形变 + 打开触觉（不再只有水波）。
+            // INT2①③ + OPT1：菜单行也走 Mochi 真按压形变 + 高光 + 打开触觉（受 LocalKkEffectsEnabled 控制）。
+            val effects = LocalKkEffectsEnabled.current
             val haptics = rememberKkHaptics()
             val interaction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .kkPressState(interaction, enabled = item.enabled)
+                    .then(if (effects) Modifier.mochiPressDeform() else Modifier)
+                    .kkPressState(interaction, enabled = effects && item.enabled)
                     .clickable(
                         enabled = item.enabled,
                         interactionSource = interaction,
                         indication = LocalIndication.current,
                     ) {
-                        haptics.open()
+                        if (effects) haptics.open()
                         onDismiss()
                         item.onClick()
                     }
@@ -234,19 +237,21 @@ fun MochiMenuRow(
     trailingIcon: (@Composable () -> Unit)? = null,
     selected: Boolean = false,
 ) {
-    // INT2①③：列表行同样走 kkPressState + indication + 打开触觉。
+    // INT2①③ + OPT1：列表行同样走 Mochi 真按压形变 + kkPressState 高光 + 打开触觉，受 LocalKkEffectsEnabled 控制。
+    val effects = LocalKkEffectsEnabled.current
     val haptics = rememberKkHaptics()
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .kkPressState(interaction, enabled = enabled)
+            .then(if (effects) Modifier.mochiPressDeform() else Modifier)
+            .kkPressState(interaction, enabled = effects && enabled)
             .clickable(
                 enabled = enabled,
                 interactionSource = interaction,
                 indication = LocalIndication.current,
                 onClick = {
-                    haptics.open()
+                    if (effects) haptics.open()
                     onClick()
                 },
             )

@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import ui.feice.mochi.basic.MochiButton as MochiRealButton
 import ui.feice.mochi.basic.MochiButtonStyle as MochiRealButtonStyle
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
+import ui.feice.mochi.effect.elastic.mochiPressDeform
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -397,13 +398,16 @@ fun MochiOptionItem(
     supportingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    // INT2①③：选项行挂按压形变（kkPressState）+ 统一 indication + 打开触觉，不再是裸 clickable 只有水波。
+    // INT2①③ + OPT1：选项行走 Mochi 真按压形变（mochiPressDeform：缩 0.96 + 跟手偏移）+ kkPressState 高光
+    // + 打开触觉；三者都受 LocalKkEffectsEnabled 控制，关掉时整行退回普通 clickable。
+    val effects = LocalKkEffectsEnabled.current
     val haptics = rememberKkHaptics()
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .kkPressState(interaction, enabled = onClick != null)
+            .then(if (effects) Modifier.mochiPressDeform() else Modifier)
+            .kkPressState(interaction, enabled = effects && onClick != null)
             .background(
                 if (backgroundColor == Color.Unspecified) MochiTheme.colorScheme.surfaceContainer else backgroundColor,
                 shape,
@@ -414,7 +418,7 @@ fun MochiOptionItem(
                         interactionSource = interaction,
                         indication = LocalIndication.current,
                         onClick = {
-                            haptics.open()
+                            if (effects) haptics.open()
                             onClick()
                         },
                     )
