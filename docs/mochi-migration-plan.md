@@ -350,5 +350,30 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    grep -rl 'import top.yukonga.miuix'  --include=*.kt . --exclude-dir=build | wc -l   # 0
    grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -l   # 0
    ```
-7. **死代码**：`RecordCardSheet.kt:83` 无调用点（同 §14.2）。
+7. **死代码（C2 已清）**：删除 `RecordCardSheet.kt` 与 `KhatKitPermissionSheet.kt`（全仓零调用，含测试）；
+   `QrScannerSheet` 仍被 `SettingProviderPage.kt:491` 使用，**保留**。
 8. **对话框底部留白（候选）**：`AppDialog.kt:60` 的 actions 为空时，MochiDialog 底部可能多出约 34dp 留白；属视觉差异候选，待主人确认是否需要在宿主层补 padding 处理。
+9. **visible 兼容层明细（C2 收尾，实测 26 处 visible = true）**（grep -rn 'visible = true' --include=*.kt app/src/main | wc -l = 26）：
+   - core/ui/components/ai/CompressContextDialog.kt:66（MochiDialog，压缩中不可关）
+   - core/ui/components/ai/MessageQueuePanel.kt:167 / :204（MochiDialog，队列编辑 / 确认框）
+   - core/ui/components/ai/ModelList.kt:132（可见性由调用方布尔驱动）
+   - core/ui/components/message/ChatMessageTools.kt:494（MochiDialog，拒绝理由）
+   - core/ui/components/ui/permission/PermissionRationaleDialog.kt:51（MochiDialog，限高滚动）
+   - core/ui/components/ui/GlassPopup.kt:96（不是弹层：Popup 内部 state 初始化，统计噪声）
+   - core/ui/components/ui/Export.kt:34（MochiDialog，导出选项）
+   - core/ui/components/ui/AppDialog.kt:57（兼容宿主内部的 MochiDialog）
+   - core/ui/components/ui/QrScannerSheet.kt:233（仍在用：SettingProviderPage.kt:491 扫码入口，不能删）
+   - core/ui/components/khatkit/KhatKitUiHost.kt:184（Lua 卡片 UiRequest.Confirm 分支）
+   - feature/assistant/AssistantPage.kt:626（同页多 sheet 共用 visible，:499 已 state 化）
+   - feature/chat/ChatSizeChecker.kt:67、feature/chat/ChatRolePanelPage.kt:147（MochiDialog）
+   - feature/extensions/skills/SkillsPage.kt:509（导入技能 URL + 校验流程）
+   - feature/extensions/PromptPage.kt:406 / :821（正则 / 注入两个编辑表单）
+   - feature/imggen/ImgGenPage.kt:825（生成参数面板）
+   - feature/log/LogPage.kt:130（长文本详情，两档可拖全屏）
+   - feature/settings/components/ProviderConnectionTester.kt:289（连接测试结果回调驱动）
+   - feature/settings/mcp/McpConfigModal.kt:120、McpToolsConfigure.kt:303（MCP 配置/工具多字段表单）
+   - feature/settings/SettingPreferencesThemePage.kt:567（预设主题编辑，多入口）
+   - feature/settings/SettingProviderPage.kt:580（提供商编辑表单）
+   - feature/onboarding/GreetingPage.kt:1037（引导流程内嵌面板）
+   - feature/automation/AutomationInAppHost.kt:52（自动化应用内弹层）
+   说明：任务书按「删 3 个死文件」预估剩 25 处；实测 QrScannerSheet 仍被设置页扫码入口使用（保留），因此只删了 2 个（见第 7 条），计数 27 减到 26；其中 GlassPopup.kt:96 不是弹层，按弹层口径为 25 处。
