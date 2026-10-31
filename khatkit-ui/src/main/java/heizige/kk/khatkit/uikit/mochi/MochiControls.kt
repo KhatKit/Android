@@ -2,7 +2,7 @@ package heizige.kk.khatkit.uikit.mochi
 
 import ui.feice.mochi.basic.MochiSwitch
 import ui.feice.mochi.basic.MochiSlider
-import ui.feice.mochi.basic.MochiHapticProfile
+import ui.feice.mochi.utils.MochiHapticProfile
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
