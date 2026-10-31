@@ -220,6 +220,53 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
   `WebViewPage.kt:146`（WebView 内弹层，尺寸随内容）。
 - 死代码候选：`RecordCardSheet.kt:83` 全仓无调用点，可单独删除（不在本轮范围）。
 
+
+### 14.2.1 退场动画覆盖范围（U7b-6 收口，实测 HEAD ea40b28da）
+
+> 结论：**退场动画只在「宿主接 state、调用方持 state」的弹层上生效**；
+> visible 兼容层（Boolean）虽有 LaunchedEffect(visible) { show()/hide() }，
+> 但多数调用点是**条件组合**（if (visible) PrimaryBottomSheet(...)），关闭即整体卸载，
+> 等效**即时消失**。本轮只对下列直连/state 页面验收动画。
+
+1. **直连 MochiSheet（9 处，绕过 PrimaryBottomSheet，宿主自带 state）**：
+   WorkspaceCwdPicker.kt:84、WorkspaceSelectSheet.kt:47、McpPicker.kt:231、
+   FilesPicker.kt:423、ChatMessageCopySheet.kt:43、ChatMessageActions.kt:323、
+   ChatMessageEditedFiles.kt:158、ChatMessageTranslation.kt:100、PermissionChecklist.kt:537
+   （命令：grep -rn 'MochiSheet(state' app/src/main | grep -v PrimaryBottomSheet.kt | wc -l = 9）。
+2. **PrimaryBottomSheet(state = …) 重载（17 个调用点 / 14 文件，动画生效）**：
+   AssistantPage.kt:499、AssistantBasicPage.kt:683、ChatWelcome.kt:241、ChatDrawer.kt:608、
+   ChatPage.kt:708、SettingFilesPage.kt:132、SettingPage.kt:487、TriggerCardEditor.kt:124、
+   SettingSearchPage.kt:331、SettingSpeechPage.kt:179/228/442/512、ThemePickers.kt:358、
+   ProviderModelList.kt:576、ProviderModelCard.kt:97/411。
+   另有 EditStateSheetHost（UseEditState.kt:84）→ AssistantPage.kt:494 的「新建助手」面板，
+   也是 state 快照驱动、收起动画期间继续渲染。
+3. **保留 visible 兼容层（34 个调用点；其中 visible = true 恒定 16 处）**，原因逐条：
+   - KhatKitUiHost.kt:183：Lua 卡片运行时 UiRequest.Confirm 分支，可见性由卡片 JSON 驱动，宿主无常驻 state。
+   - SafeModeActivity.kt:205：安全模式独立 Activity，面板随 Activity 生命周期，无常驻 Composable state。
+   - KhatKitPermissionSheet.kt:46：权限说明为静态内容，调用点传常量 true，state 化无收益。
+   - QrScannerSheet.kt:293：扫码结果由相机回调布尔驱动，不属于 UI state。
+   - AssistantPicker.kt:155：多入口复用（设置/聊天），调用方直接传布尔。
+   - AssistantPage.kt:618：同页还有 3 个 sheet 共用 visible 参数（:499 已 state 化），统一改造牵连面大。
+   - PromptPage.kt:404/819：正则/注入两个独立编辑表单，各自由对话框状态驱动。
+   - SkillsPage.kt:388：导入技能 URL + 校验流程，临时状态多。
+   - ImgGenPage.kt:802：生成参数面板由生成流程状态驱动。
+   - LogPage.kt:129：长文本详情（两档可拖全屏），布尔来自列表选中项。
+   - SettingProviderPage.kt:514：提供商编辑表单（保存/校验编排）。
+   - SettingPreferencesThemePage.kt:550：预设主题编辑（多入口）。
+   - ProviderConnectionTester.kt:288：连接测试结果由异步回调驱动。
+   - McpConfigModal.kt:119 / McpToolsConfigure.kt:302：MCP 配置/工具多字段表单。
+   - GreetingPage.kt:1028：引导流程内嵌面板，根在滚动容器内，backdrop 收益低。
+   其余 17 个 visible 调用点传的是**动态布尔**（showSearchPicker / state.visible / showBackupFiles 等），
+   同样未纳入动画验收。
+4. **护栏与计数（实测）**：
+   - PrimaryBottomSheet 调用点：**51**（PrimaryBottomSheetIconSourceGuardTest.kt:288 钉住；
+     grep -rn 'PrimaryBottomSheet(' app/src/main khatkit-ui/src/main | wc -l = 53，含 2 个函数定义）。
+   - visible = true：全仓 20 处（grep -rn 'visible = true' --include=*.kt app/src/main | wc -l），
+     其中属于 PrimaryBottomSheet 调用点 **16** 处（见上）。
+   - MochiSheetState 引用 85 处；MochiSheet(state 直连 9 处。
+5. **验收口径**：只在手动清单 §3 的 S1/S2/S3/S4/S5 里对「直连/state 页面」检查退场动画；
+   其余 visible 兼容层按「即时消失」验收，不算缺陷（见 §15 第 2 条）。
+
 ### 14.3 交互：Kk 壳（触感/按压/动效/淡边）
 
 - `khatkit-ui/uikit/mochi/KkInteraction.kt`：`class KkHaptics`（:30）+`rememberKkHaptics()`（:55）、
@@ -252,7 +299,7 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
 
 1. **EditState**：已新增 `EditStateSheetHost`（快照 + state 驱动），`EditState` 接口未改；
    其余 `EditStateContent` 调用点（3 处）行为不变、尚未迁移；全仓 `EditState` 引用 59 处。
-2. **冷门弹层台账**：见 §14.2 的 B 类 17 条；Dialog 化前必须先改内容形态。
+2. **弹层动画覆盖**：退场动画仅「直连 MochiSheet 9 处 + PrimaryBottomSheet(state) 17 处 + EditStateSheetHost」生效；visible 兼容层 34 个调用点（visible=true 恒定 16）仍为即时消失，属保留项（逐条 file:line 与原因见 §14.2.1）。
 3. **大屏适配**：全仓仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize()`；Mochi 无
    WindowSizeClass/adaptive。建议后续 slice 引 `material3-adaptive` `AdaptiveScaffold`：
    ≥840dp 侧栏+双栏 / 600–840dp 导航轨 / <600dp `MochiTabBar`；先做设置与探索。
