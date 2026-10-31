@@ -1,0 +1,1 @@
+-keep class heizige.kk.khatkit.ocr.mlkit.MlKitOcrEngine { <init>(); }

@@ -10,9 +10,6 @@ import android.net.Uri
 import android.os.PowerManager
 import android.util.Base64
 import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import heizige.kk.khatkit.bridge.ToolBridge
 import org.json.JSONArray
 import org.json.JSONObject
@@ -231,8 +228,10 @@ class AndroidToolBridge(
         val file = File(path)
         require(file.exists()) { "文件不存在：$path" }
         return try {
-            val image = InputImage.fromFilePath(context, Uri.fromFile(file))
-            Tasks.await(ocrRecognizer.process(image), OCR_TIMEOUT_SEC, TimeUnit.SECONDS).text
+            val engine = ocrEngineOrNull() ?: return ocrMissingPluginJson()
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                ?: return JSONObject().put("error", "OCR 失败：无法解码图片 / cannot decode image").toString()
+            kotlinx.coroutines.runBlocking { engine.recognize(bitmap) }.text
         } catch (e: Exception) {
             if (e is InterruptedException) Thread.currentThread().interrupt()
             JSONObject().put("error", "OCR 失败：${e.message ?: e.javaClass.simpleName}").toString()
@@ -248,18 +247,13 @@ class AndroidToolBridge(
         val file = File(path)
         require(file.exists()) { "文件不存在：$path" }
         return try {
-            val image = InputImage.fromFilePath(context, Uri.fromFile(file))
-            val result = Tasks.await(ocrRecognizer.process(image), OCR_TIMEOUT_SEC, TimeUnit.SECONDS)
+            val engine = ocrEngineOrNull() ?: return ocrMissingPluginJson()
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                ?: return JSONObject().put("error", "OCR 失败：无法解码图片 / cannot decode image").toString()
+            val result = kotlinx.coroutines.runBlocking { engine.recognize(bitmap) }
             val array = JSONArray()
-            result.textBlocks.forEach { block ->
-                val lines = block.lines
-                if (lines.isEmpty()) {
-                    block.boundingBox?.let { array.put(boxJson(block.text, it)) }
-                } else {
-                    lines.forEach { line ->
-                        line.boundingBox?.let { array.put(boxJson(line.text, it)) }
-                    }
-                }
+            result.blocks.forEach { b ->
+                array.put(boxJson(b.text, android.graphics.Rect(b.left, b.top, b.right, b.bottom)))
             }
             array.toString()
         } catch (e: Exception) {
@@ -276,9 +270,13 @@ class AndroidToolBridge(
             .put("w", box.width())
             .put("h", box.height())
 
-    private val ocrRecognizer by lazy {
-        TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
-    }
+    /** OCR1：真实实现在 plugins/ocr-mlkit 插件里；没装插件时返回 null，走降级文案。 */
+    private fun ocrEngineOrNull(): heizige.kk.khatkit.ocr.api.OcrEngine? =
+        heizige.kk.khatkit.ocr.api.OcrEngineProvider.engine()
+
+    private fun ocrMissingPluginJson(): String = JSONObject()
+        .put("error", "OCR 需要安装 OCR 插件 / OCR requires the OCR plugin")
+        .toString()
 
 @Deprecated("请改用 fs.openDir")
     override fun openDir(path: String) {

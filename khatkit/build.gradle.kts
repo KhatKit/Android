@@ -56,7 +56,7 @@ dependencies {
     implementation(libs.shizuku.provider)
 
     // OCR: ML Kit 中文文字识别（模型随包，无需 GMS）
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    // OCR1：ML Kit 已迁到 plugins/ocr-mlkit 插件模块，基础包不再依赖
 
     // store.sql：卡片自己的 SQLite 库（androidx.sqlite，Room 底层同一引擎）。
     // 刻意不引 Room：卡片要运行期 CREATE TABLE，注解处理器帮不上忙（决策见 docs/bridge-expansion-spec.md T2.1）。

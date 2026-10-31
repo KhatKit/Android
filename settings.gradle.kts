@@ -53,6 +53,8 @@ dependencyResolutionManagement {
 rootProject.name = "KhatKit"
 include(":app")
 include(":khatkit")
+// OCR1：ML Kit OCR 拆成独立插件模块，app 不依赖它（不进基础包）
+include(":plugins:ocr-mlkit")
 include(":khatkit-ui")
 include(":card-validator")
 include(":highlight")
