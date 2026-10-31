@@ -129,11 +129,15 @@ private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.D
 private val BREAK_LINE_REGEX = Regex("(?i)<br\\s*/?>")
 private val LATEX_BLOCK_LINE_BREAK_REGEX = Regex("""[ \t]*\r?\n[ \t]*""")
 
+// 解析器只认 \n 作换行；CRLF 里残留的 \r 会让结尾 ``` 围栏识别不到（上游 c91d21463）
+private val CRLF_REGEX = Regex("\\r\\n?")
+
 // 预处理markdown内容
 private fun preProcess(content: String): String {
+    val source = content.replace(CRLF_REGEX, "\n")
     // 先找出所有代码块的位置
     val codeBlocks = mutableListOf<IntRange>()
-    CODE_BLOCK_REGEX.findAll(content).forEach { match ->
+    CODE_BLOCK_REGEX.findAll(source).forEach { match ->
         codeBlocks.add(match.range)
     }
 
@@ -143,7 +147,7 @@ private fun preProcess(content: String): String {
     }
 
     // 替换行内公式 \( ... \) 到 $ ... $，但跳过代码块内的内容
-    var result = INLINE_LATEX_REGEX.replace(content) { matchResult ->
+    var result = INLINE_LATEX_REGEX.replace(source) { matchResult ->
         if (isInCodeBlock(matchResult.range.first)) {
             matchResult.value // 保持原样
         } else {

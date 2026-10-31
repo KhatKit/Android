@@ -96,12 +96,16 @@ private val INLINE_LATEX_REGEX = Regex("""(?<!\\)\\\((.+?)\\\)""")
 private val BLOCK_LATEX_REGEX = Regex("""(?<!\\)\\\[(.+?)\\\]""", RegexOption.DOT_MATCHES_ALL)
 private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.DOT_MATCHES_ALL)
 
+// 解析器只认 \n 作换行；CRLF 里残留的 \r 会让结尾 ``` 围栏识别不到（上游 c91d21463）
+private val CRLF_REGEX = Regex("\\r\\n?")
+
 private fun preProcess(content: String): String {
+    val source = content.replace(CRLF_REGEX, "\n")
     val codeBlocks = mutableListOf<IntRange>()
-    CODE_BLOCK_REGEX.findAll(content).forEach { codeBlocks.add(it.range) }
+    CODE_BLOCK_REGEX.findAll(source).forEach { codeBlocks.add(it.range) }
     fun isInCodeBlock(pos: Int) = codeBlocks.any { pos in it }
 
-    var result = INLINE_LATEX_REGEX.replace(content) { m ->
+    var result = INLINE_LATEX_REGEX.replace(source) { m ->
         if (isInCodeBlock(m.range.first)) m.value else "$" + m.groupValues[1] + "$"
     }
     result = BLOCK_LATEX_REGEX.replace(result) { m ->
