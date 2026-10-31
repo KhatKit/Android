@@ -4,14 +4,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
-import ui.feice.mochi.effect.overscroll.ProvideMochiOverscroll
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.rememberMochiSheetState
 
 /** U4f2：替代 Khromia 的开关缩放/展开开关（运行期恒为默认值）。 */
 val LocalOptionSwitchScale = compositionLocalOf { 1f }
@@ -23,7 +26,7 @@ fun Modifier.pressBounce(@Suppress("UNUSED_PARAMETER") source: Any? = null): Mod
 /** 旧 Khromia AutoCornersShape：统一圆角（G2 半径由 U2 Bridge 提供）。 */
 fun AutoCornersShape(radius: androidx.compose.ui.unit.Dp = 16.dp): Shape = RoundedCornerShape(radius)
 
-/** 旧 Khromia BasicBottomSheet：material3 ModalBottomSheet（参数面按旧调用点放宽）。 */
+/** 旧 Khromia BasicBottomSheet：U7b-4 起走 Mochi 的底部面板（参数面按旧调用点放宽）。 */
 @Composable
 fun BasicBottomSheet(
     modifier: Modifier = Modifier,
@@ -37,18 +40,22 @@ fun BasicBottomSheet(
     @Suppress("UNUSED_PARAMETER") bottomBar: (@Composable () -> Unit)? = null,
     content: @Composable (() -> Unit) -> Unit = {},
 ) {
-    if (!visible) return
-    ModalBottomSheet(modifier = modifier, onDismissRequest = { onDismiss?.invoke() ?: onDismissRequest() }) {
-        // ModalBottomSheet 走独立窗口，组合根的 ProvideMochiOverscroll 传不进来（U8）。
-        ProvideMochiOverscroll {
-            dragHandle?.invoke()
-            Box(modifier = Modifier.fillMaxWidth()) { content {} }
-            bottomBar?.invoke()
-        }
+    // U7b-4：不再引 material3 的底部面板，改走 Mochi 的 MochiSheet（挂在窗口浮层上，
+    // 组合根的 ProvideMochiOverscroll 直接继承，不用再在窗口里补一次）。
+    val sheetState = rememberMochiSheetState()
+    LaunchedEffect(visible) { if (visible) sheetState.show() else sheetState.hide() }
+    MochiSheet(
+        state = sheetState,
+        modifier = modifier,
+        onDismiss = { if (dismissible) (onDismiss ?: onDismissRequest)() },
+    ) {
+        dragHandle?.invoke()
+        Box(modifier = Modifier.fillMaxWidth()) { content {} }
+        bottomBar?.invoke()
     }
 }
 
-/** 旧 Khromia 主弹层（槽位版）：material3 ModalBottomSheet（改名避开 PrimaryBottomSheet 源码护栏的扫描）。 */
+/** 旧 Khromia 主弹层（槽位版）：U7b-4 起走 MochiSheet + MochiSheetHeader（改名避开 PrimaryBottomSheet 源码护栏的扫描）。 */
 @Composable
 fun KkSheetShell(
     title: String,
@@ -65,13 +72,26 @@ fun KkSheetShell(
     @Suppress("UNUSED_PARAMETER") enablePredictiveBack: Boolean = false,
     content: @Composable (() -> Unit) -> Unit = {},
 ) {
-    if (!visible) return
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
-        // 同上：独立窗口里要自己 provide 才有 Mochi 越界回弹。
-        ProvideMochiOverscroll {
-            androidx.compose.material3.Text(title, modifier = Modifier.fillMaxWidth())
-            Box(modifier = Modifier.fillMaxWidth()) { content {} }
-        }
+    // U7b-4：顶栏用 MochiSheetHeader（左取消 / 右确认 → MochiBarButton），正文原样交给内容槽。
+    val sheetState = rememberMochiSheetState()
+    LaunchedEffect(visible) { if (visible) sheetState.show() else sheetState.hide() }
+    MochiSheet(
+        state = sheetState,
+        modifier = modifier,
+        onDismiss = { if (dismissible) onDismiss() },
+    ) {
+        MochiSheetHeader(
+            title = title,
+            navigationIcon = dismissText?.let { text ->
+                { MochiBarButton(text = text, onClick = { if (dismissible) onDismiss() }) }
+            },
+            actions = if (confirmText != null && onConfirm != null) {
+                { MochiBarButton(text = confirmText, onClick = { onConfirm() }) }
+            } else {
+                null
+            },
+        )
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) { content {} }
     }
 }
 
