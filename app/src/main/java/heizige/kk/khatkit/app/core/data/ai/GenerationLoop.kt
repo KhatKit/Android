@@ -18,7 +18,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import heizige.kk.khatkit.ai.core.MessageRole
+import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.core.Tool
+import heizige.kk.khatkit.ai.core.sum
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.Modality
 import heizige.kk.khatkit.ai.provider.Provider
@@ -516,7 +518,13 @@ class GenerationLoop(
                                 throw StreamChunkHandlingException(error)
                             }
                         }
-                        messages = attemptMessages
+                        // 每步结束记录「末次请求 usage / 累计请求次数」：lastUsage 取末次不累加，
+                        // usage 才是多步累计值（占用条看 lastUsage，统计行看 usage）
+                        messages = attemptMessages.withStepStats(
+                            stepBase = responseBaseMessages.lastOrNull(),
+                            stepUsage = attemptMessages.lastOrNull()?.usage,
+                        )
+                        onUpdateMessages(messages)
                         runCatching {
                             usageRecorder.record(
                                 source = UsageRecorder.SOURCE_CHAT,
@@ -565,7 +573,9 @@ class GenerationLoop(
                     } else {
                         messages
                     }
+                val stepBase = mergeBase.lastOrNull()?.takeIf { it.role == MessageRole.ASSISTANT }
                 messages = mergeBase.handleTextGenerationResult(result = result, model = model)
+                    .withStepStats(stepBase = stepBase, stepUsage = result.usage)
                 runCatching {
                     usageRecorder.record(
                         source = UsageRecorder.SOURCE_CHAT,
@@ -702,6 +712,27 @@ private fun List<UIMessage>.withLocalImagePathHints(): List<UIMessage> {
     val already = message.parts.filterIsInstance<UIMessagePart.Text>().any { it.text.contains("[本地图片附件") }
     if (already) return this
     return toMutableList().also { it[index] = message.copy(parts = message.parts + UIMessagePart.Text(hint)) }
+}
+
+/**
+ * 给本步产生的助手消息补上用量统计字段。
+ *
+ * - [stepBase]：本步开始前那条助手消息（多轮工具调用复用它时带着上一步的统计）
+ * - [stepUsage]：本步自己的 usage（末次请求），不累加
+ * - usage 字段保持「多步累计」语义，与上游 AgentLoop.withStepStats 一致
+ */
+private fun List<UIMessage>.withStepStats(
+    stepBase: UIMessage?,
+    stepUsage: TokenUsage?,
+): List<UIMessage> {
+    val last = lastOrNull() ?: return this
+    if (last.role != MessageRole.ASSISTANT) return this
+    val updated = last.copy(
+        usage = stepBase?.usage.sum(stepUsage) ?: last.usage,
+        lastUsage = stepUsage ?: stepBase?.lastUsage ?: last.lastUsage,
+        stepCount = (stepBase?.stepCount ?: 0) + 1,
+    )
+    return dropLast(1) + updated
 }
 
 private fun List<UIMessage>.withoutLocalImagePathHints(): List<UIMessage> = map { message ->
