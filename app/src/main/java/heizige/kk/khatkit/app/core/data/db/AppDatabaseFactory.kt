@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import heizige.kk.khatkit.app.core.data.db.fts.SimpleDictManager
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_6_7
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_11_12
+import java.io.File
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_13_14
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_14_15
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_15_16
@@ -38,20 +38,8 @@ internal object AppDatabaseFactory {
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
-                    val dictDir = SimpleDictManager.extractDict(context)
-                    val cursor = db.query("SELECT jieba_dict(?)", arrayOf(dictDir.absolutePath))
-                    cursor.use {
-                        if (it.moveToFirst()) {
-                            val result = it.getString(0)
-                            val success = result?.trimEnd('/') == dictDir.absolutePath.trimEnd('/')
-                            if (!success) {
-                                android.util.Log.e(
-                                    "DataSourceModule",
-                                    "jieba_dict failed: $result, path=${dictDir.absolutePath}"
-                                )
-                            }
-                        }
-                    }
+                    // 旧版本搜索用 jieba 分词，会把词典解压到这里（约 14MB），现在不再需要
+                    File(context.filesDir, "simple_dict").takeIf { it.exists() }?.deleteRecursively()
                     db.execSQL(
                         """
                         CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
