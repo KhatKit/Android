@@ -359,7 +359,9 @@ class ChatManager(
     fun cleanup() = runCatching { sessionManager.cleanup() }
 
     private fun onSessionGenerationFinished(session: ConversationSession, cause: Throwable?) {
-        if (cause != null) session.messageQueue.pause()
+        // SYNC-F4（上游 281c9525a）：取消只来自「停止」（那时已自行 pause）或删除会话，
+        // 这里再 pause 会盖掉用户停止后立刻发送时恢复出来的队列；真正的失败仍要暂停队列。
+        if (cause != null && cause !is kotlinx.coroutines.CancellationException) session.messageQueue.pause()
         if (session.state.value.currentMessages.any { message ->
                 message.parts.any { it is UIMessagePart.Tool && it.isPending }
             }) {

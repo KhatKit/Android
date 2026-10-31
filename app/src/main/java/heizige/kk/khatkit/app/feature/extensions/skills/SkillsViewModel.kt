@@ -1,35 +1,43 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
-
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.LinkedHashMap
 import java.util.zip.ZipInputStream
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FileHelper
-import heizige.kk.khatkit.app.core.data.files.SkillFrontmatterParser
+import heizige.kk.khatkit.app.core.data.files.InvalidSkillDir
 import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
+import heizige.kk.khatkit.app.core.data.files.SkillValidationException
+import heizige.kk.khatkit.app.core.data.files.SkillValidator
 import org.json.JSONArray
 import kotlin.collections.iterator
 
 @HiltViewModel
 class SkillsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val skillManager: SkillManager,
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
+
+    /** 空目录 / 缺少 SKILL.md 等无法识别为技能的目录，技能列表里不显示，单独给用户清理 */
+    private val _invalidSkillDirs = MutableStateFlow<List<InvalidSkillDir>>(emptyList())
+    val invalidSkillDirs = _invalidSkillDirs.asStateFlow()
 
     init {
         loadSkills()
@@ -37,37 +45,49 @@ class SkillsViewModel @Inject constructor(
 
     private fun loadSkills() {
         viewModelScope.launch(Dispatchers.IO) {
-            _skills.value = skillManager.listSkills()
+            refreshSkills()
+        }
+    }
+
+    private fun refreshSkills() {
+        _skills.value = skillManager.listSkills()
+        _invalidSkillDirs.value = skillManager.listInvalidSkillDirs()
+    }
+
+    fun deleteInvalidSkillDir(dirName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            skillManager.deleteInvalidSkillDir(dirName)
+            refreshSkills()
         }
     }
 
     fun saveSkill(name: String, content: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val result = skillManager.saveSkill(name, content)
-            _skills.value = skillManager.listSkills()
+            refreshSkills()
             withContext(Dispatchers.Main) {
                 onResult(result != null)
             }
         }
     }
 
-    fun deleteSkill(name: String) {
+    /** 按技能实际目录删除：目录名和 frontmatter 的 name 不一致时也能删掉 */
+    fun deleteSkill(skill: SkillMetadata) {
         viewModelScope.launch(Dispatchers.IO) {
-            skillManager.deleteSkill(name)
-            _skills.value = skillManager.listSkills()
+            skillManager.deleteSkill(skill)
+            refreshSkills()
         }
     }
 
-    fun getSkillsDir() = skillManager.getSkillsDir()
-
-    fun importSkillFromFile(context: Context, uri: Uri, onResult: (Boolean, String) -> Unit) {
-        val appContext = context.applicationContext
+    fun importSkillFromFile(uri: Uri, onResult: (Boolean, String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val fileName = FileHelper.getFileNameFromUri(appContext, uri).orEmpty()
-                val bytes = appContext.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                val fileName = FileHelper.getFileNameFromUri(context, uri).orEmpty()
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: run {
-                        withContext(Dispatchers.Main) { onResult(false, "无法读取文件") }
+                        withContext(Dispatchers.Main) {
+                            onResult(false, context.getString(R.string.skills_page_import_error_read_file))
+                        }
                         return@launch
                     }
 
@@ -77,12 +97,17 @@ class SkillsViewModel @Inject constructor(
                     importSkillMarkdown(bytes)
                 }
 
-                _skills.value = skillManager.listSkills()
+                refreshSkills()
                 withContext(Dispatchers.Main) {
                     onResult(true, importedNames.joinToString())
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { onResult(false, e.message ?: "未知错误") }
+                withContext(Dispatchers.Main) {
+                    onResult(
+                        false,
+                        e.message ?: context.getString(R.string.skills_page_unknown_error)
+                    )
+                }
             }
         }
     }
@@ -91,7 +116,9 @@ class SkillsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val info = parseGitHubUrl(repoUrl) ?: run {
-                    withContext(Dispatchers.Main) { onResult(false, "无效的 GitHub 仓库链接") }
+                    withContext(Dispatchers.Main) {
+                        onResult(false, context.getString(R.string.skills_page_import_error_invalid_github_url))
+                    }
                     return@launch
                 }
 
@@ -99,24 +126,29 @@ class SkillsViewModel @Inject constructor(
                 val files = mutableListOf<Pair<String, String>>() // relativePath -> downloadUrl
                 val listed = listFilesRecursively(info.owner, info.repo, info.branch, info.path, info.path, files)
                 if (!listed) {
-                    withContext(Dispatchers.Main) { onResult(false, "读取 GitHub 目录失败") }
+                    withContext(Dispatchers.Main) {
+                        onResult(false, context.getString(R.string.skills_page_import_error_github_list_failed))
+                    }
                     return@launch
                 }
 
                 val skillMdEntry = files.find { it.first == "SKILL.md" } ?: run {
-                    withContext(Dispatchers.Main) { onResult(false, "目录中未找到 SKILL.md") }
+                    withContext(Dispatchers.Main) {
+                        onResult(false, context.getString(R.string.skills_page_import_error_no_skill_md))
+                    }
                     return@launch
                 }
 
                 val skillMdBytes = downloadBytes(skillMdEntry.second) ?: run {
-                    withContext(Dispatchers.Main) { onResult(false, "下载 SKILL.md 失败，请检查链接或网络") }
+                    withContext(Dispatchers.Main) {
+                        onResult(false, context.getString(R.string.skills_page_import_error_download_skill_md))
+                    }
                     return@launch
                 }
 
-                val frontmatter = SkillFrontmatterParser.parse(skillMdBytes.toString(Charsets.UTF_8))
-                val name = frontmatter["name"]
-                if (name.isNullOrBlank()) {
-                    withContext(Dispatchers.Main) { onResult(false, "SKILL.md 格式错误：缺少 name 字段") }
+                // 目录名直接取 name，装之前先校验它能当目录名（上游 2aafd708f）
+                val name = SkillValidator.validate(skillMdBytes.toString(Charsets.UTF_8)).getOrElse {
+                    withContext(Dispatchers.Main) { onResult(false, invalidFormatMessage("SKILL.md", it)) }
                     return@launch
                 }
 
@@ -125,7 +157,12 @@ class SkillsViewModel @Inject constructor(
                 for ((relativePath, downloadUrl) in files) {
                     val content = if (relativePath == "SKILL.md") skillMdBytes else downloadBytes(downloadUrl)
                     if (content == null) {
-                        withContext(Dispatchers.Main) { onResult(false, "下载文件失败：$relativePath") }
+                        withContext(Dispatchers.Main) {
+                            onResult(
+                                false,
+                                context.getString(R.string.skills_page_import_error_download_file, relativePath)
+                            )
+                        }
                         return@launch
                     }
                     fileContents[relativePath] = content
@@ -133,30 +170,38 @@ class SkillsViewModel @Inject constructor(
 
                 val saved = skillManager.saveSkillFileBytesAtomically(name, fileContents)
                 if (!saved) {
-                    withContext(Dispatchers.Main) { onResult(false, "保存失败") }
+                    withContext(Dispatchers.Main) {
+                        onResult(false, context.getString(R.string.skills_page_import_error_save_failed, name))
+                    }
                     return@launch
                 }
 
-                _skills.value = skillManager.listSkills()
+                refreshSkills()
                 withContext(Dispatchers.Main) { onResult(true, name) }
             } catch (e: Exception) {
                 e.printStackTrace()
-                withContext(Dispatchers.Main) { onResult(false, e.message ?: "未知错误") }
+                withContext(Dispatchers.Main) {
+                    onResult(
+                        false,
+                        e.message ?: context.getString(R.string.skills_page_unknown_error)
+                    )
+                }
             }
         }
     }
 
+    private fun invalidFormatMessage(path: String, error: Throwable): String {
+        val reason = (error as? SkillValidationException)?.error
+            ?.let { context.getString(it.messageRes, *it.formatArgs) }
+            ?: error.message.orEmpty()
+        return context.getString(R.string.skills_page_import_error_invalid_format, path, reason)
+    }
+
     private fun importSkillMarkdown(bytes: ByteArray): List<String> {
         val content = bytes.toString(Charsets.UTF_8)
-        val frontmatter = SkillFrontmatterParser.parse(content)
-        val name = frontmatter["name"]?.trim()
-        if (name.isNullOrBlank()) {
-            error("SKILL.md 格式错误：缺少 name 字段")
-        }
-        if (frontmatter["description"].isNullOrBlank()) {
-            error("SKILL.md 格式错误：缺少 description 字段")
-        }
-        val saved = skillManager.saveSkill(name, content) ?: error("保存失败，请检查技能格式")
+        val name = SkillValidator.validate(content).getOrElse { error(invalidFormatMessage("SKILL.md", it)) }
+        val saved = skillManager.saveSkill(name, content)
+            ?: error(context.getString(R.string.skills_page_save_failed))
         return listOf(saved.name)
     }
 
@@ -182,7 +227,7 @@ class SkillsViewModel @Inject constructor(
             .filter { it.substringAfterLast('/').equals("SKILL.md", ignoreCase = true) }
             .sorted()
         if (skillMdPaths.isEmpty()) {
-            error("压缩包中未找到 SKILL.md")
+            error(context.getString(R.string.skills_page_import_error_zip_no_skill_md))
         }
         val skillBasePaths = skillMdPaths.map {
             it.substringBeforeLast('/', missingDelimiterValue = "")
@@ -191,15 +236,9 @@ class SkillsViewModel @Inject constructor(
         val importedNames = mutableListOf<String>()
         for (skillMdPath in skillMdPaths) {
             val skillContent = files[skillMdPath]?.toString(Charsets.UTF_8)
-                ?: error("读取失败：$skillMdPath")
-            val frontmatter = SkillFrontmatterParser.parse(skillContent)
-            val name = frontmatter["name"]?.trim()
-            if (name.isNullOrBlank()) {
-                error("$skillMdPath 格式错误：缺少 name 字段")
-            }
-            if (frontmatter["description"].isNullOrBlank()) {
-                error("$skillMdPath 格式错误：缺少 description 字段")
-            }
+                ?: error(context.getString(R.string.skills_page_import_error_read_entry, skillMdPath))
+            val name = SkillValidator.validate(skillContent)
+                .getOrElse { error(invalidFormatMessage(skillMdPath, it)) }
 
             val basePath = skillMdPath.substringBeforeLast('/', missingDelimiterValue = "")
             val skillFiles = LinkedHashMap<String, ByteArray>()
@@ -216,7 +255,7 @@ class SkillsViewModel @Inject constructor(
 
             val saved = skillManager.saveSkillFileBytesAtomically(name, skillFiles)
             if (!saved) {
-                error("保存失败：$name")
+                error(context.getString(R.string.skills_page_import_error_save_failed, name))
             }
             importedNames += name
         }
@@ -324,7 +363,7 @@ class SkillsViewModel @Inject constructor(
             val code = connection.responseCode
             // 未登录的 GitHub API 每小时仅 60 次，超限时给出明确提示而不是笼统的"读取失败"
             if ((code == 403 || code == 429) && connection.getHeaderField("X-RateLimit-Remaining") == "0") {
-                error("GitHub API 请求次数已达上限，请稍后再试")
+                error(context.getString(R.string.skills_page_import_error_github_rate_limit))
             }
             if (code == 200) connection.inputStream.use { it.readBytes() } else null
         } finally {

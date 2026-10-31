@@ -520,8 +520,12 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
     }
 
     override fun removeAt(index: Int): NavKey {
-        require(index == size - 1) { "Mochi 栈只支持弹栈顶" }
-        val removed = kkNav.backStack.last()
+        // 同一帧连按两次返回时，第二次拿到的 size 已经变了（侧推页正在 closing，被 backStack 过滤掉）。
+        // 上游 4af510624 在 NavDisplay.onBack 里用 size > 1 兜的就是这一下：根页不弹，避免把栈弹空。
+        val stack = kkNav.backStack
+        if (stack.size <= 1) return stack.last()
+        require(index == stack.size - 1) { "Mochi 栈只支持弹栈顶" }
+        val removed = stack.last()
         kkNav.popBackStack()
         return removed
     }

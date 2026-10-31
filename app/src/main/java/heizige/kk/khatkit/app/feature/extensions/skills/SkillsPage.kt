@@ -8,6 +8,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,8 +54,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.files.SkillFrontmatterParser
+import heizige.kk.khatkit.app.core.data.files.InvalidSkillDir
+import heizige.kk.khatkit.app.core.data.files.InvalidSkillReason
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
+import heizige.kk.khatkit.app.core.data.files.SkillValidationError
+import heizige.kk.khatkit.app.core.data.files.SkillValidationException
+import heizige.kk.khatkit.app.core.data.files.SkillValidator
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
@@ -69,6 +74,7 @@ import heizige.kk.khatkit.app.core.ui.icons.download
 import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 
 @Composable
@@ -76,6 +82,7 @@ fun SkillsPage() {
     val navController = LocalNavController.current
     val vm = hiltViewModel<SkillsViewModel>()
     val skills by vm.skills.collectAsStateWithLifecycle()
+    val invalidSkillDirs by vm.invalidSkillDirs.collectAsStateWithLifecycle()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val toaster = LocalToaster.current
@@ -88,11 +95,12 @@ fun SkillsPage() {
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showImportDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
+    var invalidDeleteTarget by remember { mutableStateOf<InvalidSkillDir?>(null) }
     val fileImportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri ?: return@rememberLauncherForActivityResult
-        vm.importSkillFromFile(context, uri) { success, message ->
+        vm.importSkillFromFile(uri) { success, message ->
             if (success) {
                 Toast.show(String.format(skillsPageImportSuccess, message))
             } else {
@@ -103,6 +111,9 @@ fun SkillsPage() {
 
     val visibleSkills = skills.filter {
         searchQuery.isBlank() || it.name.contains(searchQuery, true) || it.description.contains(searchQuery, true)
+    }
+    val visibleInvalidSkillDirs = remember(invalidSkillDirs, searchQuery) {
+        invalidSkillDirs.filter { searchQuery.isBlank() || it.dirName.contains(searchQuery, true) }
     }
     var searchExpanded by remember { mutableStateOf(false) }
 
@@ -127,6 +138,28 @@ fun SkillsPage() {
                         shape = cards.indexedShape(index, visibleSkills.size),
                         onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
                         onDelete = { deleteTarget = skill },
+                    )
+                }
+            }
+
+            // 空目录、缺少 SKILL.md 等无法识别的目录不会出现在技能列表里，单独列出供清理
+            if (visibleInvalidSkillDirs.isNotEmpty()) {
+                item(key = "invalid_skill_dirs_title") {
+                    Text(
+                        text = stringResource(R.string.skills_page_invalid_dirs_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, top = cards.gap, bottom = 4.dp),
+                    )
+                }
+                lazyItemsIndexed(
+                    visibleInvalidSkillDirs,
+                    key = { _, dir -> "invalid_dir_${dir.dirName}" },
+                ) { index, dir ->
+                    InvalidSkillDirCard(
+                        dir = dir,
+                        shape = cards.indexedShape(index, visibleInvalidSkillDirs.size),
+                        onDelete = { invalidDeleteTarget = dir },
                     )
                 }
             }
@@ -256,12 +289,27 @@ fun SkillsPage() {
         confirmText = stringResource(R.string.delete),
         dismissText = stringResource(R.string.cancel),
         onConfirm = {
-            deleteTarget?.let { vm.deleteSkill(it.name) }
+            deleteTarget?.let { vm.deleteSkill(it) }
             deleteTarget = null
         },
         onDismiss = { deleteTarget = null },
     ) {
         Text(stringResource(R.string.skills_page_delete_message, deleteTarget?.name ?: ""))
+    }
+
+    // 异常目录（空目录 / 缺 SKILL.md 等）的删除：删的是整个目录
+    RikkaConfirmDialog(
+        show = invalidDeleteTarget != null,
+        title = stringResource(R.string.skills_page_delete_dir_title),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = {
+            invalidDeleteTarget?.let { vm.deleteInvalidSkillDir(it.dirName) }
+            invalidDeleteTarget = null
+        },
+        onDismiss = { invalidDeleteTarget = null },
+    ) {
+        Text(stringResource(R.string.skills_page_delete_dir_message, invalidDeleteTarget?.dirName.orEmpty()))
     }
 }
 
@@ -379,6 +427,80 @@ private fun SkillCard(
 }
 
 @Composable
+private fun invalidSkillReasonText(reason: InvalidSkillReason): String = stringResource(
+    when (reason) {
+        InvalidSkillReason.MissingSkillMd -> R.string.skills_page_invalid_reason_missing_skill_md
+        InvalidSkillReason.MissingName -> R.string.skills_page_invalid_reason_missing_name
+        InvalidSkillReason.MissingDescription -> R.string.skills_page_invalid_reason_missing_description
+        InvalidSkillReason.ReadFailed -> R.string.skills_page_invalid_reason_read_failed
+    }
+)
+
+// 页面和 SkillsViewModel 的导入提示共用
+@get:StringRes
+internal val SkillValidationError.messageRes: Int
+    get() = when (this) {
+        SkillValidationError.MissingName -> R.string.skills_page_name_error
+        SkillValidationError.NameHasSurroundingWhitespace -> R.string.skills_page_name_whitespace_error
+        SkillValidationError.NameTooLong -> R.string.skills_page_name_too_long_error
+        SkillValidationError.NameStartsWithDot -> R.string.skills_page_name_dot_error
+        SkillValidationError.NameHasInvalidChars -> R.string.skills_page_name_invalid_chars_error
+        SkillValidationError.MissingDescription -> R.string.skills_page_description_error
+    }
+
+internal val SkillValidationError.formatArgs: Array<Any>
+    get() = if (this == SkillValidationError.NameTooLong) {
+        arrayOf(SkillValidator.MAX_NAME_LENGTH)
+    } else {
+        emptyArray()
+    }
+
+/** 无法识别为技能的目录（空目录 / 缺 SKILL.md 等）一行：显示目录名与原因，行尾可删。 */
+@Composable
+private fun InvalidSkillDirCard(
+    dir: InvalidSkillDir,
+    shape: Shape,
+    onDelete: () -> Unit,
+) {
+    MochiOptionItem(
+        onClick = onDelete,
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        leadingContent = {
+            Icon(
+                imageVector = warning,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        titleContent = {
+            Text(
+                text = dir.dirName,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = invalidSkillReasonText(dir.reason),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+        },
+        trailingContent = {
+            Icon(
+                imageVector = delete,
+                contentDescription = stringResource(R.string.delete),
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+    )
+}
+
+@Composable
 private fun SkillImportSheet(
     onDismiss: () -> Unit,
     onAddManually: () -> Unit,
@@ -457,10 +579,11 @@ private fun AddSkillDialog(
 ) {
     var content by rememberSaveable { mutableStateOf("") }
 
-    val name = remember(content) {
-        SkillFrontmatterParser.parse(content)["name"]?.trim() ?: ""
-    }
-    val nameError = content.isNotBlank() && name.isBlank()
+    // 目录名直接取 name，所以这里用 SkillValidator 校验它能不能原样当目录名
+    val validation = remember(content) { SkillValidator.validate(content) }
+    val name = validation.getOrNull()
+    val validationError = (validation.exceptionOrNull() as? SkillValidationException)?.error
+    val nameError = content.isNotBlank() && name == null
 
     AppDialog(
         onDismissRequest = onDismiss,
@@ -472,16 +595,18 @@ private fun AddSkillDialog(
                 label = { Text(stringResource(R.string.skills_page_skill_content_label)) },
                 placeholder = {
                     Text(
-                        "---\nname: my-skill\ndescription: \"...\"\n---\n\n指令内容...",
+                        "---\nname: my-skill\ndescription: \"...\"\n---\n\n" +
+                            stringResource(R.string.skills_page_skill_body_placeholder),
                         fontFamily = FontFamily.Monospace,
                     )
                 },
                 supportingText = {
                     if (nameError) Text(
-                        stringResource(R.string.skills_page_name_error),
+                        validationError?.let { stringResource(it.messageRes, *it.formatArgs) }
+                            ?: stringResource(R.string.skills_page_name_error),
                         color = MaterialTheme.colorScheme.error
                     )
-                    else if (name.isNotBlank()) Text(stringResource(R.string.skills_page_skill_name, name))
+                    else if (name != null) Text(stringResource(R.string.skills_page_skill_name, name))
                     else Text(stringResource(R.string.skills_page_paste_hint))
                 },
                 isError = nameError,
@@ -494,8 +619,8 @@ private fun AddSkillDialog(
         },
         confirmButton = {
             MochiTextButton(
-                onClick = { onConfirm(name, content) },
-                enabled = name.isNotBlank() && !nameError,
+                onClick = { name?.let { onConfirm(it, content) } },
+                enabled = name != null,
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.skills_page_save))

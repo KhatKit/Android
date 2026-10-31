@@ -44,7 +44,12 @@ class KkNavController(private val navigator: MochiNavigator) {
         navigator.push(ScreenRoutes.routeOf(screen), from = source)
     }
 
-    /** 返回上一页，带转场；只剩根页时返回 false。 */
+    /**
+     * 返回上一页，带转场；只剩根页时返回 false（不弹空栈）。
+     *
+     * 同一帧连按两次是安全的：MochiNavigator.pop() 自己按「非 closing 的页数 > 1」判断，
+     * 第二次到根页直接返回 false（对应上游 4af510624 在 NavDisplay.onBack 里加的 size > 1 兜底）。
+     */
     fun popBackStack(): Boolean = navigator.pop()
 
     /** 与 [popBackStack] 同义（顶栏返回、系统返回都走这里）。 */

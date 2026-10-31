@@ -74,8 +74,13 @@ import heizige.kk.khatkit.app.core.ui.components.table.DataTable
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.util.toDp
+import org.intellij.markdown.ast.ASTNode
+import org.intellij.markdown.ast.getTextInNode
+import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.html.GeneratingProvider
 import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -86,8 +91,9 @@ import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 // ---- Preprocessing (mirrors Markdown.kt logic) ----
 
-private val INLINE_LATEX_REGEX = Regex("\\\\\\((.+?)\\\\\\)")
-private val BLOCK_LATEX_REGEX = Regex("\\\\\\[(.+?)\\\\\\]", RegexOption.DOT_MATCHES_ALL)
+// 注意：负向回看排除 \ —— 公式里的换行参数 \[4pt] 不是块级公式开头（上游 eb530b0ff）
+private val INLINE_LATEX_REGEX = Regex("""(?<!\\)\\\((.+?)\\\)""")
+private val BLOCK_LATEX_REGEX = Regex("""(?<!\\)\\\[(.+?)\\\]""", RegexOption.DOT_MATCHES_ALL)
 private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.DOT_MATCHES_ALL)
 
 private fun preProcess(content: String): String {

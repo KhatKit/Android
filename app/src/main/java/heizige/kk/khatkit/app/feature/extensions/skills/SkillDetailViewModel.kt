@@ -1,7 +1,9 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
 
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +16,7 @@ import heizige.kk.khatkit.app.core.data.files.SkillFrontmatterParser
 import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
 import heizige.kk.khatkit.app.core.data.files.SkillPaths
+import heizige.kk.khatkit.app.R
 
 data class SkillFile(
     val relativePath: String,
@@ -33,6 +36,7 @@ sealed class SkillFileNode {
 
 @HiltViewModel
 class SkillDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val skillManager: SkillManager,
 ) : ViewModel() {
 
@@ -92,19 +96,25 @@ class SkillDetailViewModel @Inject constructor(
     fun saveFile(relativePath: String, content: String, onResult: (String?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             if (_readOnly.value) {
-                withContext(Dispatchers.Main) { onResult("内置技能不可修改") }
+                withContext(Dispatchers.Main) {
+                    onResult(context.getString(R.string.skill_detail_page_builtin_readonly))
+                }
                 return@launch
             }
             if (relativePath == "SKILL.md") {
                 val name = SkillFrontmatterParser.parse(content)["name"]
                 if (name != skillName) {
-                    withContext(Dispatchers.Main) { onResult("不允许修改技能名称（name 字段必须为 \"$skillName\"）") }
+                    withContext(Dispatchers.Main) {
+                        onResult(context.getString(R.string.skill_detail_page_name_change_error, skillName))
+                    }
                     return@launch
                 }
             }
             val success = skillManager.saveSkillFile(skillName, relativePath, content)
             loadFiles()
-            withContext(Dispatchers.Main) { onResult(if (success) null else "保存失败") }
+            withContext(Dispatchers.Main) {
+                onResult(if (success) null else context.getString(R.string.skill_detail_page_save_failed))
+            }
         }
     }
 
