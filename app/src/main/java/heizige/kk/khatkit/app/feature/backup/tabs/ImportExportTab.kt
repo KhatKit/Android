@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
@@ -332,7 +332,7 @@ fun ImportExportTab(
     }
 
     if (showImportConfirmDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showImportConfirmDialog = false },
             title = { Text(stringResource(R.string.backup_page_local_backup_import)) },
             text = { Text(stringResource(R.string.backup_page_import_overwrite_confirm)) },

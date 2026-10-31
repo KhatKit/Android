@@ -33,7 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -288,7 +288,7 @@ fun WorkspaceDetailPage(id: String) {
     }
 
     state.exportResult?.let { result ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = vm::dismissExportResult,
             title = { Text("导出结果") },
             text = { Text(result, modifier = Modifier.verticalScroll(rememberScrollState())) },
@@ -312,7 +312,7 @@ fun WorkspaceDetailPage(id: String) {
     }
 
     installError?.let { message ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = vm::dismissInstallError,
             title = { Text(stringResource(R.string.workspace_detail_rootfs_install_failed)) },
             text = { Text(message) },
@@ -325,7 +325,7 @@ fun WorkspaceDetailPage(id: String) {
     }
 
     settingsError?.let { message ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = vm::dismissSettingsError,
             title = { Text(stringResource(R.string.workspace_detail_settings_save_failed)) },
             text = { Text(message.ifBlank { stringResource(R.string.workspace_detail_settings_save_failed) }) },
@@ -564,7 +564,7 @@ private fun InstallRootfsDialog(
 ) {
     var url by rememberSaveable(workspace.id) { mutableStateOf(DEFAULT_ROOTFS_URL) }
 
-    AppAlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.workspace_detail_install_rootfs)) },
         text = {

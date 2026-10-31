@@ -27,7 +27,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
@@ -381,7 +381,7 @@ private fun ImportProviderButton(
     }
 
     if (showImportDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showImportDialog = false },
             title = {
                 Text(

@@ -47,7 +47,7 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryDocument
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -259,7 +259,7 @@ internal fun RoleMemoryPanel(
         }
     }
     if (confirmExit) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { confirmExit = false },
             title = { Text("放弃未保存的更改？") },
             confirmButton = { MochiTextButton(onClick = {
@@ -270,7 +270,7 @@ internal fun RoleMemoryPanel(
         )
     }
     pendingOpen?.let { target ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { pendingOpen = null },
             title = { Text("放弃未保存的更改？") },
             confirmButton = { MochiTextButton(onClick = {
@@ -281,7 +281,7 @@ internal fun RoleMemoryPanel(
         )
     }
     conflict?.let { latest ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { conflict = null },
             title = { Text("文件已被修改") },
             text = {
@@ -297,7 +297,7 @@ internal fun RoleMemoryPanel(
         )
     }
     newTopic?.let { name ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { newTopic = null },
             title = { Text("新建主题笔记") },
             text = { Md3TextFieldWithSlots(value = name, onValueChange = { newTopic = it },

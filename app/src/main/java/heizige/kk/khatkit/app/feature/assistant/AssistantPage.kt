@@ -26,7 +26,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -691,7 +691,7 @@ private fun AssistantActionSheet(
     }
 
     if (showDeleteDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(stringResource(R.string.assistant_page_delete)) },
             text = { Text(stringResource(R.string.assistant_page_delete_dialog_text)) },

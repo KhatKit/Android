@@ -303,7 +303,7 @@ private fun SearchServiceList(
 /**
  * 「新增搜索服务」面板：与「新增提供商」用同一套底部弹层（图标 + 标题 + 底部「添加 / 取消」行）。
  *
- * 改造前是 `AppAlertDialog`：标题 + 20 个引擎的列表挤在对话框里，而 MD3 / Miuix 两个风格页
+ * 改造前是 `AppDialog`：标题 + 20 个引擎的列表挤在对话框里，而 MD3 / Miuix 两个风格页
  * 共用同一份对话框，弹层外观与设置页其余弹层不同源。
  *
  * `scrollable = false` + 内容自带 `LazyColumn`：Kedge 版**忽略** `scrollable`、内容必须自己滚

@@ -45,7 +45,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditField
 import androidx.compose.material3.Icon

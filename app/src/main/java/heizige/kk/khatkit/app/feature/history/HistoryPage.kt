@@ -62,7 +62,7 @@ import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissState
 import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissValue
 import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 
 @Composable
@@ -133,7 +133,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
     }
 
     if (showDeleteAllDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showDeleteAllDialog = false },
             title = { Text(stringResource(R.string.history_page_delete_all_conversations)) },
             text = { Text(stringResource(R.string.history_page_delete_all_confirmation)) },

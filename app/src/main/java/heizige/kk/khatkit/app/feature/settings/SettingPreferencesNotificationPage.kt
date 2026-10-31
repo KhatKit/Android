@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -141,7 +141,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
     }
 
     if (showUpdatePauseDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showUpdatePauseDialog = false },
             title = { Text(stringResource(R.string.setting_update_reminder_pause_title)) },
             text = {

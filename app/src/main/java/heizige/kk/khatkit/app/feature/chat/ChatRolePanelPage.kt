@@ -75,7 +75,7 @@ import kotlin.uuid.Uuid
  * ③ 「新建聊天」与「重命名当前聊天」。
  *
  * 「重命名当前聊天」是从 ChatPage 顶栏「长按标题改名」搬过来的：会话标题已经不上顶栏，
- * 但改名能力不能跟着消失，所以放在这里，仍然用 [useEditState] + [AppAlertDialog] 那套弹窗。
+ * 但改名能力不能跟着消失，所以放在这里，仍然用 [useEditState] + [AppDialog] 那套弹窗。
  * 该行**常驻**，会话未落库/还没有消息时不可点，并用一条与旧文案等价的说明代替动作说明。
  *
  * @param roleId 当前角色（assistant id）。由聊天页顶栏已解析出的角色 id 传入 —— 顶栏显示谁，

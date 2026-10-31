@@ -20,7 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -462,7 +462,7 @@ private fun AddSkillDialog(
     }
     val nameError = content.isNotBlank() && name.isBlank()
 
-    AppAlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.skills_page_add_title)) },
         text = {
@@ -515,7 +515,7 @@ private fun ImportSkillDialog(
     var url by rememberSaveable { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
 
-    AppAlertDialog(
+    AppDialog(
         onDismissRequest = { if (!loading) onDismiss() },
         title = { Text(stringResource(R.string.skills_page_import_from_github)) },
         text = {

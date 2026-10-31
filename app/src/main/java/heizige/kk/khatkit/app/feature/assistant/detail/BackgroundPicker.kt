@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -114,7 +114,7 @@ fun BackgroundPicker(
     }
 
     if (showPickOption) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = {
                 showPickOption = false
             },
@@ -174,7 +174,7 @@ fun BackgroundPicker(
     }
 
     if (showUrlInput) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = {
                 showUrlInput = false
             },

@@ -71,7 +71,7 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -177,7 +177,7 @@ fun SettingTriggersPage() {
     }
 
     if (showAiDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showAiDialog = false },
             title = { Text("AI 介入点") },
             text = {

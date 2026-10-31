@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -103,7 +103,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
         }
     }
     pendingRerun?.let { run ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { pendingRerun = null },
             title = { Text(stringResource(R.string.card_runs_rerun_confirm_title)) },
             text = { Text(stringResource(R.string.card_runs_rerun_confirm_message, run.cardName)) },
@@ -126,7 +126,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
         )
     }
     pendingText?.let { artifact ->
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { pendingText = null },
             title = { Text(artifact.displayName) },
             text = {

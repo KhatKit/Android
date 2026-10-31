@@ -21,7 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.SegmentedButton
@@ -86,7 +86,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
     }
 
     if (showRebuildDialog) {
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { showRebuildDialog = false },
             title = { Text(stringResource(R.string.search_page_rebuild_index)) },
             text = { Text(stringResource(R.string.search_page_rebuild_index_desc)) },

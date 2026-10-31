@@ -22,7 +22,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,7 +94,7 @@ fun SettingFilesPage() {
 
     if (pendingDelete != null) {
         val target = pendingDelete!!
-        AppAlertDialog(
+        AppDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text(stringResource(R.string.setting_files_page_delete_file_title)) },
             text = { Text(target.displayName) },

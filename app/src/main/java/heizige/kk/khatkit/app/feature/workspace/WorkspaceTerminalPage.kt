@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -111,7 +111,7 @@ fun WorkspaceTerminalPage(id: String) {
 
         val pendingCloseTab = terminalState.tabs.firstOrNull { it.id == pendingCloseTabId }
         if (pendingCloseTab != null) {
-            AppAlertDialog(
+            AppDialog(
                 onDismissRequest = { pendingCloseTabId = null },
                 title = {
                     Text(

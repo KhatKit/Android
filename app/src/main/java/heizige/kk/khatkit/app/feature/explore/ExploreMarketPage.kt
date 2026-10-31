@@ -72,7 +72,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppAlertDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.GlassPopup
 import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.popupBackdropBlur
@@ -3987,7 +3987,7 @@ private fun PublishCardDialog(
     var changelog by remember(entry.name) { mutableStateOf("") }
     val price = priceText.toDoubleOrNull() ?: -1.0
 
-    AppAlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.explore_market_publish_dialog_title, entry.name)) },
         text = {
@@ -4055,7 +4055,7 @@ private fun ForkCardDialog(
     }
     var changelog by remember(entry.name) { mutableStateOf("") }
 
-    AppAlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.explore_market_fork_dialog_title, entry.name)) },
         text = {
