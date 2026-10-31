@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.Text
+import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 
 /**
@@ -89,14 +91,16 @@ fun MochiSmallTopBar(
     scrollBehavior: Any? = null,
     backdrop: Any? = null,
 ) {
-    MochiBarFrame(
+    // TOP1：顶栏换成 Mochi 真组件 MochiTitleBar（自带滚动边缘渐隐/玻璃取样/共享返回按钮），
+    // 不再自建 Row+Text。barColorAlpha / scrollBehavior / backdrop 为旧调用点参数，收而不用。
+    MochiTitleBar(
+        title = title,
         modifier = modifier,
-        container = MochiTheme.colorScheme.background,
         navigationIcon = navigationIcon,
         actions = actions,
-    ) {
-        BarTitle(title = title, subtitle = null, titleAlpha = titleAlpha, centered = false, titleContent = null)
-    }
+        background = MochiDefaults.groupedBackground(),
+        titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+    )
 }
 
 /** 大标题栏（标题 + 副标题 + 导航/操作槽）。折叠动画留给 P6。 */
@@ -113,13 +117,27 @@ fun MochiLargeTopAppBar(
     translucentTopBar: Boolean = true,
     backdrop: Any? = null,
 ) {
-    MochiBarFrame(
-        modifier = modifier,
-        container = MochiTheme.colorScheme.background,
-        navigationIcon = navigationIcon,
-        actions = actions,
-    ) {
-        BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = false, titleContent = titleContent)
+    // TOP1：大标题栏也走 Mochi 真组件；折叠交给 MochiTitleBar 的 titleProgress（调用点可继续传 titleAlpha）。
+    // 旧参数 scrollBehavior / translucentTopBar / backdrop 收而不用；titleContent 自定义标题槽保留原实现。
+    if (titleContent != null) {
+        MochiBarFrame(
+            modifier = modifier,
+            container = MochiTheme.colorScheme.background,
+            navigationIcon = navigationIcon,
+            actions = actions,
+        ) {
+            BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = false, titleContent = titleContent)
+        }
+    } else {
+        MochiTitleBar(
+            title = title,
+            modifier = modifier,
+            subtitle = subtitle,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            background = MochiDefaults.groupedBackground(),
+            titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+        )
     }
 }
 
@@ -137,12 +155,25 @@ fun MochiTopAppBar(
     colors: Any? = null,
     titleAlpha: Float = 1f,
 ) {
-    MochiBarFrame(
-        modifier = modifier,
-        container = MochiTheme.colorScheme.background,
-        navigationIcon = navigationIcon,
-        actions = actions,
-    ) {
-        BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = centered, titleContent = titleContent)
+    // TOP1：中/小号顶栏同样换成 Mochi 真组件；centered 是旧 Kedge 参数（Mochi 顶栏固定左对齐），收而不用。
+    if (titleContent != null) {
+        MochiBarFrame(
+            modifier = modifier,
+            container = MochiTheme.colorScheme.background,
+            navigationIcon = navigationIcon,
+            actions = actions,
+        ) {
+            BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = centered, titleContent = titleContent)
+        }
+    } else {
+        MochiTitleBar(
+            title = title,
+            modifier = modifier,
+            subtitle = subtitle,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            background = MochiDefaults.groupedBackground(),
+            titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+        )
     }
 }

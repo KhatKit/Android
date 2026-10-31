@@ -14,7 +14,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiTabBar
 import ui.feice.mochi.basic.MochiTabItem
+import ui.feice.mochi.navigation.MochiCompactTitleScaffold
+import ui.feice.mochi.navigation.MochiLargeTitleScaffold
+import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.ColumnScope
 
 /**
  * P3a 外壳层：把原来走 Kedge 的「页面骨架 + 底部导航栏」换成 Mochi 实现。
@@ -67,6 +72,10 @@ fun MochiNavBottomBar(
  * 现在参与流式布局（不再叠加在内容上），页面里的 `padding(innerPadding)` 自然变成 0 成本。
  *
  * @param md3ScrollBehavior 仅为兼容旧调用点保留，Mochi 侧不使用（P4 删）。
+ *
+ * TOP1：新增 title 模式 —— 传了 [title] 就交给 Mochi 真页面骨架
+ * （[MochiLargeTitleScaffold] / [MochiCompactTitleScaffold]：大标题折叠、滚动边缘渐隐、下拉刷新、
+ * 安全区都由库内处理），topBar 槽不再需要；不传 title 时保持旧槽位骨架，11 处存量调用点零改动。
  */
 @Composable
 fun MochiPageScaffold(
@@ -78,8 +87,40 @@ fun MochiPageScaffold(
     containerColor: Color = MochiTheme.colorScheme.background,
     floatingActionButtonPosition: Any? = null,
     md3ScrollBehavior: Any? = null,
+    /** 非空时走 Mochi 真页面骨架（大标题/紧凑标题），content 仍拿 PaddingValues.Zero。 */
+    title: String? = null,
+    subtitle: String? = null,
+    /** true = 大标题页（可折叠）；false = 紧凑标题页（正文自带分组小标题时用）。 */
+    largeTitle: Boolean = true,
+    navigationIcon: (@Composable () -> Unit)? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    if (title != null) {
+        val body: @Composable ColumnScope.() -> Unit = { content(PaddingValues.Zero) }
+        if (largeTitle) {
+            MochiLargeTitleScaffold(
+                title = title,
+                modifier = modifier,
+                subtitle = subtitle,
+                navigationIcon = navigationIcon,
+                actions = actions,
+                background = MochiDefaults.groupedBackground(),
+                content = body,
+            )
+        } else {
+            MochiCompactTitleScaffold(
+                title = title,
+                modifier = modifier,
+                subtitle = subtitle,
+                navigationIcon = navigationIcon,
+                actions = actions,
+                background = MochiDefaults.groupedBackground(),
+                content = body,
+            )
+        }
+        return
+    }
     Box(modifier = modifier.fillMaxSize().background(containerColor)) {
         Column(modifier = Modifier.fillMaxSize()) {
             topBar()
