@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.ai.provider.providers.chatgpt
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -153,7 +154,6 @@ internal fun parseCodexModels(body: String): List<Model> {
             displayName = model.stringOrNull("display_name") ?: slug,
             inputModalities = inputModalities,
             abilities = if (reasoning) listOf(ModelAbility.TOOL, ModelAbility.REASONING) else listOf(ModelAbility.TOOL),
-            contextLength = model["context_window"]?.jsonPrimitiveOrNull?.intOrNull ?: Model().contextLength,
         )
     }
 }
