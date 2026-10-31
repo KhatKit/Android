@@ -31,7 +31,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.rememberMochiSheetState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -173,8 +176,11 @@ class SafeModeActivity : ComponentActivity() {
                     }
                 }
 
-                if (showAssistantPicker) {
-                    AssistantPickerSheet(
+                // U7b-6：state 由这里持有，去 if 门控。
+                val pickerSheet = rememberMochiSheetState()
+                LaunchedEffect(showAssistantPicker) { if (showAssistantPicker) pickerSheet.show() else pickerSheet.hide() }
+                AssistantPickerSheet(
+                        sheetState = pickerSheet,
                         settings = settings,
                         onAssistantSelected = { assistantId ->
                             scope.launch { settingsStore.updateAssistant(assistantId) }
@@ -183,7 +189,6 @@ class SafeModeActivity : ComponentActivity() {
                         },
                         onDismiss = { showAssistantPicker = false }
                     )
-                }
             }
         }
     }
@@ -192,6 +197,7 @@ class SafeModeActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AssistantPickerSheet(
+    sheetState: ui.feice.mochi.basic.MochiSheetState,
     settings: Settings,
     onAssistantSelected: (Uuid) -> Unit,
     onDismiss: () -> Unit,
@@ -202,13 +208,9 @@ private fun AssistantPickerSheet(
         else settings.assistants.filter { it.tags.any { id -> id in selectedTagIds } }
     }
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.safe_mode_assistants),
-        imageVector = groups,
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { dismiss ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有）。
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(title = stringResource(R.string.safe_mode_assistants))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -253,7 +255,7 @@ private fun AssistantPickerSheet(
                     MochiOptionItem(
                         onClick = {
                             onAssistantSelected(assistant.id)
-                            dismiss()
+                            onDismiss()
                         },
                         modifier = Modifier.animateItem(),
                         shape = cards.indexedShape(index, filteredAssistants.size),

@@ -1,6 +1,12 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
+import androidx.compose.runtime.LaunchedEffect
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -112,8 +118,11 @@ fun AssistantPicker(
         }
     }
 
-    if (showPicker) {
-        AssistantPickerSheet(
+    // U7b-6：state 由这里持有，去 if 门控。
+    val pickerSheet = rememberMochiSheetState()
+    LaunchedEffect(showPicker) { if (showPicker) pickerSheet.show() else pickerSheet.hide() }
+    AssistantPickerSheet(
+        sheetState = pickerSheet,
             settings = settings,
             currentAssistant = state.currentAssistant,
             onAssistantSelected = { assistant ->
@@ -124,11 +133,11 @@ fun AssistantPicker(
                 showPicker = false
             }
         )
-    }
 }
 
 @Composable
 fun AssistantPickerSheet(
+    sheetState: MochiSheetState,
     settings: Settings,
     currentAssistant: Assistant,
     onAssistantSelected: (Assistant) -> Unit,
@@ -152,18 +161,16 @@ fun AssistantPickerSheet(
 
     val navController = LocalNavController.current
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.assistant_page_title),
-        imageVector = groups,
-        confirmText = stringResource(R.string.assistant_page_manage),
-        onConfirm = {
-            onDismiss()
-            navController.navigate(Screen.Assistant)
-        },
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { dismiss ->
+    // U7b-6：直连 MochiSheet；「管理助手」移到 header 右侧。
+    val manageAssistants = {
+        onDismiss()
+        navController.navigate(Screen.Assistant)
+    }
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(
+            title = stringResource(R.string.assistant_page_title),
+            actions = { MochiBarButton(stringResource(R.string.assistant_page_manage), onClick = manageAssistants) },
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -215,7 +222,7 @@ fun AssistantPickerSheet(
                         avatarSize = 32.dp,
                         onClick = {
                             onAssistantSelected(assistant)
-                            dismiss()
+                            onDismiss()
                         },
                         supportingContent = {
                             Column {

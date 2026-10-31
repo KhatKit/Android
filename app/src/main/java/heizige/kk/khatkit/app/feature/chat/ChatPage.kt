@@ -329,8 +329,11 @@ internal fun ChatScaffold(
     var showFilesSheet by remember { mutableStateOf(false) }
     // U7b-2d：附件选择面板宿主接收 sheetState（退出动画），打开/关闭仍由 showFilesSheet 驱动。
     val filesSheet = rememberMochiSheetState()
-    if (showRolePicker) {
-        AssistantPickerSheet(
+    // U7b-6：state 由这里持有，去 if 门控。
+    val roleSheet = rememberMochiSheetState()
+    LaunchedEffect(showRolePicker) { if (showRolePicker) roleSheet.show() else roleSheet.hide() }
+    AssistantPickerSheet(
+            sheetState = roleSheet,
             settings = setting,
             currentAssistant = assistant,
             onAssistantSelected = {
@@ -341,7 +344,6 @@ internal fun ChatScaffold(
             },
             onDismiss = { showRolePicker = false },
         )
-    }
     val attachmentPickerActions = rememberChatAttachmentPickerActions(
         inputState = inputState,
         setting = setting,
