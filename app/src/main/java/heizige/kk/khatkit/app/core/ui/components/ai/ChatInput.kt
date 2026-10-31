@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -845,17 +846,21 @@ fun ChatInput(
 
     // 长按发送键但没配语音识别模型：只提示去配置，不进录音
     // U7b-2c：去 if 门控，显隐交给 MochiSheet 内部状态（收起有动画，内容只读布尔不读空值）。
-    PrimaryBottomSheet(
-            visible = asrSetupSheetVisible,
-            title = asrConfigureHint,
-            imageVector = mic,
-            confirmText = stringResource(R.string.setting_page_config),
-            onConfirm = {
+    // U7b-5：纯提示 + 一个跳转动作，改成 MochiDialog（不再占半屏 sheet）。
+    MochiDialog(
+        show = asrSetupSheetVisible,
+        onDismissRequest = { asrSetupSheetVisible = false },
+        title = asrConfigureHint,
+    ) {
+        MochiTextButton(
+            onClick = {
                 asrSetupSheetVisible = false
                 onConfigureVoice()
             },
-            onDismiss = { asrSetupSheetVisible = false },
-        ) { _ -> }
+        ) {
+            Text(stringResource(R.string.setting_page_config))
+        }
+    }
 
     PrimaryBottomSheet(
             visible = permissionSheetVisible,

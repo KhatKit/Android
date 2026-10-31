@@ -80,6 +80,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateSheetHost
+import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
@@ -491,9 +493,11 @@ private fun AssistantCreationSheet(
     state: EditState<Assistant>,
     settings: Settings,
 ) {
-    state.EditStateContent { assistant, update ->
+    // U7b-5：改用 EditStateSheetHost（最后一份快照 + MochiSheetState 驱动），面板获得收起动画。
+    val createSheet = rememberMochiSheetState()
+    state.EditStateSheetHost(createSheet) { assistant, update ->
         PrimaryBottomSheet(
-            visible = true,
+            state = createSheet,
             title = stringResource(R.string.assistant_page_add),
             imageVector = neurology,
             confirmText = stringResource(R.string.assistant_page_save),

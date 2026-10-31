@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import heizige.kk.khatkit.uikit.mochi.MochiDialog // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
@@ -140,12 +140,12 @@ fun ReasoningPicker(
         sliderState.value = currentIndex.toFloat()
     }
 
-    PrimaryBottomSheet(
-        visible = true,
+    // U7b-5：单值选择 + 滑块，内容不到一屏 —— 改成 MochiDialog（不再占半屏 sheet）。
+    MochiDialog(
+        show = true,
+        onDismissRequest = onDismissRequest,
         title = stringResource(R.string.reasoning_picker_title),
-        imageVector = neurology,
-        onDismiss = onDismissRequest,
-    ) { _ ->
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
