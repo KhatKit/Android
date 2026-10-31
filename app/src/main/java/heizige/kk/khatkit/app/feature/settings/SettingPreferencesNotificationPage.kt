@@ -1,7 +1,11 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,6 +57,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
     
     val settings by vm.settings.collectAsStateWithLifecycle()
     var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showUpdatePauseDialog by remember { mutableStateOf(false) }
     var selectedUpdatePauseDays by remember { mutableStateOf(UPDATE_PAUSE_DAY_OPTIONS.first()) }
 
@@ -135,6 +141,17 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         )
                     }
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_floating_chat,
+                            R.string.setting_display_page_floating_chat_desc,
+                            checked = displaySetting.enableFloatingChatWindow,
+                            onCheckedChange = { enabled ->
+                                if (enabled) ensureOverlayPermission(context)
+                                updateDisplaySetting(displaySetting.copy(enableFloatingChatWindow = enabled))
+                            },
+                        )
+                    )
                 }
             }
         }
@@ -195,6 +212,17 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+}
+
+/** 开悬浮窗时申请覆盖层权限：没有权限就跳到系统的「显示在其他应用上层」页。 */
+private fun ensureOverlayPermission(context: Context) {
+    if (Settings.canDrawOverlays(context)) return
+    runCatching {
+        context.startActivity(
+            Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.packageName))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 }

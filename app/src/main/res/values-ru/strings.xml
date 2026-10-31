@@ -1382,4 +1382,6 @@
   <string name="error_fast_model_provider_not_found">Провайдер быстрой модели не найден</string>
   <string name="image_preview_saving">Сохранение…</string>
   <string name="image_preview_saved">Изображение сохранено</string>
+  <string name="setting_display_page_floating_chat">Плавающее окно чата</string>
+  <string name="setting_display_page_floating_chat_desc">Показывает плавающий пузырь при генерации в фоне; нажмите, чтобы ответить. Нужно разрешение на наложение.</string>
 </resources>

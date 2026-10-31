@@ -9,6 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
@@ -54,6 +55,33 @@ import heizige.kk.khatkit.tts.provider.TTSManager
 @Module
 @InstallIn(SingletonComponent::class)
 object AppHiltModule {
+
+    /**
+     * FLOAT2：悬浮窗宿主。构造即开始跟随 settings 的开关（enabled=false 时不 install 任何窗口），
+     * 由 KhatKitApp 注入持有；开关打开且应用退到后台、且有会话在生成时才出现。
+     */
+    @Provides
+    @Singleton
+    fun provideChatFloatingWindows(
+        @ApplicationContext application: Application,
+        appScope: AppScope,
+        lazyChatManager: dagger.Lazy<ChatManager>,
+        settingsStore: SettingsRepository,
+    ): heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows {
+        // Dagger 的 Lazy 和 Kotlin 的 Lazy 不是一个类型：tracker/windows 要 Kotlin Lazy
+        val managerLazy = lazy { lazyChatManager.get() }
+        return heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows(
+            context = application,
+            appScope = appScope,
+            tracker = heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingTracker(
+                appScope = appScope,
+                lazyChatManager = managerLazy,
+                enabled = settingsStore.settingsFlow.map { it.displaySetting.enableFloatingChatWindow },
+            ).let { it },
+            lazyChatManager = managerLazy,
+        )
+    }
+
     @Provides
     @Singleton
     fun provideJson(): Json = JsonInstant

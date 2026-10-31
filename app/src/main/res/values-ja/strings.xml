@@ -1382,4 +1382,6 @@
 <string name="chart_series_name">數列 %1$d</string>
   <string name="image_preview_saving">保存中…</string>
   <string name="image_preview_saved">画像を保存しました</string>
+  <string name="setting_display_page_floating_chat">フローティングチャット</string>
+  <string name="setting_display_page_floating_chat_desc">バックグラウンド生成中にフローティングバブルを表示します。タップで返信。オーバーレイ権限が必要です。</string>
 </resources>

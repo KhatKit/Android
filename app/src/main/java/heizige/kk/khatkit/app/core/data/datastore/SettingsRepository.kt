@@ -721,6 +721,8 @@ data class DisplaySetting(
     val skipCropImage: Boolean = true,
     val enableNotificationOnMessageGeneration: Boolean = false,
     val enableLiveUpdateNotification: Boolean = false,
+    /** FLOAT2：后台生成时显示悬浮窗（气泡/面板），默认关；需要 SYSTEM_ALERT_WINDOW 权限 */
+    val enableFloatingChatWindow: Boolean = false,
     val codeBlockAutoWrap: Boolean = false,
     val codeBlockAutoCollapse: Boolean = false,
     val showLineNumbers: Boolean = false,

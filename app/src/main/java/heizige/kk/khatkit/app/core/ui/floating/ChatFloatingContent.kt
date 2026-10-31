@@ -15,12 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,10 +76,9 @@ fun ChatFloatingPanel(
     onCollapse: () -> Unit,
     onDismiss: () -> Unit,
     onOpenConversation: () -> Unit,
-    onSend: (String) -> Unit,
+    onReply: () -> Unit,
     onStop: () -> Unit,
 ) {
-    var draft by remember(state.conversationId) { mutableStateOf("") }
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -154,30 +148,16 @@ fun ChatFloatingPanel(
                 )
             }
 
+            // 悬浮窗拿不到输入焦点（需要 floatingx-system 的 systemHost/layoutParams，本 fork 不引新依赖），
+            // 所以面板不放输入框：点「回复」直接打开会话，用系统输入法接着聊。
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                TextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    placeholder = { Text("回复…") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
+                Button(onClick = onReply, modifier = Modifier.weight(1f)) { Text("回复") }
                 if (state.generating) {
                     TextButton(onClick = onStop) { Text("停止") }
-                } else {
-                    Button(
-                        onClick = {
-                            val text = draft.trim()
-                            if (text.isNotEmpty()) {
-                                draft = ""
-                                onSend(text)
-                            }
-                        },
-                    ) { Text("发送") }
                 }
             }
             TextButton(onClick = onOpenConversation) { Text("打开会话") }

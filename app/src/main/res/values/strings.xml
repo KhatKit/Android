@@ -1801,4 +1801,6 @@
   <string name="setting_model_page_memory_model_desc">Model used in the background to organize conversations into long-term memory. The fast model is used when unset.</string>
   <string name="setting_model_page_memory_model_follow_fast">Follow fast model</string>
   <string name="model_list_clear_model">Clear</string>
+  <string name="setting_display_page_floating_chat">Floating chat window</string>
+  <string name="setting_display_page_floating_chat_desc">Show a floating bubble while generating in background; tap it to reply. Needs the overlay permission.</string>
 </resources>

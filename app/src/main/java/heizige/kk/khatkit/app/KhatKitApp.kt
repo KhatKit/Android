@@ -74,6 +74,12 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
     @Inject
     lateinit var settingsStore: SettingsRepository
 
+    // FLOAT2：悬浮窗宿主。构造即按 settings 的开关跟随前后台与生成状态；关掉时不 install 任何窗口。
+    // 这里只做「持有 + 触发构造」，窗口本身由 ChatFloatingWindows 自己管理。
+    @Suppress("unused")
+    @Inject
+    lateinit var chatFloatingWindows: heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows
+
     @Inject
     lateinit var ktorHttpClient: HttpClient
 

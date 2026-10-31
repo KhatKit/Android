@@ -132,9 +132,7 @@ class ChatFloatingWindows(
                         onCollapse = tracker::collapse,
                         onDismiss = tracker::dismiss,
                         onOpenConversation = { openConversation(s.conversationId) },
-                        onSend = { text ->
-                            chatManager.sendMessage(s.conversationId, listOf(UIMessagePart.Text(text)))
-                        },
+                        onReply = { openConversation(s.conversationId) },
                         onStop = { appScope.launch { chatManager.stopGeneration(s.conversationId) } },
                     )
                 }

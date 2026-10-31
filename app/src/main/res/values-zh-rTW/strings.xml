@@ -1397,4 +1397,6 @@
   <string name="avatar_pick_icon_file">選擇圖示檔（含 SVG）</string>
   <string name="image_preview_saving">儲存中…</string>
   <string name="image_preview_saved">圖片已儲存</string>
+  <string name="setting_display_page_floating_chat">懸浮聊天窗</string>
+  <string name="setting_display_page_floating_chat_desc">背景生成時顯示懸浮氣泡，點開即可回覆；需要「顯示在其他應用上層」權限。</string>
 </resources>

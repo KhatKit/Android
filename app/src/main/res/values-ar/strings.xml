@@ -1359,4 +1359,6 @@
   <string name="error_fast_model_provider_not_found">لم يتم العثور على مزوّد النموذج السريع</string>
   <string name="image_preview_saving">جارٍ الحفظ…</string>
   <string name="image_preview_saved">تم حفظ الصورة</string>
+  <string name="setting_display_page_floating_chat">Floating chat window</string>
+  <string name="setting_display_page_floating_chat_desc">Show a floating bubble while generating in background; tap it to reply. Needs the overlay permission.</string>
 </resources>

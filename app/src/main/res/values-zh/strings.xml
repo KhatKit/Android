@@ -1802,4 +1802,6 @@
   <string name="setting_model_page_memory_model_desc">后台把对话整理进长期记忆时用的模型；没设置时跟快速模型</string>
   <string name="setting_model_page_memory_model_follow_fast">跟随快速模型</string>
   <string name="model_list_clear_model">清除</string>
+  <string name="setting_display_page_floating_chat">悬浮聊天窗</string>
+  <string name="setting_display_page_floating_chat_desc">后台生成时显示悬浮气泡，点开即可回复；需要「显示在其他应用上层」权限。</string>
 </resources>

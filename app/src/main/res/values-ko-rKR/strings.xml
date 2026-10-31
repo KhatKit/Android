@@ -1382,4 +1382,6 @@
   <string name="error_fast_model_provider_not_found">빠른 모델의 제공자를 찾을 수 없습니다</string>
   <string name="image_preview_saving">저장 중…</string>
   <string name="image_preview_saved">이미지가 저장되었습니다</string>
+  <string name="setting_display_page_floating_chat">플로팅 채팅 창</string>
+  <string name="setting_display_page_floating_chat_desc">백그라운드 생성 중 플로팅 버블을 표시합니다. 눌러서 답장하세요. 오버레이 권한이 필요합니다.</string>
 </resources>
