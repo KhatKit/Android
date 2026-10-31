@@ -243,8 +243,10 @@ class ResponseAPI(
                     if (capabilities.supportsReasoningSummary) {
                         put("summary", "auto")
                     }
-                    if (level != ReasoningLevel.AUTO) {
-                        put("effort", level.effort)
+                    val effort = capabilities.reasoningEffort?.invoke(level, params.model.modelId)
+                        ?: if (level != ReasoningLevel.AUTO) level.effort else null
+                    if (effort != null) {
+                        put("effort", effort)
                     }
                 })
                 if (capabilities.supportEncryptedContent) {
@@ -745,6 +747,11 @@ internal data class ResponseProviderCapabilities(
     val supportsPromptCacheKey: Boolean = false,
     /** 是否接受 max_output_tokens（Codex 不接受） */
     val supportsMaxOutputTokens: Boolean = true,
+    /**
+     * reasoning.effort 的取值映射（level, modelId）-> effort；null 表示不发该字段。
+     * null 表示按默认规则（AUTO 不发，其余用 level.effort）。
+     */
+    val reasoningEffort: ((ReasoningLevel, String) -> String?)? = null,
 )
 
 internal fun resolveResponseProviderCapabilities(host: String): ResponseProviderCapabilities {
