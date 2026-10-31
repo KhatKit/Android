@@ -128,7 +128,12 @@ class ExploreMarketViewModel @Inject constructor(
                         version = summary.version,
                         icon = "dns",
                         itemCount = 1,
-                        sizeBytes = summary.sizeBytes,
+                        // /api/items 不直接给总大小，按 files[].size 求和（缺字段按 0）。
+                        sizeBytes = summary.files.sumOf { el ->
+                            (el as? kotlinx.serialization.json.JsonObject)
+                                ?.get("size")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull() }
+                                ?: 0L
+                        },
                         featured = summary.preferred,
                     )
                 }
