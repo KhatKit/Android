@@ -193,7 +193,10 @@ sealed class UIMessagePart {
         val input: String,
         val output: List<UIMessagePart> = emptyList(),
         val approvalState: ToolApprovalState = ToolApprovalState.Auto,
-        override var metadata: JsonObject? = null
+        override var metadata: JsonObject? = null,
+        // P1-1（上游 8bb488e3a）：本地执行的起止时间；拒绝、问答与旧消息为空。
+        val startedAt: kotlin.time.Instant? = null,
+        val finishedAt: kotlin.time.Instant? = null,
     ) : UIMessagePart() {
         /** Whether the tool has been executed (has output) */
         val isExecuted: Boolean get() = output.isNotEmpty()
@@ -217,6 +220,8 @@ sealed class UIMessagePart {
                 output = output + other.output,
                 approvalState = approvalState,
                 metadata = if (other.metadata != null) other.metadata else metadata,
+                startedAt = startedAt,
+                finishedAt = finishedAt,
             )
         }
     }
