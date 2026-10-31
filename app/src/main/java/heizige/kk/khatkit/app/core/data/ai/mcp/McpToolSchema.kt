@@ -18,7 +18,8 @@ private const val REF = "\$ref"
 internal fun ToolSchema.toSchema(): InputSchema {
     val properties = properties ?: JsonObject(emptyMap())
     val root = JsonObject(buildMap {
-        put("type", JsonPrimitive(type))
+        // SDK 0.15 起 ToolSchema.type 变为 JsonElement?，缺省按 object。
+        put("type", type ?: JsonPrimitive("object"))
         put("properties", properties)
         defs?.let { put("\$defs", it) }
     })

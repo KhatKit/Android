@@ -18,6 +18,7 @@ import heizige.kk.khatkit.app.core.data.db.migrations.Migration_32_33
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_33_34
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_34_35
 import heizige.kk.khatkit.app.core.data.db.migrations.Migration_35_36
+import heizige.kk.khatkit.app.core.data.db.migrations.Migration_36_37
 
 /** Shared schema, migrations and extensions for the app and staged backup validation. */
 internal object AppDatabaseFactory {
@@ -35,6 +36,7 @@ internal object AppDatabaseFactory {
                 Migration_33_34,
                 Migration_34_35,
                 Migration_35_36,
+                Migration_36_37,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.data.db
 
+import heizige.kk.khatkit.app.core.data.db.dao.UsageRecordDAO
+import heizige.kk.khatkit.app.core.data.db.entity.UsageRecordEntity
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -63,8 +65,9 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         GroupRunEntity::class,
         CardRunEntity::class,
         CardArtifactEntity::class,
+        UsageRecordEntity::class,
     ],
-    version = 36,
+    version = 37,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -127,6 +130,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cardRunDao(): CardRunDAO
 
     abstract fun cardArtifactDao(): CardArtifactDAO
+    abstract fun usageRecordDao(): UsageRecordDAO
 }
 
 object TokenUsageConverter {
