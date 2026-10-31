@@ -51,8 +51,7 @@ import heizige.kk.khatkit.uikit.mochi.KkEditField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.ModalDrawerSheet
+import ui.feice.mochi.navigation.MochiSidebarState
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -145,7 +144,7 @@ fun ChatDrawerContent(
     vm: ChatViewModel,
     settings: Settings,
     current: Conversation,
-    drawerState: DrawerState? = null,
+    sidebarState: MochiSidebarState? = null,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -216,7 +215,7 @@ fun ChatDrawerContent(
     val openMessageHit: (MessageSearchResult) -> Unit = { hit ->
         val conversationId = runCatching { Uuid.parse(hit.conversationId) }.getOrNull()
         if (conversationId != null) {
-            scope.launch { drawerState?.close() }
+            sidebarState?.close()
             navigateToChatPage(
                 navController,
                 conversationId,
@@ -472,9 +471,7 @@ fun ChatDrawerContent(
                         },
                         label = stringResource(R.string.explore_market_title),
                         onClick = {
-                            if (drawerState != null) {
-                                scope.launch { drawerState.close() }
-                            }
+                            sidebarState?.close()
                             navController.navigate(Screen.ExploreMarket)
                         },
                     )
@@ -529,7 +526,7 @@ fun ChatDrawerContent(
                         listTag = "drawer_role_search_list",
                         onOpenHit = openMessageHit,
                         onOpenConversation = { conversation ->
-                            scope.launch { drawerState?.close() }
+                            sidebarState?.close()
                             navigateToChatPage(navController, conversation.id)
                         },
                     )
@@ -548,7 +545,7 @@ fun ChatDrawerContent(
                         ),
                         onRole = { role ->
                             vm.switchRole(role.id) { target ->
-                                scope.launch { drawerState?.close() }
+                                sidebarState?.close()
                                 navigateToChatPage(navController, target)
                             }
                         },
@@ -573,31 +570,9 @@ fun ChatDrawerContent(
         }
     }
 
-    // 抽屉底色不能依赖 ModalDrawerSheet 的默认值：material3 1.5.0-alpha29 改了
-    // DrawerDefaults 的容器色，MD3Exp 下会漏出灰紫底。
-    // 这里显式给色，且两种风格都与聊天页同底色（页面用 MaterialTheme.colorScheme.surface）：
-    // 有色的一档只留给顶/底栏，抽屉本身跟正文同色。
-    val drawerContainerColor =     MaterialTheme.colorScheme.surfaceContainerLow
-
-    // 有 drawerState 时用带预测返回的 ModalDrawerSheet（返回手势跟手关闭抽屉）
-    if (drawerState != null) {
-        ModalDrawerSheet(
-            drawerState = drawerState,
-            modifier = Modifier.width(320.dp),
-            windowInsets = WindowInsets(0),
-            drawerContainerColor = drawerContainerColor,
-        ) {
-            sheetContent()
-        }
-    } else {
-        ModalDrawerSheet(
-            modifier = Modifier.width(320.dp),
-            windowInsets = WindowInsets(0),
-            drawerContainerColor = drawerContainerColor,
-        ) {
-            sheetContent()
-        }
-    }
+    // SIDE1：侧栏的容器（宽度 / 圆角 / 底色 / 遮罩 / 手势 / 预测性返回）全部由
+    // MochiSidebarLayout 负责，这里只出内容，不再自套 material3 的 ModalDrawerSheet。
+    sheetContent()
 
     // 移动到助手 Bottom Sheet：U7b-2b 去掉父级 if 门控，显隐交给 MochiSheetState，
     // 这样面板有收起动画；内容里对 conversationToMove 只做 null 安全读（:627/:654），退出期间不会 NPE。

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,16 +35,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
+import ui.feice.mochi.navigation.MochiSidebarLayout
+import ui.feice.mochi.navigation.MochiSidebarState
+import ui.feice.mochi.navigation.rememberMochiSidebarState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
@@ -52,7 +52,6 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -156,13 +155,14 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     val enableWebSearch by vm.enableWebSearch.collectAsStateWithLifecycle()
     val errors by vm.errors.collectAsStateWithLifecycle()
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    // SIDE1：侧边栏状态交给 Mochi（开合/遮罩/跟手拖拽/预测性返回都在 MochiSidebarLayout 里）
+    val sidebarState = rememberMochiSidebarState()
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
     // Clear input focus so popup transitions cannot reopen the keyboard.
-    LaunchedEffect(drawerState.isOpen) {
-        if (drawerState.isOpen) {
+    LaunchedEffect(sidebarState.isOpen) {
+        if (sidebarState.isOpen) {
             focusManager.clearFocus(force = true)
             softwareKeyboardController?.hide()
         }
@@ -175,8 +175,8 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     // 进入大屏（永久抽屉）模式时重置抽屉状态为关闭，
     // 避免从横屏旋转回竖屏后，模态抽屉残留为打开状态且无法关闭（#1304）
     LaunchedEffect(isBigScreen) {
-        if (isBigScreen && drawerState.isOpen) {
-            drawerState.close()
+        if (isBigScreen && sidebarState.isOpen) {
+            sidebarState.close()
         }
     }
 
@@ -245,7 +245,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
             processingStatus = processingStatus,
             setting = setting,
             conversation = conversation,
-            drawerState = drawerState,
+            sidebarState = sidebarState,
             navController = navController,
             vm = vm,
             chatListState = chatListState,
@@ -261,32 +261,36 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
 
     when {
         isBigScreen -> {
-            PermanentNavigationDrawer(
-                drawerContent = {
-                    ChatDrawerContent(
-                        navController = navController,
-                        current = conversation,
-                        vm = vm,
-                        settings = setting
-                    )
-                }
-            ) {
-                scaffold(true)
-            }
-        }
-
-        else -> {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
+            // 大屏（永久侧栏）：Mochi 没有"常驻"样式，这里用一排定宽栏放同一份内容，
+            // 侧栏开着时抽屉语义不需要（没有遮罩/手势），所以 state 传 null。
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.width(320.dp).fillMaxHeight()) {
                     ChatDrawerContent(
                         navController = navController,
                         current = conversation,
                         vm = vm,
                         settings = setting,
-                        drawerState = drawerState,
                     )
                 }
+                Box(modifier = Modifier.weight(1f)) { scaffold(true) }
+            }
+        }
+
+        else -> {
+            // SIDE1：外层换成 Mochi 的侧栏布局 —— 遮罩、左缘拖出、跟手收起、
+            // 预测性返回先收侧栏、圆角与按压反馈全部由 Mochi 负责；
+            // 页面里没有任何外观分支。
+            MochiSidebarLayout(
+                state = sidebarState,
+                sidebar = {
+                    ChatDrawerContent(
+                        navController = navController,
+                        current = conversation,
+                        vm = vm,
+                        settings = setting,
+                        sidebarState = sidebarState,
+                    )
+                },
             ) {
                 scaffold(false)
             }
@@ -308,7 +312,7 @@ internal fun ChatScaffold(
     setting: Settings,
     bigScreen: Boolean,
     conversation: Conversation,
-    drawerState: DrawerState,
+    sidebarState: MochiSidebarState,
     navController: Navigator,
     vm: ChatViewModel,
     chatListState: LazyListState,
@@ -524,7 +528,7 @@ internal fun ChatScaffold(
                         role = assistant,
                         hazeState = hazeState,
                         bigScreen = bigScreen,
-                        drawerState = drawerState,
+                        sidebarState = sidebarState,
                         previewMode = previewMode,
                         searchQuery = previewSearchQuery,
                         onSearchQueryChange = { previewSearchQuery = it },
@@ -830,7 +834,7 @@ private fun TopBar(
     role: Assistant,
     /** 与正文背景同一个 haze 源，供顶栏在角色有自定义背景时做毛玻璃。 */
     hazeState: HazeState,
-    drawerState: DrawerState,
+    sidebarState: MochiSidebarState,
     bigScreen: Boolean,
     previewMode: Boolean,
     searchQuery: String,
@@ -1042,7 +1046,7 @@ private fun TopBar(
                             if (p >= 0.5f) {
                                 onCollapseSearch()
                             } else {
-                                scope.launch { drawerState.open() }
+                                sidebarState.open()
                             }
                         },
                         shapes = IconButtonDefaults.shapes(),
