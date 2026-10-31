@@ -657,7 +657,7 @@ private fun ImportThemeDialog(
                     minLines = 4,
                     maxLines = 8,
                     isError = errorMessage != null,
-                    supportingText = { Text(errorMessage?.let { msg -> { Text(msg) } }) },
+                    supportingText = { errorMessage?.let { msg -> Text(msg) } },
                     shape = RoundedCornerShape(16.dp)
                 )
             }
