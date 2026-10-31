@@ -477,7 +477,7 @@ private fun ToolDenyReasonDialog(
         Md3OutlinedTextFieldWithSlots(
             value = reason,
             onValueChange = { reason = it },
-            label = stringResource(R.string.chat_message_tool_deny_dialog_hint),
+            label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
             minLines = 2,
