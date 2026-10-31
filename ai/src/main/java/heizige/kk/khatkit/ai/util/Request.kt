@@ -7,6 +7,9 @@ import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.CustomHeader
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.common.http.okhttp.Headers
+import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrl
 import heizige.kk.khatkit.common.http.okhttp.Request
 import heizige.kk.khatkit.common.http.okhttp.ResponseBody
@@ -19,6 +22,19 @@ fun List<CustomHeader>.toHeaders(): Headers {
                 add(it.name, it.value)
             }
     }.build()
+}
+
+/**
+ * 执行请求并读出响应体；不是 2xx 时报错，带上路径、状态码和响应体（不带 query，里面可能有 key）。
+ */
+internal suspend fun OkHttpClient.fetchBody(request: Request): String = withContext(Dispatchers.IO) {
+    newCall(request).await().use { response ->
+        val body = response.body.string()
+        if (!response.isSuccessful) {
+            error("Request to " + request.url + " failed: " + response.code + " " + body)
+        }
+        body
+    }
 }
 
 fun ProviderSetting.mergeCustomHeaders(headers: List<CustomHeader> = emptyList()): Headers {
