@@ -34,7 +34,7 @@ object ScreenRoutes {
         "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
         "workspace-terminal", "workspace-file-editor", "skill-detail", "message-search",
-        "download-center",
+        "download-center", "stats",
     )
 
     /** 把一页编成确定性路由。同名同参数 ⇒ 同字符串。 */
@@ -118,6 +118,7 @@ object ScreenRoutes {
         is Screen.SkillDetail -> Route("skill-detail").str("skillName", screen.skillName).build()
         Screen.MessageSearch -> "message-search"
         Screen.DownloadCenter -> "download-center"
+        Screen.Stats -> "stats"
     }
 
     /** [routeOf] 的逆运算；不认识 / 参数缺失或损坏时返回 null。 */
@@ -205,6 +206,7 @@ object ScreenRoutes {
             "skill-detail" -> Screen.SkillDetail(params.str("skillName") ?: return null)
             "message-search" -> Screen.MessageSearch
             "download-center" -> Screen.DownloadCenter
+            "stats" -> Screen.Stats
             else -> null
         }
     }

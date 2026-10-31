@@ -103,6 +103,7 @@ import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.feature.onboarding.GreetingPage
 import heizige.kk.khatkit.app.feature.imggen.ImageGenPage
 import heizige.kk.khatkit.app.feature.log.LogPage
+import heizige.kk.khatkit.app.feature.stats.StatsPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
@@ -437,6 +438,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SkillDetail -> SkillDetailPage(skillName = screen.skillName)
                             is Screen.MessageSearch -> SearchPage()
                             is Screen.DownloadCenter -> DownloadCenterPage()
+                            is Screen.Stats -> StatsPage()
                         }
                         }
                     }
@@ -772,6 +774,10 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object DownloadCenter : Screen
+
+    /** 用量统计页（UI-5）：7/30/90/全部的趋势、模型排行、来源拆分。 */
+    @Serializable
+    data object Stats : Screen
 
 }
 

@@ -65,6 +65,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.barChart
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.book2
 import heizige.kk.khatkit.app.core.ui.icons.campaign
@@ -393,6 +394,13 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         leadingContent = { Icon(book2, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_documentation_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_documentation)) },
+                    )
+                    item(
+                        modifier = Modifier.mochiNavSource("setting-stats", 26.dp, morphColor),
+                        onClick = { openMorph(Screen.Stats, "setting-stats") },
+                        leadingContent = { Icon(barChart, null) },
+                        supportingContent = { Text(stringResource(R.string.setting_page_stats_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_page_stats)) },
                     )
                     item(
                         modifier = Modifier.mochiNavSource("setting-log", 26.dp, morphColor),

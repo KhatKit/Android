@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.feature.stats
 
 import heizige.kk.khatkit.uikit.mochi.KkCard
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -54,10 +58,17 @@ import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
+import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import heizige.kk.khatkit.app.core.data.db.dao.UsageByModel
+import heizige.kk.khatkit.app.core.data.db.dao.UsageBySource
+import heizige.kk.khatkit.app.core.data.db.dao.UsageTrendPoint
 
 @Composable
 fun StatsPage(vm: StatsVM = hiltViewModel()) {
     val stats by vm.stats.collectAsStateWithLifecycle()
+    val usage by vm.usage.collectAsStateWithLifecycle()
+    val usageRange by vm.range.collectAsStateWithLifecycle()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -92,10 +103,277 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
                         modifier = Modifier.padding(horizontal = 8.dp),
                     )
                 }
+                // UI-5：用量（趋势 / 模型排行 / 来源拆分），数据来自 usage_record 流水
+                item {
+                    UsageCard(
+                        usage = usage,
+                        range = usageRange,
+                        onSelectRange = { vm.selectRange(it) },
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                }
                 item {
                     RouteStatsCard(modifier = Modifier.padding(horizontal = 8.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun UsageCard(
+    usage: UsageStats,
+    range: UsageRange,
+    onSelectRange: (UsageRange) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    KkCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.stats_page_usage_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(R.string.stats_page_usage_requests, formatCount(usage.requests)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // 时间窗口：7 / 30 / 90 / 全部
+            KkSingleChoiceSegmentedRow(
+                items = UsageRange.entries.map { r ->
+                    SegmentedItem(
+                        label = stringResource(r.labelRes()),
+                        selected = r == range,
+                        onClick = { onSelectRange(r) },
+                    )
+                },
+            )
+
+            if (usage.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(96.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    KkProgressIndicator(modifier = Modifier.size(20.dp))
+                }
+            } else if (usage.trend.isEmpty() && usage.byModel.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.stats_page_no_usage),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    TokenTotal(
+                        label = stringResource(R.string.stats_page_input_tokens),
+                        value = usage.promptTokens,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TokenTotal(
+                        label = stringResource(R.string.stats_page_output_tokens),
+                        value = usage.completionTokens,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.stats_page_trend_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TrendBarChart(points = usage.trend)
+
+                if (usage.byModel.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.stats_page_by_model_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    usage.byModel.take(MAX_RANKING_ROWS).forEach { model ->
+                        RankingRow(
+                            name = model.modelName ?: model.modelId ?: "-",
+                            promptTokens = model.promptTokens,
+                            completionTokens = model.completionTokens,
+                            requests = model.requests,
+                            fraction = proportion(
+                                model.promptTokens + model.completionTokens,
+                                usage.totalTokens,
+                            ),
+                        )
+                    }
+                }
+
+                if (usage.bySource.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.stats_page_by_source_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    usage.bySource.forEach { source ->
+                        RankingRow(
+                            name = sourceLabel(source),
+                            promptTokens = source.promptTokens,
+                            completionTokens = source.completionTokens,
+                            requests = source.requests,
+                            fraction = proportion(
+                                source.promptTokens + source.completionTokens,
+                                usage.totalTokens,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private const val MAX_RANKING_ROWS = 8
+
+private fun UsageRange.labelRes(): Int = when (this) {
+    UsageRange.WEEK -> R.string.stats_page_range_7d
+    UsageRange.MONTH -> R.string.stats_page_range_30d
+    UsageRange.QUARTER -> R.string.stats_page_range_90d
+    UsageRange.ALL -> R.string.stats_page_range_all
+}
+
+/** 来源名（usage_record.source 里存的是 UsageSource 的名字）首字母大写，空值兜底成 "-" */
+private fun sourceLabel(source: UsageBySource): String =
+    source.source.takeIf { it.isNotBlank() }
+        ?.lowercase()
+        ?.replaceFirstChar { it.uppercase() }
+        ?: "-"
+
+private fun proportion(value: Long, total: Long): Float =
+    if (total <= 0L) 0f else (value.toDouble() / total).toFloat().coerceIn(0f, 1f)
+
+@Composable
+private fun TokenTotal(label: String, value: Long, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = formatTokens(value),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** 趋势图：Canvas 画等宽圆角柱，避免为一个折线引第三方图表库。 */
+@Composable
+private fun TrendBarChart(
+    points: List<UsageTrendPoint>,
+    modifier: Modifier = Modifier,
+) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(modifier = modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(96.dp)
+        ) {
+            if (points.isEmpty()) return@Canvas
+            val max = points.maxOf { it.promptTokens + it.completionTokens }.coerceAtLeast(1L)
+            val slot = size.width / points.size
+            val gap = (slot * 0.25f).coerceAtMost(6f)
+            val barWidth = (slot - gap).coerceAtLeast(1f)
+            val corner = CornerRadius(barWidth / 3f, barWidth / 3f)
+            points.forEachIndexed { index, point ->
+                val value = point.promptTokens + point.completionTokens
+                val ratio = value.toFloat() / max
+                val barHeight = (size.height * ratio).coerceAtLeast(if (value > 0L) 2f else 0f)
+                drawRoundRect(
+                    color = if (value > 0L) barColor else emptyColor.copy(alpha = 0.35f),
+                    topLeft = Offset(index * slot + gap / 2f, size.height - barHeight),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = corner,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = points.firstOrNull()?.bucket.orEmpty(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = points.lastOrNull()?.bucket.orEmpty(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** 排行/来源的一行：名称 + 占比条 + token 数 + 次数。 */
+@Composable
+private fun RankingRow(
+    name: String,
+    promptTokens: Long,
+    completionTokens: Long,
+    requests: Long,
+    fraction: Float,
+) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = stringResource(R.string.stats_page_row_requests, formatCount(requests)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatTokens(promptTokens + completionTokens),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(trackColor)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .height(4.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(barColor)
+            )
         }
     }
 }

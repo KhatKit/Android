@@ -45,8 +45,9 @@ private val RoleDateFormatter = DateTimeFormatter.ofPattern("M/d")
  *
  * **SIDE1 起样式统一走 Mochi 侧栏**：分区标题 [MochiSidebarSectionHeader]，行 [MochiSidebarItem]
  * （胶囊高亮 / 按下反馈 / 选中底色淡入淡出 / 单行省略都由 Mochi 负责，页面不再自绘卡片、
- * 圆角与分隔）。行的信息密度保持原样：头像走 leading，最近会话/正在回复 + 时间 + 当前角色勾
- * 压成一行放进 trailing（MochiSidebarItem 只有单行标题槽，没有 supporting 第二行）。
+ * 圆角与分隔）。UI-3 起行内只放「40dp 头像 + 单行标题」，行尾 trailing 只留
+ * 「正在回复… / 时间 + 当前角色勾」——会话标题与角色描述不再挤进这一行
+ * （MochiSidebarItem 只有单行标题槽，没有 supporting 第二行）。
  */
 @Composable
 internal fun RoleDrawerList(
