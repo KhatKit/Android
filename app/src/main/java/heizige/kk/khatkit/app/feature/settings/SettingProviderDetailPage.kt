@@ -325,6 +325,8 @@ internal fun SettingProviderConfigPage(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // 委托属性无法 smart cast：先取本地 val 再判类型。
+        val currentProvider = internalProvider
         ProviderConfigure(
             provider = internalProvider,
             // 即改即存：文本字段（name / apiKey / baseUrl / chatCompletionsPath / responsesPath）
@@ -336,9 +338,9 @@ internal fun SettingProviderConfigPage(
         // 运行期由 AccountCredentialProvider 读它并自动续期；退出即把 credential 置空。
         // 额度条：ai 侧还没有 ProviderQuota/QuotaQueryRunner（两个账号 Provider 的 getBalance 仍是 TODO），
         // 所以这里不传 quota，ProviderAccountSection 只在非 null 时画进度条。
-        if (internalProvider is ProviderSetting.Account && accountManager != null) {
+        if (currentProvider is ProviderSetting.Account && accountManager != null) {
             ProviderAccountSection(
-                provider = internalProvider,
+                provider = currentProvider,
                 manager = accountManager,
                 modifier = Modifier.fillMaxWidth(),
             )

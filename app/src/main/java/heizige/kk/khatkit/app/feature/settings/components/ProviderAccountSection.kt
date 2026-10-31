@@ -54,8 +54,10 @@ fun ProviderAccountSection(
     val state = accounts[vendor] ?: ProviderAccountState(loggedIn = provider.credential != null)
     val scope = rememberCoroutineScope()
 
-    CardGroup(modifier = modifier) {
-        title { Text(stringResource(R.string.setting_account_section_title)) }
+    CardGroup(
+        modifier = modifier,
+        title = { Text(stringResource(R.string.setting_account_section_title)) },
+    ) {
         item(
             headlineContent = {
                 Text(
