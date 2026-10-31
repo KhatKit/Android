@@ -71,7 +71,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import kotlin.reflect.full.primaryConstructor
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
@@ -334,7 +333,7 @@ internal fun AddProviderSheet(
         imageVector = add,
         confirmText = stringResource(R.string.confirm),
         onConfirm = {
-            val instance = selectedType.primaryConstructor!!.callBy(mapOf())
+            val instance = SearchOptions.FACTORIES.getValue(selectedType)()
             onConfirm(instance)
         },
         dismissText = stringResource(R.string.cancel),

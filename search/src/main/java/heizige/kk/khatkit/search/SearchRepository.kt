@@ -171,6 +171,30 @@ sealed class SearchOptions {
             SerperOptions::class to "Serper",
             CustomJsOptions::class to "Custom JS",
             DeepSeekOptions::class to "DeepSeek",
+
+        /** SZ-D：各类型的默认配置工厂表。原来用 primaryConstructor 反射构造，运行期不再打包 kotlin-reflect（约 0.7MB dex），改成显式注册。 */
+        val FACTORIES: Map<kotlin.reflect.KClass<out SearchOptions>, () -> SearchOptions> = mapOf(
+            BingLocalOptions::class to { BingLocalOptions() },
+            KhatKitOptions::class to { KhatKitOptions() },
+            ZhipuOptions::class to { ZhipuOptions() },
+            DoubaoOptions::class to { DoubaoOptions() },
+            TavilyOptions::class to { TavilyOptions() },
+            ExaOptions::class to { ExaOptions() },
+            SearXNGOptions::class to { SearXNGOptions() },
+            LinkUpOptions::class to { LinkUpOptions() },
+            BraveOptions::class to { BraveOptions() },
+            MetasoOptions::class to { MetasoOptions() },
+            OllamaOptions::class to { OllamaOptions() },
+            PerplexityOptions::class to { PerplexityOptions() },
+            FirecrawlOptions::class to { FirecrawlOptions() },
+            JinaOptions::class to { JinaOptions() },
+            BochaOptions::class to { BochaOptions() },
+            GrokOptions::class to { GrokOptions() },
+            TinyfishOptions::class to { TinyfishOptions() },
+            SerperOptions::class to { SerperOptions() },
+            CustomJsOptions::class to { CustomJsOptions() },
+            DeepSeekOptions::class to { DeepSeekOptions() },
+        )
         )
     }
 
