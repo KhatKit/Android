@@ -11,10 +11,9 @@ import ui.feice.mochi.basic.MochiChip
 /**
  * CH1：多选/筛选芯片统一走 Mochi。
  *
- * [MochiChip] 的 label 是 String，并且自带选中态、勾选槽和按压/形变反馈，所以常规调用点用
- * String 重载：选中态走 selected，勾选标记走 showCheck，行内图标走 leadingIcon。
- * 富内容（多行、自定义排版）的少数调用点仍用下面的 @Composable label 重载，
- * 内部退回 material3 [FilterChip]（MochiChip 只接受 String，表达不了富内容）。
+ * [MochiChip] 的 label 是 String，自带选中态、勾选槽与按压/形变反馈，常规调用点用这两个函数：
+ * 选中态走 selected，勾选标记走 showCheck，行内图标走 leadingIcon。
+ * 富内容（多行、自定义排版、行尾内容）的调用点用 [KkRichFilterChip] / [KkRichInputChip]。
  */
 @Composable
 fun KkFilterChip(
@@ -58,9 +57,9 @@ fun KkInputChip(
     )
 }
 
-/** 富内容回退：label 是 Compose 内容，MochiChip 表达不了，仍用 material3 [FilterChip]。 */
+/** 富内容回退：label 是 Compose 内容（或需要 trailingIcon），MochiChip 表达不了，仍用 material3 [FilterChip]。 */
 @Composable
-fun KkFilterChip(
+fun KkRichFilterChip(
     selected: Boolean,
     onClick: () -> Unit,
     label: @Composable () -> Unit,
@@ -84,9 +83,9 @@ fun KkFilterChip(
     )
 }
 
-/** 富内容回退，同 [KkFilterChip]。 */
+/** 富内容回退，同 [KkRichFilterChip]。 */
 @Composable
-fun KkInputChip(
+fun KkRichInputChip(
     selected: Boolean,
     onClick: () -> Unit,
     label: @Composable () -> Unit,

@@ -2189,7 +2189,7 @@ private fun MarketFilterChip(
         label = "market_chip_label",
     )
 
-    KkFilterChip(
+    KkRichFilterChip(
         selected = selected,
         onClick = onClick,
         label = {

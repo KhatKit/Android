@@ -587,7 +587,7 @@ private fun FlowOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                KkFilterChip(
+                KkRichFilterChip(
                     selected = false,
                     onClick = onCreate,
                     label = {

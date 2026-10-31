@@ -74,7 +74,7 @@ fun TagsInput(
     ) {
         // 显示已选择的tags
         selectedTags.fastForEach { tag ->
-            KkInputChip(selected = false, onClick = {}, label = tag.name, trailingIcon = {
+            KkRichInputChip(selected = false, onClick = {}, label = { androidx.compose.material3.Text(tag.name) }, trailingIcon = {
                 Icon(
                     imageVector = close,
                     contentDescription = null,

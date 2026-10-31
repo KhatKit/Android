@@ -1029,7 +1029,7 @@ private fun RegexInjectionEditDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     entry.keywords.forEach { keyword ->
-                        KkInputChip(
+                        KkRichInputChip(
                             selected = false,
                             onClick = {},
                             label = keyword,
