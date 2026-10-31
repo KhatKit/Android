@@ -4,9 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.ui.input.pointer.awaitPointerEventScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -285,7 +285,6 @@ private fun AspectChoice(label: String, selected: Boolean, onClick: () -> Unit) 
 
 @Composable
 private fun CornerHandle(position: Offset, onDrag: (Offset) -> Unit) {
-    var drag by remember { mutableStateOf(Offset.Zero) }
     Box(
         modifier = Modifier
             .size(44.dp)
@@ -293,21 +292,20 @@ private fun CornerHandle(position: Offset, onDrag: (Offset) -> Unit) {
                 translationX = position.x - 22.dp.toPx()
                 translationY = position.y - 22.dp.toPx()
             }
+            // awaitEachGesture 来自 androidx.compose.foundation.gestures；块内 receiver 就是 AwaitPointerEventScope，
+            // awaitFirstDown / awaitPointerEvent 都是它的成员，不需要额外 import awaitPointerEventScope。
             .pointerInput(Unit) {
-                awaitPointerEventScope {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var last = down.position
                     while (true) {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        drag = down.position
-                        var last = down.position
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) break
-                            val cur = change.position
-                            onDrag(cur - last)
-                            last = cur
-                            change.consume()
-                        }
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
+                        val cur = change.position
+                        onDrag(cur - last)
+                        last = cur
+                        change.consume()
                     }
                 }
             },
