@@ -101,7 +101,7 @@ android {
     androidResources {
         generateLocaleConfig = true
         // SZ-D：只保留 app 自己翻译过的语言（依赖库带的其它语言资源不打包，resources.arsc 变小）
-        localeFilters += listOf("en", "ar", "ja", "ko", "ko-rKR", "ru", "zh", "zh-rTW")
+        localeFilters += listOf("en", "ar", "de", "ja", "ko", "ko-rKR", "ru", "zh", "zh-rTW")
     }
     packaging {
         jniLibs {
