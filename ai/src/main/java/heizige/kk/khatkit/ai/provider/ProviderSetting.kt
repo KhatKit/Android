@@ -73,14 +73,14 @@ sealed class ProviderSetting {
 
     /** API Key 类提供商：直连厂商 API，鉴权用 [apiKey] */
     @Serializable
-    abstract class ApiKey : ProviderSetting() {
+    sealed class ApiKey : ProviderSetting() {
         abstract var apiKey: String
         abstract var baseUrl: String
     }
 
     /** 账号类提供商：凭据只能通过 OAuth 登录获得，由 app 层按需刷新并写回 [credential] */
     @Serializable
-    abstract class Account : ProviderSetting() {
+    sealed class Account : ProviderSetting() {
         /** 未登录时为 null */
         abstract val credential: OAuthCredential?
 
