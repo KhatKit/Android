@@ -279,10 +279,9 @@ fun ModelListSheet(
     state: ModelListState,
     onSelect: (Model) -> Unit,
 ) {
-    if (!state.visible) return
-
+    // U7b-2c：不再用 "if (!visible) return" 提前返回（那会杀掉收起动画），显隐交给 MochiSheet 状态。
     PrimaryBottomSheet(
-        visible = true,
+        visible = state.visible,
         title = stringResource(R.string.model_list_select_model),
         imageVector = memory,
         onDismiss = {

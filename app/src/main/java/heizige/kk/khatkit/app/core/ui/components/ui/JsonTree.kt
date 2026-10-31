@@ -63,14 +63,15 @@ fun JsonTree(
         )
     }
 
-    selectedString?.let { content ->
-        PrimaryBottomSheet(
-            visible = true,
-            title = "JSON",
-            imageVector = code,
-            onDismiss = { selectedString = null },
-            scrollable = false,
-        ) { _ ->
+    // U7b-2c：去 let 门控，visible 交给 MochiSheet 状态；内容用 selectedString?.let 读，收起动画期间不会读空值。
+    PrimaryBottomSheet(
+        visible = selectedString != null,
+        title = "JSON",
+        imageVector = code,
+        onDismiss = { selectedString = null },
+        scrollable = false,
+    ) { _ ->
+        selectedString?.let { content ->
             // Sheet 在独立窗口中，需要自己的 SelectionContainer，否则会沿用外层的 SelectionRegistrar 导致崩溃
             SelectionContainer {
                 Text(

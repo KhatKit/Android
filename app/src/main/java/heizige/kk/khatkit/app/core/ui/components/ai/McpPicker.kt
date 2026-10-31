@@ -109,9 +109,8 @@ fun McpPickerButton(
             }
         }
     }
-    if (showMcpPicker) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showMcpPicker,
             title = stringResource(id = R.string.mcp_picker_title),
             imageVector = dns,
             onDismiss = { showMcpPicker = false },
@@ -151,7 +150,6 @@ fun McpPickerButton(
                 )
             }
         }
-    }
 }
 
 @Composable

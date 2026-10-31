@@ -29,9 +29,9 @@ fun ShareSheet(
     state: ShareSheetState,
 ) {
     val context = LocalContext.current
-    if (state.isShow) {
-        PrimaryBottomSheet(
-            visible = true,
+    // U7b-2c：去掉 if 门控，显隐交给 MochiSheet 内部状态（有了收起动画）；内容只做 null 安全读。
+    PrimaryBottomSheet(
+        visible = state.isShow,
             title = "共享你的LLM模型",
             imageVector = iosShare,
             confirmText = stringResource(R.string.share),
@@ -69,7 +69,6 @@ fun ShareSheet(
                 )
             }
         }
-    }
 }
 
 fun ProviderSetting.encodeForShare(): String {

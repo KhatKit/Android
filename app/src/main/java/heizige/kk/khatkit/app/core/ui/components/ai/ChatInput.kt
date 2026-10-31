@@ -844,9 +844,9 @@ fun ChatInput(
     }
 
     // 长按发送键但没配语音识别模型：只提示去配置，不进录音
-    if (asrSetupSheetVisible) {
-        PrimaryBottomSheet(
-            visible = true,
+    // U7b-2c：去 if 门控，显隐交给 MochiSheet 内部状态（收起有动画，内容只读布尔不读空值）。
+    PrimaryBottomSheet(
+            visible = asrSetupSheetVisible,
             title = asrConfigureHint,
             imageVector = mic,
             confirmText = stringResource(R.string.setting_page_config),
@@ -856,11 +856,9 @@ fun ChatInput(
             },
             onDismiss = { asrSetupSheetVisible = false },
         ) { _ -> }
-    }
 
-    if (permissionSheetVisible) {
-        PrimaryBottomSheet(
-            visible = true,
+    PrimaryBottomSheet(
+            visible = permissionSheetVisible,
             title = stringResource(R.string.greeting_title_permissions),
             imageVector = verifiedUser,
             onDismiss = { permissionSheetVisible = false },
@@ -868,8 +866,6 @@ fun ChatInput(
         ) { _ ->
             PermissionChecklist(compact = true)
         }
-    }
-
 
 }
 

@@ -165,9 +165,8 @@ fun SearchPickerButton(
         }
     }
 
-    if (showSearchPicker) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showSearchPicker,
             title = stringResource(R.string.search_picker_title),
             imageVector = searchInsights,
             onDismiss = { showSearchPicker = false },
@@ -220,7 +219,6 @@ fun SearchPickerButton(
                 }
             }
         }
-    }
 }
 
 @Composable

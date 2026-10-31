@@ -113,14 +113,14 @@ fun UpdateCard(vm: ChatViewModel) {
                 }
             }
         }
-        if (showDetail) {
-            val downloadHandler = useThrottle<UpdateCheckResponse>(500) { item ->
-                vm.updateChecker.downloadUpdate(context, item)
-                showDetail = false
-                Toast.show(updateCardDownloading, isError = false)
-            }
-            PrimaryBottomSheet(
-                visible = true,
+        // U7b-2c：去 if 门控，显隐交给 MochiSheet 状态；下载回调提到门控外（每次组合注册，行为不变）。
+        val downloadHandler = useThrottle<UpdateCheckResponse>(500) { item ->
+            vm.updateChecker.downloadUpdate(context, item)
+            showDetail = false
+            Toast.show(updateCardDownloading, isError = false)
+        }
+        PrimaryBottomSheet(
+                visible = showDetail,
                 title = info.latestVersion,
                 imageVector = download,
                 dismissible = !info.forceUpdate,
@@ -169,6 +169,5 @@ fun UpdateCard(vm: ChatViewModel) {
                     }
                 }
             }
-        }
     }
 }

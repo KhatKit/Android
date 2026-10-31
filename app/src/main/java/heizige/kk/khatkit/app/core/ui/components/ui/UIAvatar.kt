@@ -316,9 +316,8 @@ fun UIAvatar(
         )
     }
 
-    if (showEmojiPicker) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showEmojiPicker,
             title = stringResource(id = R.string.avatar_pick_emoji),
             imageVector = palette,
             onDismiss = {
@@ -337,7 +336,6 @@ fun UIAvatar(
                     .padding(16.dp)
             )
         }
-    }
 
 
     KhatKitMediaPicker(

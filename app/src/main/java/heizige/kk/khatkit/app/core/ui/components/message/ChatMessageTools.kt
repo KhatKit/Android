@@ -245,9 +245,8 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
         )
     }
 
-    if (showResult) {
         PrimaryBottomSheet(
-            visible = true,
+            visible = showResult,
             title = renderer.title(context),
             imageVector = build,
             onDismiss = { showResult = false },
@@ -258,7 +257,6 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 onDismissRequest = dismiss,
             )
         }
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
