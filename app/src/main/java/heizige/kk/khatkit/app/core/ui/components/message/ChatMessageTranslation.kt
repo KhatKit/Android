@@ -52,9 +52,13 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 
 @Composable
 fun LanguageSelectionDialog(
+    sheetState: MochiSheetState,
     onLanguageSelected: (Locale) -> Unit,
     onClearTranslation: () -> Unit = {},
     onDismissRequest: () -> Unit
@@ -92,13 +96,9 @@ fun LanguageSelectionDialog(
         }
     }
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.translation_language_selection_title),
-        imageVector = translate,
-        onDismiss = onDismissRequest,
-        scrollable = false,
-    ) { dismiss ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有）。
+    MochiSheet(state = sheetState, onDismiss = onDismissRequest) {
+        MochiSheetHeader(title = stringResource(R.string.translation_language_selection_title))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,7 +114,7 @@ fun LanguageSelectionDialog(
                     KkCard(
                         onClick = {
                             onLanguageSelected(language)
-                            dismiss()
+                            onDismissRequest()
                         },
                         shape = MaterialTheme.shapes.medium
                     ) {
@@ -142,7 +142,7 @@ fun LanguageSelectionDialog(
                     KkCard(
                         onClick = {
                             onClearTranslation()
-                            dismiss()
+                            onDismissRequest()
                         },
                         shape = MaterialTheme.shapes.medium
                     ) {

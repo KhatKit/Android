@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -259,12 +260,18 @@ fun ColumnScope.ChatMessageActionButtons(
     }
 
     // Translation dialog
-    if (showTranslateDialog && onTranslate != null) {
-        LanguageSelectionDialog(
-            onLanguageSelected = { language ->
-                showTranslateDialog = false
-                onTranslate(message, language)
-            },
+    // U7b-6：state 由这里持有；onTranslate 快照成局部非空值，去门控后内容不再解引用可空参数。
+    val translateAction = onTranslate
+    val translateSheet = rememberMochiSheetState()
+    LaunchedEffect(showTranslateDialog, translateAction) {
+        if (showTranslateDialog && translateAction != null) translateSheet.show() else translateSheet.hide()
+    }
+    LanguageSelectionDialog(
+        sheetState = translateSheet,
+        onLanguageSelected = { language ->
+            showTranslateDialog = false
+            translateAction?.invoke(message, language)
+        },
             onClearTranslation = {
                 showTranslateDialog = false
                 onClearTranslation(message)
@@ -273,7 +280,6 @@ fun ColumnScope.ChatMessageActionButtons(
                 showTranslateDialog = false
             },
         )
-    }
 
     // Regenerate confirmation dialog
     RikkaConfirmDialog(
