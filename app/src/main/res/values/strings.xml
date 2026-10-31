@@ -1816,4 +1816,12 @@
   <string name="stats_page_by_model_title">Top models</string>
   <string name="stats_page_by_source_title">By source</string>
   <string name="stats_page_row_requests">%1$s req</string>
+  <string name="setting_account_section_title">Subscription accounts</string>
+  <string name="setting_account_login">Sign in</string>
+  <string name="setting_account_logout">Sign out</string>
+  <string name="setting_account_not_logged_in">Not signed in</string>
+  <string name="setting_account_logged_in">Signed in</string>
+  <string name="setting_account_waiting">Waiting for authorization…</string>
+  <string name="setting_account_waiting_browser">Authorization page opened in your browser</string>
+  <string name="setting_account_device_code">Open %1$s and enter code %2$s</string>
 </resources>
