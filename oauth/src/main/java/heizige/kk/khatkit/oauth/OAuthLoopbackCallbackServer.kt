@@ -42,6 +42,8 @@ data class OAuthCallback(
 class OAuthLoopbackCallbackServer(
     private val port: Int = 0,
     callbackPath: String = "/oauth/callback",
+    /** redirect URI 的主机名；预注册了 redirect URI 的客户端（如 ChatGPT 的 Codex）必须按注册值传 */
+    private val redirectHost: String = "localhost",
 ) {
     private class CallbackRegistration {
         val result = CompletableDeferred<OAuthCallback>()
@@ -129,7 +131,7 @@ class OAuthLoopbackCallbackServer(
         try {
             newServer.startSuspend(wait = false)
             val resolvedPort = newServer.engine.resolvedConnectors().single().port
-            return "http://$REDIRECT_HOST:$resolvedPort$callbackPath".also {
+            return "http://$redirectHost:$resolvedPort$callbackPath".also {
                 server = newServer
                 redirectUri = it
             }
@@ -228,7 +230,6 @@ class OAuthLoopbackCallbackServer(
 
     private companion object {
         const val LOOPBACK_HOST = "127.0.0.1"
-        const val REDIRECT_HOST = "localhost"
     }
 
     private fun successHtml() = callbackPage(
