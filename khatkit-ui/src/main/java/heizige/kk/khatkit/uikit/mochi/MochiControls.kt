@@ -28,8 +28,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import ui.feice.mochi.list.MochiListDefaults
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -398,6 +403,10 @@ fun MochiOptionItem(
     titleContent: @Composable () -> Unit,
     supportingContent: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable () -> Unit)? = null,
+    // UI-2：Mochi 行件的选中态（行尾对勾），默认关闭；调用点零改。
+    selected: Boolean = false,
+    // UI-2：行最小高，默认取 Mochi 真行件度量（MochiListDefaults.RowMinHeight = 52dp），需要更高时按页覆盖。
+    minHeight: Dp = MochiListDefaults.RowMinHeight,
 ) {
     // INT2①③ + OPT1：选项行走 Mochi 真按压形变（mochiPressDeform：缩 0.96 + 跟手偏移）+ kkPressState 高光
     // + 打开触觉；三者都受 LocalKkEffectsEnabled 控制，关掉时整行退回普通 clickable。
@@ -429,7 +438,7 @@ fun MochiOptionItem(
             )
             // UI-1：行高对齐 Mochi 列表行 56dp。40dp 头像/图标 + 上下各 8dp = 56dp；
             // 纯文字行靠 heightIn 托到 56dp（原来上下各 12dp，带 40dp 头像时是 64dp）。
-            .heightIn(min = 56.dp)
+            .heightIn(min = minHeight)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -445,6 +454,16 @@ fun MochiOptionItem(
             supportingContent?.invoke()
         }
         trailingContent?.invoke()
+        // UI-2：选中态用 Mochi 行件同款对勾（行尾、12dp 间隔、主色），不额外加底色。
+        if (selected) {
+            Spacer(Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = MochiTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
