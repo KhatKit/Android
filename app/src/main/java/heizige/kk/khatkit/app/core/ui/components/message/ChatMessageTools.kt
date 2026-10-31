@@ -120,7 +120,6 @@ private fun rememberToolDuration(tool: UIMessagePart.Tool, loading: Boolean): ko
 }
 
 @Composable
-@Composable
 fun ChainOfThoughtScope.ChatMessageToolStep(
     tool: UIMessagePart.Tool,
     loading: Boolean = false,
@@ -191,7 +190,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                     overflow = TextOverflow.Ellipsis,
                 )
                 // P1-1：执行耗时（执行中实时走字）；不足 100ms 与无计时的不显示
-                rememberToolDuration(tool, loading)?.takeIf { it >= kotlin.time.Duration.Companion.milliseconds * 100 }?.let { d ->
+                rememberToolDuration(tool, loading)?.takeIf { it.inWholeMilliseconds >= 100 }?.let { d ->
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = d.toString(kotlin.time.DurationUnit.SECONDS, 1),
