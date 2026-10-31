@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -299,6 +300,7 @@ class RouteActivity : ComponentActivity() {
         SharedTransitionLayout {
             CompositionLocalProvider(
                 LocalNavController provides mochiBackedNavigator,
+                LocalKkNavController provides kkNav,
                 LocalSharedTransitionScope provides this,
                 LocalSettings provides settings,
                 LocalToaster provides toastState,
@@ -473,6 +475,14 @@ class RouteActivity : ComponentActivity() {
 
 
 
+
+
+/**
+ * 供需要「卡片/行 → 整页」morph 的入口使用：拿到 [KkNavController] 后调 navigate(screen, source = 锚点)，
+ * 锚点由入口元素上的 mochiNavSource 上报；没有 Mochi 宿主时（预览/测试）为 null，调用方退回普通导航。
+ * 普通导航继续用 LocalNavController —— 没有 source 就是 iOS 侧推。
+ */
+internal val LocalKkNavController = staticCompositionLocalOf<KkNavController?> { null }
 
 /** 引导页完成后要进的会话页（逻辑与迁移前的 greetingChatScreen 一致）。 */
 private fun nextChatScreen(context: Context): Screen.Chat = Screen.Chat(

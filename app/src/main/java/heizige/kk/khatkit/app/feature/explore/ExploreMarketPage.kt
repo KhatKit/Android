@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.explore
 
+import ui.feice.mochi.navigation.mochiNavSource
+import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -2018,10 +2020,16 @@ private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 private fun GroupActionRow(
     label: String,
     onClick: () -> Unit,
+    sourceKey: String? = null,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     MochiOptionItem(
         onClick = onClick,
+        modifier = if (sourceKey != null) {
+            Modifier.mochiNavSource(sourceKey, 26.dp, MaterialTheme.colorScheme.surfaceContainer)
+        } else {
+            Modifier
+        },
         shape = shape,
         titleContent = {
             Text(
@@ -2574,10 +2582,17 @@ private fun SkillRow(
     name: String,
     description: String,
     onClick: () -> Unit,
+    sourceKey: String? = null,
     shape: Shape = AutoCornersShape(ExploreShape.card),
 ) {
     MochiOptionItem(
         onClick = onClick,
+        modifier = if (sourceKey != null) {
+            // 26dp = 列表卡片圆角（AGENTS 口径）；morph 起点从卡片自己的圆角长成整页
+            Modifier.mochiNavSource(sourceKey, 26.dp, MaterialTheme.colorScheme.surfaceContainer)
+        } else {
+            Modifier
+        },
         shape = shape,
         leadingContent = { RowIcon(school) },
         titleContent = {
@@ -4262,9 +4277,15 @@ fun ExploreLocalPage() {
 
             item(key = "tasks") {
                 GroupContainer(count = 1) { _, shape ->
+                    val kkNav = LocalKkNavController.current
+                    val morphKey = "explore-action-card-runs"
                     GroupActionRow(
                         label = stringResource(R.string.card_runs_title),
-                        onClick = { navController.navigate(Screen.CardRuns) },
+                        sourceKey = morphKey,
+                        onClick = {
+                            if (kkNav != null) kkNav.navigate(Screen.CardRuns, source = morphKey)
+                            else navController.navigate(Screen.CardRuns)
+                        },
                         shape = shape,
                     )
                 }
@@ -4275,16 +4296,28 @@ fun ExploreLocalPage() {
                     GroupContainer(count = skills.size + 1) { index, shape ->
                         if (index < skills.size) {
                             val skill = skills[index]
+                            val kkNav = LocalKkNavController.current
+                            val morphKey = "explore-skill-" + skill.name
                             SkillRow(
                                 name = skill.name,
                                 description = skill.description,
-                                onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                                sourceKey = morphKey,
+                                onClick = {
+                                    if (kkNav != null) kkNav.navigate(Screen.SkillDetail(skill.name), source = morphKey)
+                                    else navController.navigate(Screen.SkillDetail(skill.name))
+                                },
                                 shape = shape,
                             )
                         } else {
+                            val kkNavManage = LocalKkNavController.current
+                            val morphKeyManage = "explore-action-skills"
                             GroupActionRow(
                                 label = stringResource(R.string.explore_market_manage_skills),
-                                onClick = { navController.navigate(Screen.Skills) },
+                                sourceKey = morphKeyManage,
+                                onClick = {
+                                    if (kkNavManage != null) kkNavManage.navigate(Screen.Skills, source = morphKeyManage)
+                                    else navController.navigate(Screen.Skills)
+                                },
                                 shape = shape,
                             )
                         }
