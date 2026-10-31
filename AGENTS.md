@@ -250,3 +250,20 @@ commit/cancel 由系统阈值判定：业务只在 `onBackCompleted` 里 pop，�
 ⚠️ 当前 `app/RouteActivity.kt` 的 `predictivePopTransitionSpec` 用的是 Compose 默认
 spec（**spring**，不是 tween），且全仓**没有**任何 `transition.animateXxx` 子动画。
 详见 `docs/architecture-map.md` §5，**只记录未改**。
+
+## UI 栈最终形态（2026-11，U7b 后）
+
+- **主题**：`MochiTheme` 是唯一 token 源，经 `ProvideMaterial3Theme(amoled)`
+  （`app/themecompat/CompatMaterial3.kt:27`）单一 Bridge 注入；MD3 组件直接用即可拿到 Mochi 外观。
+  颜色 37 角色 / 字阶 15 角色 / AMOLED 表面阶梯重锚 / `fixed*` 12 角色推导，详见
+  `docs/mochi-migration-plan.md` §14.4；明暗唯一真相是 `ColorMode`（SYSTEM/LIGHT/DARK）。
+- **导航**：60 条路由全部由 `MochiNavHost` 渲染；`ScreenRoutes` 守 `Screen`⇄route 互逆；
+  入口 morph 用 `mochiNavSource`（30 处）+ `LocalKkNavController`；返回单点是 `RouteActivity.onBack`。
+- **弹层**：`PrimaryBottomSheet` 已改 MochiSheetState `show()/hide()` 驱动（无 `if (visible)`），
+  源码护栏钉 **60** 个调用点；短提示改 `MochiDialog`（ReasoningPicker / ChatInput ASR）；
+  多字段/列表/网格/长文本的冷门弹层保留 sheet（台账见计划 §14.2）。
+- **交互**：Kk 壳统一 `KkHaptics` / `kkPressState` / `KkMotionSpecs` / `fadingEdge` /
+  `rememberKkReduceMotion`，页面不要手写第二套 spring/scale。
+- **遗留**：大屏仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize`；MochiItem 无
+  enabled/trailing/长按，`MochiMenuPopup`/`MochiMenuRow` 合计 8 处调用；EditState 未全迁；
+  三库（Kedge/Miuix/Khromia）import = 0，**不要重新引入**。详见计划 §15。

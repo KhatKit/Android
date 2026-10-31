@@ -579,9 +579,14 @@ merge base 已经找不到有意义的共同祖先，任何 `git merge upstream/
    `heizige.kk.khatkit.common.http.okhttp.OkHttpClient`），不是上游那个库。
 4. **图标**：上游 2.5.5 起改用 HugeIcons/Lucide，本 fork 走自绘图标
    `core/ui/icons/`（150 个 kt，小驼峰符号名），**不引入** Maven 坐标。
-5. **UI 栈（Mochi × MD3）**：骨架/列表/表单/弹层/反馈用 material3，主题 token 与 overscroll 等
-   交互走 mochi-compose（`MochiTheme` / `ProvideMochiOverscroll`）；Kedge/Miuix/Khromia 已从
-   依赖树删除，`khatkit-ui/uikit/mochi/` 的 Kk 壳承接旧调用形态。**不要重新引入三库。**
+5. **UI 栈（Mochi × MD3，U7b 后最终形态）**：material3 是骨架（Scaffold/列表/表单/弹层/反馈），
+   token 唯一来源是 mochi-compose（`MochiTheme`），经 `ProvideMaterial3Theme(amoled)`
+   （`app/themecompat/CompatMaterial3.kt:27`）单一 Bridge 注入；**60 条路由**由 `MochiNavHost` 渲染，
+   入口 morph 用 `mochiNavSource`（30 处），返回单点 `RouteActivity.onBack`；弹层统一
+   `PrimaryBottomSheet`→MochiSheet（state 驱动，护栏 **60** 调用点）。Kedge/Miuix/Khromia 已从
+   依赖树删除（import=0），`khatkit-ui/uikit/mochi/` 的 Kk 壳承接旧调用形态。大屏仅有
+   `ChatPage.kt:52,169` 一处 `currentWindowDpSize`，属已知缺口。**不要重新引入三库。**
+   详见 `docs/mochi-migration-plan.md` §14–§15。
 
 ---
 

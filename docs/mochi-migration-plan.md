@@ -164,3 +164,106 @@ stat -c '%s' app/build/outputs/apk/debug/app-arm64-v8a-debug.apk                
 3. 主题只接一次 `MochiTheme`；页面不写外观分支；
 4. 卡片运行时（Lua API/节点词表/上限）不动；
 5. 迁移验收以行为等价为准，不以符号归零为准（§6）。
+
+## 14. 最终形态（U7b 收口后，数字可复算）
+
+> 本节记录「这一轮结束后真实长什么样」，下个会话不要按 §1–§13 的历史计划重新推演。
+> 复算统一在仓库根执行；行号可能漂移，**命令输出**是准的。
+
+### 14.1 导航：60 条路由全走 MochiNavHost
+
+- 路由表：`app/src/main/java/.../app/navigation/ScreenRoutes.kt` 的 `routeNames` = **60** 条
+  （`Screen` ⇄ 确定性字符串；`ScreenRoutesTest` 守互逆；参数百分号编码、null 不写）。
+- 渲染：60 条全部由 **`MochiNavHost`** 渲染（`RouteActivity.kt:276/327`），Nav3 外壳已删除。
+- 调用点零改动：`MochiBackedNavStack` 把 Mochi 栈包成 `MutableList<NavKey>`，
+  `navController.navigate(Screen.X)` 原样可用；根页不可 pop（`clear()` 退到根页为止）。
+  形如 `navController.navigate(Screen…` 的调用 = **68 处**。
+- source 锚点 morph：`LocalKkNavController`（`RouteActivity.kt:481`）+ 入口元素 `mochiNavSource`
+  上报锚点；`kkNav.navigate(screen, source = anchor)` 走共享元素 morph，无宿主时退回普通侧推。
+  `mochiNavSource` 使用点 **30 处**。
+- 返回单点：`RouteActivity` 的 `onBack` 唯一接管；页内浮层经 `PageBackInterceptor` 先消费；
+  页面不挂 `BackHandler`/`PredictiveBackHandler`（§8）。
+
+```bash
+python3 - <<'EOF'
+import re
+s=open('app/src/main/java/heizige/kk/khatkit/app/navigation/ScreenRoutes.kt',encoding='utf-8').read()
+m=re.search(r'routeNames: Set<String> = setOf\((.*?)\n\s*\)', s, re.S)
+print('routes =', len(re.findall(r'"[^"]+"', m.group(1))))
+EOF
+grep -rn 'mochiNavSource' --include=*.kt app/src/main | wc -l              # 30
+grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 68
+```
+
+### 14.2 弹层：PrimaryBottomSheet → MochiSheet（state 驱动 + 台账）
+
+- `PrimaryBottomSheet` 已换成 **Mochi 真 sheet**：`rememberMochiSheetState` 驱动
+  `state.show()`/`state.hide()`，组合树里**没有 `if (visible)`**（`PrimaryBottomSheet.kt:32-57`）；
+  Boolean 入参只是兼容薄层；内部多页用内层 `MochiNavHost`（有子页先退页，退回根页才关面板）。
+- backdrop/scrim 由 MochiSheet 自带；面板高度/圆角/拖拽动效由 Mochi 管。
+- 调用点计数：源码护栏 `PrimaryBottomSheetIconSourceGuardTest` / `…ScrollSourceGuardTest`
+  钉在 **60**（U7b-5 由 62 降 60，见测试 :286-288）。
+- **A 类（已 state 驱动 / 短提示改 Dialog）**：
+  - 助手页「新建助手」编辑面板：`UseEditState.kt:84` 新增 `EditState<T>.EditStateSheetHost`
+    （保留最后一份 state 快照 + `LaunchedEffect(isEditing)` 驱动 show/hide，收起动画期间继续渲染快照）；
+    `AssistantPage.kt:494/498` 已接 `rememberMochiSheetState`。
+  - 两处短提示改 **MochiDialog**：`ReasoningPicker.kt:144`（思考强度：提示+图标+滑块）、
+    `ChatInput.kt:850`（ASR 未配置 + 跳转动作）——不到一屏、单一动作，dialog 语义更合适。
+- **B 类（冷门保留 sheet，台账）**：多复选/多字段/列表/网格/长文本，换 dialog 会破坏可用性：
+  `ConversationExport.kt:139`（多复选）、`WebDavTab.kt:322`、`S3Tab.kt:342`（备份表单）、
+  `ImgGenPage.kt:802`（参数多）、`LogPage.kt:129`（长文本，两档可拖全屏）、
+  `McpConfigModal.kt:119`、`McpToolsConfigure.kt:302`、`PromptPage.kt:404/819`（编辑表单必须高）、
+  `SkillsPage.kt:388`（URL+校验）、`SettingPage.kt:448`（QQ 群列表）、
+  `AssistantBasicPage.kt:679`（头像形状网格）、`PermissionChecklist.kt:524`（策略选择）、
+  `ChatMessageActions.kt:313`（操作单）、`ChatMessageEditedFiles.kt:144`（文件列表）、
+  `ChatPage.kt:703`（附件面板）、`GreetingPage.kt:1028`（引导页内嵌，backdrop 收益低）、
+  `WebViewPage.kt:146`（WebView 内弹层，尺寸随内容）。
+- 死代码候选：`RecordCardSheet.kt:83` 全仓无调用点，可单独删除（不在本轮范围）。
+
+### 14.3 交互：Kk 壳（触感/按压/动效/淡边）
+
+- `khatkit-ui/uikit/mochi/KkInteraction.kt`：`class KkHaptics`（:30）+`rememberKkHaptics()`（:55）、
+  `rememberKkReduceMotion()`（:66）、`Modifier.kkPressState(...)`（:84）、`object KkMotionSpecs`（:108）。
+- 触感使用点 **5 处**（ModelList:448 / ChatInput:371 / ChatMessage:379 / ReorderableDrag:29,47）。
+- 淡边：`Modifier.fadingEdge(top/bottom/left/right/strength)`（`KkModifiers.kt:23`，DstIn 渐变遮罩，
+  无第三方），使用文件 6 个。
+- 减弱动效：`rememberKkReduceMotion()` 决定按压/过渡是否降级（KkInteraction 内消费）。
+
+### 14.4 主题：Mochi token → MD3 骨架（单一 Bridge）
+
+- 唯一挂载点：`app/themecompat/CompatMaterial3.kt:27` 的 `ProvideMaterial3Theme(amoled)`，
+  全 app 只有这一处 `MaterialTheme`。
+- token 来源 `khatkit-ui/uikit/mochi/MochiMaterialBridge.kt`：
+  - 颜色：`MochiColorScheme` **37 个角色**同名逐域拷贝（无派生计算）；
+  - 形状：`MochiShapes`（`MochiCapsule.full` 无 MD3 对应角色，不映射）；
+  - 字阶：`MochiTextStyles` 的 **15 个 MD3 角色**（iOS 侧字号不进 MD3）；
+  - 动效：`MochiMotionScheme`（当前取 expressive，逐条 spring 映射待 API 稳定）。
+- 明暗唯一真相：`ColorMode`（SYSTEM / LIGHT / DARK 三态，`ColorMode.kt`）解析成
+  `ThemeController` 的 mochi `ColorSchemeMode`；Bridge **不再收 dark 参数**（避免第二个真相）。
+- AMOLED 阶梯：`MochiColorScheme.withAmoledBackground(amoled)` **只对深色**生效：
+  `background/surface/surfaceDim/surfaceContainerLowest = #000`，
+  `Low ×0.55` / `Container ×0.40` / `High ×0.25` / `Highest ×0.10` 向黑插值（保持单调层级）。
+- `fixed*/onFixed*` **12 个 tone-fixed 角色**从 37 角色推导（Bridge 内 `MochiFixedRoles`）：
+  90 Fixed←primaryContainer/onPrimaryContainer；80 FixedDim←inversePrimary（sec/tert 由 40→90 插值）/primary；
+  10 OnFixed←onPrimaryContainer/向黑插值；30 OnFixedVariant←10→40 插值/primaryContainer。
+- 不注入旧色板/旧字阶：extend 调色板与 GoogleSans 只在功能点直接引用，不进主题。
+
+## 15. 遗留清单（下一会话按此接）
+
+1. **EditState**：已新增 `EditStateSheetHost`（快照 + state 驱动），`EditState` 接口未改；
+   其余 `EditStateContent` 调用点（3 处）行为不变、尚未迁移；全仓 `EditState` 引用 59 处。
+2. **冷门弹层台账**：见 §14.2 的 B 类 17 条；Dialog 化前必须先改内容形态。
+3. **大屏适配**：全仓仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize()`；Mochi 无
+   WindowSizeClass/adaptive。建议后续 slice 引 `material3-adaptive` `AdaptiveScaffold`：
+   ≥840dp 侧栏+双栏 / 600–840dp 导航轨 / <600dp `MochiTabBar`；先做设置与探索。
+4. **MochiItem 能力缺口**：无 enabled/trailing/长按菜单；长按/富行/组合语义仍用
+   `MochiMenuPopup`/`MochiMenuRow`。复算：`MochiMenuPopup(` = **4**、`MochiMenuRow(` = **4**
+   （合计 8 处调用；全量引用 23 处）。⚠️ 任务书「14 处」是更早快照，以命令为准。
+5. **预设主题中间态**：`PresetTheme` 仍有 48 处引用，入口已删、运行期不注入；旧数据不崩。
+6. **三库删除结论（可复算）**：
+   ```bash
+   grep -rl 'import heizige.kk.kedge'   --include=*.kt . --exclude-dir=build | wc -l   # 0
+   grep -rl 'import top.yukonga.miuix'  --include=*.kt . --exclude-dir=build | wc -l   # 0
+   grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -l   # 0
+   ```
+7. **死代码**：`RecordCardSheet.kt:83` 无调用点（同 §14.2）。
