@@ -82,12 +82,19 @@ private fun String.decodeHtmlEntities(): String {
         .replace("&nbsp;", " ")
         .replace("&amp;", "&")
     text = Regex("&#(\\d{1,7});").replace(text) { m ->
-        m.groupValues[1].toIntOrNull()?.let { String(Character.toChars(it)) } ?: m.value
+        decodeCodePoint(m.groupValues[1], 10) ?: m.value
     }
     text = Regex("&#[xX]([0-9a-fA-F]{1,6});").replace(text) { m ->
-        m.groupValues[1].toIntOrNull(16)?.let { String(Character.toChars(it)) } ?: m.value
+        decodeCodePoint(m.groupValues[1], 16) ?: m.value
     }
     return text
+}
+
+/** 数字实体解码；非法/代理区码点返回 null（保留原文，不抛异常）。 */
+private fun decodeCodePoint(raw: String, radix: Int): String? {
+    val code = raw.toIntOrNull(radix) ?: return null
+    if (code !in 0..0x10FFFF || code in 0xD800..0xDFFF) return null
+    return String(Character.toChars(code))
 }
 
 fun String.extractThinkingTitle(): String? {
