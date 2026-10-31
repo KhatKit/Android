@@ -82,6 +82,10 @@
 | 123 | `675e59f0d` | fix(ai): Responses API 解析 function_call_output 挂回工具 | bugfix | A | ai | 直接移植，避免重复执行服务端工具 |
 | 124 | `b7b0a9253` | feat(memory): 记忆列表空占位与关闭提示 | feature | B | app/feature/assistant | 文案/跳转逻辑可搬；UI 换 Mochi |
 
+**区间分布（实测计数）**：可移植 **A 22 / B 23 / C 17**（共 62）；类型 **feature 31 / bugfix 14 / refactor 8 / build-size 4 / docs 2 / perf 1 / chore 1 / style 1**。
+
+**A 类 22 项（可直接开工的清单）**：63、64、72、77、80、81、89、90、91、93、94、95、97、98、99、105、106、110、111、114、116、123。
+
 ## 本区间最值得先做的 5 项（按性价比排序）
 
 1. **`240deb5fe` fix(openai) 流式 null 行/元素解码崩溃**（A｜ai）
