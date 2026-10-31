@@ -157,6 +157,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.LocalPageRoute
 import heizige.kk.khatkit.app.PageBackInterceptor
 import heizige.kk.khatkit.app.core.data.datastore.BackgroundEffectType
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -307,12 +308,13 @@ fun ChatInput(
     // 页面 dispatcher 上（后注册者优先）。这里再登记一层，保证即便顺序假设不成立，
     // 返回也只会关掉编辑器，不会把 ChatPage pop 掉（见 RouteActivity.PageBackInterceptor）。
     val editorBackToken = remember { Any() }
+    val pageRoute = LocalPageRoute.current
     // U7a-6：只在编辑器真正打开时登记。之前无条件 push（handler 在关闭态返回 false）会让
     // PageBackInterceptor.hasHandlers 在 Chat 页常驻 true，RouteActivity.PageBackGuard 便一直
     // 抢在 MochiNavHost 的 PredictiveBackHandler 前面，预测性返回动画整体消失。
     DisposableEffect(editorOpen) {
         if (editorOpen) {
-            PageBackInterceptor.push(editorBackToken) {
+            PageBackInterceptor.push(editorBackToken, pageRoute) {
                 settleEditor(open = false)
                 true
             }

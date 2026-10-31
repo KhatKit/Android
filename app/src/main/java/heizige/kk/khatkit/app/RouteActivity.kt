@@ -26,7 +26,7 @@ import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -330,7 +330,10 @@ class RouteActivity : ComponentActivity() {
                     // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时 predictiveBack
                     // 保持 true，预测手势（跟手预览/取消回弹）完全由 MochiNavHost 内部处理。
                     // 这样任一时刻只有一条处理器接返回，不会出现「第一次白按、第二次才退层」。
-                    val hasOverlay = PageBackInterceptor.hasHandlers
+                    // 只看「栈顶那一页」登记的浮层：下层页面的登记（例如 Chat 底部页仍组合着的编辑器）
+                    // 不能吞掉当前页的返回，否则就会出现「第一次按返回没反应」。
+                    val topRoute = mochiNavigator.current
+                    val hasOverlay = PageBackInterceptor.hasHandlersFor(topRoute)
                     MochiNavHost(
                         navigator = mochiNavigator,
                         modifier = Modifier.fillMaxSize(),
@@ -339,8 +342,9 @@ class RouteActivity : ComponentActivity() {
                         // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
                         // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。
                         if (route == mochiNavigator.current) {
-                            PageBackGuard { if (!kkNav.popBackStack()) finish() }
+                            PageBackGuard(route) { if (!kkNav.popBackStack()) finish() }
                         }
+                        CompositionLocalProvider(LocalPageRoute provides route) {
                         when (val screen = ScreenRoutes.screenOf(route)) {
                             // 未知 route（旧版本恢复/脏数据）：不画，交给 Mochi 栈回退，别崩。
                             null -> Unit
@@ -432,6 +436,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.MessageSearch -> SearchPage()
                             is Screen.DownloadCenter -> DownloadCenterPage()
                         }
+                        }
                     }
                     if (BuildConfig.DEBUG) {
                         Text(
@@ -493,6 +498,12 @@ class RouteActivity : ComponentActivity() {
  */
 internal val LocalKkNavController = staticCompositionLocalOf<KkNavController?> { null }
 
+/**
+ * 当前正在组合的那一页 route。页内浮层登记返回时带上它，返回接管就只问「本页」的登记，
+ * 下层页（Mochi 会保持组合）残留的登记不会吞掉当前页的第一次返回。
+ */
+internal val LocalPageRoute = staticCompositionLocalOf<String?> { null }
+
 /** 引导页完成后要进的会话页（逻辑与迁移前的 greetingChatScreen 一致）。 */
 private fun nextChatScreen(context: Context): Screen.Chat = Screen.Chat(
     id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
@@ -547,13 +558,14 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
  * [PageBackInterceptor]，保证 ChatInput 全屏编辑器这类浮层还能先关自己。
  */
 @Composable
-private fun PageBackGuard(onPop: () -> Unit) {
-    val hasOverlay = PageBackInterceptor.hasHandlers
+private fun PageBackGuard(route: String, onPop: () -> Unit) {
+    // 只统计「本页」登记的浮层；下层页面的登记不算（否则会把本页第一次返回吞掉）。
+    val hasOverlay = PageBackInterceptor.hasHandlersFor(route)
     // NAV3：只保留这一条处理器。调用方已按 hasOverlay 把 MochiNavHost 切到「非预测模式」，
     // 所以有浮层时它是唯一接管点（浮层先消费，否则退一层）；无浮层时它根本不注册，
     // 预测性返回（跟手预览 + 取消回弹）全部由 MochiNavHost.PredictiveBackHandler 负责。
     BackHandler(enabled = hasOverlay) {
-        if (!PageBackInterceptor.intercept()) onPop()
+        if (!PageBackInterceptor.interceptFor(route)) onPop()
     }
 }
 
@@ -773,34 +785,48 @@ sealed interface Screen : NavKey {
  * 不需要参与重组；浮层的显示/隐藏由各自的 Compose 状态驱动。
  */
 internal object PageBackInterceptor {
-    private val handlers = linkedMapOf<Any, () -> Boolean>()
+    // 两者都是 snapshot state：登记/注销要能触发 PageBackGuard 重组。
+    private val handlers = mutableStateMapOf<Any, () -> Boolean>()
+    /** token -> 登记时正在组合的那一页 route；返回只问「本页」登记的浮层。 */
+    private val owners = mutableStateMapOf<Any, String?>()
+
+    /** 全仓是否还有浮层登记（诊断用；返回接管只看 [hasHandlersFor]）。 */
+    val hasHandlers: Boolean get() = handlers.isNotEmpty()
 
     /**
-     * 当前有没有浮层登记了返回拦截。U7a-2 起返回先经 Mochi 的预测性返回处理，只有这里为 true 时
-     * 才由 [PageBackGuard] 抢在 Mochi 前面问一句 —— 所以它必须是 Compose 的 snapshot 状态。
+     * 这一页有没有浮层登记返回拦截。
+     * owner == route 的登记算本页；owner == null 的旧调用点（还没接 [LocalPageRoute]）按「任意页」
+     * 计，保持老行为，不因为归属改造让浮层失效。
      */
-    private var handlerCount by mutableIntStateOf(0)
+    fun hasHandlersFor(route: String?): Boolean =
+        handlers.keys.any { owners[it] == null || owners[it] == route }
 
-    /** [handlers] 的非空状态（Compose 可观察）；读它决定要不要抢在 Mochi 前面处理返回。 */
-    val hasHandlers: Boolean get() = handlerCount > 0
+    /** 旧调用点：不标归属页（按「任意页」计）。 */
+    fun push(token: Any, handler: () -> Boolean) = push(token, null, handler)
 
-    /** 用 [token] 登记一个「返回先给我」的回调；返回 true 表示已消费。后登记者优先。 */
-    fun push(token: Any, handler: () -> Boolean) {
-        handlers.remove(token)
+    /** 带归属页的登记：返回接管只问本页登记的浮层。后登记者优先。 */
+    fun push(token: Any, ownerRoute: String?, handler: () -> Boolean) {
         handlers[token] = handler
-        handlerCount = handlers.size
+        owners[token] = ownerRoute
     }
 
     fun pop(token: Any) {
         handlers.remove(token)
-        handlerCount = handlers.size
+        owners.remove(token)
     }
 
-    /** 从最新登记的往回问，任一消费即返回 true（未登记任何回调时返回 false）。 */
-    fun intercept(): Boolean {
-        val pending = handlers.values.toList()
-        for (index in pending.indices.reversed()) {
-            if (pending[index].invoke()) return true
+    /** 从最新登记的往回问（全部页），任一消费即返回 true。 */
+    fun intercept(): Boolean = interceptWhere(null)
+
+    /** 只问 [route] 这一页登记的浮层；其它页（含下层仍组合着的页）的登记不参与。 */
+    fun interceptFor(route: String?): Boolean = interceptWhere(route)
+
+    private fun interceptWhere(route: String?): Boolean {
+        val pending = handlers.entries.filter {
+            route == null || owners[it.key] == null || owners[it.key] == route
+        }
+        for (entry in pending.asReversed()) {
+            if (entry.value.invoke()) return true
         }
         return false
     }
