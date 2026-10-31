@@ -33,6 +33,8 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -291,9 +293,11 @@ internal fun FilesPicker(
         }
     }
 
-    // Injection Bottom Sheet
-    if (showInjectionSheet) {
-        InjectionQuickConfigSheet(
+    // Injection Bottom Sheet：U7b-6 起 state 由这里持有，去 if 门控。
+    val injectionSheet = rememberMochiSheetState()
+    LaunchedEffect(showInjectionSheet) { if (showInjectionSheet) injectionSheet.show() else injectionSheet.hide() }
+    InjectionQuickConfigSheet(
+            sheetState = injectionSheet,
             conversation = conversation,
             assistant = assistant,
             settings = settings,
@@ -302,7 +306,6 @@ internal fun FilesPicker(
             onDismiss = { onShowInjectionSheetChange(false) },
             onDismissAll = onDismiss,
         )
-    }
 
     // Compress Context Dialog
     if (showCompressDialog) {
@@ -405,6 +408,7 @@ private fun WorkspacePickerListItem(
 
 @Composable
 private fun InjectionQuickConfigSheet(
+    sheetState: ui.feice.mochi.basic.MochiSheetState,
     conversation: Conversation,
     assistant: Assistant,
     settings: Settings,
@@ -415,13 +419,9 @@ private fun InjectionQuickConfigSheet(
 ) {
     val navController = LocalNavController.current
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.assistant_page_tab_extensions),
-        imageVector = extension,
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { _ ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有）。
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(title = stringResource(R.string.assistant_page_tab_extensions))
         Column(
             modifier = Modifier
                 .fillMaxWidth()

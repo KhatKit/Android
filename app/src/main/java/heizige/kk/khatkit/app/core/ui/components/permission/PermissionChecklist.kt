@@ -1,6 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.permission
 
 import heizige.kk.khatkit.uikit.mochi.MochiButton
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
@@ -510,9 +513,13 @@ fun PermissionChecklist(
         }
     }
 
-    if (showApprovalPolicy) {
-        ApprovalPolicySheet(onDismiss = { showApprovalPolicy = false })
-    }
+    // U7b-6：state 由这里持有，去 if 门控。
+    val approvalSheet = rememberMochiSheetState()
+    LaunchedEffect(showApprovalPolicy) { if (showApprovalPolicy) approvalSheet.show() else approvalSheet.hide() }
+    ApprovalPolicySheet(
+        sheetState = approvalSheet,
+        onDismiss = { showApprovalPolicy = false },
+    )
 }
 
 /**
@@ -520,13 +527,13 @@ fun PermissionChecklist(
  * （每次询问 / 允许 / 拒绝），选择即持久化并立即生效；放手模式仍覆盖一切为允许。
  */
 @Composable
-private fun ApprovalPolicySheet(onDismiss: () -> Unit) {
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.approval_sheet_title),
-        imageVector = verifiedUser,
-        onDismiss = onDismiss,
-    ) { _ ->
+private fun ApprovalPolicySheet(
+    sheetState: MochiSheetState,
+    onDismiss: () -> Unit,
+) {
+    // U7b-6：直连 MochiSheet（state 由调用方持有）。
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(title = stringResource(R.string.approval_sheet_title))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
