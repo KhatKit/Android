@@ -1,18 +1,25 @@
 package heizige.kk.khatkit.document
 
-import com.artifex.mupdf.fitz.PDFDocument
+import heizige.kk.khatkit.document.pdf.PdfFile
+import heizige.kk.khatkit.document.pdf.PdfTextExtractor
 import java.io.File
 
 object PdfParser {
     fun parserPdf(file: File): String {
-        val document = PDFDocument.openDocument(file.absolutePath).asPDF()
-        val pages = document.countPages()
+        val pdf = PdfFile(file.readBytes())
+        val extractor = PdfTextExtractor(pdf)
+        val pages = pdf.pages()
+        if (pages.isEmpty()) throw IllegalStateException("No pages found in PDF")
         val result = StringBuilder()
-        for (i in 0 until pages) {
-            val page = document.loadPage(i).toStructuredText()
+        pages.forEachIndexed { i, page ->
             result.append("---")
             result.append("Page ${i + 1}:\n")
-            result.append(page.asText())
+            val text = try {
+                extractor.extract(page)
+            } catch (e: Exception) {
+                "[Failed to extract text from this page: ${e.message}]"
+            }
+            result.append(text)
             result.appendLine()
         }
         return result.toString()
