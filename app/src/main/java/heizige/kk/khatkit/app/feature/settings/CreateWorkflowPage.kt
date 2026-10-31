@@ -117,7 +117,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 Md3OutlinedTextFieldWithSlots(
                     value = name,
                     onValueChange = { name = it },
-                    label = "工作流名称",
+                    label = { Text("工作流名称") },
                     supportingText = { Text("给流程一个容易识别的名称") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -205,7 +205,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 Md3OutlinedTextFieldWithSlots(
                     value = classification,
                     onValueChange = { classification = it },
-                    label = "预览分类结果",
+                    label = { Text("预览分类结果") },
                     supportingText = { Text("urgent 走回复，其他值写文件") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -322,7 +322,7 @@ private fun WorkflowNodeCard(
                     Md3OutlinedTextFieldWithSlots(
                         value = value,
                         onValueChange = { onChange(node.copy(params = node.params + (key to it))) },
-                        label = key,
+                        label = { Text(key) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),

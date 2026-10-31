@@ -3996,7 +3996,7 @@ private fun PublishCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = license,
                     onValueChange = { license = it },
-                    label = stringResource(R.string.explore_market_license_label),
+                    label = { Text(stringResource(R.string.explore_market_license_label)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -4004,7 +4004,7 @@ private fun PublishCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = priceText,
                     onValueChange = { priceText = it },
-                    label = stringResource(R.string.explore_market_price_label),
+                    label = { Text(stringResource(R.string.explore_market_price_label)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -4012,7 +4012,7 @@ private fun PublishCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
-                    label = stringResource(R.string.explore_market_changelog_label),
+                    label = { Text(stringResource(R.string.explore_market_changelog_label)) },
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -4064,7 +4064,7 @@ private fun ForkCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = parent,
                     onValueChange = { parent = it },
-                    label = stringResource(R.string.explore_market_parent_version),
+                    label = { Text(stringResource(R.string.explore_market_parent_version)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -4072,7 +4072,7 @@ private fun ForkCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = newVersion,
                     onValueChange = { newVersion = it },
-                    label = stringResource(R.string.explore_market_new_version),
+                    label = { Text(stringResource(R.string.explore_market_new_version)) },
                     singleLine = true,
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -4080,7 +4080,7 @@ private fun ForkCardDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = changelog,
                     onValueChange = { changelog = it },
-                    label = stringResource(R.string.explore_market_changelog_required),
+                    label = { Text(stringResource(R.string.explore_market_changelog_required)) },
                     shape = AutoCornersShape(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )

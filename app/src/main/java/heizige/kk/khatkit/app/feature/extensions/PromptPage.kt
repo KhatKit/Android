@@ -427,7 +427,7 @@ private fun ModeInjectionEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
-                    label = stringResource(R.string.prompt_page_name),
+                    label = { Text(stringResource(R.string.prompt_page_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -443,7 +443,7 @@ private fun ModeInjectionEditSheet(
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
                     },
-                    label = stringResource(R.string.prompt_page_priority_label),
+                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -464,7 +464,7 @@ private fun ModeInjectionEditSheet(
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
                         },
-                        label = stringResource(R.string.prompt_page_inject_depth),
+                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(16.dp)
@@ -487,7 +487,7 @@ private fun ModeInjectionEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = injection.content,
                     onValueChange = { onEdit(injection.copy(content = it)) },
-                    label = stringResource(R.string.prompt_page_injection_content),
+                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
@@ -842,7 +842,7 @@ private fun LorebookEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
-                    label = stringResource(R.string.prompt_page_name),
+                    label = { Text(stringResource(R.string.prompt_page_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -850,7 +850,7 @@ private fun LorebookEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
-                    label = stringResource(R.string.prompt_page_description),
+                    label = { Text(stringResource(R.string.prompt_page_description)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -979,7 +979,7 @@ private fun RegexInjectionEditDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
-                    label = stringResource(R.string.prompt_page_name),
+                    label = { Text(stringResource(R.string.prompt_page_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -995,7 +995,7 @@ private fun RegexInjectionEditDialog(
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
                     },
-                    label = stringResource(R.string.prompt_page_priority_label),
+                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -1016,7 +1016,7 @@ private fun RegexInjectionEditDialog(
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
                         },
-                        label = stringResource(R.string.prompt_page_inject_depth),
+                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(16.dp)
@@ -1056,7 +1056,7 @@ private fun RegexInjectionEditDialog(
                     Md3OutlinedTextFieldWithSlots(
                         value = newKeyword,
                         onValueChange = { newKeyword = it },
-                        label = stringResource(R.string.prompt_page_new_keyword),
+                        label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
@@ -1098,7 +1098,7 @@ private fun RegexInjectionEditDialog(
                     onValueChange = {
                         it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
                     },
-                    label = stringResource(R.string.prompt_page_scan_depth),
+                    label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -1120,7 +1120,7 @@ private fun RegexInjectionEditDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = entry.content,
                     onValueChange = { onEdit(entry.copy(content = it)) },
-                    label = stringResource(R.string.prompt_page_injection_content),
+                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp),

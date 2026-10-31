@@ -127,7 +127,7 @@ fun <T> SelectTextField(
                 value = value,
                 onValueChange = onValueChange,
                 readOnly = readOnly,
-                label = label,
+                label = { Text(label) },
                 placeholder = placeholder,
                 modifier = Modifier.weight(1f),
                 trailingIcon = {

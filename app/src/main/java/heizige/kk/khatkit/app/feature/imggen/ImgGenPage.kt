@@ -845,7 +845,7 @@ private fun SettingsBottomSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
-                    label = "Custom size",
+                    label = { Text("Custom size") },
                     placeholder = { Text("e.g. 1024x1024") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),

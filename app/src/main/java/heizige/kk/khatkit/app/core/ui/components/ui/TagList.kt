@@ -200,7 +200,7 @@ fun TagsInput(
                     showError = false
                     keepOpenAfterValidation = false
                 },
-                label = stringResource(R.string.tag_input_dialog_label),
+                label = { Text(stringResource(R.string.tag_input_dialog_label)) },
                 placeholder = { Text(stringResource(R.string.tag_input_dialog_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
