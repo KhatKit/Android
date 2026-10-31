@@ -12,7 +12,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import androidx.compose.runtime.Composable
@@ -31,22 +30,22 @@ import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 
 @Composable
 internal fun WorkspaceSelectSheet(
+    sheetState: MochiSheetState,
     assistant: Assistant,
     workspaces: List<WorkspaceEntity>,
     onSelect: (String?) -> Unit,
     onManage: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.workspace_select),
-        imageVector = terminal,
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { dismiss ->
+    // U7b-6：直连 MochiSheet（state 由调用方持有），不再用 visible 兼容层。
+    MochiSheet(state = sheetState, onDismiss = onDismiss) {
+        MochiSheetHeader(title = stringResource(R.string.workspace_select))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -66,7 +65,7 @@ internal fun WorkspaceSelectSheet(
                     selected = assistant.workspaceId == null,
                     onClick = {
                         onSelect(null)
-                        dismiss()
+                        onDismiss()
                     },
                 )
                 workspaces.forEach { workspace ->
@@ -76,7 +75,7 @@ internal fun WorkspaceSelectSheet(
                         selected = workspace.id == assistant.workspaceId?.toString(),
                         onClick = {
                             onSelect(workspace.id)
-                            dismiss()
+                            onDismiss()
                         },
                     )
                 }

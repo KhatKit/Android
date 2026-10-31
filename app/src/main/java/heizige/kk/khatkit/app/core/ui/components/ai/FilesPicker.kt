@@ -378,8 +378,11 @@ private fun WorkspacePickerListItem(
             .clickable { showSheet = true },
     )
 
-    if (showSheet) {
-        WorkspaceSelectSheet(
+    // U7b-6：宿主已改 MochiSheet，state 由这里持有，去掉 if 门控让退场动画能播。
+    val workspaceSheet = rememberMochiSheetState()
+    LaunchedEffect(showSheet) { if (showSheet) workspaceSheet.show() else workspaceSheet.hide() }
+    WorkspaceSelectSheet(
+            sheetState = workspaceSheet,
             assistant = assistant,
             workspaces = workspaces,
             onSelect = { workspaceId ->
@@ -398,7 +401,6 @@ private fun WorkspacePickerListItem(
             },
             onDismiss = { showSheet = false },
         )
-    }
 }
 
 @Composable

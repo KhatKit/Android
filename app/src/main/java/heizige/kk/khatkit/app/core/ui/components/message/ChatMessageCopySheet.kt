@@ -9,7 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,25 +23,28 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.util.copyMessageToClipboard
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiSheetState
 
 @Composable
 fun ChatMessageCopySheet(
+    sheetState: MochiSheetState,
     message: UIMessage,
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.select_and_copy),
-        imageVector = contentCopy,
-        confirmText = stringResource(R.string.copy_all),
-        onConfirm = {
-            context.copyMessageToClipboard(message)
-            onDismissRequest()
-        },
-        onDismiss = onDismissRequest,
-        scrollable = false,
-    ) { _ ->
+    // U7b-6：直连 MochiSheet；"复制全部"放在 header 右侧（原来的 confirmText 槽）。
+    val copyAll = {
+        context.copyMessageToClipboard(message)
+        onDismissRequest()
+    }
+    MochiSheet(state = sheetState, onDismiss = onDismissRequest) {
+        MochiSheetHeader(
+            title = stringResource(R.string.select_and_copy),
+            actions = { MochiBarButton(stringResource(R.string.copy_all), onClick = copyAll) },
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()

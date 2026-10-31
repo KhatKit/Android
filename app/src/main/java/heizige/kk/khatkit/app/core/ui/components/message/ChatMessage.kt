@@ -31,6 +31,7 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import heizige.kk.khatkit.app.core.ui.components.charts.ChartCard
@@ -342,14 +343,16 @@ fun ChatMessage(
         )
     }
 
-    if (showSelectCopySheet) {
-        ChatMessageCopySheet(
+    // U7b-6：宿主已改 MochiSheet，state 由这里持有。
+    val copySheet = rememberMochiSheetState()
+    LaunchedEffect(showSelectCopySheet) { if (showSelectCopySheet) copySheet.show() else copySheet.hide() }
+    ChatMessageCopySheet(
+            sheetState = copySheet,
             message = message,
             onDismissRequest = {
                 showSelectCopySheet = false
             }
         )
-    }
 }
 
 @OptIn(FlowPreview::class)
