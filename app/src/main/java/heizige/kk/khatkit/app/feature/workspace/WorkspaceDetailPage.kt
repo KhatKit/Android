@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
@@ -211,12 +212,11 @@ fun WorkspaceDetailPage(id: String) {
                 ),
             )
         },
-    ) { innerPadding ->
+    ) { _ ->
+        // 底栏浮在正文上：两页的列表自己按 contentBottomPadding() 在底部留白
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (page) {
                 0 -> WorkspaceBasicPage(
@@ -230,7 +230,7 @@ fun WorkspaceDetailPage(id: String) {
                 1 -> WorkspaceFilesPage(
                     state = state,
                     isActive = pagerState.currentPage == 1,
-                    contentPadding = PaddingValues(),
+                    contentPadding = PaddingValues(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
                     onSelectArea = vm::selectArea,
                     onGoUp = vm::goUp,
                     onResolveImage = { entry, area -> vm.resolveImageFile(entry, area) },
@@ -395,7 +395,7 @@ private fun WorkspaceBasicPage(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {

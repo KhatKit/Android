@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- SZ-D：窗口主题改用系统 Theme.Material，不再继承 Material Components 的 Material3.DayNight，
        R8 可裁掉 MDC 的样式/属性资源；窗口背景沿用原 Material3 background 色。 -->
   <style name="Theme.KhatKit" parent="android:Theme.Material.Light.NoActionBar">
     <item name="android:windowBackground">#FFFEF7FF</item>
+    <!-- 系统启动页（API 31+）。退场后由 feature/splash 的 Compose 覆盖层接力完成品牌动画与揭幕。 -->
+    <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
+    <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/splash_animated_icon</item>
+    <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">1000</item>
   </style>
 </resources>

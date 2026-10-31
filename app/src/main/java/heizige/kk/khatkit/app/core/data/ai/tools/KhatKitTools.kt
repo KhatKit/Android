@@ -62,6 +62,7 @@ import heizige.kk.khatkit.hub.BuiltinCards
 import heizige.kk.khatkit.hub.BundledLibProvider
 import heizige.kk.khatkit.hub.CardCache
 import heizige.kk.khatkit.hub.CardIndexEntry
+import heizige.kk.khatkit.hub.CardPublicationHelper
 import heizige.kk.khatkit.hub.HubAccountStatus
 import heizige.kk.khatkit.hub.HubActivateRequest
 import heizige.kk.khatkit.hub.HubActionResult
@@ -2390,6 +2391,8 @@ class KhatKitToolProvider(
             ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
         val manifest = card.manifest
         runCatching {
+            val publishLicense = license.ifBlank { manifest.license }.ifBlank { "MIT" }
+            val artifact = CardPublicationHelper.prepare(card, manifest.version, publishLicense)
             hub().publishCard(
                 token,
                 HubCardPublishRequest(
@@ -2397,10 +2400,11 @@ class KhatKitToolProvider(
                     version = manifest.version,
                     description = manifest.description,
                     script = card.scriptText,
-                    manifestJson = CardParser.serialize(manifest),
+                    manifestJson = artifact.first,
                     pricePerCall = (price.coerceAtLeast(0.0) * 100).roundToLong(),
-                    license = license.ifBlank { manifest.license }.ifBlank { "MIT" },
+                    license = publishLicense,
                     changelog = changelog,
+                    artifactBase64 = artifact.second,
                 ),
             )
         }.getOrElse { HubActionResult(false, "发布失败：${it.message ?: it.javaClass.simpleName}") }
@@ -2420,18 +2424,22 @@ class KhatKitToolProvider(
             ?: return@withContext HubActionResult(false, "本机未安装卡片：$name")
         val manifest = card.manifest
         runCatching {
+            val nextVersion = newVersion.trim().ifBlank { bumpPatchVersion(manifest.version) }
+            val publishLicense = manifest.license.ifBlank { "MIT" }
+            val artifact = CardPublicationHelper.prepare(card, nextVersion, publishLicense)
             hub().forkCard(
                 token,
                 name,
                 HubCardForkRequest(
                     parentVersion = parentVersion.ifBlank { manifest.version },
-                    version = newVersion.trim().ifBlank { bumpPatchVersion(manifest.version) },
+                    version = nextVersion,
                     description = manifest.description,
                     script = card.scriptText,
-                    manifestJson = CardParser.serialize(manifest),
+                    manifestJson = artifact.first,
                     pricePerCall = ((manifest.pricing?.price ?: 0.0).coerceAtLeast(0.0) * 100).roundToLong(),
-                    license = manifest.license.ifBlank { "MIT" },
+                    license = publishLicense,
                     changelog = changelog,
+                    artifactBase64 = artifact.second,
                 ),
             )
         }.getOrElse { HubActionResult(false, "提交改进失败：${it.message ?: it.javaClass.simpleName}") }

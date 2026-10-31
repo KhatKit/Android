@@ -1320,7 +1320,6 @@
   <string name="setting_display_page_background_effect_type">Тип фонового эффекта</string>
   <string name="setting_display_page_background_effect_blur">Размытие</string>
   <string name="setting_display_page_background_effect_glass">Стекло</string>
-
   <!-- 自动化审批策略 -->
   <string name="approval_category_card_run">Запуск карточек</string>
   <string name="approval_category_ui_action">Действия в интерфейсе</string>
@@ -1336,7 +1335,6 @@
   <string name="approval_hands_off_desc">Разрешить любые автоматические действия без запроса ·</string>
   <string name="approval_status_on">Вкл.</string>
   <string name="approval_status_off">Выкл.</string>
-
   <string name="setting_page_blur_title">Размытие</string>
   <!-- 套餐与激活页（SettingsPackagePage）-->
   <string name="setting_package_page_title">Тарифы и активация</string>
@@ -1358,30 +1356,31 @@
   <string name="setting_package_page_clear">Очистить активацию на этом устройстве</string>
   <string name="setting_package_page_clear_desc">Удаляет только локальный токен, аккаунт на сервере не затрагивается</string>
   <string name="setting_package_page_tip">Покупка плана даёт токен активации; активируйте устройство на сайте. Локальные карты работают и без сети, их блокирует только явный отказ сервера.</string>
-<string name="safe_mode_enter_app">進入應用程式</string>
-<string name="setting_tts_page_temperature">溫度</string>
-<string name="setting_tts_page_temperature_description">Случайность (0.0 - 1.0; выше — выразительнее)</string>
-<string name="setting_tts_page_fish_audio_speed_description">Скорость речи (0.5 - 2.0)</string>
-<string name="theme_name_claude">Claude</string>
-<string name="workspace_terminal_tab">終端機 %1$d</string>
-<string name="workspace_terminal_new_tab">新增終端機分頁</string>
-<string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
-<string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
-<string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
-<string name="skills_page_search_placeholder">Поиск навыков</string>
-<string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">Диаграммы</string>
-<string name="assistant_page_local_tools_chart_display_desc">Позволяет ИИ показывать линейные, столбчатые и точечные диаграммы</string>
-<string name="chat_message_tool_chart_display">Показать диаграмму</string>
-<string name="chat_message_tool_chart_display_with_title">Показать диаграмму: %1$s</string>
-<string name="chart_mode_chart">圖表</string>
-<string name="chart_mode_table">表格</string>
-<string name="chart_series">數列</string>
-<string name="chart_series_name">數列 %1$d</string>
+  <string name="safe_mode_enter_app">進入應用程式</string>
+  <string name="setting_tts_page_temperature">溫度</string>
+  <string name="setting_tts_page_temperature_description">Случайность (0.0 - 1.0; выше — выразительнее)</string>
+  <string name="setting_tts_page_fish_audio_speed_description">Скорость речи (0.5 - 2.0)</string>
+  <string name="theme_name_claude">Claude</string>
+  <string name="workspace_terminal_tab">終端機 %1$d</string>
+  <string name="workspace_terminal_new_tab">新增終端機分頁</string>
+  <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
+  <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
+  <string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
+  <string name="skills_page_search_placeholder">Поиск навыков</string>
+  <string name="skills_page_search_no_result">找不到符合的技能</string>
+  <string name="assistant_page_local_tools_chart_display_title">Диаграммы</string>
+  <string name="assistant_page_local_tools_chart_display_desc">Позволяет ИИ показывать линейные, столбчатые и точечные диаграммы</string>
+  <string name="chat_message_tool_chart_display">Показать диаграмму</string>
+  <string name="chat_message_tool_chart_display_with_title">Показать диаграмму: %1$s</string>
+  <string name="chart_mode_chart">圖表</string>
+  <string name="chart_mode_table">表格</string>
+  <string name="chart_series">數列</string>
+  <string name="chart_series_name">數列 %1$d</string>
   <string name="error_fast_model_not_found">Быстрая модель не найдена. Пожалуйста, выберите её в настройках.</string>
   <string name="error_fast_model_provider_not_found">Провайдер быстрой модели не найден</string>
   <string name="image_preview_saving">Сохранение…</string>
   <string name="image_preview_saved">Изображение сохранено</string>
   <string name="setting_display_page_floating_chat">Плавающее окно чата</string>
   <string name="setting_display_page_floating_chat_desc">Показывает плавающий пузырь при генерации в фоне; нажмите, чтобы ответить. Нужно разрешение на наложение.</string>
+  <string name="splash_tagline">Нативный ИИ-чат для Android</string>
 </resources>

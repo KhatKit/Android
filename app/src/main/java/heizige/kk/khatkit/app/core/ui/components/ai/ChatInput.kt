@@ -34,7 +34,6 @@ import androidx.compose.animation.core.tween
 import androidx.activity.compose.PredictiveBackHandler
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.musicNote
 import heizige.kk.khatkit.app.core.ui.icons.image
 import heizige.kk.khatkit.app.core.ui.icons.mic
 import heizige.kk.khatkit.app.core.ui.icons.photoCamera
@@ -199,6 +198,7 @@ import heizige.kk.khatkit.app.feature.chat.VoiceSessionState
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.ui.icons.videocam
+import heizige.kk.khatkit.app.core.ui.icons.tune
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
 import heizige.kk.khatkit.app.core.ui.icons.bolt
@@ -212,7 +212,6 @@ import heizige.kk.khatkit.app.core.ui.icons.preview
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
-import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
@@ -223,6 +222,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.flow.first
 import ui.feice.mochi.basic.MochiButton
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import ui.feice.mochi.anim.MochiMotions
+import heizige.kk.khatkit.uikit.mochi.kkPressState
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.drawscope.clipPath
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -685,43 +694,68 @@ fun ChatInput(
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                // 能力 chip 行（在输入框上方）
-                val chatModel = settings.getCurrentChatModel()
-                val showReasoning = chatModel?.abilities?.contains(ModelAbility.REASONING) == true
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-
-    
-                    if (showReasoning) {
-                        ReasoningButton(
-                            chip = true,
-                            reasoningLevel = assistant.reasoningLevel,
-                            onUpdateReasoningLevel = {
-                                onUpdateAssistant(assistant.copy(reasoningLevel = it))
-                            },
-                        )
-                    }
-    
-
-                }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                attachmentActions?.let { actions ->
-                                    PanelAction(photoCamera, "拍摄", actions.onTakePicture)
-                                    PanelAction(image, "图像", actions.onPickImage)
-                                    PanelAction(insertDriveFile, "文件", actions.onPickFile)
+                            // 能力 chip 行：联网搜索 + 推理（模型支持时）
+                            val chatModel = settings.getCurrentChatModel()
+                            val showReasoning = chatModel?.abilities?.contains(ModelAbility.REASONING) == true
+                            val collapsePanel: () -> Unit = {
+                                val start = progress.value
+                                scope.launch {
+                                    progress.animateTo(targetValue = 0f, animationSpec = flbSettleSpec(start, 0f))
                                 }
-                                PanelAction(verifiedUser, "权限") { permissionSheetVisible = true }
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .panelEntrance({ easedProgress() }, 0)
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SearchPickerButton(
+                                    enableSearch = enableSearch,
+                                    settings = settings,
+                                    onUpdateSearchMode = onUpdateSearchMode,
+                                    onUpdateSearchRepository = onUpdateSearchRepository,
+                                    model = chatModel,
+                                    chip = true,
+                                )
+                                if (showReasoning) {
+                                    ReasoningButton(
+                                        chip = true,
+                                        reasoningLevel = assistant.reasoningLevel,
+                                        onUpdateReasoningLevel = {
+                                            onUpdateAssistant(assistant.copy(reasoningLevel = it))
+                                        },
+                                    )
+                                }
+                            }
+
+                            // 动作行：Mochi 的 Tonal 圆按钮 + 一行小字，单色、不加底板；附件 / 语音点完顺手收起面板
+                            val tiles = buildList {
+                                attachmentActions?.let { actions ->
+                                    add(PanelTile(photoCamera, "相机") { collapsePanel(); actions.onTakePicture() })
+                                    add(PanelTile(image, "照片") { collapsePanel(); actions.onPickImage() })
+                                    add(PanelTile(insertDriveFile, "文件") { collapsePanel(); actions.onPickFile() })
+                                }
+                                onStartVoiceMode?.let { start ->
+                                    add(PanelTile(mic, "语音") { collapsePanel(); start() })
+                                }
+                                add(PanelTile(tune, "上下文") { collapsePanel(); onMoreClick() })
+                                add(PanelTile(verifiedUser, "权限") { permissionSheetVisible = true })
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp, bottom = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                            ) {
+                                tiles.forEachIndexed { index, tile ->
+                                    PanelAction(
+                                        tile = tile,
+                                        modifier = Modifier.panelEntrance({ easedProgress() }, 1 + index),
+                                    )
+                                }
                             }
                         }
                     }
@@ -948,30 +982,6 @@ private fun SendButton(
                     tint = content,
                     modifier = Modifier.size(if (s == SendButtonState.Idle) 22.dp else 18.dp),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActionIconButton(
-    onClick: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    KkSurface(
-        onClick = onClick,
-        modifier = Modifier.size(36.dp),
-        shape = CircleShape,
-        tonalElevation = 0.dp,
-        color = Color.Transparent,
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-        ) {
-            CompositionLocalProvider(
-                LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
-            ) {
-                content()
             }
         }
     }
@@ -1451,6 +1461,8 @@ private fun FullScreenEditor(
         val focusRequester = remember { FocusRequester() }
         val editorFocusManager = LocalFocusManager.current
         val keyboard = LocalSoftwareKeyboardController.current
+        val editorHaptics = rememberKkHaptics()
+        val editorMotion = !heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion()
         fun leave(action: () -> Unit) {
             editorFocusManager.clearFocus(force = true)
             keyboard?.hide()
@@ -1604,25 +1616,16 @@ private fun FullScreenEditor(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         } else {
-                            Box(Modifier.fillMaxWidth()) {
-                                if (richState.annotatedString.text.isEmpty()) {
-                                    ui.feice.mochi.basic.Text(
-                                        text = stringResource(R.string.chat_input_placeholder),
-                                        style = MochiTheme.textStyles.body,
-                                        color = cs.onSurfaceVariant,
-                                    )
-                                }
-                                BasicRichTextEditor(
-                                    state = richState,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 240.dp)
-                                        .focusRequester(focusRequester),
-                                    textStyle = MochiTheme.textStyles.body.copy(color = cs.onSurface),
-                                    cursorBrush = SolidColor(cs.primary),
-                                    singleLine = false,
-                                )
-                            }
+                            // KodeHeap 移植的弹簧光标编辑器（头尾双弹簧拖尾 + 呼吸闪烁 + 打字脉冲）
+                            MochiRichTextEditor(
+                                state = richState,
+                                textStyle = MochiTheme.textStyles.body.copy(color = cs.onSurface),
+                                placeholder = stringResource(R.string.chat_input_placeholder),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 240.dp)
+                                    .focusRequester(focusRequester),
+                            )
                         }
                     }
                 }
@@ -1631,7 +1634,7 @@ private fun FullScreenEditor(
 
         // —— 底部工具栏图层（窗口图层的兄弟层）——
         // 画在窗口图层（genie 形变 + clip(windowShape)）之外：窗口形状在揭示中段仍只有胶囊大小，
-        // 留在窗口图层里会被裁成胶囊、看不到 morph。reveal = 1 时 graphicsLayer 是恒等变换。
+        // 留在窗口图层里会被裁成胶囊、看不到 morph。
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1652,74 +1655,473 @@ private fun FullScreenEditor(
                     )
                 },
         ) {
-            Row(
+            // morph 矩形换到工具栏自己的局部坐标里（工具栏按最终位置布局）
+            val morphLeft = toolbarMorph.left - toolbarTargetBounds.left
+            val morphTop = toolbarMorph.top - toolbarTargetBounds.top
+            val morphRight = morphLeft + toolbarMorph.width
+            val morphBottom = morphTop + toolbarMorph.height
+            val containerColor = cs.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha)
+            val hairlineColor = cs.outlineVariant.copy(alpha = 0.5f)
+            val hairlinePx = with(density) { 0.5.dp.toPx() }
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .onSizeChanged { toolbarHeightPx = it.height }
-                    // 几何 morph：transformOrigin 取左上角 ⇒ scale + translate 精确映射两个矩形的四角。
+                    // 胶囊 → 工具栏：不再整条缩放（缩放会把图标压扁），而是让底板的圆角矩形从胶囊
+                    // 拉伸到最终位置，按钮按最终布局摆好、被底板裁出来 ⇒ 底板一边变宽一边把按钮"展开"出来。
                     // 还没量到最终矩形的那一帧整条不画，不会先在原位闪一下再跳到胶囊上。
-                    .graphicsLayer {
-                        alpha = if (toolbarMeasured) aiFlbToolbarAlpha(reveal) else 0f
-                        if (toolbarMeasured) {
-                            transformOrigin = TransformOrigin(0f, 0f)
-                            scaleX = toolbarMorph.width / toolbarTargetBounds.width
-                            scaleY = toolbarMorph.height / toolbarTargetBounds.height
-                            translationX = toolbarMorph.left - toolbarTargetBounds.left
-                            translationY = toolbarMorph.top - toolbarTargetBounds.top
+                    .graphicsLayer { alpha = if (toolbarMeasured) aiFlbToolbarAlpha(reveal) else 0f }
+                    .drawWithContent {
+                        if (!toolbarMeasured) return@drawWithContent
+                        val radius = androidx.compose.ui.geometry.CornerRadius(toolbarMorph.cornerRadiusPx)
+                        val topLeft = Offset(morphLeft, morphTop)
+                        val size = androidx.compose.ui.geometry.Size(toolbarMorph.width, toolbarMorph.height)
+                        drawRoundRect(containerColor, topLeft, size, radius)
+                        drawRoundRect(
+                            color = hairlineColor,
+                            topLeft = topLeft,
+                            size = size,
+                            cornerRadius = radius,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(hairlinePx),
+                        )
+                        val clip = androidx.compose.ui.graphics.Path().apply {
+                            addRoundRect(
+                                androidx.compose.ui.geometry.RoundRect(
+                                    morphLeft, morphTop, morphRight, morphBottom, radius,
+                                ),
+                            )
+                        }
+                        clipPath(clip) {
+                            this@drawWithContent.drawContent()
                         }
                     }
-                    .background(
-                        cs.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha),
-                        RoundedCornerShape(toolbarMorph.cornerRadiusPx),
-                    )
-                    .padding(start = 4.dp, top = 4.dp, bottom = 4.dp, end = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(start = 6.dp, top = 6.dp, bottom = 6.dp, end = 6.dp),
             ) {
-                // 格式与附件按钮可以横向滚，发送键固定在最右边，不会被挤出屏幕
                 Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        .fillMaxWidth()
+                        // 按钮整体跟着底板的竖直中线走：胶囊比工具栏高（多行输入）时也贴在底板中间
+                        .graphicsLayer {
+                            if (toolbarMeasured) {
+                                translationY = (morphTop + morphBottom) / 2f - size.height / 2f -
+                                    with(density) { 6.dp.toPx() }
+                            }
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RichMarkdownButton(richState, title, "标题") { "# " to "" }
-                    RichStyleButton(richState, "B", "粗体", SpanStyle(fontWeight = FontWeight.Bold))
-                    RichStyleButton(richState, "I", "斜体", SpanStyle(fontStyle = FontStyle.Italic))
-                    RichMarkdownButton(richState, formatListBulleted, "列表") { "- " to "" }
-                    RichMarkdownButton(richState, code, "代码") { "`" to "`" }
-                    RichMarkdownButton(richState, link, "链接") { "[" to "](url)" }
-                    attachmentActions?.let { actions ->
-                        MochiIconButton(
-                            onClick = actions.onPickImage,
-                            shapes = IconButtonDefaults.shapes(),
-                        ) { Icon(image, contentDescription = "图片") }
-                        MochiIconButton(
-                            onClick = actions.onPickVideo,
-                            shapes = IconButtonDefaults.shapes(),
-                        ) { Icon(videocam, contentDescription = "视频") }
-                        MochiIconButton(
-                            onClick = actions.onPickFile,
-                            shapes = IconButtonDefaults.shapes(),
-                        ) { Icon(insertDriveFile, contentDescription = "文件") }
-                    }
-                }
-                Spacer(Modifier.width(6.dp))
-                // 和收起态胶囊里同一个发送键：有字是主题色实心圆，空的时候是淡色箭头（点了不发）
-                SendButton(
-                    state = if (hasContent) SendButtonState.Send else SendButtonState.Idle,
-                    onClick = {
-                        if (hasContent) {
-                            commitRichText()
-                            leave(onSend)
+                    // 格式与附件按钮可以横向滚，发送键固定在最右边，不会被挤出屏幕
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .graphicsLayer { if (toolbarMeasured) translationX = morphLeft }
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val span = richState.currentSpanStyle
+                        var index = 0
+                        // 每个按钮按顺序错开 0.045 的揭示进度弹出来（从左往右一个接一个）
+                        fun Modifier.entrance(): Modifier = editorToolEntrance(reveal, index++)
+                        EditorHeadingTool(richState = richState, modifier = Modifier.entrance())
+                        EditorToolButton(
+                            description = "粗体",
+                            active = span.fontWeight == FontWeight.Bold,
+                            modifier = Modifier.entrance(),
+                            onClick = { richState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) },
+                        ) { tint -> EditorToolGlyph("B", tint, fontWeight = FontWeight.Bold) }
+                        EditorToolButton(
+                            description = "斜体",
+                            active = span.fontStyle == FontStyle.Italic,
+                            modifier = Modifier.entrance(),
+                            onClick = { richState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) },
+                        ) { tint -> EditorToolGlyph("I", tint, fontStyle = FontStyle.Italic) }
+                        EditorToolButton(
+                            description = "删除线",
+                            active = span.textDecoration?.contains(TextDecoration.LineThrough) == true,
+                            modifier = Modifier.entrance(),
+                            onClick = {
+                                richState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
+                            },
+                        ) { tint -> EditorToolGlyph("S", tint, textDecoration = TextDecoration.LineThrough) }
+                        EditorToolButton(
+                            description = "代码",
+                            active = richState.isCodeSpan,
+                            modifier = Modifier.entrance(),
+                            onClick = { richState.toggleCodeSpan() },
+                        ) { tint -> Icon(code, null, tint = tint, modifier = Modifier.size(20.dp)) }
+                        EditorToolButton(
+                            description = "无序列表",
+                            active = richState.isUnorderedList,
+                            modifier = Modifier.entrance(),
+                            onClick = { richState.toggleUnorderedList() },
+                        ) { tint -> Icon(formatListBulleted, null, tint = tint, modifier = Modifier.size(20.dp)) }
+                        EditorToolButton(
+                            description = "有序列表",
+                            active = richState.isOrderedList,
+                            modifier = Modifier.entrance(),
+                            onClick = { richState.toggleOrderedList() },
+                        ) { tint -> EditorToolGlyph("1.", tint, fontWeight = FontWeight.SemiBold) }
+                        EditorToolButton(
+                            description = "链接",
+                            modifier = Modifier.entrance(),
+                            onClick = {
+                                val selected = richState.toMarkdown(richState.selection)
+                                richState.insertMarkdownAfterSelection("[$selected](url)")
+                            },
+                        ) { tint -> Icon(link, null, tint = tint, modifier = Modifier.size(20.dp)) }
+                        attachmentActions?.let { actions ->
+                            Box(
+                                Modifier
+                                    .entrance()
+                                    .padding(horizontal = 4.dp)
+                                    .size(width = 1.dp, height = 20.dp)
+                                    .background(cs.outlineVariant, CircleShape),
+                            )
+                            EditorToolButton(
+                                description = "图片",
+                                modifier = Modifier.entrance(),
+                                onClick = actions.onPickImage,
+                            ) { tint -> Icon(image, null, tint = tint, modifier = Modifier.size(20.dp)) }
+                            EditorToolButton(
+                                description = "视频",
+                                modifier = Modifier.entrance(),
+                                onClick = actions.onPickVideo,
+                            ) { tint -> Icon(videocam, null, tint = tint, modifier = Modifier.size(20.dp)) }
+                            EditorToolButton(
+                                description = "文件",
+                                modifier = Modifier.entrance(),
+                                onClick = actions.onPickFile,
+                            ) { tint -> Icon(insertDriveFile, null, tint = tint, modifier = Modifier.size(20.dp)) }
                         }
-                    },
-                    onLongClick = {},
-                )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    // 和收起态胶囊里同一个发送键：一直贴着底板的右沿走，揭示一开始就在胶囊发送键的位置上，
+                    // 上滑全程没有"消失再出现"。有字是主题色实心圆、空的时候是淡色箭头（点了不发），
+                    // 由空变有字时弹一下。
+                    val sendPop = remember { Animatable(1f) }
+                    LaunchedEffect(hasContent) {
+                        if (hasContent && editorMotion) {
+                            sendPop.snapTo(0.82f)
+                            sendPop.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = MochiMotions.stiffnessFor(0.35f)))
+                        }
+                    }
+                    SendButton(
+                        state = if (hasContent) SendButtonState.Send else SendButtonState.Idle,
+                        onClick = {
+                            if (hasContent) {
+                                editorHaptics.confirm()
+                                commitRichText()
+                                leave(onSend)
+                            }
+                        },
+                        onLongClick = {},
+                        modifier = Modifier.graphicsLayer {
+                            if (toolbarMeasured) {
+                                // 右沿对齐：Row 的右内边距 6dp 在最终矩形和 morph 矩形里一样
+                                translationX = morphRight - toolbarTargetBounds.width
+                            }
+                            scaleX = sendPop.value
+                            scaleY = sendPop.value
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+/** 揭示后段按顺序弹出：每个按钮晚 0.045，0.4 的进度跑完；减弱动效时 [aiFlbToolbarAlpha] 之外不再加效果。 */
+private fun Modifier.editorToolEntrance(reveal: Float, index: Int): Modifier = graphicsLayer {
+    val t = ((reveal - 0.35f - index * 0.045f) / 0.4f).coerceIn(0f, 1f)
+    val eased = FastOutSlowInEasing.transform(t)
+    alpha = eased
+    val scale = 0.6f + 0.4f * eased
+    scaleX = scale
+    scaleY = scale
+    translationY = (1f - eased) * 10.dp.toPx()
+}
+
+/**
+ * 编辑器工具栏按钮（Mochi 化的 KodeHeap ToolbarToggle）：圆形 40dp，按下缩到 0.88；
+ * [active] 时底色淡入主题色 14%、图标变主题色，切到选中的那一下额外弹一下；点按震一下 tick。
+ */
+@Composable
+private fun EditorToolButton(
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    active: Boolean = false,
+    content: @Composable (tint: Color) -> Unit,
+) {
+    val cs = MochiTheme.colorScheme
+    val haptics = rememberKkHaptics()
+    val reduceMotion = heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion()
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val activeFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
+        animationSpec = if (reduceMotion) androidx.compose.animation.core.snap()
+        else spring(dampingRatio = 1f, stiffness = MochiMotions.stiffnessFor(0.25f)),
+        label = "editor_tool_active",
+    )
+    val pop = remember { Animatable(1f) }
+    LaunchedEffect(active) {
+        if (active && !reduceMotion) {
+            pop.snapTo(1.16f)
+            pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = MochiMotions.stiffnessFor(0.32f)))
+        }
+    }
+    val tint = androidx.compose.ui.graphics.lerp(cs.onSurfaceVariant, cs.primary, activeFraction)
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .kkPressState(interaction, pressedScale = 0.88f)
+            .graphicsLayer {
+                scaleX = pop.value
+                scaleY = pop.value
+            }
+            .background(cs.primary.copy(alpha = 0.14f * activeFraction), CircleShape)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClickLabel = description,
+                role = androidx.compose.ui.semantics.Role.Button,
+            ) {
+                haptics.tick()
+                onClick()
+            }
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        content(tint)
+    }
+}
+
+private val EditorHeadingOptions = listOf(
+    com.mohamedrejeb.richeditor.model.HeadingStyle.Normal to "正文",
+    com.mohamedrejeb.richeditor.model.HeadingStyle.H1 to "一级标题",
+    com.mohamedrejeb.richeditor.model.HeadingStyle.H2 to "二级标题",
+    com.mohamedrejeb.richeditor.model.HeadingStyle.H3 to "三级标题",
+    com.mohamedrejeb.richeditor.model.HeadingStyle.H4 to "四级标题",
+)
+
+/**
+ * 「标题」工具：点开在按钮正上方弹出一张 Mochi 小卡片（正文 / H1–H4），以按钮为原点按弹簧长出、
+ * 各行错开浮入，当前段落的级别高亮打勾；按钮本身在非正文段落里显示成 H1/H2… 字形。
+ * 弹层 focusable = false：不抢编辑器焦点，键盘不会被收起。
+ */
+@Composable
+private fun EditorHeadingTool(
+    richState: RichTextState,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MochiTheme.colorScheme
+    val haptics = rememberKkHaptics()
+    val reduceMotion = heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion()
+    val density = LocalDensity.current
+    val current = richState.currentHeadingStyle
+    var open by remember { mutableStateOf(false) }
+    val reveal = remember { Animatable(0f) }
+    LaunchedEffect(open, reduceMotion) {
+        val target = if (open) 1f else 0f
+        if (reduceMotion) {
+            reveal.snapTo(target)
+        } else {
+            reveal.animateTo(
+                targetValue = target,
+                animationSpec = if (open) {
+                    spring(dampingRatio = 0.72f, stiffness = MochiMotions.stiffnessFor(0.32f))
+                } else {
+                    spring(dampingRatio = 1f, stiffness = MochiMotions.stiffnessFor(0.2f))
+                },
+            )
+        }
+    }
+    // 光标挪到别处就收起，卡片不再指着一个不相干的段落
+    val selection = richState.selection
+    LaunchedEffect(selection) { open = false }
+
+    Box(modifier = modifier) {
+        EditorToolButton(
+            description = "标题",
+            active = current != com.mohamedrejeb.richeditor.model.HeadingStyle.Normal || open,
+            onClick = { open = !open },
+        ) { tint ->
+            if (current == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) {
+                Icon(title, null, tint = tint, modifier = Modifier.size(20.dp))
+            } else {
+                EditorToolGlyph("H${current.level}", tint, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        if (open || reveal.value > 0.001f) {
+            // 卡片外圈留了 8dp 给阴影，视觉上离按钮 6dp：整体往下压 8 - 6 = 2dp
+            val overlapPx = with(density) { 2.dp.roundToPx() }
+            androidx.compose.ui.window.Popup(
+                popupPositionProvider = remember(overlapPx) { AboveAnchorPopupPosition(overlapPx) },
+                onDismissRequest = { open = false },
+                properties = androidx.compose.ui.window.PopupProperties(focusable = false),
+            ) {
+                val cardShape = RoundedCornerShape(20.dp)
+                Column(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            val p = reveal.value
+                            alpha = p.coerceIn(0f, 1f)
+                            val s = 0.72f + 0.28f * p
+                            scaleX = s
+                            scaleY = s
+                            // 从卡片底边中点（正对按钮）长出来
+                            transformOrigin = TransformOrigin(0.5f, 1f)
+                            translationY = (1f - p) * 12.dp.toPx()
+                        }
+                        .padding(8.dp)
+                        .shadow(
+                            elevation = 12.dp,
+                            shape = cardShape,
+                            ambientColor = Color.Black.copy(alpha = 0.12f),
+                            spotColor = Color.Black.copy(alpha = 0.18f),
+                        )
+                        .background(cs.surfaceContainerHigh, cardShape)
+                        .border(0.5.dp, cs.outlineVariant.copy(alpha = 0.6f), cardShape)
+                        .width(208.dp)
+                        .padding(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    EditorHeadingOptions.forEachIndexed { index, (style, label) ->
+                        EditorHeadingRow(
+                            style = style,
+                            label = label,
+                            selected = current == style,
+                            modifier = Modifier.graphicsLayer {
+                                val t = ((reveal.value - 0.12f - index * 0.07f) / 0.5f).coerceIn(0f, 1f)
+                                val eased = FastOutSlowInEasing.transform(t)
+                                alpha = eased
+                                translationY = (1f - eased) * 8.dp.toPx()
+                            },
+                            onClick = {
+                                haptics.confirm()
+                                richState.setHeadingStyle(style)
+                                open = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditorHeadingRow(
+    style: com.mohamedrejeb.richeditor.model.HeadingStyle,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MochiTheme.colorScheme
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val rowShape = RoundedCornerShape(14.dp)
+    // 标签按对应级别的字号预览：一眼看出 H1 比 H3 大多少
+    val previewSize = when (style) {
+        com.mohamedrejeb.richeditor.model.HeadingStyle.H1 -> 20f
+        com.mohamedrejeb.richeditor.model.HeadingStyle.H2 -> 18f
+        com.mohamedrejeb.richeditor.model.HeadingStyle.H3 -> 16.5f
+        com.mohamedrejeb.richeditor.model.HeadingStyle.H4 -> 15.5f
+        else -> 15f
+    }
+    val badge = if (style == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) "T" else "H${style.level}"
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .kkPressState(interaction, pressedScale = 0.96f)
+            .clip(rowShape)
+            .background(if (selected) cs.primary.copy(alpha = 0.12f) else Color.Transparent)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClick = onClick,
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .background(
+                    if (selected) cs.primary.copy(alpha = 0.18f) else cs.surfaceContainerHighest,
+                    RoundedCornerShape(10.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            ui.feice.mochi.basic.Text(
+                text = badge,
+                color = if (selected) cs.primary else cs.onSurfaceVariant,
+                style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.Bold),
+            )
+        }
+        ui.feice.mochi.basic.Text(
+            text = label,
+            color = if (selected) cs.primary else cs.onSurface,
+            style = MochiTheme.textStyles.body.copy(
+                fontSize = androidx.compose.ui.unit.TextUnit(previewSize, androidx.compose.ui.unit.TextUnitType.Sp),
+                fontWeight = if (style == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) {
+                    FontWeight.Normal
+                } else {
+                    FontWeight.SemiBold
+                },
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                imageVector = heizige.kk.khatkit.app.core.ui.icons.check,
+                contentDescription = null,
+                tint = cs.primary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+/** 弹层放在锚点正上方、水平居中，左右夹在窗口内；上方放不下时贴顶。[overlapPx] 是往锚点压回去的距离（抵掉阴影留白）。 */
+private class AboveAnchorPopupPosition(
+    private val overlapPx: Int,
+) : androidx.compose.ui.window.PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: androidx.compose.ui.unit.IntRect,
+        windowSize: IntSize,
+        layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        popupContentSize: IntSize,
+    ): androidx.compose.ui.unit.IntOffset {
+        val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+        val x = (anchorBounds.center.x - popupContentSize.width / 2).coerceIn(0, maxX)
+        val y = (anchorBounds.top - popupContentSize.height + overlapPx).coerceAtLeast(0)
+        return androidx.compose.ui.unit.IntOffset(x, y)
+    }
+}
+
+@Composable
+private fun EditorToolGlyph(
+    glyph: String,
+    tint: Color,
+    fontWeight: FontWeight? = null,
+    fontStyle: FontStyle? = null,
+    textDecoration: TextDecoration? = null,
+) {
+    ui.feice.mochi.basic.Text(
+        text = glyph,
+        color = tint,
+        style = MochiTheme.textStyles.body.copy(
+            fontWeight = fontWeight,
+            fontStyle = fontStyle,
+            textDecoration = textDecoration,
+        ),
+    )
 }
 
 /**
@@ -1787,44 +2189,6 @@ private class EditorOverlayFrame(
 }
 
 @Composable
-private fun RichMarkdownButton(
-    state: RichTextState,
-    icon: ImageVector,
-    label: String,
-    wrapper: () -> Pair<String, String>,
-) {
-    MochiIconButton(
-        onClick = {
-            val (prefix, suffix) = wrapper()
-            val selected = state.toMarkdown(state.selection)
-            state.insertMarkdownAfterSelection(prefix + selected + suffix)
-        },
-        shapes = IconButtonDefaults.shapes(),
-    ) {
-        Icon(icon, contentDescription = label)
-    }
-}
-
-@Composable
-private fun RichStyleButton(
-    state: RichTextState,
-    glyph: String,
-    label: String,
-    style: SpanStyle,
-) {
-    MochiIconButton(
-        onClick = { state.toggleSpanStyle(style) },
-        shapes = IconButtonDefaults.shapes(),
-    ) {
-        Text(
-            text = glyph,
-            fontWeight = if (glyph == "B") FontWeight.Bold else null,
-            fontStyle = if (glyph == "I") FontStyle.Italic else null,
-        )
-    }
-}
-
-@Composable
 private fun MarkdownEditButton(
     state: ChatInputState,
     icon: ImageVector,
@@ -1881,27 +2245,50 @@ private fun MarkdownEditTextButton(
     }
 }
 
+private class PanelTile(
+    val icon: ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+)
+
+/** ＋ 面板的错开入场：展开后段每个按钮晚 0.04 的进度淡入、从下方 6dp 浮上来。 */
+private fun Modifier.panelEntrance(progress: () -> Float, index: Int): Modifier = graphicsLayer {
+    val t = ((progress() - 0.3f - index * 0.04f) / 0.4f).coerceIn(0f, 1f)
+    val eased = FastOutSlowInEasing.transform(t)
+    alpha = eased
+    translationY = (1f - eased) * 6.dp.toPx()
+}
+
+/** ＋ 面板的一个动作：Mochi Tonal 圆按钮（按压形变 / 触觉由按钮自己给）+ 下面一行脚注字。 */
 @Composable
 private fun PanelAction(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
+    tile: PanelTile,
+    modifier: Modifier = Modifier,
 ) {
+    val cs = MochiTheme.colorScheme
     Column(
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        ActionIconButton(onClick = onClick) {
+        MochiRealIconButton(
+            onClick = tile.onClick,
+            style = MochiButtonStyle.Tonal,
+            size = 48.dp,
+            modifier = Modifier.semantics { contentDescription = tile.label },
+        ) {
             Icon(
-                imageVector = icon,
-                contentDescription = label,
-                modifier = Modifier.size(20.dp),
+                imageVector = tile.icon,
+                contentDescription = null,
+                tint = cs.onSurface,
+                modifier = Modifier.size(22.dp),
             )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ui.feice.mochi.basic.Text(
+            text = tile.label,
+            color = cs.onSurfaceVariant,
+            style = MochiTheme.textStyles.footnote,
+            maxLines = 1,
         )
     }
 }

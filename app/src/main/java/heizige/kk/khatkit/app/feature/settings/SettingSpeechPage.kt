@@ -1,86 +1,77 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import ui.feice.mochi.basic.MochiDropdown
-import androidx.compose.runtime.LaunchedEffect
-import ui.feice.mochi.basic.rememberMochiSheetState
-import ui.feice.mochi.basic.MochiItem
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioButton
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
-import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_SYSTEM_TTS_ID
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.Tag
-import heizige.kk.khatkit.app.core.ui.components.ui.TagType
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
+import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.feature.settings.components.ASRProviderConfigure
-import heizige.kk.khatkit.app.feature.settings.components.TTSProviderConfigure
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.core.util.plus
-import heizige.kk.khatkit.tts.provider.TTSProviderSetting
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.mic
+import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.khatkit.app.feature.settings.components.ASRProviderConfigure
+import heizige.kk.khatkit.app.feature.settings.components.TTSProviderConfigure
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.asr.ASRProviderSetting
+import heizige.kk.khatkit.tts.provider.TTSProviderSetting
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton as KkIconButton
+import kotlinx.coroutines.launch
+import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.MochiIconDropdown
+import ui.feice.mochi.basic.MochiItem
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.list.MochiListCard
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSectionFooter
+import ui.feice.mochi.list.mochiReorderable
+import ui.feice.mochi.list.rememberMochiReorderState
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
@@ -96,6 +87,8 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     KedgeSettingsPageScaffold(
+        // 两个 Pager 页各自给列表加顶边渐隐，骨架级的交界渐隐会把左右滑动的两页糊在一起
+        edgeFade = false,
         title = stringResource(R.string.speech_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
@@ -136,12 +129,11 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
                 ),
             )
         },
-    ) { innerPadding ->
+    ) { _ ->
+        // 底栏浮在正文上：不给 Pager 加 innerPadding，各页列表自己按 contentBottomPadding() 在底部留白
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (page) {
                 0 -> TTSProviderList(
@@ -267,71 +259,50 @@ internal fun TTSProviderList(
     modifier: Modifier = Modifier
 ) {
     val lazyListState = rememberLazyListState()
-    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+    val listColors = MochiListDefaults.colors()
+    // 长按整行拖动排序（Mochi 自带浮起、让位与震动），松手时才写回设置
+    val reorder = rememberMochiReorderState { from, to ->
         val newProviders = settings.ttsProviders.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+            add(to, removeAt(from))
         }
         onUpdateSettings(settings.copy(ttsProviders = newProviders))
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        state = lazyListState
-    ) {
-        items(settings.ttsProviders, key = { it.id }) { provider ->
-            ReorderableItem(
-                state = reorderableState,
-                key = provider.id
-            ) { isDragging ->
-                TTSProviderItem(
-                    modifier = Modifier
-                        .scale(if (isDragging) 0.95f else 1f)
-                        .fillMaxWidth(),
-                    provider = provider,
-                    dragHandle = {
-                        val haptic = LocalHapticFeedback.current
-                        MochiIconButton(
-                            onClick = {},
-                            modifier = Modifier
-                                .longPressDraggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+    SpeechProviderListColumn(lazyListState = lazyListState, modifier = modifier) {
+        if (settings.ttsProviders.isNotEmpty()) {
+            item("tts_providers") {
+                Column(Modifier.fillMaxWidth()) {
+                    // 拖动时隐藏分隔线，免得浮起的行和分隔线叠在一起
+                    MochiListCard(colors = listColors, showDividers = !reorder.isDragging) {
+                        settings.ttsProviders.forEachIndexed { index, provider ->
+                            key(provider.id) {
+                                TTSProviderItem(
+                                    modifier = Modifier.mochiReorderable(reorder, provider.id, index, listColors.container),
+                                    provider = provider,
+                                    isSelected = settings.selectedTTSProviderId == provider.id,
+                                    onSelect = {
+                                        onUpdateSettings(settings.copy(selectedTTSProviderId = provider.id))
                                     },
-                                    onDragStopped = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    onEdit = {
+                                        onEdit(provider)
+                                    },
+                                    onDelete = {
+                                        val newProviders = settings.ttsProviders - provider
+                                        val newSelectedId =
+                                            if (settings.selectedTTSProviderId == provider.id) DEFAULT_SYSTEM_TTS_ID else settings.selectedTTSProviderId
+                                        onUpdateSettings(
+                                            settings.copy(
+                                                ttsProviders = newProviders,
+                                                selectedTTSProviderId = newSelectedId
+                                            )
+                                        )
                                     }
-                                ),
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = dragIndicator,
-                                contentDescription = null
-                            )
+                                )
+                            }
                         }
-                    },
-                    isSelected = settings.selectedTTSProviderId == provider.id,
-                    onSelect = {
-                        onUpdateSettings(settings.copy(selectedTTSProviderId = provider.id))
-                    },
-                    onEdit = {
-                        onEdit(provider)
-                    },
-                    onDelete = {
-                        val newProviders = settings.ttsProviders - provider
-                        val newSelectedId =
-                            if (settings.selectedTTSProviderId == provider.id) DEFAULT_SYSTEM_TTS_ID else settings.selectedTTSProviderId
-                        onUpdateSettings(
-                            settings.copy(
-                                ttsProviders = newProviders,
-                                selectedTTSProviderId = newSelectedId
-                            )
-                        )
                     }
-                )
+                    MochiListSectionFooter(SpeechProviderListHint)
+                }
             }
         }
     }
@@ -345,78 +316,84 @@ internal fun ASRProviderList(
     modifier: Modifier = Modifier
 ) {
     val lazyListState = rememberLazyListState()
-    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+    val listColors = MochiListDefaults.colors()
+    val reorder = rememberMochiReorderState { from, to ->
         val newProviders = settings.asrProviders.toMutableList().apply {
-            add(to.index, removeAt(from.index))
+            add(to, removeAt(from))
         }
         onUpdateSettings(settings.copy(asrProviders = newProviders))
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        state = lazyListState
-    ) {
-        items(settings.asrProviders, key = { it.id }) { provider ->
-            ReorderableItem(
-                state = reorderableState,
-                key = provider.id
-            ) { isDragging ->
-                ASRProviderItem(
-                    modifier = Modifier
-                        .scale(if (isDragging) 0.95f else 1f)
-                        .fillMaxWidth(),
-                    provider = provider,
-                    dragHandle = {
-                        val haptic = LocalHapticFeedback.current
-                        MochiIconButton(
-                            onClick = {},
-                            modifier = Modifier
-                                .longPressDraggableHandle(
-                                    onDragStarted = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+    SpeechProviderListColumn(lazyListState = lazyListState, modifier = modifier) {
+        if (settings.asrProviders.isNotEmpty()) {
+            item("asr_providers") {
+                Column(Modifier.fillMaxWidth()) {
+                    MochiListCard(colors = listColors, showDividers = !reorder.isDragging) {
+                        settings.asrProviders.forEachIndexed { index, provider ->
+                            key(provider.id) {
+                                ASRProviderItem(
+                                    modifier = Modifier.mochiReorderable(reorder, provider.id, index, listColors.container),
+                                    provider = provider,
+                                    isSelected = settings.selectedASRProviderId == provider.id,
+                                    onSelect = {
+                                        onUpdateSettings(settings.copy(selectedASRProviderId = provider.id))
                                     },
-                                    onDragStopped = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    onEdit = {
+                                        onEdit(provider)
+                                    },
+                                    onDelete = {
+                                        val newProviders = settings.asrProviders - provider
+                                        val newSelectedId =
+                                            if (settings.selectedASRProviderId == provider.id) {
+                                                newProviders.firstOrNull()?.id
+                                            } else {
+                                                settings.selectedASRProviderId
+                                            }
+                                        onUpdateSettings(
+                                            settings.copy(
+                                                asrProviders = newProviders,
+                                                selectedASRProviderId = newSelectedId
+                                            )
+                                        )
                                     }
-                                ),
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(
-                                imageVector = dragIndicator,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    isSelected = settings.selectedASRProviderId == provider.id,
-                    onSelect = {
-                        onUpdateSettings(settings.copy(selectedASRProviderId = provider.id))
-                    },
-                    onEdit = {
-                        onEdit(provider)
-                    },
-                    onDelete = {
-                        val newProviders = settings.asrProviders - provider
-                        val newSelectedId =
-                            if (settings.selectedASRProviderId == provider.id) {
-                                newProviders.firstOrNull()?.id
-                            } else {
-                                settings.selectedASRProviderId
+                                )
                             }
-                        onUpdateSettings(
-                            settings.copy(
-                                asrProviders = newProviders,
-                                selectedASRProviderId = newSelectedId
-                            )
-                        )
+                        }
                     }
-                )
+                    MochiListSectionFooter(SpeechProviderListHint)
+                }
             }
         }
     }
+}
+
+private const val SpeechProviderListHint = "轻点一行选用该服务，长按拖动调整顺序"
+
+/**
+ * 两个 Pager 页共用的列表外壳：顶边贴着顶栏渐隐，底边不遮（底栏浮在正文上，列表要从它底下透出来），
+ * 底部按 contentBottomPadding() 留出浮动底栏的高度。
+ */
+@Composable
+private fun SpeechProviderListColumn(
+    lazyListState: LazyListState,
+    modifier: Modifier = Modifier,
+    content: LazyListScope.() -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding()
+            .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 16.dp,
+            end = 16.dp,
+            bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        state = lazyListState,
+        content = content,
+    )
 }
 
 @Composable
@@ -424,7 +401,7 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var currentProvider: TTSProviderSetting by remember { mutableStateOf(TTSProviderSetting.SystemTTS()) }
 
-    MochiIconButton(
+    KkIconButton(
         onClick = {
             currentProvider = TTSProviderSetting.SystemTTS()
             showBottomSheet = true
@@ -537,98 +514,89 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
         }
 }
 
+/** 行尾的「更多」菜单：编辑 / 删除。 */
+@Composable
+private fun SpeechProviderMenu(
+    deleteEnabled: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showDropdownMenu by remember { mutableStateOf(false) }
+    MochiIconDropdown(
+        expanded = showDropdownMenu,
+        onExpandedChange = { showDropdownMenu = it },
+        items = kotlinx.collections.immutable.persistentListOf(
+            MochiItem(
+                label = stringResource(R.string.edit),
+                icon = { color -> Icon(edit, contentDescription = null, tint = color) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.delete),
+                destructive = true,
+                enabled = deleteEnabled,
+                icon = { color -> Icon(delete, contentDescription = null, tint = color) },
+            ),
+        ),
+        onItemClick = { index ->
+            showDropdownMenu = false
+            when (index) {
+                0 -> onEdit()
+                1 -> if (deleteEnabled) onDelete()
+            }
+        },
+        size = 32.dp,
+    ) {
+        Icon(
+            imageVector = moreVert,
+            contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description),
+            tint = MochiTheme.colorScheme.onSurface,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
 @Composable
 private fun TTSProviderItem(
     provider: TTSProviderSetting,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
-    dragHandle: @Composable () -> Unit,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    var showDropdownMenu by remember { mutableStateOf(false) }
     val tts = LocalTTSState.current
     val isSpeaking by tts.isSpeaking.collectAsState()
     val isAvailable by tts.isAvailable.collectAsState()
+    val name = provider.name.ifEmpty { stringResource(R.string.setting_tts_page_default_name) }
 
-    KkCard(
+    // 整行点击 = 选用；选中项行尾显示对勾（原单选按钮 +「已选择」标签）
+    MochiListRow(
+        title = name,
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                CustomColors.listItemColors.containerColor
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        onClick = onSelect,
+        subtitle = when (provider) {
+            is TTSProviderSetting.OpenAI -> stringResource(R.string.setting_tts_page_provider_openai)
+            is TTSProviderSetting.Gemini -> stringResource(R.string.setting_tts_page_provider_gemini)
+            is TTSProviderSetting.MiniMax -> "MiniMax"
+            is TTSProviderSetting.SystemTTS -> stringResource(R.string.setting_tts_page_provider_system)
+            is TTSProviderSetting.Qwen -> "Qwen"
+            is TTSProviderSetting.Groq -> "Groq"
+            is TTSProviderSetting.XAI -> "xAI"
+            is TTSProviderSetting.MiMo -> "MiMo"
+            is TTSProviderSetting.Step -> "Step"
+            is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
+            is TTSProviderSetting.FishAudio -> "Fish Audio"
+            is TTSProviderSetting.Volcengine -> "火山引擎"
+        },
+        leading = {
+            AutoAIIcon(name = name, modifier = Modifier.size(MochiListDefaults.LeadingSize))
+        },
+        checked = isSelected,
+        trailing = {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AutoAIIcon(
-                    name = provider.name.ifEmpty { stringResource(R.string.setting_tts_page_default_name) },
-                    modifier = Modifier.size(32.dp)
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = provider.name.ifEmpty { stringResource(R.string.setting_tts_page_default_name) },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-
-                    Text(
-                        text = when (provider) {
-                            is TTSProviderSetting.OpenAI -> stringResource(R.string.setting_tts_page_provider_openai)
-                            is TTSProviderSetting.Gemini -> stringResource(R.string.setting_tts_page_provider_gemini)
-                            is TTSProviderSetting.MiniMax -> "MiniMax"
-                            is TTSProviderSetting.SystemTTS -> stringResource(R.string.setting_tts_page_provider_system)
-                            is TTSProviderSetting.Qwen -> "Qwen"
-                            is TTSProviderSetting.Groq -> "Groq"
-                            is TTSProviderSetting.XAI -> "xAI"
-                            is TTSProviderSetting.MiMo -> "MiMo"
-                            is TTSProviderSetting.Step -> "Step"
-                            is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
-                            is TTSProviderSetting.FishAudio -> "Fish Audio"
-                            is TTSProviderSetting.Volcengine -> "火山引擎"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                KkAnimatedRadioButton(
-                    selected = isSelected,
-                    onClick = onSelect
-                )
-
-                dragHandle()
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 状态标签
-                if (isSelected) {
-                    Tag(type = TagType.SUCCESS) {
-                        Text(stringResource(R.string.setting_tts_page_selected))
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
                 // TTS测试播放按钮
                 if (isSelected && isAvailable) {
                     val testText = stringResource(R.string.setting_tts_page_test_text)
@@ -640,49 +608,25 @@ private fun TTSProviderItem(
                                 tts.stop()
                             }
                         },
-                        shapes = IconButtonDefaults.shapes(),
+                        style = MochiButtonStyle.Text,
+                        size = 32.dp,
                     ) {
                         Icon(
                             imageVector = if (isSpeaking) stopCircle else volumeUp,
                             contentDescription = if (isSpeaking) stringResource(R.string.stop) else stringResource(R.string.test_tts),
-                            tint = if (isSpeaking) MaterialTheme.colorScheme.error else LocalContentColor.current
+                            tint = if (isSpeaking) MochiTheme.colorScheme.error else MochiTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
-
-                MochiDropdown(
-                    expanded = showDropdownMenu,
-                    onExpandedChange = { showDropdownMenu = it },
-                    items = kotlinx.collections.immutable.persistentListOf(
-                        MochiItem(
-                            label = stringResource(R.string.edit),
-                            icon = { color -> Icon(edit, contentDescription = null, tint = color) },
-                        ),
-                        MochiItem(
-                            label = stringResource(R.string.delete),
-                            destructive = true,
-                            enabled = provider.id != DEFAULT_SYSTEM_TTS_ID,
-                            icon = { color -> Icon(delete, contentDescription = null, tint = color) },
-                        ),
-                    ),
-                    onItemClick = { index ->
-                        showDropdownMenu = false
-                        when (index) {
-                            0 -> onEdit()
-                            1 -> if (provider.id != DEFAULT_SYSTEM_TTS_ID) onDelete()
-                        }
-                    },
-                    onClick = { showDropdownMenu = !showDropdownMenu },
-                    buttonContent = {
-                        Icon(
-                            imageVector = build,
-                            contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
-                        )
-                    },
+                SpeechProviderMenu(
+                    deleteEnabled = provider.id != DEFAULT_SYSTEM_TTS_ID,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable
@@ -690,115 +634,36 @@ private fun ASRProviderItem(
     provider: ASRProviderSetting,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
-    dragHandle: @Composable () -> Unit,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    var showDropdownMenu by remember { mutableStateOf(false) }
+    val name = provider.name.ifEmpty { stringResource(R.string.setting_asr_page_default_name) }
 
-    KkCard(
+    MochiListRow(
+        title = name,
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                CustomColors.listItemColors.containerColor
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AutoAIIcon(
-                    name = provider.name.ifEmpty { stringResource(R.string.setting_asr_page_default_name) },
-                    modifier = Modifier.size(32.dp)
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = provider.name.ifEmpty { stringResource(R.string.setting_asr_page_default_name) },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-
-                    Text(
-                        text = when (provider) {
-                            is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
-                            is ASRProviderSetting.DashScope -> "DashScope"
-                            is ASRProviderSetting.Volcengine -> "Volcengine"
-                            is ASRProviderSetting.MiMo -> "MiMo"
-                            is ASRProviderSetting.Step -> "Step"
-                            is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
-                            is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
-                            is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                KkAnimatedRadioButton(
-                    selected = isSelected,
-                    onClick = onSelect
-                )
-
-                dragHandle()
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isSelected) {
-                    Tag(type = TagType.SUCCESS) {
-                        Text(stringResource(R.string.setting_tts_page_selected))
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                MochiDropdown(
-                    expanded = showDropdownMenu,
-                    onExpandedChange = { showDropdownMenu = it },
-                    items = kotlinx.collections.immutable.persistentListOf(
-                        MochiItem(
-                            label = stringResource(R.string.edit),
-                            icon = { color -> Icon(edit, contentDescription = null, tint = color) },
-                        ),
-                        MochiItem(
-                            label = stringResource(R.string.delete),
-                            destructive = true,
-                            icon = { color -> Icon(delete, contentDescription = null, tint = color) },
-                        ),
-                    ),
-                    onItemClick = { index ->
-                        showDropdownMenu = false
-                        when (index) {
-                            0 -> onEdit()
-                            1 -> onDelete()
-                        }
-                    },
-                    onClick = { showDropdownMenu = !showDropdownMenu },
-                    buttonContent = {
-                        Icon(
-                            imageVector = build,
-                            contentDescription = stringResource(R.string.setting_tts_page_more_options_content_description)
-                        )
-                    },
-                )
-            }
-        }
-    }
+        onClick = onSelect,
+        subtitle = when (provider) {
+            is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
+            is ASRProviderSetting.DashScope -> "DashScope"
+            is ASRProviderSetting.Volcengine -> "Volcengine"
+            is ASRProviderSetting.MiMo -> "MiMo"
+            is ASRProviderSetting.Step -> "Step"
+            is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
+            is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
+            is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
+        },
+        leading = {
+            AutoAIIcon(name = name, modifier = Modifier.size(MochiListDefaults.LeadingSize))
+        },
+        checked = isSelected,
+        trailing = {
+            SpeechProviderMenu(
+                deleteEnabled = true,
+                onEdit = onEdit,
+                onDelete = onDelete,
+            )
+        },
+    )
 }

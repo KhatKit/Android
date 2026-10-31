@@ -2,20 +2,34 @@ package heizige.kk.khatkit.app.core.data.datastore
 
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.RoleTemplates
 import kotlin.uuid.Uuid
 
 internal fun migrateLegacyDefaultRole(role: Assistant): Assistant {
-    if (role.id != DEFAULT_ASSISTANT_ID || role.name.isNotBlank() ||
-        role.systemPrompt.isNotBlank() || role.description.isNotBlank()
-    ) return role
-    val template = RoleTemplates.toolbox()
+    if (role.id != DEFAULT_ASSISTANT_ID) return role
+    val template = RoleTemplates.kitty()
+    if (role.name.isBlank() && role.systemPrompt.isBlank() && role.description.isBlank()) {
+        return role.copy(
+            name = template.name,
+            description = template.description,
+            systemPrompt = template.systemPrompt,
+            avatar = if (role.avatar == Avatar.Dummy) template.avatar else role.avatar,
+            canManageRoles = true,
+            useAssistantAvatar = true,
+        )
+    }
+    // 旧默认角色「Toolbox 主管」改成 Kitty：只认提示词原样未动的；名称、描述、头像也只换还是旧默认值的。
+    if (role.systemPrompt != RoleTemplates.LEGACY_TOOLBOX_PROMPT) return role
     return role.copy(
-        name = template.name,
-        description = template.description,
+        name = if (role.name == RoleTemplates.LEGACY_TOOLBOX_NAME) template.name else role.name,
+        description = if (role.description == RoleTemplates.LEGACY_TOOLBOX_DESCRIPTION) {
+            template.description
+        } else {
+            role.description
+        },
         systemPrompt = template.systemPrompt,
-        canManageRoles = true,
-        useAssistantAvatar = true,
+        avatar = if (role.avatar == RoleTemplates.LEGACY_TOOLBOX_AVATAR) template.avatar else role.avatar,
     )
 }
 

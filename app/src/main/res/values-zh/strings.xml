@@ -196,6 +196,26 @@
   <string name="explore_market_new_version">新版本号（默认补丁位 +1）</string>
   <string name="explore_market_changelog_required">更新说明（必填）</string>
   <string name="explore_market_submit">提交</string>
+  <string name="explore_market_detail_section_tags">标签</string>
+  <string name="explore_market_detail_tags_footer">点标签可以搜同类卡片。</string>
+  <string name="explore_market_detail_group_capabilities">能力</string>
+  <string name="explore_market_detail_group_triggers">触发方式</string>
+  <string name="explore_market_detail_group_category">分类</string>
+  <string name="explore_market_detail_group_license">授权</string>
+  <string name="explore_market_detail_section_info">信息</string>
+  <string name="explore_market_detail_section_about">简介</string>
+  <string name="explore_market_detail_section_manage">管理</string>
+  <string name="explore_market_detail_version">版本</string>
+  <string name="explore_market_detail_installed_version">已安装</string>
+  <string name="explore_market_detail_author">作者</string>
+  <string name="explore_market_detail_engine">引擎</string>
+  <string name="explore_market_detail_privilege">权限</string>
+  <string name="explore_market_detail_size">大小</string>
+  <string name="explore_market_detail_stat_downloads">下载</string>
+  <string name="explore_market_detail_stat_votes">票数</string>
+  <string name="explore_market_detail_stat_price">价格</string>
+  <string name="explore_market_detail_not_found_title">找不到这张卡片</string>
+  <string name="explore_market_detail_not_found_message">它可能已从市场下架，或者索引还没同步。</string>
   <string name="asr_button_content_description">语音识别</string>
   <string name="asr_button_stop">停止</string>
   <string name="assistant_detail_basic_desc">配置名称、头像、模型和参数</string>
@@ -757,6 +777,13 @@
   <string name="safe_mode_current_assistant">当前助手：%s</string>
   <string name="safe_mode_default_assistant">默认助手</string>
   <string name="safe_mode_description">应用上次启动时崩溃了。您可以切换到其他助手来解决此问题。</string>
+    <string name="safe_mode_crashed_title">应用在上次启动时崩溃了</string>
+    <string name="safe_mode_kind_native">原生崩溃</string>
+    <string name="safe_mode_kind_java">未捕获异常</string>
+    <string name="safe_mode_report_meta">%1$s · %2$s</string>
+    <string name="safe_mode_copied">已复制</string>
+    <string name="safe_mode_report_empty">这次没有拿到崩溃报告</string>
+    <string name="safe_mode_report_empty_hint">上次进程结束时没留下可读的报告。可以直接继续用；如果再崩，下一次启动会带上报告。</string>
   <string name="safe_mode_switch_assistant">切换助手</string>
   <string name="safe_mode_title">安全模式</string>
   <string name="search_ability_scrape">抓取</string>
@@ -1579,7 +1606,6 @@
   <string name="workspace_detail_compatibility_mode">兼容模式</string>
   <string name="workspace_detail_compatibility_mode_desc">如果终端无法启动，请尝试启用此功能。这可能会降低性能。适用于新的终端标签页及后续命令。</string>
   <string name="workspace_detail_settings_save_failed">保存设置失败</string>
-
   <!-- Greeting / onboarding -->
   <string name="greeting_welcome_title">欢迎使用 %1$s</string>
   <string name="greeting_welcome_desc">你的 Android AI 助手。\n花一分钟，完成初始设置。</string>
@@ -1648,7 +1674,6 @@
   <string name="setting_display_page_card_corner_large">大圆角</string>
   <string name="setting_display_page_card_corner_small">小圆角</string>
   <string name="setting_display_page_card_gap">项间距</string>
-
   <!-- KhatKit -->
   <string name="khatkit_market_title">卡片市场</string>
   <string name="khatkit_confirm">确认</string>
@@ -1680,7 +1705,6 @@
   <string name="setting_display_page_background_effect_type">背景效果类型</string>
   <string name="setting_display_page_background_effect_blur">模糊</string>
   <string name="setting_display_page_background_effect_glass">玻璃</string>
-
   <!-- 自动化审批策略 -->
   <string name="approval_category_card_run">运行卡片</string>
   <string name="approval_category_ui_action">界面操作</string>
@@ -1697,7 +1721,6 @@
   <string name="approval_hands_off_desc">允许自动化执行任何操作，不再弹窗询问 ·</string>
   <string name="approval_status_on">已开启</string>
   <string name="approval_status_off">已关闭</string>
-
   <string name="setting_page_blur_title">毛玻璃</string>
   <!-- 套餐与激活页（SettingsPackagePage）-->
   <string name="setting_package_page_title">套餐与激活</string>
@@ -1719,23 +1742,22 @@
   <string name="setting_package_page_clear">清除本机激活信息</string>
   <string name="setting_package_page_clear_desc">只删除本机的激活信息，不影响你的账户</string>
   <string name="setting_package_page_tip">购买套餐后会得到激活令牌，在网页上用它激活本设备。未激活时本地卡片照常可用，只有服务器明确拒绝时才会被限制。</string>
-<string name="safe_mode_enter_app">進入應用程式</string>
-<string name="theme_name_claude">Claude</string>
-<string name="workspace_terminal_tab">終端機 %1$d</string>
-<string name="workspace_terminal_new_tab">新增終端機分頁</string>
-<string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
-<string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
-<string name="skills_page_search_placeholder">搜索技能</string>
-<string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">图表</string>
-<string name="assistant_page_local_tools_chart_display_desc">让AI显示折线图、柱状图和散点图</string>
-<string name="chat_message_tool_chart_display">显示图表</string>
-<string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
-<string name="chart_mode_chart">圖表</string>
-<string name="chart_mode_table">表格</string>
-<string name="chart_series">數列</string>
-<string name="chart_series_name">數列 %1$d</string>
-
+  <string name="safe_mode_enter_app">進入應用程式</string>
+  <string name="theme_name_claude">Claude</string>
+  <string name="workspace_terminal_tab">終端機 %1$d</string>
+  <string name="workspace_terminal_new_tab">新增終端機分頁</string>
+  <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
+  <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
+  <string name="skills_page_search_placeholder">搜索技能</string>
+  <string name="skills_page_search_no_result">找不到符合的技能</string>
+  <string name="assistant_page_local_tools_chart_display_title">图表</string>
+  <string name="assistant_page_local_tools_chart_display_desc">让AI显示折线图、柱状图和散点图</string>
+  <string name="chat_message_tool_chart_display">显示图表</string>
+  <string name="chat_message_tool_chart_display_with_title">显示图表：%1$s</string>
+  <string name="chart_mode_chart">圖表</string>
+  <string name="chart_mode_table">表格</string>
+  <string name="chart_series">數列</string>
+  <string name="chart_series_name">數列 %1$d</string>
   <string name="favorite_page_no_favorites">暂无收藏</string>
   <string name="favorite_page_removed">收藏已移除</string>
   <string name="favorite_page_title">收藏</string>
@@ -1833,4 +1855,5 @@
   <string name="setting_account_waiting">等待授权…</string>
   <string name="setting_account_waiting_browser">已在浏览器打开授权页</string>
   <string name="setting_account_device_code">打开 %1$s 并输入代码 %2$s</string>
+  <string name="splash_tagline">原生 Android AI 对话客户端</string>
 </resources>

@@ -7,4 +7,9 @@
   <color name="teal_700">#FF018786</color>
   <color name="black">#FF000000</color>
   <color name="white">#FFFFFFFF</color>
+  <!-- 启动页：<31 没有系统 SplashScreen，底色与 windowBackground 一致，避免首帧闪色；
+       v31+ 与启动图标同一套动态色（见 values-v31 / values-night-v31）。 -->
+  <color name="splash_background">#FFFEF7FF</color>
+  <color name="splash_foreground">#FF1D1B20</color>
+  <color name="splash_content">#FF49454F</color>
 </resources>

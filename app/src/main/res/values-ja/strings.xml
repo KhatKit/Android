@@ -1322,7 +1322,6 @@
   <string name="setting_display_page_background_effect_type">背景効果の種類</string>
   <string name="setting_display_page_background_effect_blur">ぼかし</string>
   <string name="setting_display_page_background_effect_glass">ガラス</string>
-
   <!-- 自动化审批策略 -->
   <string name="approval_category_card_run">カード実行</string>
   <string name="approval_category_ui_action">UI 操作</string>
@@ -1338,7 +1337,6 @@
   <string name="approval_hands_off_desc">確認なしで自動操作を許可 ·</string>
   <string name="approval_status_on">オン</string>
   <string name="approval_status_off">オフ</string>
-
   <string name="setting_page_blur_title">ぼかし</string>
   <!-- 套餐与激活页（SettingsPackagePage）-->
   <string name="setting_package_page_title">プランと有効化</string>
@@ -1360,28 +1358,29 @@
   <string name="setting_package_page_clear">この端末の有効化情報を消去</string>
   <string name="setting_package_page_clear_desc">端末に保存されたトークンのみ削除します。サーバー側のアカウントには影響しません</string>
   <string name="setting_package_page_tip">プラン購入で有効化トークンが得られます。Web でこの端末を有効化してください。オフラインでもローカルカードは動作し、サーバー側で明示的に拒否された場合のみブロックされます。</string>
-<string name="safe_mode_enter_app">進入應用程式</string>
-<string name="setting_tts_page_temperature">溫度</string>
-<string name="setting_tts_page_temperature_description">ランダム性（0.0 - 1.0、高いほど表現力が増す）</string>
-<string name="setting_tts_page_fish_audio_speed_description">話速（0.5 - 2.0）</string>
-<string name="theme_name_claude">Claude</string>
-<string name="workspace_terminal_tab">終端機 %1$d</string>
-<string name="workspace_terminal_new_tab">新增終端機分頁</string>
-<string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
-<string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
-<string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
-<string name="skills_page_search_placeholder">スキルを検索</string>
-<string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">グラフ</string>
-<string name="assistant_page_local_tools_chart_display_desc">AIに折れ線グラフ、棒グラフ、散布図の表示を許可します</string>
-<string name="chat_message_tool_chart_display">グラフを表示</string>
-<string name="chat_message_tool_chart_display_with_title">グラフを表示：%1$s</string>
-<string name="chart_mode_chart">圖表</string>
-<string name="chart_mode_table">表格</string>
-<string name="chart_series">數列</string>
-<string name="chart_series_name">數列 %1$d</string>
+  <string name="safe_mode_enter_app">進入應用程式</string>
+  <string name="setting_tts_page_temperature">溫度</string>
+  <string name="setting_tts_page_temperature_description">ランダム性（0.0 - 1.0、高いほど表現力が増す）</string>
+  <string name="setting_tts_page_fish_audio_speed_description">話速（0.5 - 2.0）</string>
+  <string name="theme_name_claude">Claude</string>
+  <string name="workspace_terminal_tab">終端機 %1$d</string>
+  <string name="workspace_terminal_new_tab">新增終端機分頁</string>
+  <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
+  <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
+  <string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
+  <string name="skills_page_search_placeholder">スキルを検索</string>
+  <string name="skills_page_search_no_result">找不到符合的技能</string>
+  <string name="assistant_page_local_tools_chart_display_title">グラフ</string>
+  <string name="assistant_page_local_tools_chart_display_desc">AIに折れ線グラフ、棒グラフ、散布図の表示を許可します</string>
+  <string name="chat_message_tool_chart_display">グラフを表示</string>
+  <string name="chat_message_tool_chart_display_with_title">グラフを表示：%1$s</string>
+  <string name="chart_mode_chart">圖表</string>
+  <string name="chart_mode_table">表格</string>
+  <string name="chart_series">數列</string>
+  <string name="chart_series_name">數列 %1$d</string>
   <string name="image_preview_saving">保存中…</string>
   <string name="image_preview_saved">画像を保存しました</string>
   <string name="setting_display_page_floating_chat">フローティングチャット</string>
   <string name="setting_display_page_floating_chat_desc">バックグラウンド生成中にフローティングバブルを表示します。タップで返信。オーバーレイ権限が必要です。</string>
+  <string name="splash_tagline">Android ネイティブの AI チャット</string>
 </resources>

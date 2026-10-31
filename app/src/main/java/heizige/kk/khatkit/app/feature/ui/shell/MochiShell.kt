@@ -1,7 +1,26 @@
 package heizige.kk.khatkit.app.feature.ui.shell
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import ui.feice.mochi.basic.MochiTabBarScrollBehavior
+import ui.feice.mochi.basic.rememberMochiTabBarScrollBehavior
+import ui.feice.mochi.navigation.LocalMochiBottomBarInset
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
+import ui.feice.mochi.navigation.mochiScrollEdgeFade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onSizeChanged
+import heizige.kk.khatkit.app.core.ui.components.ui.KkScrollEdgeExtent
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,9 +123,16 @@ fun MochiNavBottomBar(
         }
         return
     }
+    val scrollBehavior = LocalKkNavBarScrollBehavior.current
     MochiTabBar(
         selectedIndex = selected,
-        onSelect = { index -> items.getOrNull(index)?.onClick?.invoke() },
+        onSelect = { index ->
+            scrollBehavior?.expand()
+            items.getOrNull(index)?.onClick?.invoke()
+        },
+        scrollBehavior = scrollBehavior,
+        // 玻璃标签栏取样的是骨架录下的正文（栏浮在正文上，透出的就是它）
+        backdrop = LocalKkBarBackdrop.current,
         items = persistentListOf(
             *items.map { tab ->
                 MochiTabItem(
@@ -143,10 +169,41 @@ fun MochiNavBottomBar(
  */
 internal val LocalKkBarBackdrop = staticCompositionLocalOf<MochiBackdrop?> { null }
 
+/** 浮动底栏的滚动收起（往下滚收成小圆、往上滚展开）；只在 [MochiPageScaffold] 的底部 rail 里有。 */
+private val LocalKkNavBarScrollBehavior = staticCompositionLocalOf<MochiTabBarScrollBehavior?> { null }
+
 /** 正文录制一层玻璃取样源；[backdrop] 为 null（材质没开玻璃）时是空操作。 */
 @Composable
 private fun BackdropContent(backdrop: MochiBackdrop?, content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().mochiBackdropSource(backdrop)) { content() }
+}
+
+/** 量一下栏的高度（空槽是 0），按原样摆放。 */
+@Composable
+private fun MeasuredBar(onHeight: (Int) -> Unit, bar: @Composable () -> Unit) {
+    Column(modifier = Modifier.onSizeChanged { onHeight(it.height) }) { bar() }
+}
+
+/** 正文：有栏的那一边贴着栏渐隐 + 渐进模糊（见 kkScrollEdgeFade），[enabled] 为 false 时原样。 */
+@Composable
+private fun EdgeFadedContent(
+    enabled: Boolean,
+    top: Boolean,
+    bottom: Boolean,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    if (!enabled || (!top && !bottom)) {
+        content(PaddingValues.Zero)
+        return
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .kkScrollEdgeFade(
+                top = if (top) KkScrollEdgeExtent else 0.dp,
+                bottom = if (bottom) KkScrollEdgeExtent else 0.dp,
+            ),
+    ) { content(PaddingValues.Zero) }
 }
 
 @Composable
@@ -171,6 +228,12 @@ fun MochiPageScaffold(
     largeTitle: Boolean = true,
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * 正文贴着顶栏 / 底栏的那一段做 Mochi 滚动边缘过渡（渐隐 + FX 开时渐进模糊，见 kkScrollEdgeFade）。
+     * 正文顶部或底部有固定不滚的东西（搜索框、Tab 条、底部按钮），或正文里画了背景图时传 false，
+     * 由页面把 kkScrollEdgeFade 加在真正滚动的那个容器上。
+     */
+    edgeFade: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     if (title != null) {
@@ -201,6 +264,9 @@ fun MochiPageScaffold(
     // 栏玻璃的取样源（材质开玻璃才非空）：正文录一层，顶栏从 CompositionLocal 里读。
     // 所有走本骨架的页面（设置、列表、工具页……）因此共用同一套栏材质，不再有的页有模糊、有的没有。
     val barBackdrop = rememberMochiBarBackdrop(background = containerColor)
+    // 栏量出来高度为 0 = 这一页没有那条栏，那一边就没有交界、不遮
+    var topBarHeight by remember { mutableIntStateOf(0) }
+    var bottomBarHeight by remember { mutableIntStateOf(0) }
     CompositionLocalProvider(LocalKkBarBackdrop provides barBackdrop) {
         Box(modifier = modifier.fillMaxSize().background(containerColor)) {
             val windowWidth = currentWindowDpSize().width
@@ -209,24 +275,96 @@ fun MochiPageScaffold(
                 androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.width(96.dp).fillMaxHeight()) { rail?.invoke() }
                     Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        topBar()
+                        MeasuredBar(onHeight = { topBarHeight = it }, bar = topBar)
                         Box(modifier = Modifier.weight(1f)) {
-                            BackdropContent(barBackdrop) { content(PaddingValues.Zero) }
+                            BackdropContent(barBackdrop) { EdgeFadedContent(edgeFade, topBarHeight > 0, false, content) }
                         }
                     }
                 }
+            } else if (rail != null) {
+                FloatingRailLayout(
+                    barBackdrop = barBackdrop,
+                    background = containerColor,
+                    topBar = topBar,
+                    onTopBarHeight = { topBarHeight = it },
+                    edgeFade = edgeFade && topBarHeight > 0,
+                    rail = rail,
+                    content = content,
+                )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    topBar()
+                    MeasuredBar(onHeight = { topBarHeight = it }, bar = topBar)
                     Box(modifier = Modifier.weight(1f)) {
-                        BackdropContent(barBackdrop) { content(PaddingValues.Zero) }
+                        BackdropContent(barBackdrop) {
+                            EdgeFadedContent(edgeFade, topBarHeight > 0, bottomBarHeight > 0, content)
+                        }
                     }
-                    bottomBar()
-                    rail?.invoke()
+                    MeasuredBar(onHeight = { bottomBarHeight = it }, bar = bottomBar)
                 }
             }
             Box(modifier = Modifier.align(Alignment.BottomCenter)) { snackbarHost() }
             Box(modifier = Modifier.align(Alignment.BottomEnd)) { floatingActionButton() }
+        }
+    }
+}
+
+/**
+ * 底部 rail（[MochiNavBottomBar]）浮在正文上，和 Mochi 的 [ui.feice.mochi.navigation.MochiTabScaffold] 同一套：
+ * - 正文铺到屏幕底，栏下面透出的就是正文（玻璃栏取样它；纯色栏后面垫一层朝上渐隐的底色）
+ * - 栏连同留白的整块高度经 [LocalMochiBottomBarInset] 下发，content 拿到的 PaddingValues.bottom 也是它：
+ *   页面把它当列表的 contentPadding（或用 [MochiTabScaffoldDefaults.contentBottomPadding]），
+ *   最后一项停在栏上面，滚动时内容从栏底下穿过
+ * - 正文往下滚栏收成小圆、往上滚展开
+ * 顶边交界照旧按 [edgeFade] 渐隐；底边不遮（栏是浮着的，内容本来就要从它底下透出来）。
+ */
+@Composable
+private fun FloatingRailLayout(
+    barBackdrop: MochiBackdrop?,
+    background: Color,
+    topBar: @Composable () -> Unit,
+    onTopBarHeight: (Int) -> Unit,
+    edgeFade: Boolean,
+    rail: @Composable () -> Unit,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    val density = LocalDensity.current
+    val scrollBehavior = rememberMochiTabBarScrollBehavior()
+    var railPx by remember { mutableIntStateOf(0) }
+    val railInset = with(density) { railPx.toDp() }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MeasuredBar(onHeight = onTopBarHeight, bar = topBar)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+            ) {
+                CompositionLocalProvider(LocalMochiBottomBarInset provides railInset) {
+                    BackdropContent(barBackdrop) {
+                        EdgeFadedContent(edgeFade, top = true, bottom = false) {
+                            content(PaddingValues(bottom = railInset))
+                        }
+                    }
+                }
+            }
+        }
+        if (MochiTheme.materials.bar == null) {
+            Spacer(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 36.dp)
+                    .mochiScrollEdgeFade(background, bottom = true, extent = 56.dp),
+            )
+        }
+        CompositionLocalProvider(LocalKkNavBarScrollBehavior provides scrollBehavior) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    // 量的是含留白的整块高度；收起时的位移不影响它，正文底部不跟着跳
+                    .onSizeChanged { railPx = it.height }
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+            ) { rail() }
         }
     }
 }

@@ -1,43 +1,34 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.uikit.mochi.SegmentedItem
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.app.core.ui.components.ui.SwitchRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.ai.provider.ClaudePromptCacheTtl
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
-import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrlOrNull
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -45,9 +36,23 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.reflect.KClass
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
+import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.MochiListTextFieldRow
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.list.MochiListButton
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListPickerRow
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.list.mochiListDivider
+import ui.feice.mochi.theme.MochiTheme
 
+/**
+ * 提供商的连接配置，按 Mochi 设置页的分组卡片排：接口类型 / 连接 / 选项（各类型再加自己的分组）。
+ * 调用方只负责外层滚动和左右留白；各分组之间的间距在这里统一给。
+ */
 @Composable
 fun ProviderConfigure(
     provider: ProviderSetting,
@@ -55,19 +60,23 @@ fun ProviderConfigure(
     onEdit: (provider: ProviderSetting) -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(ProviderSectionGap),
         modifier = modifier
     ) {
+        provider.description()
+
         if (!provider.builtIn) {
-            KkSingleChoiceSegmentedRow(
-                items = ProviderSetting.Types.map { type ->
-                    SegmentedItem(
-                        label = type.simpleName ?: "",
-                        selected = provider::class == type,
-                        onClick = { onEdit(provider.convertTo(type)) },
+            val types = ProviderSetting.Types
+            MochiListSection(header = "接口类型") {
+                ProviderSectionBlock {
+                    MochiSegmentedControl(
+                        selectedIndex = types.indexOf(provider::class).coerceAtLeast(0),
+                        onSelect = { onEdit(provider.convertTo(types[it])) },
+                        items = types.map { it.simpleName ?: "" }.toImmutableList(),
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-            )
+                }
+            }
         }
 
         when (provider) {
@@ -76,6 +85,84 @@ fun ProviderConfigure(
             is ProviderSetting.Claude -> ProviderConfigureClaude(provider, onEdit)
             // 账号类提供商的配置界面由 OA-3（t161）接；这里先不渲染
             is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> Unit
+        }
+    }
+}
+
+/** 提供商配置页里相邻两个分组卡片的间距（[ProviderConfigure] 内部和详情页外层共用）。 */
+internal val ProviderSectionGap = 24.dp
+
+/** 表单行标签宽度：「API Key」「Base URL」都放得下，同一张卡片里输入区对齐成一列。 */
+private val ProviderLabelWidth = 96.dp
+
+/** 分组卡片里的自定义内容（分段选择器）：左右与行文字对齐，卡片按它登记的起点画分隔线。 */
+@Composable
+internal fun ProviderSectionBlock(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .mochiListDivider(MochiListDefaults.TextRowPadding)
+            .fillMaxWidth()
+            .padding(MochiListDefaults.RowPadding),
+    ) {
+        content()
+    }
+}
+
+/** 开关行：点整行也能切换。 */
+@Composable
+internal fun ProviderSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null,
+) {
+    MochiListRow(
+        title = title,
+        subtitle = subtitle,
+        onClick = { onCheckedChange(!checked) },
+        trailing = { MochiSwitch(checked = checked, onCheckedChange = onCheckedChange) },
+    )
+}
+
+/** 密钥输入行：默认打码，行尾的眼睛切换明文。 */
+@Composable
+private fun SecretFieldRow(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    multiLine: Boolean = false,
+) {
+    var visible by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .mochiListDivider(MochiListDefaults.TextRowPadding)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MochiListTextFieldRow(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            label = label,
+            placeholder = "必填",
+            secure = !visible,
+            // 打码时按单行显示圆点；明文时私钥这类长内容可以换行
+            singleLine = !(multiLine && visible),
+            maxLines = if (multiLine && visible) 6 else 1,
+            labelWidth = ProviderLabelWidth,
+        )
+        MochiIconButton(
+            onClick = { visible = !visible },
+            style = MochiButtonStyle.Text,
+            size = 40.dp,
+            modifier = Modifier.padding(end = 6.dp),
+        ) {
+            Icon(
+                imageVector = if (visible) visibilityOff else visibility,
+                contentDescription = if (visible) "隐藏" else "显示",
+                tint = MochiTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
@@ -234,90 +321,90 @@ private fun Modifier.normalizeNameOnBlur(
     if (trimmed != name) onCommit(trimmed)
 }
 
+/** 名称输入行：失焦时 trim 一次（见 [normalizeNameOnBlur]）。 */
+@Composable
+private fun NameFieldRow(name: String, onCommit: (String) -> Unit) {
+    MochiListTextFieldRow(
+        value = name,
+        onValueChange = onCommit,
+        modifier = Modifier.normalizeNameOnBlur(name, onCommit),
+        label = stringResource(R.string.setting_provider_page_name),
+        placeholder = "提供商名称",
+        labelWidth = ProviderLabelWidth,
+    )
+}
+
+@Composable
+private fun BaseUrlFieldRow(value: String, placeholder: String, onValueChange: (String) -> Unit) {
+    MochiListTextFieldRow(
+        value = value,
+        onValueChange = onValueChange,
+        label = "Base URL",
+        placeholder = placeholder,
+        labelWidth = ProviderLabelWidth,
+    )
+}
+
 @Composable
 private fun ProviderConfigureOpenAI(
     provider: ProviderSetting.OpenAI,
     onEdit: (provider: ProviderSetting.OpenAI) -> Unit
 ) {
-    val toaster = LocalToaster.current
-
-    provider.description()
-
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it)) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    var keyVisible by remember { mutableStateOf(false) }
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.apiKey,
-        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 3,
-        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
-                Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.baseUrl,
-        onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-        modifier = Modifier.fillMaxWidth(),
-        isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    Md3OutlinedTextFieldWithSlots(
-        value = if (provider.useResponseApi) provider.responsesPath else provider.chatCompletionsPath,
-        onValueChange = {
-            onEdit(
-                if (provider.useResponseApi) {
-                    provider.copy(responsesPath = it.trim())
-                } else {
-                    provider.copy(chatCompletionsPath = it.trim())
-                }
-            )
-        },
-        label = { Text(stringResource(R.string.setting_provider_page_api_path)) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = !provider.builtIn,
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    SwitchRow(
-        R.string.setting_provider_page_enable,
-        checked = provider.enabled,
-        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
-    )
+    val invalidUrl = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl()
+    MochiListSection(
+        header = "连接",
+        footer = if (invalidUrl) "Base URL 格式不正确" else null,
+    ) {
+        NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
+        SecretFieldRow(
+            label = stringResource(R.string.setting_provider_page_api_key),
+            value = provider.apiKey,
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+        )
+        BaseUrlFieldRow(provider.baseUrl, "https://api.openai.com/v1") {
+            onEdit(provider.copy(baseUrl = it.trim()))
+        }
+        MochiListTextFieldRow(
+            value = if (provider.useResponseApi) provider.responsesPath else provider.chatCompletionsPath,
+            onValueChange = {
+                onEdit(
+                    if (provider.useResponseApi) {
+                        provider.copy(responsesPath = it.trim())
+                    } else {
+                        provider.copy(chatCompletionsPath = it.trim())
+                    }
+                )
+            },
+            label = stringResource(R.string.setting_provider_page_api_path),
+            enabled = !provider.builtIn,
+            labelWidth = ProviderLabelWidth,
+        )
+    }
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
-    SwitchRow(
-        R.string.setting_provider_page_response_api,
-        checked = provider.useResponseApi,
-        onCheckedChange = {
-            onEdit(provider.copy(useResponseApi = it))
-            if (it && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
-                Toast.show(message = responseAPIWarning, isError = false)
-            }
-        },
-    )
-
-    SwitchRow(
-        R.string.setting_provider_page_include_history_reasoning,
-        checked = provider.includeHistoryReasoning,
-        onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) },
-    )
+    MochiListSection(header = "选项") {
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_enable),
+            checked = provider.enabled,
+            onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+        )
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_response_api),
+            subtitle = "使用 /responses 接口代替 /chat/completions",
+            checked = provider.useResponseApi,
+            onCheckedChange = {
+                onEdit(provider.copy(useResponseApi = it))
+                if (it && provider.baseUrl.toHttpUrlOrNull()?.host != "api.openai.com") {
+                    Toast.show(message = responseAPIWarning, isError = false)
+                }
+            },
+        )
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_include_history_reasoning),
+            checked = provider.includeHistoryReasoning,
+            onCheckedChange = { onEdit(provider.copy(includeHistoryReasoning = it)) },
+        )
+    }
 }
 
 @Composable
@@ -325,70 +412,46 @@ private fun ProviderConfigureClaude(
     provider: ProviderSetting.Claude,
     onEdit: (provider: ProviderSetting.Claude) -> Unit
 ) {
-    provider.description()
-
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it)) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
-        maxLines = 3,
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    var keyVisible by remember { mutableStateOf(false) }
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.apiKey,
-        onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-        modifier = Modifier.fillMaxWidth(),
-        maxLines = 3,
-        visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
-                Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.baseUrl,
-        onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-        label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-        modifier = Modifier.fillMaxWidth(),
-        isError = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl(),
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    SwitchRow(
-        R.string.setting_provider_page_enable,
-        checked = provider.enabled,
-        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
-    )
-
-    SwitchRow(
-        R.string.setting_provider_page_claude_prompt_caching,
-        checked = provider.promptCaching,
-        onCheckedChange = { onEdit(provider.copy(promptCaching = it)) },
-    )
-
-    if (provider.promptCaching) {
-        Text(stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl))
-        KkSingleChoiceSegmentedRow(
-            items = ClaudePromptCacheTtl.entries.map { ttl ->
-                SegmentedItem(
-                    label = when (ttl) {
-                        ClaudePromptCacheTtl.FIVE_MINUTES -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m)
-                        ClaudePromptCacheTtl.ONE_HOUR -> stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h)
-                    },
-                    selected = provider.promptCacheTtl == ttl,
-                    onClick = { onEdit(provider.copy(promptCacheTtl = ttl)) },
-                )
-            },
+    val invalidUrl = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl()
+    MochiListSection(
+        header = "连接",
+        footer = if (invalidUrl) "Base URL 格式不正确" else null,
+    ) {
+        NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
+        SecretFieldRow(
+            label = stringResource(R.string.setting_provider_page_api_key),
+            value = provider.apiKey,
+            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
         )
+        BaseUrlFieldRow(provider.baseUrl, "https://api.anthropic.com/v1") {
+            onEdit(provider.copy(baseUrl = it.trim()))
+        }
+    }
+
+    val ttlOptions = ClaudePromptCacheTtl.entries
+    val ttlLabels = persistentListOf(
+        stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m),
+        stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h),
+    )
+    MochiListSection(header = "选项") {
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_enable),
+            checked = provider.enabled,
+            onCheckedChange = { onEdit(provider.copy(enabled = it)) },
+        )
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_claude_prompt_caching),
+            checked = provider.promptCaching,
+            onCheckedChange = { onEdit(provider.copy(promptCaching = it)) },
+        )
+        if (provider.promptCaching) {
+            MochiListPickerRow(
+                title = stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl),
+                options = ttlLabels,
+                selectedIndex = ttlOptions.indexOf(provider.promptCacheTtl).coerceAtLeast(0),
+                onSelect = { onEdit(provider.copy(promptCacheTtl = ttlOptions[it])) },
+            )
+        }
     }
 }
 
@@ -398,7 +461,6 @@ private fun ProviderConfigureGoogle(
     onEdit: (provider: ProviderSetting.Google) -> Unit
 ) {
     val context = LocalContext.current
-    val toaster = LocalToaster.current
     val serviceAccountJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -422,127 +484,92 @@ private fun ProviderConfigureGoogle(
         }
     }
 
-    provider.description()
-
-    Md3OutlinedTextFieldWithSlots(
-        value = provider.name,
-        onValueChange = { onEdit(provider.copy(name = it)) },
-        label = { Text(stringResource(R.string.setting_provider_page_name)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .normalizeNameOnBlur(provider.name) { onEdit(provider.copy(name = it)) },
-        shape = RoundedCornerShape(16.dp)
-    )
-
-    if (!(provider.vertexAI && provider.useServiceAccount)) {
-        var keyVisible by remember { mutableStateOf(false) }
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.apiKey,
-            onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 3,
-            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(if (keyVisible) visibilityOff else visibility, contentDescription = null)
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
+    val serviceAccount = provider.vertexAI && provider.useServiceAccount
+    val urlFooter = when {
+        provider.vertexAI || provider.baseUrl.isBlank() -> null
+        !provider.baseUrl.isValidBaseUrl() -> "Base URL 格式不正确"
+        !provider.baseUrl.endsWith("/v1beta") -> "Base URL 通常以 /v1beta 结尾"
+        else -> null
     }
-
-    if (!provider.vertexAI) {
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.baseUrl,
-            onValueChange = { onEdit(provider.copy(baseUrl = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_api_base_url)) },
-            modifier = Modifier.fillMaxWidth(),
-            isError = provider.baseUrl.isNotBlank() && (
-                !provider.baseUrl.isValidBaseUrl() || !provider.baseUrl.endsWith("/v1beta")
-                ),
-            supportingText = {
-                if (!provider.baseUrl.endsWith("/v1beta")) Text("The base URL usually ends with `/v1beta`")
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        Md3SwitchFormRow(
-            checked = provider.useInteractionsApi,
-            onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
-            label = { Text("Interactions API (Beta)") },
-        )
-    }
-
-    SwitchRow(
-        R.string.setting_provider_page_enable,
-        checked = provider.enabled,
-        onCheckedChange = { onEdit(provider.copy(enabled = it)) },
-    )
-
-    SwitchRow(
-        R.string.setting_provider_page_vertex_ai,
-        checked = provider.vertexAI,
-        onCheckedChange = { onEdit(provider.copy(vertexAI = it)) },
-    )
-
-    if (provider.vertexAI) {
-        SwitchRow(
-            R.string.setting_provider_page_use_service_account,
-            checked = provider.useServiceAccount,
-            onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) },
-        )
-    }
-
-    if (provider.vertexAI && provider.useServiceAccount) {
-        MochiButton(
-            onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
-            modifier = Modifier.fillMaxWidth(),
-            shapes = ButtonDefaults.shapes(),
-        ) {
-            Text(stringResource(R.string.setting_provider_page_import_service_account_json))
+    MochiListSection(header = "连接", footer = urlFooter) {
+        NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
+        if (!serviceAccount) {
+            SecretFieldRow(
+                label = stringResource(R.string.setting_provider_page_api_key),
+                value = provider.apiKey,
+                onValueChange = { onEdit(provider.copy(apiKey = it.trim())) },
+            )
         }
+        if (!provider.vertexAI) {
+            BaseUrlFieldRow(provider.baseUrl, "https://generativelanguage.googleapis.com/v1beta") {
+                onEdit(provider.copy(baseUrl = it.trim()))
+            }
+        }
+    }
 
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.serviceAccountEmail,
-            onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_service_account_email)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
+    MochiListSection(header = "选项") {
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_enable),
+            checked = provider.enabled,
+            onCheckedChange = { onEdit(provider.copy(enabled = it)) },
         )
+        if (!provider.vertexAI) {
+            ProviderSwitchRow(
+                title = "Interactions API",
+                subtitle = "Beta",
+                checked = provider.useInteractionsApi,
+                onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
+            )
+        }
+        ProviderSwitchRow(
+            title = stringResource(R.string.setting_provider_page_vertex_ai),
+            checked = provider.vertexAI,
+            onCheckedChange = { onEdit(provider.copy(vertexAI = it)) },
+        )
+        if (provider.vertexAI) {
+            ProviderSwitchRow(
+                title = stringResource(R.string.setting_provider_page_use_service_account),
+                checked = provider.useServiceAccount,
+                onCheckedChange = { onEdit(provider.copy(useServiceAccount = it)) },
+            )
+        }
+    }
 
-        var privateKeyVisible by remember { mutableStateOf(false) }
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.privateKey,
-            onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_private_key)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 6,
-            minLines = 3,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = JetbrainsMono),
-            visualTransformation = if (privateKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MochiIconButton(onClick = { privateKeyVisible = !privateKeyVisible }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(if (privateKeyVisible) visibilityOff else visibility, contentDescription = null)
-                }
-            },
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.location,
-            onValueChange = { onEdit(provider.copy(location = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_location)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        Md3OutlinedTextFieldWithSlots(
-            value = provider.projectId,
-            onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
-            label = { Text(stringResource(R.string.setting_provider_page_project_id)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
+    if (serviceAccount) {
+        MochiListSection(header = "服务账号") {
+            MochiListTextFieldRow(
+                value = provider.serviceAccountEmail,
+                onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
+                label = "邮箱",
+                placeholder = stringResource(R.string.setting_provider_page_service_account_email),
+                labelWidth = ProviderLabelWidth,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Email,
+                ),
+            )
+            SecretFieldRow(
+                label = stringResource(R.string.setting_provider_page_private_key),
+                value = provider.privateKey,
+                onValueChange = { onEdit(provider.copy(privateKey = it.trim())) },
+                multiLine = true,
+            )
+            MochiListTextFieldRow(
+                value = provider.location,
+                onValueChange = { onEdit(provider.copy(location = it.trim())) },
+                label = "区域",
+                placeholder = "us-central1",
+                labelWidth = ProviderLabelWidth,
+            )
+            MochiListTextFieldRow(
+                value = provider.projectId,
+                onValueChange = { onEdit(provider.copy(projectId = it.trim())) },
+                label = stringResource(R.string.setting_provider_page_project_id),
+                labelWidth = ProviderLabelWidth,
+            )
+            MochiListButton(
+                text = stringResource(R.string.setting_provider_page_import_service_account_json),
+                onClick = { serviceAccountJsonLauncher.launch(arrayOf("application/json", "*/*")) },
+            )
+        }
     }
 }

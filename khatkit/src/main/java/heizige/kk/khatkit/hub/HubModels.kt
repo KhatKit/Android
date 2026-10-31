@@ -61,9 +61,7 @@ data class CardIndexEntry(
     /**
      * 依赖的原生依赖包（随卡片从 Hub 下载，DexClassLoader 加载）；
      * 与 manifest.requires.dependencies 一致，供能力过滤与预下载决策。
-     * 兼容旧 Hub 索引字段 `plugins`（反序列化回退）。
      */
-    @JsonNames("plugins")
     val dependencies: List<CardManifest.DependencyReq> = emptyList(),
     // ===== §8 P0-3：统一市场（/api/items）预留字段，全部可缺省 =====
     /** 语言映射标题（`display_name`，§3.3）。旧索引没有则空映射。 */

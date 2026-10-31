@@ -30,6 +30,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import java.io.File
@@ -310,23 +312,25 @@ class HubClient(
     suspend fun reportTool(token: String, request: HubToolReportRequest): HubActionResult =
         mutation(resolve("/api/tools/report"), json.encodeToJsonElement(request), token)
 
-    /** 市场卡片列表（公开）：GET /api/cards，展示价格 / 协议 / 优选徽标。 */
+    /** 卡片市场与所有扩展共用 /api/items。 */
     suspend fun listCards(token: String? = null): HubCardListResult = withContext(Dispatchers.IO) {
-        val call = runCatching { getJson(resolve("/api/cards"), token) }.getOrElse {
+        val call = runCatching { getJson(resolve("/api/items?kind=card&limit=100"), token) }.getOrElse {
             return@withContext HubCardListResult(false, message = networkError(it))
         }
         if (call.code !in 200..299) {
             return@withContext HubCardListResult(false, message = httpError(call.code, call.body?.asObj()))
         }
-        val cards = when (val body = call.body) {
-            is JsonArray -> parseMarketCards(body)
-            is JsonObject -> {
-                val array = body["cards"] as? JsonArray
-                    ?: body["data"] as? JsonArray
-                    ?: body["list"] as? JsonArray
-                array?.let { parseMarketCards(it) }.orEmpty()
-            }
-            else -> emptyList()
+        val body = call.body as? JsonObject
+            ?: return@withContext HubCardListResult(false, message = "市场响应格式无效")
+        val items = body["items"] as? JsonArray
+            ?: return@withContext HubCardListResult(false, message = "市场响应缺少 items")
+        val cards = items.map { json.decodeFromJsonElement<HubItemSummary>(it) }.map { item ->
+            HubCardMarketInfo(
+                name = item.name, version = item.version, author = item.author,
+                summary = item.descriptionText(), license = item.license, preferred = item.preferred,
+                priceCents = item.pricing["price_per_call_cents"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0,
+                votes = item.upvotes, score = item.score,
+            )
         }
         HubCardListResult(true, cards)
     }
@@ -403,37 +407,6 @@ class HubClient(
 
     private fun encodeSegment(value: String): String =
         URLEncoder.encode(value, Charsets.UTF_8.name()).replace("+", "%20")
-
-    private fun parseMarketCards(array: JsonArray): List<HubCardMarketInfo> = array.mapNotNull { element ->
-        val obj = element as? JsonObject ?: return@mapNotNull null
-        val name = obj.strAny("name", "card_name") ?: return@mapNotNull null
-        val pricing = obj["pricing"] as? JsonObject
-        HubCardMarketInfo(
-            name = name,
-            version = obj.strAny("preferred_version", "version") ?: "",
-            author = obj.strAny("author", "author_name") ?: "",
-            summary = obj.strAny("summary", "description", "desc") ?: "",
-            priceCents = obj.longAny("price_per_call", "price", "price_cents", "unit_price")
-                ?: pricing?.longAny("price", "price_per_call") ?: 0L,
-            currency = obj.strAny("currency") ?: pricing?.strAny("currency") ?: "CNY",
-            license = obj.strAny("license", "license_name") ?: "",
-            preferred = obj.boolAny("has_preferred", "preferred", "featured", "recommended", "is_preferred") == true,
-            votes = (obj.longAny("upvotes", "votes", "vote_count", "likes") ?: 0L).toInt(),
-            // 后端目前只在 /api/cards 里给 usage_reports（每次使用上报 +1），没有独立下载计数：
-            // 有 downloads/installs 就优先用它，否则退回 usage_reports，两者都没有就保持 0（不展示）。
-            downloads = obj.longAny(
-                "downloads",
-                "download_count",
-                "download_total",
-                "installs",
-                "install_count",
-                "install_total",
-                "usage_reports",
-                "usage_count",
-            ) ?: 0L,
-            score = obj.longAny("score") ?: 0L,
-        )
-    }
 
     private fun JsonObject.toAccountInfo(activeFallback: Boolean): HubAccountInfo {
         val aiTokens = this["ai_tokens"] as? JsonObject

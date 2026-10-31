@@ -959,7 +959,7 @@ private fun Model.findModelProviderFromList(providers: List<ProviderSetting>): P
 
 internal val DEFAULT_ASSISTANT_ID = Uuid.parse("0950e2dc-9bd5-4801-afa3-aa887aa36b4e")
 internal val DEFAULT_ASSISTANTS = listOf(
-    RoleTemplates.toolbox(id = DEFAULT_ASSISTANT_ID),
+    RoleTemplates.kitty(id = DEFAULT_ASSISTANT_ID),
 )
 
 val DEFAULT_SYSTEM_TTS_ID = Uuid.parse("026a01a2-c3a0-4fd5-8075-80e03bdef200")

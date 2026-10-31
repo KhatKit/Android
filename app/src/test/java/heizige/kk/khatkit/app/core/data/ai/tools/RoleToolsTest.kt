@@ -17,7 +17,7 @@ import org.junit.Test
 
 class RoleToolsTest {
     private val model = Model(modelId = "model-test", displayName = "Test")
-    private val supervisor = RoleTemplates.toolbox(model.id)
+    private val supervisor = RoleTemplates.kitty(model.id)
     private val worker = Assistant(name = "worker", description = "verify", chatModelId = model.id)
     private var settings = Settings(
         assistantId = supervisor.id,

@@ -856,7 +856,7 @@ class CardValidatorTest {
     }
 
     @Test
-    fun legacyPluginFieldStillParsesAsDependency() {
+    fun nativeDependenciesUseTheCanonicalField() {
         val parsed = CardParser.parse(
             """
             {
@@ -866,7 +866,7 @@ class CardValidatorTest {
               "entry": { "lua": "main.lua" },
               "requires": {
                 "bridges": ["tool", "ui", "imageToolbox"],
-                "plugins": [
+                "dependencies": [
                   { "name": "imageToolbox", "version": "1.0.0", "sha256": "$validSha" }
                 ]
               },

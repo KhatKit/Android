@@ -59,7 +59,23 @@ internal fun ModelPicker(
     onModelSelected: (Model) -> Unit,
     onModelDeselected: (Model) -> Unit,
     onAllModelSelected: (List<Model>) -> Unit,
-    onAllModelDeselected: (List<Model>) -> Unit
+    onAllModelDeselected: (List<Model>) -> Unit,
+    /** 打开可选模型面板的入口；默认是带数量角标的图标按钮。 */
+    trigger: @Composable (open: () -> Unit) -> Unit = { open ->
+        MochiBadgedBox(
+            badge = {
+                if (models.isNotEmpty()) {
+                    MochiBadge {
+                        Text(models.size.toString())
+                    }
+                }
+            }
+        ) {
+            MochiIconButton(onClick = open, shapes = IconButtonDefaults.shapes()) {
+                Icon(package2, null)
+            }
+        }
+    },
 ) {
     var showModal by remember { mutableStateOf(false) }
         PrimaryBottomSheet(
@@ -207,24 +223,7 @@ internal fun ModelPicker(
                 )
             }
         }
-    MochiBadgedBox(
-        badge = {
-            if (models.isNotEmpty()) {
-                MochiBadge {
-                    Text(models.size.toString())
-                }
-            }
-        }
-    ) {
-        MochiIconButton(
-            onClick = {
-                showModal = true
-            },
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            Icon(package2, null)
-        }
-    }
+    trigger { showModal = true }
 }
 
 /**

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
@@ -43,6 +45,8 @@ fun KedgeTabPageScaffold(
         md3ScrollBehavior = scrollBehavior,
         rail = rail,
         containerColor = CustomColors.pageContainerColor,
+        // Tab 条是固定的：交界在 Tab 条下沿，只给 pager 内容加
+        edgeFade = false,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -56,7 +60,7 @@ fun KedgeTabPageScaffold(
                 scrollable = scrollableTab,
                 containerColor = CustomColors.pageContainerColor,
             )
-            pageContent(Modifier.weight(1f))
+            pageContent(Modifier.weight(1f).kkScrollEdgeFade(bottom = 0.dp))
         }
     }
 }

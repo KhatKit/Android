@@ -570,6 +570,8 @@ internal fun ChatScaffold(
                     )
             },
             containerColor = Color.Transparent,
+            // 正文里铺着助手背景图，整槽渐隐会把背景一起擦掉：交界过渡由 ChatList 自己加在消息列表上
+            edgeFade = false,
     ) { innerPadding ->
             // 助手背景（图片/流光）放在内容槽内的最底层：Miuix 下 backdrop 录制的
             // 就是这棵子树，画在槽外顶栏的毛玻璃采样不到它 —— 表现是「顶栏没有背景

@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -519,10 +520,11 @@ private fun ExportedChatImage(
                             )
                         }
                         // Use painterResource for the logo
-                        val painter = painterResource(id = R.mipmap.ic_launcher_foreground)
+                        val painter = painterResource(id = R.drawable.ic_launcher_foreground)
                         Image(
                             painter = painter,
                             contentDescription = "Logo",
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
                             modifier = Modifier.size(60.dp)
                         )
                     }

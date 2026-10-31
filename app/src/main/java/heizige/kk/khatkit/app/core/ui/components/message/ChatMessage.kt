@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
+import ui.feice.mochi.shape.MochiRoundedRectangle
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -255,7 +257,10 @@ fun ChatMessage(
         // 不再套 Row，因此没有 `spacedBy(8.dp)` 的列间距、也没有 28dp 头像列，
         // 气泡直接从页面右侧内边距起画（与改动前相比整体右移 36dp = 28 + 8）。
         Column(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier
+                .fillMaxWidth()
+                // iMessage / Mochi 示例的做法：自己发的气泡左侧留白，长消息也不铺满整行
+                .padding(start = 48.dp),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -481,13 +486,16 @@ private fun MessagePartsBlock(
                     is UIMessagePart.Text -> {
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
+                                // Mochi 聊天气泡：连续曲率圆角（MochiRoundedRectangle）+ 14/9 内边距，
+                                // 与 Mochi 示例的 DemoChatBubble 同一套度量。底色仍用 primaryContainer：
+                                // 正文是 Markdown，链接/行内代码用 primary 着色，实心 primary 底会看不见。
                                 KkSurface(
                                     modifier = Modifier.kkAnimateContentSize(),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = ChatBubbleShape,
                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
                                     onClick = { onUserMessageClick?.invoke() },
                                 ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
+                                    Column(modifier = Modifier.padding(ChatBubblePadding)) {
                                         MarkdownBlock(
                                             content = part.text.replaceRegexes(
                                                 assistant = assistant,
@@ -506,10 +514,10 @@ private fun MessagePartsBlock(
                                 // 用户主动选择，与用户侧 primaryContainer 气泡左右不对称属预期。
                                 KkSurface(
                                     modifier = Modifier.kkAnimateContentSize(),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = ChatBubbleShape,
                                     color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
                                 ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
+                                    Column(modifier = Modifier.padding(ChatBubblePadding)) {
                                         MarkdownBlock(
                                             content = part.text.replaceRegexes(
                                                 assistant = assistant,
@@ -778,3 +786,8 @@ private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
         )
     }
 }
+
+// 消息气泡度量（用户 / 助手两侧共用）：Mochi 连续曲率圆角 18dp + 横 14 / 纵 9 内边距，
+// 取自 Mochi 示例的 DemoChatBubble。
+private val ChatBubbleShape = MochiRoundedRectangle(18.dp)
+private val ChatBubblePadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)

@@ -1,6 +1,14 @@
 package heizige.kk.khatkit.app.feature.settings.provider
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
+import heizige.kk.khatkit.uikit.mochi.MochiBadge
+import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabColumn
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiSmallFab
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.basic.MochiSheetDetent
@@ -156,7 +164,6 @@ internal fun ModelList(
             it.printStackTrace()
         }
     }
-    var expanded by rememberSaveable { mutableStateOf(true) }
     val lazyListState = rememberLazyListState()
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         onUpdateProvider(providerSetting.moveMove(from.index, to.index))
@@ -164,14 +171,17 @@ internal fun ModelList(
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
+            // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
                 .fillMaxSize()
-                .floatingToolbarVerticalNestedScroll(
-                    expanded = expanded,
-                    onExpand = { expanded = true },
-                    onCollapse = { expanded = false },
-                ),
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
+                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+            // 底部留出浮动底栏 + FAB 的高度，最后一项能滚到它们上面
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding() + MochiFabDefaults.stackHeight(smallCount = 1),
+            ),
             horizontalAlignment = Alignment.CenterHorizontally,
             // 模型行是同一组（圆角按 index/count 算），项间距取全局列表卡片样式
             verticalArrangement = Arrangement.spacedBy(listCardStyle().gap),
@@ -242,12 +252,7 @@ internal fun ModelList(
                 }
             }
         }
-        KkFloatingToolbar(
-            expanded = expanded,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -ScreenOffset),
-        ) {
+        MochiFabColumn {
             AddModelButton(
                 models = modelList,
                 selectedModels = providerSetting.models,
@@ -257,7 +262,6 @@ internal fun ModelList(
                 onRemoveModel = {
                     onUpdateProvider(providerSetting.delModel(it))
                 },
-                expanded = expanded,
                 parentProvider = providerSetting,
                 onUpdateProvider = onUpdateProvider
             )
@@ -525,7 +529,6 @@ private fun ModelFormDivider() {
 internal fun AddModelButton(
     models: List<Model>,
     selectedModels: List<Model>,
-    expanded: Boolean,
     onAddModel: (Model) -> Unit,
     onRemoveModel: (Model) -> Unit,
     parentProvider: ProviderSetting,
@@ -535,10 +538,8 @@ internal fun AddModelButton(
         onAddModel(it.copy(displayName = it.displayName.trim()))
     }
 
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    // 放在 [MochiFabColumn] 里：上面小的是「从接口拉取的可选模型」（角标 = 可选数量），下面主按钮新建模型
+    run {
         ModelPicker(
             models = models,
             selectedModels = selectedModels,
@@ -580,33 +581,29 @@ internal fun AddModelButton(
                         }
                     )
                 )
-            }
-        )
-
-        MochiButton(
-            onClick = {
-                dialogState.open(Model())
             },
-            shapes = ButtonDefaults.shapes(),
-        ) {
-            Row(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    add,
-                    contentDescription = stringResource(R.string.setting_provider_page_add_model)
-                )
-                AnimatedVisibility(expanded) {
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        stringResource(R.string.setting_provider_page_add_new_model),
-                        style = MaterialTheme.typography.bodyMedium
+            trigger = { open ->
+                MochiBadgedBox(
+                    badge = {
+                        if (models.isNotEmpty()) {
+                            MochiBadge { Text(models.size.toString()) }
+                        }
+                    }
+                ) {
+                    MochiSmallFab(
+                        icon = package2,
+                        contentDescription = stringResource(R.string.setting_provider_page_avaliable_models),
+                        onClick = open,
                     )
                 }
-            }
-        }
+            },
+        )
+
+        MochiFab(
+            icon = add,
+            contentDescription = stringResource(R.string.setting_provider_page_add_new_model),
+            onClick = { dialogState.open(Model()) },
+        )
     }
 
     // U7b-2e：最后一份 currentState 快照 + LaunchedEffect 驱动；退出动画期间读快照不 NPE。

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
@@ -127,6 +128,8 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     }
 
     KedgeSettingsPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         title = stringResource(R.string.setting_provider_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
@@ -234,7 +237,8 @@ private fun ProviderList(
     val haptic = LocalHapticFeedback.current
 
     LazyColumn(
-        modifier = modifier,
+        // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
+        modifier = modifier.kkScrollEdgeFade(state = listState, bottom = 0.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
             PaddingValues(bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(cards.gap),

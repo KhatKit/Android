@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
+import heizige.kk.khatkit.app.core.ui.components.ui.rememberKkViewScrollEdge
 import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Box
@@ -86,6 +88,8 @@ fun WorkspaceFileEditorPage(
     }
 
     KedgeSettingsPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         title = fileName,
         actions = {
             if (supportsPreview && !loading && loadError == null) {
@@ -151,10 +155,12 @@ fun WorkspaceFileEditorPage(
 
             else -> Md3TextFieldWithState(
                 state = textState,
+                // 输入框在框内自己滚，滚动会经过嵌套滚动：顶栏交界的渐隐加在输入框上
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .imePadding(),
+                    .imePadding()
+                    .kkScrollEdgeFade(bottom = 0.dp),
                 readOnly = !editable,
                 lineLimits = TextFieldLineLimits.MultiLine(),
                 textStyle = LocalTextStyle.current.copy(
@@ -187,5 +193,10 @@ private fun WorkspaceWebPreview(
             loadWithOverviewMode = true
         },
     )
-    WebView(state = state, modifier = modifier)
+    val scrollEdge = rememberKkViewScrollEdge()
+    WebView(
+        state = state,
+        modifier = modifier.kkScrollEdgeFade(scrollEdge, bottom = 0.dp),
+        onCreated = scrollEdge::attach,
+    )
 }

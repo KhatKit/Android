@@ -3,7 +3,6 @@ package heizige.kk.khatkit.app.feature.onboarding
 import heizige.kk.khatkit.app.LocalPageRoute
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
-import heizige.kk.khatkit.uikit.mochi.ExpandableOptionItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -44,20 +43,10 @@ import ui.feice.mochi.theme.emphasized
 
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -102,12 +91,10 @@ import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.feature.settings.components.MorphThemeModeSelector
 import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
 import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
@@ -123,11 +110,7 @@ import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.brightnessAuto
-import heizige.kk.khatkit.app.core.ui.icons.darkMode
-import heizige.kk.khatkit.app.core.ui.icons.lightMode
 import heizige.kk.khatkit.app.core.ui.icons.neurology
-import heizige.kk.khatkit.app.core.ui.icons.palette
 import heizige.kk.khatkit.app.core.ui.icons.smartphone
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 
@@ -135,6 +118,19 @@ import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
+import ui.feice.mochi.basic.MochiSelectFrame
+import ui.feice.mochi.basic.MochiSelectionCheck
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -487,19 +483,30 @@ private fun GreetingAgreementScreen(
     }
 }
 
+// ---------- 初始化设置：外观（照 Mochi 引导的「外观」页） ----------
+
+private enum class Shade(val mode: ColorMode) { Light(ColorMode.LIGHT), Dark(ColorMode.DARK), Auto(ColorMode.SYSTEM) }
+
+@Composable
+private fun Shade.label(): String = when (this) {
+    Shade.Light -> stringResource(R.string.greeting_settings_theme_light)
+    Shade.Dark -> stringResource(R.string.greeting_settings_theme_dark)
+    Shade.Auto -> stringResource(R.string.greeting_settings_theme_system)
+}
+
 @Composable
 private fun GreetingSettingsScreen(t: () -> Float) {
     val settingsStore: SettingsRepository = rememberAppEntryPoint().settingsStore()
-    val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
     val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val colorMode = rememberColorMode()
     val changeColorMode = heizige.kk.khatkit.app.core.ui.theme.rememberColorModeChanger(colorMode)
+    val haptics = rememberKkHaptics()
     val scope = rememberCoroutineScope()
-    val cards = listCardStyle()
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val monet = dynamicColorSupported && settings.dynamicColor
 
-    // 莫奈色板回显：预设主题取主色，自定义主题取保存的种子色
-    val selectedSeedColor: Color? = if (settings.dynamicColor) {
+    // 色板回显：跟随壁纸时不选中任何色块；预设主题取主色，自定义主题取保存的种子色
+    val selectedSeedColor: Color? = if (monet) {
         null
     } else {
         PresetThemes.firstOrNull { it.id == settings.themeId }?.standardLight?.primary
@@ -534,121 +541,117 @@ private fun GreetingSettingsScreen(t: () -> Float) {
         }
     }
 
-    val currentColorModeLabel = when (colorMode.value) {
-        ColorMode.SYSTEM -> stringResource(R.string.greeting_settings_theme_system)
-        ColorMode.LIGHT -> stringResource(R.string.greeting_settings_theme_light)
-        ColorMode.DARK -> stringResource(R.string.greeting_settings_theme_dark)
-    }
-
     GreetingPageColumn {
         GreetingHeading(GreetingStep.Settings, t)
-        KkOptionsText(stringResource(R.string.greeting_settings_theme_mode))
-        Spacer(modifier = Modifier.height(8.dp))
-
-        ExpandableOptionItem(
-            imageVector = brightnessAuto,
-            title = stringResource(R.string.greeting_settings_theme_mode),
-            subtitle = currentColorModeLabel,
-            initiallyExpanded = false,
-            contentPadding = PaddingValues(bottom = 12.dp, start = 12.dp, end = 12.dp),
-            leadingContent = {
-                AnimatedContent(
-                    targetState = colorMode.value,
-                    transitionSpec = {
-                        (scaleIn(spring(), initialScale = 0.2f) + fadeIn()) togetherWith
-                            (scaleOut(spring(), targetScale = 0.2f) + fadeOut())
-                    },
-                    label = "themeModeIcon",
-                ) { mode ->
-                    Icon(
-                        imageVector = when (mode) {
-                            ColorMode.SYSTEM -> brightnessAuto
-                            ColorMode.LIGHT -> lightMode
-                            ColorMode.DARK -> darkMode
+        val shade = Shade.entries.first { it.mode == colorMode.value }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .pop(t, 2),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            Shade.entries.forEach { s ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    MochiSelectFrame(
+                        s == shade,
+                        cornerRadius = 20.dp,
+                        modifier = Modifier
+                            .width(84.dp)
+                            .aspectRatio(0.56f),
+                        onClick = {
+                            if (s != shade) {
+                                haptics.tick()
+                                // 深浅真的变了才从手指处揭开（见 rememberColorModeChanger）
+                                changeColorMode(s.mode)
+                            }
                         },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
+                    ) {
+                        ShadeThumb(s, MochiTheme.colorScheme.primary)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    MochiText(s.label(), style = MochiTheme.textStyles.bodyMedium)
+                    Spacer(Modifier.height(6.dp))
+                    MochiSelectionCheck(s == shade)
+                }
+            }
+        }
+        Spacer(Modifier.height(28.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .pop(t, 3),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
+        ) {
+            // 换种子色是连续的色相变化：走配色插值，不揭开
+            if (dynamicColorSupported) {
+                MochiListSection {
+                    MochiListRow(
+                        stringResource(R.string.greeting_settings_dynamic_color),
+                        subtitle = stringResource(R.string.greeting_settings_dynamic_color_desc),
+                        trailing = {
+                            MochiSwitch(monet, { enabled ->
+                                scope.launch { settingsStore.update { it.copy(dynamicColor = enabled) } }
+                            })
+                        },
                     )
                 }
-            },
-        ) {
-            MorphThemeModeSelector(
-                selected = colorMode.value,
-                onSelect = changeColorMode,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        KkOptionsText(stringResource(R.string.greeting_settings_theme_color))
-        Spacer(modifier = Modifier.height(8.dp))
-
-        ExpandableOptionItem(
-            imageVector = palette,
-            title = stringResource(R.string.greeting_settings_theme_color),
-            contentColor = Color.Transparent,
-        ) {
-            Column {
-                MochiOptionItem(
-                    onClick = {
-                        if (dynamicColorSupported) {
-                            scope.launch { settingsStore.update { it.copy(dynamicColor = !settings.dynamicColor) } }
-                        }
+            }
+            MochiListSection(header = stringResource(R.string.greeting_settings_theme_color)) {
+                PresetThemeColorDots(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    selectedThemeId = settings.themeId,
+                    onSelectTheme = { themeId ->
+                        scope.launch { settingsStore.update { it.copy(dynamicColor = false, themeId = themeId) } }
                     },
-                    modifier = if (dynamicColorSupported) Modifier
-                    else Modifier.alpha(0.5f),
-                    shape = cards.groupItemShape(isFirst = true, isLast = false),
-                    leadingContent = {
-                        Icon(
-                            imageVector = palette,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.87f),
-                        )
-                    },
-                    titleContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
-                    supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
-                    trailingContent = {
-                        KkSwitch(
-                            checked = dynamicColorSupported && settings.dynamicColor,
-                            enabled = dynamicColorSupported,
-                            onCheckedChange = { enabled ->
-                                if (dynamicColorSupported) {
-                                    scope.launch { settingsStore.update { it.copy(dynamicColor = enabled) } }
-                                }
-                            },
-                        )
-                    },
+                    onCustomColor = { applyCustomSeed(it) },
+                    selectedSeedColor = selectedSeedColor,
                 )
-
-                AnimatedVisibility(
-                    visible = !settings.dynamicColor,
-                    enter = expandVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessLow,
-                        )
-                    ) + fadeIn(),
-                    exit = shrinkVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessLow,
-                        )
-                    ) + fadeOut(),
-                ) {
-                    PresetThemeColorDots(
-                        modifier = Modifier.padding(top = cards.gap, bottom = 4.dp),
-                        selectedThemeId = settings.themeId,
-                        onSelectTheme = { themeId ->
-                            scope.launch { settingsStore.update { it.copy(themeId = themeId) } }
-                        },
-                        onCustomColor = { applyCustomSeed(it) },
-                        selectedSeedColor = selectedSeedColor,
-                    )
-                }
             }
         }
+    }
+}
 
+/** 明暗缩略图：一块小屏，上面两张卡片和几条字条；自动 = 斜着一半浅一半深 */
+@Composable
+private fun ShadeThumb(shade: Shade, accent: Color) {
+    Canvas(Modifier.fillMaxSize()) {
+        fun screen(dark: Boolean) {
+            val bg = if (dark) Color(0xFF111111) else Color(0xFFF2F2F7)
+            val card = if (dark) Color(0xFF2A2A2C) else Color.White
+            val bar = if (dark) Color.White.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.12f)
+            drawRect(bg)
+            val pad = size.width * 0.12f
+            val w = size.width - pad * 2f
+            val r = CornerRadius(size.width * 0.08f)
+            drawRoundRect(bar, Offset(pad, size.height * 0.1f), Size(w * 0.55f, size.height * 0.035f), r)
+            drawRoundRect(card, Offset(pad, size.height * 0.2f), Size(w, size.height * 0.28f), r)
+            for (k in 0 until 3) {
+                val y = size.height * (0.24f + k * 0.08f)
+                drawCircle(if (k == 0) accent else bar, size.width * 0.045f, Offset(pad + w * 0.14f, y + size.height * 0.015f))
+                drawRoundRect(bar, Offset(pad + w * 0.28f, y), Size(w * 0.5f, size.height * 0.03f), r)
             }
+            drawRoundRect(card, Offset(pad, size.height * 0.53f), Size(w, size.height * 0.16f), r)
+            drawRoundRect(accent, Offset(pad, size.height * 0.82f), Size(w, size.height * 0.08f), CornerRadius(size.height))
+        }
+        when (shade) {
+            Shade.Light -> screen(false)
 
+            Shade.Dark -> screen(true)
+
+            Shade.Auto -> {
+                screen(false)
+                val cut = Path().apply {
+                    moveTo(size.width, 0f)
+                    lineTo(size.width, size.height)
+                    lineTo(0f, size.height)
+                    close()
+                }
+                clipPath(cut) { screen(true) }
+            }
+        }
+    }
 }
 
 @Composable

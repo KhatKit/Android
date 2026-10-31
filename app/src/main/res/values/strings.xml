@@ -196,6 +196,26 @@
   <string name="explore_market_new_version">New version (patch +1 by default)</string>
   <string name="explore_market_changelog_required">Changelog (required)</string>
   <string name="explore_market_submit">Submit</string>
+  <string name="explore_market_detail_section_tags">Tags</string>
+  <string name="explore_market_detail_tags_footer">Tap a tag to find similar cards.</string>
+  <string name="explore_market_detail_group_capabilities">Capabilities</string>
+  <string name="explore_market_detail_group_triggers">Triggers</string>
+  <string name="explore_market_detail_group_category">Category</string>
+  <string name="explore_market_detail_group_license">License</string>
+  <string name="explore_market_detail_section_info">Information</string>
+  <string name="explore_market_detail_section_about">About</string>
+  <string name="explore_market_detail_section_manage">Manage</string>
+  <string name="explore_market_detail_version">Version</string>
+  <string name="explore_market_detail_installed_version">Installed</string>
+  <string name="explore_market_detail_author">Author</string>
+  <string name="explore_market_detail_engine">Engine</string>
+  <string name="explore_market_detail_privilege">Privilege</string>
+  <string name="explore_market_detail_size">Size</string>
+  <string name="explore_market_detail_stat_downloads">Downloads</string>
+  <string name="explore_market_detail_stat_votes">Votes</string>
+  <string name="explore_market_detail_stat_price">Price</string>
+  <string name="explore_market_detail_not_found_title">Card not found</string>
+  <string name="explore_market_detail_not_found_message">It may have been removed from the market, or the index hasn\'t synced yet.</string>
   <string name="asr_button_content_description">Speech Recognition</string>
   <string name="asr_button_stop">Stop</string>
   <string name="assistant_detail_basic_desc">Configure name, avatar, model, and parameters</string>
@@ -778,6 +798,13 @@
   <string name="safe_mode_current_assistant">Current assistant: %s</string>
   <string name="safe_mode_default_assistant">Default Assistant</string>
   <string name="safe_mode_description">The app crashed on the last launch. You can switch to a different assistant to resolve the issue.</string>
+    <string name="safe_mode_crashed_title">The app crashed on its last launch</string>
+    <string name="safe_mode_kind_native">Native crash</string>
+    <string name="safe_mode_kind_java">Uncaught exception</string>
+    <string name="safe_mode_report_meta">%1$s · %2$s</string>
+    <string name="safe_mode_copied">Copied</string>
+    <string name="safe_mode_report_empty">No crash report this time</string>
+    <string name="safe_mode_report_empty_hint">The previous run ended without a captured report. You can keep using the app; if it crashes again, the next launch will carry the report.</string>
   <string name="safe_mode_enter_app">Enter App</string>
   <string name="safe_mode_switch_assistant">Switch Assistant</string>
   <string name="safe_mode_title">Safe Mode</string>
@@ -1601,7 +1628,6 @@
   <string name="workspace_detail_compatibility_mode">Compatibility mode</string>
   <string name="workspace_detail_compatibility_mode_desc">Try enabling this if the terminal fails to start. It may reduce performance. Applies to new terminal tabs and subsequent commands.</string>
   <string name="workspace_detail_settings_save_failed">Failed to save settings</string>
-
   <!-- Greeting / onboarding -->
   <string name="greeting_welcome_title">Welcome to %1$s</string>
   <string name="greeting_welcome_desc">Your AI assistant on Android.\nTake a minute to get set up.</string>
@@ -1670,7 +1696,6 @@
   <string name="setting_display_page_card_corner_large">Large corner</string>
   <string name="setting_display_page_card_corner_small">Small corner</string>
   <string name="setting_display_page_card_gap">Item gap</string>
-
   <!-- KhatKit -->
   <string name="khatkit_market_title">KhatKit Card Market</string>
   <string name="khatkit_confirm">Confirm</string>
@@ -1702,7 +1727,6 @@
   <string name="setting_display_page_background_effect_type">Background effect type</string>
   <string name="setting_display_page_background_effect_blur">Blur</string>
   <string name="setting_display_page_background_effect_glass">Glass</string>
-
   <!-- 自动化审批策略 -->
   <string name="approval_category_card_run">Run card</string>
   <string name="approval_category_ui_action">UI action</string>
@@ -1719,7 +1743,6 @@
   <string name="approval_hands_off_desc">Let automation run any operation without asking ·</string>
   <string name="approval_status_on">On</string>
   <string name="approval_status_off">Off</string>
-
   <string name="setting_page_blur_title">Blur</string>
   <!-- 套餐与激活页（SettingsPackagePage）-->
   <string name="setting_package_page_title">Plans &amp; activation</string>
@@ -1741,17 +1764,16 @@
   <string name="setting_package_page_clear">Clear activation on this device</string>
   <string name="setting_package_page_clear_desc">Only removes activation from this device. Your account is not affected</string>
   <string name="setting_package_page_tip">Buying a plan gives you an activation token for activating this device on the web. Local cards keep working without activation and are only blocked if the server explicitly rejects them.</string>
-<string name="skills_page_search_placeholder">Search skills</string>
-<string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">Charts</string>
-<string name="assistant_page_local_tools_chart_display_desc">Let the AI show line, bar, and scatter charts</string>
-<string name="chat_message_tool_chart_display">Show chart</string>
-<string name="chat_message_tool_chart_display_with_title">Show chart: %1$s</string>
-<string name="chart_mode_chart">圖表</string>
-<string name="chart_mode_table">表格</string>
-<string name="chart_series">數列</string>
-<string name="chart_series_name">數列 %1$d</string>
-
+  <string name="skills_page_search_placeholder">Search skills</string>
+  <string name="skills_page_search_no_result">找不到符合的技能</string>
+  <string name="assistant_page_local_tools_chart_display_title">Charts</string>
+  <string name="assistant_page_local_tools_chart_display_desc">Let the AI show line, bar, and scatter charts</string>
+  <string name="chat_message_tool_chart_display">Show chart</string>
+  <string name="chat_message_tool_chart_display_with_title">Show chart: %1$s</string>
+  <string name="chart_mode_chart">圖表</string>
+  <string name="chart_mode_table">表格</string>
+  <string name="chart_series">數列</string>
+  <string name="chart_series_name">數列 %1$d</string>
   <string name="favorite_page_no_favorites">No favorites yet</string>
   <string name="favorite_page_removed">Favorite removed</string>
   <string name="favorite_page_title">Favorites</string>
@@ -1832,4 +1854,6 @@
   <string name="setting_account_waiting">Waiting for authorization…</string>
   <string name="setting_account_waiting_browser">Authorization page opened in your browser</string>
   <string name="setting_account_device_code">Open %1$s and enter code %2$s</string>
+  <string name="splash_tagline">Native AI chat for Android</string>
+  <string name="splash_version">v%1$s</string>
 </resources>

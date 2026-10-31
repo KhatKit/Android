@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.AnimatedVisibility
@@ -125,6 +126,15 @@ import heizige.kk.khatkit.app.feature.settings.provider.ModelList
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.feature.settings.components.ProviderSectionGap
+import heizige.kk.khatkit.app.core.ui.icons.tune
+import heizige.kk.khatkit.app.core.ui.icons.vpnKey
+import androidx.compose.foundation.layout.ColumnScope
+import ui.feice.mochi.list.MochiListButton
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) {
@@ -162,6 +172,8 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
     val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
 
     MochiPageScaffold(
+        // 渐隐加在每一页自己的滚动容器上（三页滚动位置各自独立）
+        edgeFade = false,
        containerColor = CustomColors.pageContainerColor,
         topBar = {
             KedgePageTopBar(
@@ -194,37 +206,30 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
             )
         },
         rail = {
+            // 标签顺序 = 分页顺序：左右滑和点标签切到的是同一页
+            val tabs = listOf(
+                vpnKey to stringResource(id = R.string.setting_provider_page_configuration),
+                package2 to stringResource(id = R.string.setting_provider_page_models),
+                tune to stringResource(R.string.setting_provider_page_advanced_settings),
+            )
             MochiNavBottomBar(
-                items = listOf(
+                items = tabs.mapIndexed { index, (icon, label) ->
                     MochiNavTab(
-                        selected = pager.currentPage == 0,
-                        icon = build,
-                        label = stringResource(id = R.string.setting_provider_page_configuration),
-                        onClick = { scope.launch { pager.animateScrollToPage(0) } },
-                    ),
-                    MochiNavTab(
-                        selected = pager.currentPage == 2,
-                        icon = build,
-                        label = stringResource(R.string.setting_provider_page_advanced_settings),
-                        onClick = { scope.launch { pager.animateScrollToPage(2) } },
-                    ),
-                    MochiNavTab(
-                        selected = pager.currentPage == 1,
-                        icon = package2,
-                        label = stringResource(id = R.string.setting_provider_page_models),
-                        onClick = { scope.launch { pager.animateScrollToPage(1) } },
-                    ),
-                ),
+                        selected = pager.currentPage == index,
+                        icon = icon,
+                        label = label,
+                        onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                    )
+                },
             )
         },
-    
         md3ScrollBehavior = null,
-    ) { it ->
+    ) { _ ->
+        // 底栏浮在正文上：各页自己按 MochiTabScaffoldDefaults.contentBottomPadding() 在底部留白
         HorizontalPager(
             state = pager,
-            modifier = Modifier
-                .padding(it)
-                .consumeWindowInsets(it)
+            modifier = Modifier.fillMaxSize(),
+            beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
                 0 -> {
@@ -262,19 +267,31 @@ private fun SettingProviderAdvancedPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    ProviderPageColumn {
         CustomHeaders(
             headers = provider.customHeaders,
             onUpdate = { headers -> onEdit(provider.copyProvider(customHeaders = headers)) },
         )
     }
+}
+
+/**
+ * 详情页每一页的滚动骨架：顶边贴着顶栏渐隐，分组之间 [ProviderSectionGap]，
+ * 底部留出浮动底栏的高度（最后一组能滚到栏上面）。
+ */
+@Composable
+private fun ProviderPageColumn(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .kkScrollEdgeFade(bottom = 0.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp)
+            .padding(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
+        verticalArrangement = Arrangement.spacedBy(ProviderSectionGap),
+        content = content,
+    )
 }
 
 /**
@@ -317,14 +334,7 @@ internal fun SettingProviderConfigPage(
         commitCount++
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    ProviderPageColumn {
         // 委托属性无法 smart cast：先取本地 val 再判类型。
         val currentProvider = internalProvider
         ProviderConfigure(
@@ -350,44 +360,47 @@ internal fun SettingProviderConfigPage(
             SettingProviderBalanceOption(
                 provider = internalProvider,
                 balanceOption = internalProvider.balanceOption,
+                balance = {
+                    ProviderBalanceText(
+                        providerSetting = provider,
+                        style = MochiTheme.textStyles.body,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
                 onEdit = { commit(internalProvider.copyProvider(balanceOption = it)) }
             )
-            ProviderBalanceText(providerSetting = provider, style = MaterialTheme.typography.labelSmall)
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        MochiListSection(header = "工具") {
             ProviderConnectionTester(
                 internalProvider = internalProvider,
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            if (!internalProvider.builtIn) {
-                MochiIconButton(
-                    onClick = {
-                        showDeleteDialog = true
-                    },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(delete, null)
-                }
-            }
-
-            MochiIconButton(
-                onClick = {
-                    // 立即落库：不再是「只改本地草稿」
-                    commit(internalProvider.resetBaseUrlToDefault())
+                trigger = { open ->
+                    MochiListRow(
+                        title = "测试连接",
+                        subtitle = "用一个模型试发消息，检查非流式、流式和工具调用",
+                        onClick = open,
+                        chevron = true,
+                    )
                 },
-                enabled = !internalProvider.isUsingDefaultBaseUrl(),
-                shapes = IconButtonDefaults.shapes(),
-            ) {
-                Icon(
-                    imageVector = sync,
-                    contentDescription = stringResource(R.string.setting_model_page_reset_to_default)
+            )
+            if (currentProvider !is ProviderSetting.Account) {
+                MochiListRow(
+                    title = stringResource(R.string.setting_model_page_reset_to_default),
+                    subtitle = "把 Base URL 恢复成这个提供商的默认地址",
+                    // 立即落库：不再是「只改本地草稿」
+                    onClick = { commit(internalProvider.resetBaseUrlToDefault()) },
+                    enabled = !internalProvider.isUsingDefaultBaseUrl(),
+                )
+            }
+        }
+
+        if (!internalProvider.builtIn) {
+            MochiListSection {
+                MochiListButton(
+                    text = "删除提供商",
+                    onClick = { showDeleteDialog = true },
+                    destructive = true,
+                    centered = true,
                 )
             }
         }
@@ -397,7 +410,7 @@ internal fun SettingProviderConfigPage(
             SiliconFlowPowerByIcon(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(vertical = 16.dp)
+                    .padding(vertical = 8.dp)
             )
         }
     }

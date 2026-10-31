@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.assistant
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
@@ -144,6 +145,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     }
 
     MochiPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         topBar = {
             // 顶栏换 Mochi 紧凑标题栏（与设置类页面同一个组件），大标题不再折叠。
             MochiTitleBar(
@@ -201,7 +204,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             val assistantList: @Composable (Modifier) -> Unit = { listModifier ->
                 val cards = listCardStyle()
                 LazyColumn(
-                    modifier = listModifier,
+                    // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
+                    modifier = listModifier.kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
                     // UI-1：底部留 16dp，最后一行不再贴着导航条/手势区
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     // 项间距取全局列表卡片样式：整列看起来是一张分组卡片，
@@ -545,13 +549,13 @@ private fun AssistantCreationSheet(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val templates = listOf("自定义角色", "Toolbox 主管")
-                    val toolbox = RoleTemplates.toolbox(modelId = assistant.chatModelId, id = assistant.id)
+                    val templates = listOf("自定义角色", "Kitty")
+                    val kitty = RoleTemplates.kitty(modelId = assistant.chatModelId, id = assistant.id)
                     Select(
                         options = templates,
-                        selectedOption = if (assistant.systemPrompt == toolbox.systemPrompt) templates[1] else templates[0],
+                        selectedOption = if (assistant.systemPrompt == kitty.systemPrompt) templates[1] else templates[0],
                         onOptionSelected = { template ->
-                            update(if (template == templates[1]) toolbox else Assistant(
+                            update(if (template == templates[1]) kitty else Assistant(
                                 id = assistant.id,
                                 chatModelId = assistant.chatModelId,
                                 enableMemory = true,

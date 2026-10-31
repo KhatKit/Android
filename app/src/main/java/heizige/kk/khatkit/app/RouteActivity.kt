@@ -62,6 +62,7 @@ import heizige.kk.khatkit.app.core.data.event.AppEvent
 import heizige.kk.khatkit.app.core.ui.activity.SafeModeActivity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.components.ui.TTSController
+import heizige.kk.khatkit.app.feature.explore.ExploreCardDetailPage
 import heizige.kk.khatkit.app.feature.explore.ExploreCardsPage
 import heizige.kk.khatkit.app.feature.explore.ExploreLocalPage
 import heizige.kk.khatkit.app.feature.explore.ExploreMarketPage
@@ -139,6 +140,8 @@ import heizige.kk.khatkit.app.feature.settings.SettingWebPage
 import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.feature.translator.TranslatorPage
 import heizige.kk.khatkit.app.feature.webview.WebViewPage
+import heizige.kk.khatkit.app.feature.splash.SplashIntroHost
+import heizige.kk.khatkit.app.feature.splash.SplashIntroState
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.AutomationInAppHost
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
@@ -196,6 +199,11 @@ class RouteActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             handleIntent(intent)
         }
+        // 只在从桌面冷启动时播品牌动画；分享 / 翻译 / 深链等入口直接进页面，重建也不再播。
+        val splashIntro = SplashIntroState(
+            active = savedInstanceState == null && intent?.action == Intent.ACTION_MAIN,
+        )
+        splashIntro.attach(this)
         setContent {
             KhatKitTheme {
                 // P3a：Mochi 的 overscroll（拉伸/回弹）接管全 app 的滚动容器。
@@ -216,7 +224,7 @@ class RouteActivity : ComponentActivity() {
                     AppRoutes()
                     AutomationInAppHost()
                 }
-                appContent()
+                SplashIntroHost(splashIntro) { appContent() }
                 }
             }
         }
@@ -432,6 +440,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.ExploreMarket -> ExploreMarketPage()
                             is Screen.ExploreCards -> ExploreCardsPage(initialQuery = screen.initialQuery)
                             is Screen.ExploreLocal -> ExploreLocalPage()
+                            is Screen.ExploreCardDetail -> ExploreCardDetailPage(name = screen.name)
                             is Screen.CardRuns -> CardRunsPage()
                             is Screen.CardWidget -> CardWidgetPage(screen.name, screen.title)
                             is Screen.SettingDonate -> SettingDonatePage()
@@ -743,6 +752,10 @@ sealed interface Screen : NavKey {
     /** 本地二级页：本机内容与已安装内容（不走远端市场索引）。 */
     @Serializable
     data object ExploreLocal : Screen
+
+    /** 卡片详情二级页：只带包名，条目由市场 VM 现查（列表里没有时按名搜一次）。 */
+    @Serializable
+    data class ExploreCardDetail(val name: String) : Screen
 
     @Serializable
     data object CardRuns : Screen

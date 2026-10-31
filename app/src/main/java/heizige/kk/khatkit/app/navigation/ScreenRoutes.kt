@@ -30,7 +30,7 @@ object ScreenRoutes {
         "setting-preferences-ui-font", "setting-preferences-ui-code", "setting-permissions",
         "setting-preferences-network", "setting-provider", "setting-provider-detail",
         "setting-models", "setting-about", "setting-search", "setting-search-detail",
-        "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local",
+        "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget",
         "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
         "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
@@ -97,6 +97,7 @@ object ScreenRoutes {
         Screen.ExploreMarket -> "explore-market"
         is Screen.ExploreCards -> Route("explore-cards").str("initialQuery", screen.initialQuery).build()
         Screen.ExploreLocal -> "explore-local"
+        is Screen.ExploreCardDetail -> Route("explore-card-detail").str("name", screen.name).build()
         Screen.CardRuns -> "card-runs"
         is Screen.CardWidget -> Route("card-widget").str("name", screen.name).str("title", screen.title).build()
         Screen.SettingDonate -> "setting-donate"
@@ -189,6 +190,7 @@ object ScreenRoutes {
             "explore-market" -> Screen.ExploreMarket
             "explore-cards" -> Screen.ExploreCards(initialQuery = params.str("initialQuery") ?: return null)
             "explore-local" -> Screen.ExploreLocal
+            "explore-card-detail" -> Screen.ExploreCardDetail(name = params.str("name") ?: return null)
             "card-runs" -> Screen.CardRuns
             "card-widget" -> Screen.CardWidget(params.str("name") ?: return null, params.str("title") ?: return null)
             "setting-donate" -> Screen.SettingDonate

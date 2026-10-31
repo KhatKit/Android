@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiChipGroup
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -157,6 +158,8 @@ fun ImageGenPage(
     }
 
     MochiPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
        topBar = {
             KedgePageTopBar(
                 title = stringResource(R.string.imggen_page_title),
@@ -272,9 +275,11 @@ private fun ImageGenScreen(
             .imePadding()
     ) {
         Box(
+            // 输入栏钉在底部：上接顶栏、下接输入栏两处交界都只渐隐这块滚动区
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .kkScrollEdgeFade()
                 .verticalScroll(rememberScrollState()),
         ) {
             Row(
@@ -674,7 +679,8 @@ private fun ImageGalleryScreen(
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    // 多选操作行固定在上面，交界渐隐只加在网格上
+                    modifier = Modifier.fillMaxSize().kkScrollEdgeFade(),
                 ) {
                     items(
                         count = generatedImages.itemCount,

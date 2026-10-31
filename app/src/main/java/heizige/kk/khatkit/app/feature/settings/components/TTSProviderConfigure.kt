@@ -1,33 +1,19 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
-import heizige.kk.khatkit.uikit.mochi.Md3TextField
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
-import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.list.MochiListPickerRow
+import ui.feice.mochi.list.MochiListSection
 
 @Composable
 fun TTSProviderConfigure(
@@ -35,52 +21,53 @@ fun TTSProviderConfigure(
     modifier: Modifier = Modifier,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
+    // 分组卡片之间 16dp，与设置主页一致；左右留白由外层底部弹窗给出
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
         // Provider type selector
         val providers = remember { TTSProviderSetting.Types }
+        val providerNames = providers.map { providerClass ->
+            when (providerClass) {
+                TTSProviderSetting.OpenAI::class -> "OpenAI"
+                TTSProviderSetting.Gemini::class -> "Gemini"
+                TTSProviderSetting.SystemTTS::class -> "System TTS"
+                TTSProviderSetting.MiniMax::class -> "MiniMax"
+                TTSProviderSetting.Qwen::class -> "Qwen"
+                TTSProviderSetting.Groq::class -> "Groq"
+                TTSProviderSetting.XAI::class -> "xAI"
+                TTSProviderSetting.MiMo::class -> "MiMo"
+                TTSProviderSetting.ElevenLabs::class -> "ElevenLabs"
+                TTSProviderSetting.FishAudio::class -> "Fish Audio"
+                TTSProviderSetting.Volcengine::class -> "火山引擎"
+                TTSProviderSetting.Step::class -> "Step"
+                else -> providerClass.simpleName ?: "Unknown"
+            }
+        }.toImmutableList()
+        val currentTypeName = when (setting) {
+            is TTSProviderSetting.OpenAI -> "OpenAI"
+            is TTSProviderSetting.Gemini -> "Gemini"
+            is TTSProviderSetting.SystemTTS -> "System TTS"
+            is TTSProviderSetting.MiniMax -> "MiniMax"
+            is TTSProviderSetting.Qwen -> "Qwen"
+            is TTSProviderSetting.Groq -> "Groq"
+            is TTSProviderSetting.XAI -> "xAI"
+            is TTSProviderSetting.MiMo -> "MiMo"
+            is TTSProviderSetting.Step -> "Step"
+            is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
+            is TTSProviderSetting.FishAudio -> "Fish Audio"
+            is TTSProviderSetting.Volcengine -> "火山引擎"
+        }
 
-        KedgeFormRow(
-            label = { Text(stringResource(R.string.setting_tts_page_provider_type)) },
-        ) {
-            SelectTextField(
-                value = when (setting) {
-                    is TTSProviderSetting.OpenAI -> "OpenAI"
-                    is TTSProviderSetting.Gemini -> "Gemini"
-                    is TTSProviderSetting.SystemTTS -> "System TTS"
-                    is TTSProviderSetting.MiniMax -> "MiniMax"
-                    is TTSProviderSetting.Qwen -> "Qwen"
-                    is TTSProviderSetting.Groq -> "Groq"
-                    is TTSProviderSetting.XAI -> "xAI"
-                    is TTSProviderSetting.MiMo -> "MiMo"
-                    is TTSProviderSetting.Step -> "Step"
-                    is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
-                    is TTSProviderSetting.FishAudio -> "Fish Audio"
-                    is TTSProviderSetting.Volcengine -> "火山引擎"
-                },
-                options = providers,
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                optionToString = { providerClass ->
-                    when (providerClass) {
-                        TTSProviderSetting.OpenAI::class -> "OpenAI"
-                        TTSProviderSetting.Gemini::class -> "Gemini"
-                        TTSProviderSetting.SystemTTS::class -> "System TTS"
-                        TTSProviderSetting.MiniMax::class -> "MiniMax"
-                        TTSProviderSetting.Qwen::class -> "Qwen"
-                        TTSProviderSetting.Groq::class -> "Groq"
-                        TTSProviderSetting.XAI::class -> "xAI"
-                        TTSProviderSetting.MiMo::class -> "MiMo"
-                        TTSProviderSetting.ElevenLabs::class -> "ElevenLabs"
-                        TTSProviderSetting.FishAudio::class -> "Fish Audio"
-                        TTSProviderSetting.Volcengine::class -> "火山引擎"
-                        TTSProviderSetting.Step::class -> "Step"
-                        else -> providerClass.simpleName ?: "Unknown"
-                    }
-                },
-                onOptionSelected = { providerClass ->
+        MochiListSection {
+            // 切换类型会按同一个 id 新建一份该类型的默认配置
+            MochiListPickerRow(
+                title = stringResource(R.string.setting_tts_page_provider_type),
+                options = providerNames,
+                selectedIndex = providerNames.indexOf(currentTypeName),
+                onSelect = { index ->
+                    val providerClass = providers.getOrNull(index) ?: return@MochiListPickerRow
                     val newSetting = when (providerClass) {
                         TTSProviderSetting.OpenAI::class -> TTSProviderSetting.OpenAI(
                             id = setting.id,
@@ -142,22 +129,17 @@ fun TTSProviderConfigure(
                         else -> setting
                     }
                     onValueChange(newSetting)
-                }
+                },
             )
-        }
 
-        // Name
-        KedgeFormRow(
-            label = { Text(stringResource(R.string.setting_tts_page_name)) },
-        ) {
-            Md3TextField(
+            // Name
+            SpeechTextFieldRow(
+                label = stringResource(R.string.setting_tts_page_name),
                 value = setting.name,
                 onValueChange = { newName ->
                     onValueChange(setting.copyProvider(name = newName))
                 },
-                modifier = Modifier.fillMaxWidth(),
                 placeholder = stringResource(R.string.setting_tts_page_name_placeholder),
-                shape = RoundedCornerShape(16.dp)
             )
         }
 
@@ -179,72 +161,68 @@ fun TTSProviderConfigure(
     }
 }
 
+/** 连接分组：API Key（打码 + 显示切换）+ Base URL，各服务共用。 */
+@Composable
+private fun TTSConnectionSection(
+    apiKey: String,
+    onApiKeyChange: (String) -> Unit,
+    baseUrl: String,
+    onBaseUrlChange: (String) -> Unit,
+    apiKeyPlaceholder: String = "",
+    baseUrlPlaceholder: String = "",
+    apiKeyLabel: String = stringResource(R.string.setting_tts_page_api_key),
+    footer: String? = null,
+) {
+    MochiListSection(footer = footer) {
+        // API Key
+        SpeechSecretFieldRow(
+            label = apiKeyLabel,
+            value = apiKey,
+            onValueChange = onApiKeyChange,
+            placeholder = apiKeyPlaceholder,
+        )
+        // Base URL
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_base_url),
+            value = baseUrl,
+            onValueChange = onBaseUrlChange,
+            placeholder = baseUrlPlaceholder,
+        )
+    }
+}
+
 @Composable
 private fun OpenAITTSConfiguration(
     setting: TTSProviderSetting.OpenAI,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_api_key_placeholder_openai),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        Md3TextField(
-            value = setting.model,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_model_placeholder_openai),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = stringResource(R.string.setting_tts_page_api_key_placeholder_openai),
+        baseUrlPlaceholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
+    )
 
     // Voice
     val voices = listOf("alloy", "echo", "fable", "onyx", "nova", "shimmer")
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        // Model
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            placeholder = stringResource(R.string.setting_tts_page_model_placeholder_openai),
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voice,
             options = voices,
-            onValueChange = { newVoice ->
-                onValueChange(setting.copy(voice = newVoice))
-            },
-            onOptionSelected = { voice ->
-                onValueChange(setting.copy(voice = voice))
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { newVoice -> onValueChange(setting.copy(voice = newVoice)) },
+            onOptionSelected = { voice -> onValueChange(setting.copy(voice = voice)) },
+            optionToString = { it },
         )
     }
 }
@@ -255,50 +233,14 @@ private fun MiMoTTSConfiguration(
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
     // MiMo 配置均为自由输入 默认值只是占位
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "mimo-xxx",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://api.xiaomimimo.com/v1",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        Md3TextField(
-            value = setting.model,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "mimo-v2-tts",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "mimo-xxx",
+        baseUrlPlaceholder = "https://api.xiaomimimo.com/v1",
+    )
 
     // Voice
     val voices = listOf(
@@ -313,20 +255,22 @@ private fun MiMoTTSConfiguration(
         "Dean"
     )
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        // Model
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            placeholder = "mimo-v2-tts",
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voice,
             options = voices,
-            onValueChange = { newVoice ->
-                onValueChange(setting.copy(voice = newVoice))
-            },
-            onOptionSelected = { voice ->
-                onValueChange(setting.copy(voice = voice))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("mimo_default") }
+            onValueChange = { newVoice -> onValueChange(setting.copy(voice = newVoice)) },
+            onOptionSelected = { voice -> onValueChange(setting.copy(voice = voice)) },
+            optionToString = { it },
+            placeholder = "mimo_default",
         )
     }
 }
@@ -336,49 +280,13 @@ private fun MiniMaxTTSConfiguration(
     setting: TTSProviderSetting.MiniMax,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        Md3TextField(
-            value = setting.model,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "speech-2.8-hd",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        baseUrlPlaceholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
+    )
 
     // Voice ID
     val voiceIds = listOf(
@@ -395,36 +303,34 @@ private fun MiniMaxTTSConfiguration(
         "cartoon_pig"
     )
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
+    val speedLabel = stringResource(R.string.setting_tts_page_speed)
+    MochiListSection(
+        footer = speechFooter(speedLabel to stringResource(R.string.setting_tts_page_speed_description)),
     ) {
-        SelectTextField(
+        // Model
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            placeholder = "speech-2.8-hd",
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice_id),
             value = setting.voiceId,
             options = voiceIds,
-            onValueChange = { newVoiceId ->
-                onValueChange(setting.copy(voiceId = newVoiceId))
-            },
-            onOptionSelected = { voiceId ->
-                onValueChange(setting.copy(voiceId = voiceId))
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { newVoiceId -> onValueChange(setting.copy(voiceId = newVoiceId)) },
+            onOptionSelected = { voiceId -> onValueChange(setting.copy(voiceId = voiceId)) },
+            optionToString = { it },
         )
-    }
-
-    // Speed
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_speed)) },
-        description = { Text(stringResource(R.string.setting_tts_page_speed_description)) }
-    ) {
-        OutlinedNumberInput(
+        // Speed
+        SpeechNumberFieldRow(
+            label = speedLabel,
             value = setting.speed,
             onValueChange = { newSpeed ->
                 if (newSpeed in 0.25f..4.0f) {
                     onValueChange(setting.copy(speed = newSpeed))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = stringResource(R.string.setting_tts_page_speed)
         )
     }
 }
@@ -434,63 +340,29 @@ private fun GeminiTTSConfiguration(
     setting: TTSProviderSetting.Gemini,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_api_key_placeholder_gemini),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = stringResource(R.string.setting_tts_page_api_key_placeholder_gemini),
+        baseUrlPlaceholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
+    )
 
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        Md3TextField(
+    MochiListSection {
+        // Model
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
             value = setting.model,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
             placeholder = stringResource(R.string.setting_tts_page_model_placeholder_gemini),
-            shape = RoundedCornerShape(16.dp)
         )
-    }
-
-    // Voice Name
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice_name)) },
-    ) {
-        Md3TextField(
+        // Voice Name
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice_name),
             value = setting.voiceName,
-            onValueChange = { newVoiceName ->
-                onValueChange(setting.copy(voiceName = newVoiceName))
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { newVoiceName -> onValueChange(setting.copy(voiceName = newVoiceName)) },
             placeholder = stringResource(R.string.setting_tts_page_voice_name_placeholder),
-            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -500,37 +372,33 @@ private fun SystemTTSConfiguration(
     setting: TTSProviderSetting.SystemTTS,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // Speech Rate
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_speech_rate)) },
-        description = { Text(stringResource(R.string.setting_tts_page_speech_rate_description)) }
+    val rateLabel = stringResource(R.string.setting_tts_page_speech_rate)
+    val pitchLabel = stringResource(R.string.setting_tts_page_pitch)
+    MochiListSection(
+        footer = speechFooter(
+            rateLabel to stringResource(R.string.setting_tts_page_speech_rate_description),
+            pitchLabel to stringResource(R.string.setting_tts_page_pitch_description),
+        ),
     ) {
-        OutlinedNumberInput(
+        // Speech Rate
+        SpeechNumberFieldRow(
+            label = rateLabel,
             value = setting.speechRate,
             onValueChange = { newRate ->
                 if (newRate in 0.1f..3.0f) {
                     onValueChange(setting.copy(speechRate = newRate))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = stringResource(R.string.setting_tts_page_speech_rate)
         )
-    }
-
-    // Pitch
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_pitch)) },
-        description = { Text(stringResource(R.string.setting_tts_page_pitch_description)) }
-    ) {
-        OutlinedNumberInput(
+        // Pitch
+        SpeechNumberFieldRow(
+            label = pitchLabel,
             value = setting.pitch,
             onValueChange = { newPitch ->
                 if (newPitch in 0.1f..2.0f) {
                     onValueChange(setting.copy(pitch = newPitch))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = stringResource(R.string.setting_tts_page_pitch)
         )
     }
 }
@@ -540,63 +408,20 @@ private fun QwenTTSConfiguration(
     setting: TTSProviderSetting.Qwen,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "sk-xxx",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "sk-xxx",
+        baseUrlPlaceholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
+    )
 
     // Model
     val models = listOf(
         "qwen-audio-3.0-tts-flash",
         "qwen-audio-3.0-tts-plus",
     )
-
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        SelectTextField(
-            value = setting.model,
-            options = models,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            onOptionSelected = { model ->
-                val defaultVoice = when (model) {
-                    "qwen-audio-3.0-tts-plus" -> "longanlingxin"
-                    "qwen-audio-3.0-tts-flash" -> "longanhuan_v3.6"
-                    else -> setting.voice
-                }
-                onValueChange(setting.copy(model = model, voice = defaultVoice))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("qwen-audio-3.0-tts-flash") }
-        )
-    }
 
     // Voice
     val voices = when (setting.model) {
@@ -611,55 +436,60 @@ private fun QwenTTSConfiguration(
         else -> emptyList()
     }
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            options = models,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            onOptionSelected = { model ->
+                // 选预设模型时顺带换成该模型的默认音色
+                val defaultVoice = when (model) {
+                    "qwen-audio-3.0-tts-plus" -> "longanlingxin"
+                    "qwen-audio-3.0-tts-flash" -> "longanhuan_v3.6"
+                    else -> setting.voice
+                }
+                onValueChange(setting.copy(model = model, voice = defaultVoice))
+            },
+            optionToString = { it },
+            placeholder = "qwen-audio-3.0-tts-flash",
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voice,
             options = voices,
-            onValueChange = { newVoice ->
-                onValueChange(setting.copy(voice = newVoice))
-            },
-            onOptionSelected = { voice ->
-                onValueChange(setting.copy(voice = voice))
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { newVoice -> onValueChange(setting.copy(voice = newVoice)) },
+            onOptionSelected = { voice -> onValueChange(setting.copy(voice = voice)) },
+            optionToString = { it },
         )
     }
 
     // Audio Format
     val formats = listOf("wav", "mp3", "pcm", "opus")
-
-    KedgeFormRow(
-        label = { Text("Audio Format") },
-        description = { Text("Audio encoding returned by Qwen TTS") }
-    ) {
-        SelectTextField(
-            value = setting.format,
-            options = formats,
-            readOnly = true,
-            onOptionSelected = { format ->
-                onValueChange(setting.copy(format = format))
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-
     // Sample Rate
     val sampleRates = listOf(8000, 16000, 22050, 24000, 44100, 48000)
 
-    KedgeFormRow(
-        label = { Text("Sample Rate") },
-        description = { Text("Audio sample rate in Hz") }
+    MochiListSection(
+        footer = speechFooter(
+            "Audio Format" to "Audio encoding returned by Qwen TTS",
+            "Sample Rate" to "Audio sample rate in Hz",
+        ),
     ) {
-        SelectTextField(
-            value = setting.sampleRate.toString(),
-            options = sampleRates,
-            readOnly = true,
-            onOptionSelected = { sampleRate ->
-                onValueChange(setting.copy(sampleRate = sampleRate))
+        MochiListPickerRow(
+            title = "Audio Format",
+            options = formats.toImmutableList(),
+            selectedIndex = formats.indexOf(setting.format),
+            onSelect = { index ->
+                formats.getOrNull(index)?.let { format -> onValueChange(setting.copy(format = format)) }
             },
-            modifier = Modifier.fillMaxWidth()
+        )
+        MochiListPickerRow(
+            title = "Sample Rate",
+            options = sampleRates.map { it.toString() }.toImmutableList(),
+            selectedIndex = sampleRates.indexOf(setting.sampleRate),
+            onSelect = { index ->
+                sampleRates.getOrNull(index)?.let { sampleRate -> onValueChange(setting.copy(sampleRate = sampleRate)) }
+            },
         )
     }
 }
@@ -669,67 +499,33 @@ private fun GroqTTSConfiguration(
     setting: TTSProviderSetting.Groq,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "gsk_xxx",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        Md3TextField(
-            value = setting.model,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "canopylabs/orpheus-v1-english",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "gsk_xxx",
+        baseUrlPlaceholder = stringResource(R.string.setting_tts_page_base_url_placeholder),
+    )
 
     // Voice
     val voices = listOf("austin", "natalie", "kailin")
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        // Model
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            placeholder = "canopylabs/orpheus-v1-english",
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voice,
             options = voices,
-            onValueChange = { newVoice ->
-                onValueChange(setting.copy(voice = newVoice))
-            },
-            onOptionSelected = { voice ->
-                onValueChange(setting.copy(voice = voice))
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { newVoice -> onValueChange(setting.copy(voice = newVoice)) },
+            onOptionSelected = { voice -> onValueChange(setting.copy(voice = voice)) },
+            optionToString = { it },
         )
     }
 }
@@ -739,35 +535,14 @@ private fun XAITTSConfiguration(
     setting: TTSProviderSetting.XAI,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "xai-xxx",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://api.x.ai/v1",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "xai-xxx",
+        baseUrlPlaceholder = "https://api.x.ai/v1",
+    )
 
     // Voice ID
     val voices = listOf(
@@ -777,23 +552,6 @@ private fun XAITTSConfiguration(
         "sal" to "Sal",
         "leo" to "Leo"
     )
-
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
-            value = setting.voiceId,
-            options = voices,
-            onValueChange = { newVoiceId ->
-                onValueChange(setting.copy(voiceId = newVoiceId))
-            },
-            onOptionSelected = { (voiceId, _) ->
-                onValueChange(setting.copy(voiceId = voiceId))
-            },
-            optionToString = { (_, description) -> description },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
 
     // Language
     val languages = listOf(
@@ -818,20 +576,24 @@ private fun XAITTSConfiguration(
         "bn" to "Bengali"
     )
 
-    KedgeFormRow(
-        label = { Text("Language") },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
+            value = setting.voiceId,
+            options = voices,
+            onValueChange = { newVoiceId -> onValueChange(setting.copy(voiceId = newVoiceId)) },
+            onOptionSelected = { (voiceId, _) -> onValueChange(setting.copy(voiceId = voiceId)) },
+            optionToString = { (_, description) -> description },
+            selectedIndex = voices.indexOfFirst { it.first == setting.voiceId },
+        )
+        SpeechPresetFieldRow(
+            label = "Language",
             value = setting.language,
             options = languages,
-            onValueChange = { newLanguage ->
-                onValueChange(setting.copy(language = newLanguage))
-            },
-            onOptionSelected = { (code, _) ->
-                onValueChange(setting.copy(language = code))
-            },
+            onValueChange = { newLanguage -> onValueChange(setting.copy(language = newLanguage)) },
+            onOptionSelected = { (code, _) -> onValueChange(setting.copy(language = code)) },
             optionToString = { (code, displayName) -> "$displayName ($code)" },
-            modifier = Modifier.fillMaxWidth()
+            selectedIndex = languages.indexOfFirst { it.first == setting.language },
         )
     }
 }
@@ -841,35 +603,14 @@ private fun ElevenLabsTTSConfiguration(
     setting: TTSProviderSetting.ElevenLabs,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "sk_...",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://api.elevenlabs.io",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "sk_...",
+        baseUrlPlaceholder = "https://api.elevenlabs.io",
+    )
 
     // Model
     val models = listOf(
@@ -878,65 +619,50 @@ private fun ElevenLabsTTSConfiguration(
         "eleven_flash_v2_5" to "Eleven Flash v2.5"
     )
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
             value = setting.model,
             options = models,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            onOptionSelected = { (modelId, _) ->
-                onValueChange(setting.copy(model = modelId))
-            },
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            onOptionSelected = { (modelId, _) -> onValueChange(setting.copy(model = modelId)) },
             optionToString = { (modelId, displayName) -> "$displayName ($modelId)" },
-            modifier = Modifier.fillMaxWidth()
+            selectedIndex = models.indexOfFirst { it.first == setting.model },
         )
-    }
-
-    // Voice ID
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        Md3TextField(
+        // Voice ID
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voiceId,
-            onValueChange = { newVoiceId ->
-                onValueChange(setting.copy(voiceId = newVoiceId))
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { newVoiceId -> onValueChange(setting.copy(voiceId = newVoiceId)) },
             placeholder = "JBFqnCBsd6RMkjVDRZzb",
-            shape = RoundedCornerShape(16.dp)
         )
     }
 
-    // Stability
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_stability)) },
-        description = { Text(stringResource(R.string.setting_tts_page_stability_description)) }
+    val stabilityLabel = stringResource(R.string.setting_tts_page_stability)
+    val similarityLabel = stringResource(R.string.setting_tts_page_similarity_boost)
+    MochiListSection(
+        footer = speechFooter(
+            stabilityLabel to stringResource(R.string.setting_tts_page_stability_description),
+            similarityLabel to stringResource(R.string.setting_tts_page_similarity_boost_description),
+        ),
     ) {
-        OutlinedNumberInput(
+        // Stability
+        SpeechNumberFieldRow(
+            label = stabilityLabel,
             value = setting.stability,
             onValueChange = { newStability ->
                 onValueChange(setting.copy(stability = newStability.coerceIn(0f, 1f)))
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = "0.5",
+            placeholder = "0.5",
         )
-    }
-
-    // Similarity Boost
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_similarity_boost)) },
-        description = { Text(stringResource(R.string.setting_tts_page_similarity_boost_description)) }
-    ) {
-        OutlinedNumberInput(
+        // Similarity Boost
+        SpeechNumberFieldRow(
+            label = similarityLabel,
             value = setting.similarityBoost,
             onValueChange = { newSimilarityBoost ->
                 onValueChange(setting.copy(similarityBoost = newSimilarityBoost.coerceIn(0f, 1f)))
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = "0.75",
+            placeholder = "0.75",
         )
     }
 }
@@ -946,37 +672,16 @@ private fun FishAudioTTSConfiguration(
     setting: TTSProviderSetting.FishAudio,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://fish.audio/app/api-keys",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "https://fish.audio/app/api-keys",
+        baseUrlPlaceholder = "https://api.fish.audio",
+    )
 
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://api.fish.audio",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Model (下拉选择框 + 文本输入框，完全同 ElevenLabs 格式)
+    // Model (可自由输入 + 预设下拉，同 ElevenLabs)
     val models = listOf(
         "s2.1-pro" to "S2.1-Pro (推荐)",
         "s2.1-pro-free" to "S2.1-Pro Free (免费)",
@@ -984,65 +689,50 @@ private fun FishAudioTTSConfiguration(
         "s1" to "S1"
     )
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
             value = setting.model,
             options = models,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            onOptionSelected = { (modelId, _) ->
-                onValueChange(setting.copy(model = modelId))
-            },
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            onOptionSelected = { (modelId, _) -> onValueChange(setting.copy(model = modelId)) },
             optionToString = { (modelId, displayName) -> "$displayName ($modelId)" },
-            modifier = Modifier.fillMaxWidth()
+            selectedIndex = models.indexOfFirst { it.first == setting.model },
         )
-    }
-
-    // Voice ID (reference_id)
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice_id)) },
-    ) {
-        Md3TextField(
+        // Voice ID (reference_id)
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice_id),
             value = setting.referenceId,
-            onValueChange = { newReferenceId ->
-                onValueChange(setting.copy(referenceId = newReferenceId))
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { newReferenceId -> onValueChange(setting.copy(referenceId = newReferenceId)) },
             placeholder = "802e3bc2b27e49c2995d23ef70e6ac89",
-            shape = RoundedCornerShape(16.dp)
         )
     }
 
-    // Temperature
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_temperature)) },
-        description = { Text(stringResource(R.string.setting_tts_page_temperature_description)) }
+    val temperatureLabel = stringResource(R.string.setting_tts_page_temperature)
+    val speedLabel = stringResource(R.string.setting_tts_page_speed)
+    MochiListSection(
+        footer = speechFooter(
+            temperatureLabel to stringResource(R.string.setting_tts_page_temperature_description),
+            speedLabel to stringResource(R.string.setting_tts_page_fish_audio_speed_description),
+        ),
     ) {
-        OutlinedNumberInput(
+        // Temperature
+        SpeechNumberFieldRow(
+            label = temperatureLabel,
             value = setting.temperature,
             onValueChange = { newTemperature ->
                 onValueChange(setting.copy(temperature = newTemperature.coerceIn(0f, 1f)))
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = "0.7",
+            placeholder = "0.7",
         )
-    }
-
-    // Speed
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_speed)) },
-        description = { Text(stringResource(R.string.setting_tts_page_fish_audio_speed_description)) }
-    ) {
-        OutlinedNumberInput(
+        // Speed
+        SpeechNumberFieldRow(
+            label = speedLabel,
             value = setting.speed,
             onValueChange = { newSpeed ->
                 onValueChange(setting.copy(speed = newSpeed.coerceIn(0.5f, 2f)))
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = "1.0",
+            placeholder = "1.0",
         )
     }
 }
@@ -1052,36 +742,17 @@ private fun StepTTSConfiguration(
     setting: TTSProviderSetting.Step,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    // API Key
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_api_key)) },
-        description = { Text("从阶跃星辰官网获取密钥: platform.stepfun.com/interface-key") }
-    ) {
-        Md3TextField(
-            value = setting.apiKey,
-            onValueChange = { newApiKey ->
-                onValueChange(setting.copy(apiKey = newApiKey))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "从阶跃星辰官网获取密钥",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
-
-    // Base URL
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_base_url)) },
-    ) {
-        Md3TextField(
-            value = setting.baseUrl,
-            onValueChange = { newBaseUrl ->
-                onValueChange(setting.copy(baseUrl = newBaseUrl))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://api.stepfun.com",
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+    val apiKeyLabel = stringResource(R.string.setting_tts_page_api_key)
+    TTSConnectionSection(
+        apiKey = setting.apiKey,
+        onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
+        baseUrl = setting.baseUrl,
+        onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
+        apiKeyPlaceholder = "从阶跃星辰官网获取密钥",
+        baseUrlPlaceholder = "https://api.stepfun.com",
+        apiKeyLabel = apiKeyLabel,
+        footer = speechFooter(apiKeyLabel to "从阶跃星辰官网获取密钥: platform.stepfun.com/interface-key"),
+    )
 
     // Model
     val models = listOf(
@@ -1090,23 +761,6 @@ private fun StepTTSConfiguration(
         "stepaudio-2.5-tts" to "stepaudio-2.5-tts (语境感知, 支持 instruction)",
         "step-tts-2" to "step-tts-2 (上一代)",
     )
-
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_model)) },
-    ) {
-        SelectTextField(
-            value = setting.model,
-            options = models,
-            onValueChange = { newModel ->
-                onValueChange(setting.copy(model = newModel))
-            },
-            onOptionSelected = { (modelId, _) ->
-                onValueChange(setting.copy(model = modelId))
-            },
-            optionToString = { (_, description) -> description },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
 
     // Voice
     // 部分常用 voice-id, 完整列表见官方开发指南
@@ -1145,102 +799,85 @@ private fun StepTTSConfiguration(
         "qingniandaxuesheng" to "青年大学生 (qingniandaxuesheng)",
     )
 
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_voice)) },
-    ) {
-        SelectTextField(
+    MochiListSection {
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_model),
+            value = setting.model,
+            options = models,
+            onValueChange = { newModel -> onValueChange(setting.copy(model = newModel)) },
+            onOptionSelected = { (modelId, _) -> onValueChange(setting.copy(model = modelId)) },
+            optionToString = { (_, description) -> description },
+            selectedIndex = models.indexOfFirst { it.first == setting.model },
+        )
+        SpeechPresetFieldRow(
+            label = stringResource(R.string.setting_tts_page_voice),
             value = setting.voice,
             options = voices,
-            onValueChange = { newVoice ->
-                onValueChange(setting.copy(voice = newVoice))
-            },
-            onOptionSelected = { (voiceId, _) ->
-                onValueChange(setting.copy(voice = voiceId))
-            },
+            onValueChange = { newVoice -> onValueChange(setting.copy(voice = newVoice)) },
+            onOptionSelected = { (voiceId, _) -> onValueChange(setting.copy(voice = voiceId)) },
             optionToString = { (_, description) -> description },
-            modifier = Modifier.fillMaxWidth()
+            selectedIndex = voices.indexOfFirst { it.first == setting.voice },
         )
     }
 
     // Response Format
     val formats = listOf("mp3", "wav", "pcm", "opus", "flac")
+    // Sample Rate
+    val sampleRates = listOf(8000, 16000, 22050, 24000)
 
-    KedgeFormRow(
-        label = { Text("Response Format") },
-        description = { Text("音频编码格式 (注意 StepFun API 字段名为 camelCase)") }
+    val speedLabel = stringResource(R.string.setting_tts_page_speed)
+    MochiListSection(
+        footer = speechFooter(
+            "Response Format" to "音频编码格式 (注意 StepFun API 字段名为 camelCase)",
+            speedLabel to "语速 (0.5 - 2.0, 1.0 为正常)",
+            "Volume" to "音量 (0.1 - 2.0, 1.0 为正常)",
+            "Sample Rate" to "采样率 (Hz)",
+        ),
     ) {
-        SelectTextField(
+        SpeechPresetFieldRow(
+            label = "Response Format",
             value = setting.responseFormat,
             options = formats,
-            onValueChange = { newFormat ->
-                onValueChange(setting.copy(responseFormat = newFormat))
-            },
-            onOptionSelected = { format ->
-                onValueChange(setting.copy(responseFormat = format))
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { newFormat -> onValueChange(setting.copy(responseFormat = newFormat)) },
+            onOptionSelected = { format -> onValueChange(setting.copy(responseFormat = format)) },
+            optionToString = { it },
         )
-    }
-
-    // Speed
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_speed)) },
-        description = { Text("语速 (0.5 - 2.0, 1.0 为正常)") }
-    ) {
-        OutlinedNumberInput(
+        // Speed
+        SpeechNumberFieldRow(
+            label = speedLabel,
             value = setting.speed,
             onValueChange = { newSpeed ->
                 if (newSpeed in 0.5f..2.0f) {
                     onValueChange(setting.copy(speed = newSpeed))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = stringResource(R.string.setting_tts_page_speed)
         )
-    }
-
-    // Volume
-    KedgeFormRow(
-        label = { Text("Volume") },
-        description = { Text("音量 (0.1 - 2.0, 1.0 为正常)") }
-    ) {
-        OutlinedNumberInput(
+        // Volume
+        SpeechNumberFieldRow(
+            label = "Volume",
             value = setting.volume,
             onValueChange = { newVolume ->
                 if (newVolume in 0.1f..2.0f) {
                     onValueChange(setting.copy(volume = newVolume))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            label = "Volume"
         )
-    }
-
-    // Sample Rate
-    val sampleRates = listOf(8000, 16000, 22050, 24000)
-
-    KedgeFormRow(
-        label = { Text("Sample Rate") },
-        description = { Text("采样率 (Hz)") }
-    ) {
-        SelectTextField(
-            value = setting.sampleRate.toString(),
-            options = sampleRates,
-            readOnly = true,
-            onOptionSelected = { rate ->
-                onValueChange(setting.copy(sampleRate = rate))
+        MochiListPickerRow(
+            title = "Sample Rate",
+            options = sampleRates.map { rate -> "$rate Hz" }.toImmutableList(),
+            selectedIndex = sampleRates.indexOf(setting.sampleRate),
+            onSelect = { index ->
+                sampleRates.getOrNull(index)?.let { rate -> onValueChange(setting.copy(sampleRate = rate)) }
             },
-            optionToString = { rate -> "$rate Hz" },
-            modifier = Modifier.fillMaxWidth()
         )
     }
 
     // Instruction (仅 stepaudio-2.5-tts 生效)
-    KedgeFormRow(
-        label = { Text("Instruction") },
-        description = { Text("全局语境指令, 仅 stepaudio-2.5-tts 生效 (≤200 字符, 留空不下发)") }
+    MochiListSection(
+        footer = speechFooter("Instruction" to "全局语境指令, 仅 stepaudio-2.5-tts 生效 (≤200 字符, 留空不下发)"),
     ) {
-        Md3TextField(
+        SpeechTextFieldRow(
+            label = "Instruction",
             value = setting.instruction,
             onValueChange = { newInstruction ->
                 // 服务端上限 200 字符, 客户端做一层保护
@@ -1248,11 +885,9 @@ private fun StepTTSConfiguration(
                     onValueChange(setting.copy(instruction = newInstruction))
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
             placeholder = "例如: 语气温柔, 语速偏慢",
-            minLines = 2,
+            singleLine = false,
             maxLines = 4,
-            shape = RoundedCornerShape(16.dp)
         )
     }
 }
@@ -1262,71 +897,46 @@ private fun VolcengineTTSConfiguration(
     setting: TTSProviderSetting.Volcengine,
     onValueChange: (TTSProviderSetting) -> Unit
 ) {
-    var keyVisible by remember(setting.id) { mutableStateOf(false) }
-
-    KedgeFormRow(
-        label = { Text("API Key") },
-        description = { Text("请填写豆包语音控制台的 API Key，不是火山方舟控制台的 API Key。") }
+    MochiListSection(
+        footer = speechFooter(
+            "API Key" to "请填写豆包语音控制台的 API Key，不是火山方舟控制台的 API Key。",
+            "资源 ID" to "需与已开通的服务和音色匹配，默认 seed-tts-2.0。",
+        ),
     ) {
-        Md3TextField(
+        SpeechSecretFieldRow(
+            label = "API Key",
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
-            visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                MochiIconButton(onClick = { keyVisible = !keyVisible }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(
-                        imageVector = if (keyVisible) visibilityOff else visibility,
-                        contentDescription = if (keyVisible) "隐藏 API Key" else "显示 API Key",
-                    )
-                }
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
         )
-    }
-    KedgeFormRow(label = { Text(stringResource(R.string.setting_tts_page_base_url)) }) {
-        Md3TextField(
+        SpeechTextFieldRow(
+            label = stringResource(R.string.setting_tts_page_base_url),
             value = setting.baseUrl,
             onValueChange = { onValueChange(setting.copy(baseUrl = it)) },
             placeholder = "https://openspeech.bytedance.com",
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
         )
-    }
-    KedgeFormRow(
-        label = { Text("资源 ID") },
-        description = { Text("需与已开通的服务和音色匹配，默认 seed-tts-2.0。") }
-    ) {
-        Md3TextField(
+        SpeechTextFieldRow(
+            label = "资源 ID",
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
         )
     }
-    KedgeFormRow(
-        label = { Text("音色 ID") },
-        description = { Text("填写控制台中的音色 ID，默认使用 VV 音色。") }
+
+    val speedLabel = stringResource(R.string.setting_tts_page_speed)
+    MochiListSection(
+        footer = speechFooter(
+            "音色 ID" to "填写控制台中的音色 ID，默认使用 VV 音色。",
+            speedLabel to "范围 -50～100，0 为正常语速，-50 为半速，100 为两倍速。",
+        ),
     ) {
-        Md3TextField(
+        SpeechTextFieldRow(
+            label = "音色 ID",
             value = setting.speaker,
             onValueChange = { onValueChange(setting.copy(speaker = it)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
         )
-    }
-    KedgeFormRow(
-        label = { Text(stringResource(R.string.setting_tts_page_speed)) },
-        description = { Text("范围 -50～100，0 为正常语速，-50 为半速，100 为两倍速。") }
-    ) {
-        OutlinedNumberInput(
+        SpeechNumberFieldRow(
+            label = speedLabel,
             value = setting.speechRate,
             onValueChange = { onValueChange(setting.copy(speechRate = it.coerceIn(-50, 100))) },
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

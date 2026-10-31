@@ -104,9 +104,8 @@ data class CardManifest(
          * 原生依赖包：依赖不随应用编译，而是与云端卡片脚本一起从 Hub 下载，
          * 校验 sha256 后由宿主 DexClassLoader 加载。见 docs/dependency-system.md。
          *
-         * 兼容：旧 manifest 字段 `requires.plugins` 仍可解析（反序列化回退），新序列化只写 `dependencies`。
+         * 原生依赖统一使用 `requires.dependencies`。
          */
-        @JsonNames("plugins")
         val dependencies: List<DependencyReq> = emptyList(),
     )
 

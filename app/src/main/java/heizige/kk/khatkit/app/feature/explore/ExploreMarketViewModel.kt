@@ -201,6 +201,23 @@ class ExploreMarketViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 详情页按名补查的条目：默认列表只拉 50 张，深链或搜索词变过时详情页要的那张可能不在里面。
+     * 值为 null = 查过了但市场里没有（详情页据此从加载态切到「找不到」）。
+     */
+    private val _focusCards = MutableStateFlow<Map<String, CardIndexEntry?>>(emptyMap())
+    val focusCards: StateFlow<Map<String, CardIndexEntry?>> = _focusCards.asStateFlow()
+
+    fun loadCard(name: String) {
+        if (_cards.value.any { it.name == name } || name in _focusCards.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val entry = runCatching { provider.searchCards(name, limit = 20) }
+                .getOrNull()
+                ?.firstOrNull { it.name == name }
+            _focusCards.value = _focusCards.value + (name to entry)
+        }
+    }
+
     private suspend fun reloadInstalled() {
         runCatching { provider.installedCardVersions() }
             .onSuccess { _installed.value = it }

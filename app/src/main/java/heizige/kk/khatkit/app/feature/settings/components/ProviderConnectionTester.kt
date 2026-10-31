@@ -54,6 +54,12 @@ import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 @Composable
 fun ProviderConnectionTester(
     internalProvider: ProviderSetting,
+    /** 打开测试弹窗的入口；默认是一个链接图标按钮，设置页里可以换成一整行。 */
+    trigger: @Composable (open: () -> Unit) -> Unit = { open ->
+        MochiIconButton(onClick = open, shapes = IconButtonDefaults.shapes()) {
+            Icon(link, null)
+        }
+    },
 ) {
     var showTestDialog by remember { mutableStateOf(false) }
     val providerManager = rememberAppEntryPoint().providerManager()
@@ -63,9 +69,7 @@ fun ProviderConnectionTester(
     val settingProviderPageTestToolCalled = stringResource(R.string.setting_provider_page_test_tool_called)
     val settingProviderPageTestToolNotCalled = stringResource(R.string.setting_provider_page_test_tool_not_called)
 
-    MochiIconButton(onClick = { showTestDialog = true }, shapes = IconButtonDefaults.shapes()) {
-        Icon(link, null)
-    }
+    trigger { showTestDialog = true }
 
     if (showTestDialog) {
         var model by remember(internalProvider) {

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 图标字形来自 KodeHeap（| < _）。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="512"
+  android:viewportHeight="512"
+  tools:ignore="VectorRaster">
+  <path
+    android:fillColor="@android:color/system_accent1_700"
+    android:pathData="m310.47,310.47h-60.61v-8.03h60.61zM310.57,259.76 L249.78,234.28v-8.33l60.79,-28.81v13.93l-41.87,18.45 41.87,16.31zM193.43,193.43h13.41L206.84,310.57h-13.41z"
+    android:strokeWidth="12.9705"
+    android:strokeColor="@android:color/system_accent1_700" />
+</vector>

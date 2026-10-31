@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
@@ -127,7 +128,8 @@ fun SkillsPage() {
         // LazyColumn 自己不再给 contentPadding，否则会和 listPadding 叠成 32dp。
         val cards = listCardStyle()
         LazyColumn(
-            modifier = listModifier,
+            // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
+            modifier = listModifier.kkScrollEdgeFade(bottom = 0.dp),
             verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (visibleSkills.isEmpty()) {
@@ -180,6 +182,8 @@ fun SkillsPage() {
     }
 
     KedgeSettingsPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->

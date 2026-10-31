@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.app.core.ui.components.ui.KkScrollEdgeExtent
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.activity.compose.LocalActivity
@@ -456,8 +458,15 @@ private fun ChatListNormal(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(state = hazeState)
-                    .padding(top = innerPadding.calculateTopPadding()),
+                    .padding(top = innerPadding.calculateTopPadding())
+                    // 顶栏 / 悬浮输入栏交界处的 Mochi 滚动边缘过渡：底边从输入栏顶上 24dp 一直渐隐到屏幕底，
+                    // 滚到最新一条时底边是实的。放在 hazeSource 外面：输入栏的毛玻璃仍取样没被遮的内容
+                    .kkScrollEdgeFade(
+                        state = state,
+                        top = KkScrollEdgeExtent,
+                        bottom = innerPadding.calculateBottomPadding() + KkScrollEdgeExtent,
+                    )
+                    .hazeSource(state = hazeState),
             ) {
             itemsIndexed(
                 items = conversation.messageNodes,

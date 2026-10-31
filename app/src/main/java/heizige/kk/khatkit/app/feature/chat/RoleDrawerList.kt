@@ -125,16 +125,21 @@ internal fun RoleDrawerList(
             val recent = chatsByRole[role.id]
             val active = role.id in activeRoles
             item("role-${role.id}") {
+                val displayName = role.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
                 MochiSidebarItem(
-                    title = role.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
+                    title = displayName,
                     onClick = { onRole(role) },
                     selected = role.id == selected,
                     leading = {
                         // UI-3：头像按 MochiSidebarItem 度量给 40dp（原来 28dp，比行高小一半，
-                        // 圆点像「状态点」不像头像）。
+                        // 圆点像「状态点」不像头像）。形状 / 底色 / 默认供应商图标与角色设置页
+                        // 的 AssistantItem 同一套参数，两处头像长得一样。
                         UIAvatar(
-                            name = role.name,
+                            name = displayName,
                             value = role.avatar,
+                            avatarShape = role.avatarShape,
+                            defaultIconName = providerName(role),
+                            avatarColor = role.avatarColor,
                             modifier = Modifier.size(40.dp),
                         )
                     },

@@ -56,6 +56,7 @@ data class HubCardPublishRequest(
     @SerialName("price_per_call") val pricePerCall: Long = 0,
     val license: String = "",
     val changelog: String = "",
+    @SerialName("artifact_base64") val artifactBase64: String = "",
 )
 
 /** fork（提交改进）请求：新增 parent_version，其余与发布一致。 */
@@ -69,6 +70,7 @@ data class HubCardForkRequest(
     @SerialName("price_per_call") val pricePerCall: Long = 0,
     val license: String = "",
     val changelog: String = "",
+    @SerialName("artifact_base64") val artifactBase64: String = "",
 )
 
 /** 激活结果：token 为后续所有请求的 Bearer 令牌，session_key 供网关/服务端会话使用（可选）。 */

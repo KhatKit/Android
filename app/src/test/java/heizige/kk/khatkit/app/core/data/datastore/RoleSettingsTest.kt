@@ -14,7 +14,7 @@ import kotlin.uuid.Uuid
 
 class RoleSettingsTest {
     private val model = Model(modelId = "test-chat", displayName = "Test Chat")
-    private val supervisor = RoleTemplates.toolbox(model.id)
+    private val supervisor = RoleTemplates.kitty(model.id)
     private val worker = Assistant(name = "检索员", description = "负责检索和核对信息", chatModelId = model.id)
     private val settings = Settings(
         assistantId = worker.id,
@@ -34,15 +34,40 @@ class RoleSettingsTest {
     }
 
     @Test
-    fun `only untouched legacy default becomes toolbox supervisor`() {
+    fun `only untouched legacy default becomes Kitty`() {
         val legacy = Assistant(id = DEFAULT_ASSISTANT_ID)
         val migrated = migrateLegacyDefaultRole(legacy)
         assertEquals(legacy.id, migrated.id)
         assertTrue(migrated.canManageRoles)
-        assertEquals("Toolbox 主管", migrated.name)
+        assertEquals("Kitty", migrated.name)
+        assertEquals(RoleTemplates.kitty().avatar, migrated.avatar)
         val customized = legacy.copy(systemPrompt = "用户自定义提示词")
         assertSame(customized, migrateLegacyDefaultRole(customized))
         assertSame(worker, migrateLegacyDefaultRole(worker))
+    }
+
+    @Test
+    fun `untouched Toolbox default becomes Kitty but keeps user edits`() {
+        val oldToolbox = RoleTemplates.kitty(model.id, DEFAULT_ASSISTANT_ID).copy(
+            name = RoleTemplates.LEGACY_TOOLBOX_NAME,
+            description = RoleTemplates.LEGACY_TOOLBOX_DESCRIPTION,
+            avatar = RoleTemplates.LEGACY_TOOLBOX_AVATAR,
+            systemPrompt = RoleTemplates.LEGACY_TOOLBOX_PROMPT,
+        )
+        val migrated = migrateLegacyDefaultRole(oldToolbox)
+        assertEquals(RoleTemplates.kitty(model.id, DEFAULT_ASSISTANT_ID), migrated)
+        assertSame(migrated, migrateLegacyDefaultRole(migrated))
+
+        val renamed = oldToolbox.copy(name = "我的工具箱", avatar = Avatar.Emoji("🦊"))
+        val kept = migrateLegacyDefaultRole(renamed)
+        assertEquals("我的工具箱", kept.name)
+        assertEquals(Avatar.Emoji("🦊"), kept.avatar)
+        assertEquals(RoleTemplates.kitty().systemPrompt, kept.systemPrompt)
+
+        val edited = oldToolbox.copy(systemPrompt = RoleTemplates.LEGACY_TOOLBOX_PROMPT + "\n多说一句")
+        assertSame(edited, migrateLegacyDefaultRole(edited))
+        val notDefault = oldToolbox.copy(id = Uuid.random())
+        assertSame(notDefault, migrateLegacyDefaultRole(notDefault))
     }
 
     @Test
@@ -135,7 +160,7 @@ class RoleSettingsTest {
     }
 
     @Test
-    fun `toolbox template has stable supplied identity and role fields round trip`() {
+    fun `Kitty template has stable supplied identity and role fields round trip`() {
         val decoded = Json.decodeFromString<Assistant>(Json.encodeToString(supervisor))
         assertEquals(supervisor, decoded)
         assertEquals(model.id, decoded.chatModelId)

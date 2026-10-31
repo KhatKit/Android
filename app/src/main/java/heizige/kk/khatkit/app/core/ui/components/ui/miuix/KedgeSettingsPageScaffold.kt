@@ -37,6 +37,8 @@ fun KedgeSettingsPageScaffold(
         androidx.compose.material3.FabPosition.End,
     @Suppress("UNUSED_PARAMETER") largeTitle: Boolean = true,
     @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior? = null,
+    /** 见 MochiPageScaffold.edgeFade：正文顶 / 底有固定不滚的东西时传 false，自己把 kkScrollEdgeFade 加到列表上 */
+    edgeFade: Boolean = true,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     MochiPageScaffold(
@@ -56,6 +58,7 @@ fun KedgeSettingsPageScaffold(
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
         containerColor = MochiDefaults.groupedBackground(),
+        edgeFade = edgeFade,
     ) { innerPadding ->
         content(innerPadding)
     }

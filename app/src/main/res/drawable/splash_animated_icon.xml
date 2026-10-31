@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  由 scripts/gen_splash_avd.py 生成，不要手改。
+  系统 SplashScreen（API 31+）的动画图标：开场只有 |，光标 | 从基线下滑上来，上 2/3 折成 <、下 1/3 转成 _。
+  模型与 feature/splash/SplashGlyph.kt 逐项一致：系统启动页退场时，Compose 覆盖层从同一毫秒接着画。
+  root 组：字形中心 (252,252) 移到画布中心并放大 1.5 倍，仍落在启动页 2/3 直径的圆形遮罩内。
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:aapt="http://schemas.android.com/aapt">
+  <aapt:attr name="android:drawable">
+    <vector
+      android:width="240dp"
+      android:height="240dp"
+      android:viewportWidth="512"
+      android:viewportHeight="512">
+      <group
+        android:name="root"
+        android:pivotX="252"
+        android:pivotY="252"
+        android:scaleX="1.5"
+        android:scaleY="1.5"
+        android:translateX="4"
+        android:translateY="4">
+        <path
+          android:fillColor="@color/splash_foreground"
+          android:pathData="M193.43,193.43L193.43,310.57L206.84,310.57L206.84,193.43Z"
+          android:strokeColor="@color/splash_foreground"
+          android:strokeWidth="12.9705" />
+        <group android:name="cursor_clip">
+          <clip-path
+            android:name="cursor_clip_path"
+            android:pathData="M0,0L512,0L512,317.05L0,317.05Z" />
+        <group
+          android:name="cursor"
+          android:translateY="131">
+        <path
+          android:name="chevron"
+          android:fillColor="@color/splash_foreground"
+          android:pathData="M273.30,193.43L273.30,230.32L273.30,230.32L273.30,267.20L286.70,267.20L286.70,230.32L286.70,193.43Z"
+          android:strokeColor="@color/splash_foreground"
+          android:strokeWidth="12.9705" />
+        <path
+          android:name="underscore"
+          android:fillColor="@color/splash_foreground"
+          android:pathData="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:strokeColor="@color/splash_foreground"
+          android:strokeWidth="12.9705" />
+          </group>
+        </group>
+      </group>
+    </vector>
+  </aapt:attr>
+  <target android:name="cursor">
+    <aapt:attr name="android:animation">
+      <objectAnimator
+        android:duration="240"
+        android:propertyName="translateY"
+        android:startOffset="80"
+        android:valueFrom="131"
+        android:valueTo="0"
+        android:valueType="floatType">
+        <aapt:attr name="android:interpolator">
+          <pathInterpolator
+            android:controlX1="0.05"
+            android:controlY1="0.7"
+            android:controlX2="0.1"
+            android:controlY2="1" />
+        </aapt:attr>
+      </objectAnimator>
+    </aapt:attr>
+  </target>
+  <target android:name="cursor_clip_path">
+    <aapt:attr name="android:animation">
+      <objectAnimator
+        android:duration="0"
+        android:propertyName="pathData"
+        android:startOffset="380"
+        android:valueFrom="M0,0L512,0L512,317.05L0,317.05Z"
+        android:valueTo="M0,0L512,0L512,512L0,512Z"
+        android:valueType="pathType" />
+    </aapt:attr>
+  </target>
+  <target android:name="chevron">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="380"
+          android:valueFrom="M273.30,193.43L273.30,230.32L273.30,230.32L273.30,267.20L286.70,267.20L286.70,230.32L286.70,193.43Z"
+          android:valueTo="M278.90,186.64L267.71,229.06L267.67,231.46L279.23,273.45L291.71,268.71L281.11,230.18L291.34,191.36Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="400"
+          android:valueFrom="M278.90,186.64L267.71,229.06L267.67,231.46L279.23,273.45L291.71,268.71L281.11,230.18L291.34,191.36Z"
+          android:valueTo="M286.05,183.88L263.04,228.12L262.98,232.32L286.58,275.57L297.03,267.22L277.21,230.05L296.46,192.20Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="420"
+          android:valueFrom="M286.05,183.88L263.04,228.12L262.98,232.32L286.58,275.57L297.03,267.22L277.21,230.05L296.46,192.20Z"
+          android:valueTo="M293.14,184.28L259.16,227.40L259.09,232.96L293.72,274.53L301.72,263.68L274.44,229.92L301.10,195.08Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="440"
+          android:valueFrom="M293.14,184.28L259.16,227.40L259.09,232.96L293.72,274.53L301.72,263.68L274.44,229.92L301.10,195.08Z"
+          android:valueTo="M299.31,186.70L255.96,226.87L255.90,233.45L299.82,271.50L305.35,259.08L272.41,229.79L304.81,199.08Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="460"
+          android:valueFrom="M299.31,186.70L255.96,226.87L255.90,233.45L299.82,271.50L305.35,259.08L272.41,229.79L304.81,199.08Z"
+          android:valueTo="M304.22,190.12L253.38,226.47L253.34,233.81L304.59,267.55L307.90,254.24L270.86,229.68L307.52,203.40Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="480"
+          android:valueFrom="M304.22,190.12L253.38,226.47L253.34,233.81L304.59,267.55L307.90,254.24L270.86,229.68L307.52,203.40Z"
+          android:valueTo="M307.89,193.74L251.36,226.17L251.34,234.08L308.08,263.50L309.56,249.74L269.65,229.59L309.36,207.48Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="500"
+          android:valueFrom="M307.89,193.74L251.36,226.17L251.34,234.08L308.08,263.50L309.56,249.74L269.65,229.59L309.36,207.48Z"
+          android:valueTo="M310.49,197.03L249.83,225.96L249.83,234.27L310.50,259.88L310.54,245.95L268.73,229.52L310.54,210.96Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="520"
+          android:valueFrom="M310.49,197.03L249.83,225.96L249.83,234.27L310.50,259.88L310.54,245.95L268.73,229.52L310.54,210.96Z"
+          android:valueTo="M312.23,199.67L248.73,225.81L248.75,234.41L312.08,257.01L311.09,243.04L268.05,229.47L311.24,213.64Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="540"
+          android:valueFrom="M312.23,199.67L248.73,225.81L248.75,234.41L312.08,257.01L311.09,243.04L268.05,229.47L311.24,213.64Z"
+          android:valueTo="M313.30,201.52L248.01,225.71L248.04,234.49L313.04,255.01L311.37,241.06L267.60,229.44L311.63,215.49Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="560"
+          android:valueFrom="M313.30,201.52L248.01,225.71L248.04,234.49L313.04,255.01L311.37,241.06L267.60,229.44L311.63,215.49Z"
+          android:valueTo="M313.86,202.58L247.62,225.66L247.66,234.54L313.53,253.87L311.49,239.94L267.35,229.42L311.82,216.53Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="580"
+          android:valueFrom="M313.86,202.58L247.62,225.66L247.66,234.54L313.53,253.87L311.49,239.94L267.35,229.42L311.82,216.53Z"
+          android:valueTo="M314.03,202.91L247.50,225.64L247.54,234.55L313.69,253.51L311.52,239.59L267.27,229.41L311.87,216.86Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="600"
+          android:valueFrom="M314.03,202.91L247.50,225.64L247.54,234.55L313.69,253.51L311.52,239.59L267.27,229.41L311.87,216.86Z"
+          android:valueTo="M313.90,202.65L247.59,225.66L247.63,234.54L313.57,253.79L311.50,239.86L267.33,229.42L311.83,216.61Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="620"
+          android:valueFrom="M313.90,202.65L247.59,225.66L247.63,234.54L313.57,253.79L311.50,239.86L267.33,229.42L311.83,216.61Z"
+          android:valueTo="M313.53,201.96L247.85,225.69L247.88,234.51L313.25,254.53L311.42,240.59L267.50,229.43L311.71,215.93Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="640"
+          android:valueFrom="M313.53,201.96L247.85,225.69L247.88,234.51L313.25,254.53L311.42,240.59L267.50,229.43L311.71,215.93Z"
+          android:valueTo="M313.00,200.99L248.21,225.74L248.24,234.47L312.78,255.57L311.30,241.62L267.73,229.45L311.52,214.97Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="660"
+          android:valueFrom="M313.00,200.99L248.21,225.74L248.24,234.47L312.78,255.57L311.30,241.62L267.73,229.45L311.52,214.97Z"
+          android:valueTo="M312.38,199.92L248.63,225.79L248.65,234.42L312.21,256.74L311.13,242.78L267.99,229.47L311.29,213.89Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="680"
+          android:valueFrom="M312.38,199.92L248.63,225.79L248.65,234.42L312.21,256.74L311.13,242.78L267.99,229.47L311.29,213.89Z"
+          android:valueTo="M311.73,198.87L249.05,225.85L249.06,234.37L311.63,257.88L310.94,243.92L268.25,229.49L311.04,212.84Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="700"
+          android:valueFrom="M311.73,198.87L249.05,225.85L249.06,234.37L311.63,257.88L310.94,243.92L268.25,229.49L311.04,212.84Z"
+          android:valueTo="M311.15,197.98L249.42,225.90L249.43,234.32L311.10,258.84L310.76,244.89L268.48,229.50L310.81,211.93Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="720"
+          android:valueFrom="M311.15,197.98L249.42,225.90L249.43,234.32L311.10,258.84L310.76,244.89L268.48,229.50L310.81,211.93Z"
+          android:valueTo="M310.73,197.37L249.68,225.94L249.68,234.29L310.72,259.51L310.62,245.57L268.64,229.52L310.64,211.31Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="740"
+          android:valueFrom="M310.73,197.37L249.68,225.94L249.68,234.29L310.72,259.51L310.62,245.57L268.64,229.52L310.64,211.31Z"
+          android:valueTo="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="760"
+          android:valueFrom="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueTo="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="780"
+          android:valueFrom="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueTo="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="800"
+          android:valueFrom="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueTo="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="820"
+          android:valueFrom="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueTo="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+          android:valueType="pathType" />
+      </set>
+    </aapt:attr>
+  </target>
+  <target android:name="underscore">
+    <aapt:attr name="android:animation">
+      <set>
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="380"
+          android:valueFrom="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueTo="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="400"
+          android:valueFrom="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueTo="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="420"
+          android:valueFrom="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueTo="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="440"
+          android:valueFrom="M273.30,310.57L286.70,310.57L286.70,279.17L273.30,279.17Z"
+          android:valueTo="M267.90,313.14L279.41,317.27L292.18,281.69L280.67,277.55Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="460"
+          android:valueFrom="M267.90,313.14L279.41,317.27L292.18,281.69L280.67,277.55Z"
+          android:valueTo="M262.61,313.60L271.59,320.32L297.54,285.61L288.56,278.89Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="480"
+          android:valueFrom="M262.61,313.60L271.59,320.32L297.54,285.61L288.56,278.89Z"
+          android:valueTo="M258.11,312.46L264.58,320.54L302.09,290.50L295.62,282.42Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="500"
+          android:valueFrom="M258.11,312.46L264.58,320.54L302.09,290.50L295.62,282.42Z"
+          android:valueTo="M254.70,310.34L259.00,318.96L305.54,295.75L301.25,287.14Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="520"
+          android:valueFrom="M254.70,310.34L259.00,318.96L305.54,295.75L301.25,287.14Z"
+          android:valueTo="M252.36,307.84L254.92,316.49L307.92,300.84L305.37,292.19Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="540"
+          android:valueFrom="M252.36,307.84L254.92,316.49L307.92,300.84L305.37,292.19Z"
+          android:valueTo="M250.90,305.37L252.14,313.82L309.42,305.39L308.17,296.94Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="560"
+          android:valueFrom="M250.90,305.37L252.14,313.82L309.42,305.39L308.17,296.94Z"
+          android:valueTo="M250.08,303.20L250.37,311.36L310.27,309.18L309.97,301.02Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="580"
+          android:valueFrom="M250.08,303.20L250.37,311.36L310.27,309.18L309.97,301.02Z"
+          android:valueTo="M249.66,301.47L249.31,309.34L310.70,312.12L311.05,304.24Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="600"
+          android:valueFrom="M249.66,301.47L249.31,309.34L310.70,312.12L311.05,304.24Z"
+          android:valueTo="M249.49,300.20L248.70,307.85L310.89,314.23L311.67,306.58Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="620"
+          android:valueFrom="M249.49,300.20L248.70,307.85L310.89,314.23L311.67,306.58Z"
+          android:valueTo="M249.42,299.40L248.39,306.90L310.96,315.55L311.99,308.05Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="640"
+          android:valueFrom="M249.42,299.40L248.39,306.90L310.96,315.55L311.99,308.05Z"
+          android:valueTo="M249.41,299.01L248.25,306.43L310.98,316.19L312.13,308.76Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="660"
+          android:valueFrom="M249.41,299.01L248.25,306.43L310.98,316.19L312.13,308.76Z"
+          android:valueTo="M249.41,298.97L248.24,306.39L310.98,316.25L312.14,308.83Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="680"
+          android:valueFrom="M249.41,298.97L248.24,306.39L310.98,316.25L312.14,308.83Z"
+          android:valueTo="M249.41,299.22L248.32,306.68L310.97,315.85L312.06,308.38Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="700"
+          android:valueFrom="M249.41,299.22L248.32,306.68L310.97,315.85L312.06,308.38Z"
+          android:valueTo="M249.44,299.66L248.49,307.21L310.94,315.11L311.89,307.56Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="720"
+          android:valueFrom="M249.44,299.66L248.49,307.21L310.94,315.11L311.89,307.56Z"
+          android:valueTo="M249.49,300.24L248.72,307.89L310.88,314.17L311.66,306.51Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="740"
+          android:valueFrom="M249.49,300.24L248.72,307.89L310.88,314.17L311.66,306.51Z"
+          android:valueTo="M249.57,300.86L249.00,308.63L310.80,313.14L311.37,305.37Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="760"
+          android:valueFrom="M249.57,300.86L249.00,308.63L310.80,313.14L311.37,305.37Z"
+          android:valueTo="M249.66,301.45L249.30,309.33L310.70,312.14L311.06,304.27Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="780"
+          android:valueFrom="M249.66,301.45L249.30,309.33L310.70,312.14L311.06,304.27Z"
+          android:valueTo="M249.76,301.96L249.58,309.92L310.59,311.29L310.77,303.33Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="800"
+          android:valueFrom="M249.76,301.96L249.58,309.92L310.59,311.29L310.77,303.33Z"
+          android:valueTo="M249.84,302.31L249.79,310.33L310.51,310.70L310.56,302.68Z"
+          android:valueType="pathType" />
+        <objectAnimator
+          android:duration="20"
+          android:interpolator="@android:interpolator/linear"
+          android:propertyName="pathData"
+          android:startOffset="820"
+          android:valueFrom="M249.84,302.31L249.79,310.33L310.51,310.70L310.56,302.68Z"
+          android:valueTo="M249.87,302.44L249.87,310.48L310.48,310.48L310.48,302.44Z"
+          android:valueType="pathType" />
+      </set>
+    </aapt:attr>
+  </target>
+</animated-vector>

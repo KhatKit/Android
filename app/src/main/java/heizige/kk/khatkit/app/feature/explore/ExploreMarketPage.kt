@@ -244,7 +244,7 @@ private val localToolCatalog = listOf(
 // Stable extension identity: this mirrors KodeHeap's avatar palette hashing.
 // 身份色只负责「区分彼此」，不负责抢眼：整组压到低饱和度中明度（莫兰迪调），
 // 这样十几个图标排在一起不会变成调色盘，浅色/深色主题下都还看得清。
-private val extensionShapes = listOf(
+internal val extensionShapes = listOf(
     MaterialShapes.Circle,
     MaterialShapes.Arch,
     MaterialShapes.Diamond,
@@ -408,12 +408,8 @@ fun ExploreMarketPage() {
     // 列表滚动状态：顶栏标题的渐显读它。
     val marketListState = rememberLazyListState()
 
-    var secretCard by remember { mutableStateOf<String?>(null) }
-    var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
     // 轮播卡「已安装 → 卸载」的待确认目标。非空时页面根部弹确认框。
     var uninstallTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var publishTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
     // 资源市场里被点开看详情的合集（技能合集 / MCP 服务 / 合集包）。
     var resourceTarget by remember { mutableStateOf<HubResourceEntry?>(null) }
     // P0-5 条目级「配置」：非空时弹复用设置页 MCP 表单的配置抽屉（含缺必填提示）。
@@ -645,7 +641,7 @@ fun ExploreMarketPage() {
                                     installedVersion = installed[featuredCards[page].name],
                                     hubInfo = hubInfo[featuredCards[page].name],
                                     busy = busyCard == featuredCards[page].name,
-                                    onClick = { selectedCard = featuredCards[page] },
+                                    onClick = { navController.navigate(Screen.ExploreCardDetail(featuredCards[page].name)) },
                                     onInstall = {
                                         // 装了但不是最新 → 覆盖安装（force），没装过 → 正常安装。
                                         val target = featuredCards[page]
@@ -735,7 +731,7 @@ fun ExploreMarketPage() {
                                     triggers = triggers[entry.name] ?: entry.triggers,
                                     hubInfo = hubInfo[entry.name],
                                     busy = busyCard == entry.name,
-                                    onClick = { selectedCard = entry },
+                                    onClick = { navController.navigate(Screen.ExploreCardDetail(entry.name)) },
                                     onInstall = {
                                         vm.install(entry) { ok ->
                                             scope.launch {
@@ -997,7 +993,7 @@ fun ExploreMarketPage() {
         }
     }
 
-    // 外层 Box：整页（Scaffold + 所有浮层）收进同一个容器里。详情走 MochiSheet，遮罩由面板自己给。
+    // 外层 Box：整页（Scaffold + 所有浮层）收进同一个容器里。资源详情走 MochiSheet，遮罩由面板自己给。
     Box(modifier = Modifier.fillMaxSize()) {
         MochiPageScaffold(
             topBar = {
@@ -1037,32 +1033,6 @@ fun ExploreMarketPage() {
                 )
             }
         }
-
-    // 卡片详情弹层 + 发布/改进对话框：一级页与二级卡片市场页共用同一份实现
-    // （两页都能点开卡片，动作语义必须完全一致）。
-    CardMarketOverlays(
-        vm = vm,
-        installed = installed,
-        triggers = triggers,
-        hubInfo = hubInfo,
-        activated = activated,
-        busyCard = busyCard,
-        refreshQuery = query,
-        selectedCard = selectedCard,
-        onSelectCard = { selectedCard = it },
-        // 弹窗里的标签点一下 = 以这个词就地搜索：展开搜索栏把词显示出来，
-        // 列表走 [searchText] 过滤（与手打关键词同一条路径，不额外打网络请求）。
-        onTagSearch = { tag ->
-            searchExpanded = true
-            query = tag
-        },
-        secretCard = secretCard,
-        onSecretCard = { secretCard = it },
-        publishTarget = publishTarget,
-        onPublishTarget = { publishTarget = it },
-        forkTarget = forkTarget,
-        onForkTarget = { forkTarget = it },
-    )
 
     // 资源合集详情：先看清里面有什么（技能名 / MCP 端点），再决定装不装。
     resourceTarget?.let { entry ->
@@ -1132,163 +1102,7 @@ fun ExploreMarketPage() {
     }
 }
 
-/**
- * 卡片市场的浮层宿主：详情抽屉、密钥对话框、发布 / 提交改进对话框。
- *
- * 这些动作在一级探索页和二级「卡片市场」页都必须可用，所以状态留在调用方，
- * 这里只负责把 [ExploreMarketViewModel] 的动作接到 UI 上。
- */
-@Composable
-private fun CardMarketOverlays(
-    vm: ExploreMarketViewModel,
-    installed: Map<String, String>,
-    triggers: Map<String, List<String>>,
-    hubInfo: Map<String, HubCardMarketInfo>,
-    activated: Boolean,
-    busyCard: String?,
-    refreshQuery: String,
-    selectedCard: CardIndexEntry?,
-    onSelectCard: (CardIndexEntry?) -> Unit,
-    /** 详情弹窗里点了标签之后的去向：各页面自己决定（页内搜索 / 跳卡片市场搜）。 */
-    onTagSearch: (String) -> Unit,
-    secretCard: String?,
-    onSecretCard: (String?) -> Unit,
-    publishTarget: CardIndexEntry?,
-    onPublishTarget: (CardIndexEntry?) -> Unit,
-    forkTarget: CardIndexEntry?,
-    onForkTarget: (CardIndexEntry?) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    // 同上：浮层宿主里的 Toast 也在协程里，模板串在组合期取出。
-    val toastUninstalledNamed = stringResource(R.string.explore_market_toast_uninstalled_named)
-    val toastUninstallFailed = stringResource(R.string.explore_market_toast_uninstall_failed)
-    val toastInstalledNamed = stringResource(R.string.explore_market_toast_installed_named)
-    val toastInstallFailed = stringResource(R.string.explore_market_toast_install_failed)
-    val toastUpdatedNamed = stringResource(R.string.explore_market_toast_updated_named)
-    val toastUpdateFailed = stringResource(R.string.explore_market_toast_update_failed)
-    val toastPublishSubmitted = stringResource(R.string.explore_market_toast_publish_submitted)
-    val toastPublishFailed = stringResource(R.string.explore_market_toast_publish_failed)
-    val toastForkSubmitted = stringResource(R.string.explore_market_toast_fork_submitted)
-    val toastForkFailed = stringResource(R.string.explore_market_toast_fork_failed)
-    val toastRanNamed = stringResource(R.string.explore_market_toast_ran_named)
-    val toastRunFailed = stringResource(R.string.explore_market_toast_run_failed)
-    val toastVotedNamed = stringResource(R.string.explore_market_toast_voted_named)
-    val toastVoteFailed = stringResource(R.string.explore_market_toast_vote_failed)
-    val toastAccountRequired = stringResource(R.string.explore_market_toast_account_required)
-    val provider = rememberAppEntryPoint().khatKitToolProvider()
-
-    ui.feice.mochi.theme.MochiTheme {
-        secretCard?.let { cardName ->
-            KhatKitSecretsDialog(
-                cardName = cardName,
-                controller = provider,
-                onDismiss = { onSecretCard(null) },
-                onToast = { message, isError -> Toast.show(message = message, isError = isError) },
-            )
-        }
-    }
-
-    publishTarget?.let { entry ->
-        PublishCardDialog(
-            entry = entry,
-            onDismiss = { onPublishTarget(null) },
-            onConfirm = { license, price, changelog ->
-                onPublishTarget(null)
-                vm.publish(entry.name, license, price, changelog) { result ->
-                    scope.launch {
-                        Toast.show(
-                            result.message.ifBlank {
-                                if (result.ok) {
-                                    toastPublishSubmitted
-                                } else {
-                                    toastPublishFailed
-                                }
-                            },
-                            !result.ok,
-                        )
-                        vm.refresh(refreshQuery)
-                    }
-                }
-            },
-        )
-    }
-
-    forkTarget?.let { entry ->
-        ForkCardDialog(
-            entry = entry,
-            parentVersion = installed[entry.name] ?: hubInfo[entry.name]?.version.orEmpty(),
-            onDismiss = { onForkTarget(null) },
-            onConfirm = { parent, newVersion, changelog ->
-                onForkTarget(null)
-                vm.fork(entry.name, parent, changelog, newVersion) { result ->
-                    scope.launch {
-                        Toast.show(
-                            result.message.ifBlank {
-                                if (result.ok) {
-                                    toastForkSubmitted
-                                } else {
-                                    toastForkFailed
-                                }
-                            },
-                            !result.ok,
-                        )
-                        vm.refresh(refreshQuery)
-                    }
-                }
-            },
-        )
-    }
-
-    selectedCard?.let { entry ->
-        CardDetailSheet(
-            entry = entry,
-            installedVersion = installed[entry.name],
-            triggers = triggers[entry.name] ?: entry.triggers,
-            hubInfo = hubInfo[entry.name],
-            activated = activated,
-            busy = busyCard == entry.name,
-            onDismiss = { onSelectCard(null) },
-            onTagSearch = onTagSearch,
-            onToast = { message, isError -> Toast.show(message = message, isError = isError) },
-            onSecretsClick = {
-                onSecretCard(entry.name)
-                onSelectCard(null)
-            },
-            onPublishClick = {
-                onPublishTarget(entry)
-                onSelectCard(null)
-            },
-            onForkClick = {
-                onForkTarget(entry)
-                onSelectCard(null)
-            },
-            onRun = { vm.run(entry.name) { r -> scope.launch { Toast.show(r.message.ifBlank { if (r.ok) toastRanNamed.format(entry.name) else toastRunFailed }, !r.ok) } } },
-            onInstall = { vm.install(entry) { ok -> scope.launch { Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok) } } },
-            onUpdate = { vm.update(entry) { ok -> scope.launch { Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok) } } },
-            onUninstall = {
-                vm.uninstall(entry.name) { ok ->
-                    scope.launch {
-                        Toast.show(if (ok) toastUninstalledNamed.format(entry.name) else toastUninstallFailed, !ok)
-                        if (ok) onSelectCard(null)
-                    }
-                }
-            },
-            onVote = {
-                if (!activated) {
-                    Toast.show(toastAccountRequired, true)
-                } else {
-                    vm.vote(entry.name) { r ->
-                        scope.launch {
-                            Toast.show(r.message.ifBlank { if (r.ok) toastVotedNamed.format(entry.name) else toastVoteFailed }, !r.ok)
-                        }
-                    }
-                }
-            },
-        )
-    }
-}
-
-private fun formatBytes(bytes: Long): String = when {
+internal fun formatBytes(bytes: Long): String = when {
     bytes >= 1024 * 1024 -> "%.1f MB".format(bytes / 1024f / 1024f)
     bytes >= 1024 -> "%.1f KB".format(bytes / 1024f)
     else -> "$bytes B"
@@ -1335,13 +1149,14 @@ private fun CardIndexEntry.matchesQuery(
  *
  * 一级探索页只铺 [CARD_PREVIEW_COUNT] 张卡片，全量列表按需进这一页；
  * 列表用 LazyColumn 逐项惰性组合（一级页此前是把几十张卡塞进一个 `item` 里的 Column，
- * 一屏就全部组合完）。搜索 / 筛选语义与一级页完全一致，动作共用 [CardMarketOverlays]。
+ * 一屏就全部组合完）。搜索 / 筛选语义与一级页完全一致，点卡片进 [ExploreCardDetailPage]。
  *
  * [initialQuery] 由一级页带过来，避免「在一级页搜了词、点进二级页结果词丢了」。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreCardsPage(initialQuery: String = "") {
+    val navController = LocalNavController.current
     val vm = hiltViewModel<ExploreMarketViewModel>()
 
     val cards by vm.cards.collectAsStateWithLifecycle()
@@ -1362,11 +1177,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
     var query by rememberSaveable { mutableStateOf(initialQuery) }
     var cardFilter by rememberSaveable { mutableStateOf(CardFilter.ALL.name) }
     val selectedCardFilter = remember(cardFilter) { CardFilter.valueOf(cardFilter) }
-
-    var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var secretCard by remember { mutableStateOf<String?>(null) }
-    var publishTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
 
     // 与一级页同一套过滤条件：两页看到的是同一份「市场」，只是展示数量不同。
     // 触发方式的本地化文案同理（弹窗里的标签点了就以它为搜索词），见 [searchText]。
@@ -1436,7 +1246,7 @@ fun ExploreCardsPage(initialQuery: String = "") {
             cardFilter = cardFilter,
             onCardFilter = { cardFilter = it },
             selectedCardFilter = selectedCardFilter,
-            onSelectCard = { selectedCard = it },
+            onSelectCard = { navController.navigate(Screen.ExploreCardDetail(it.name)) },
             onInstallCard = { entry ->
                 vm.install(entry) { ok ->
                     scope.launch {
@@ -1459,31 +1269,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
         )
     }
 
-    CardMarketOverlays(
-        vm = vm,
-        installed = installed,
-        triggers = triggers,
-        hubInfo = hubInfo,
-        activated = activated,
-        busyCard = busyCard,
-        refreshQuery = query,
-        selectedCard = selectedCard,
-        onSelectCard = { selectedCard = it },
-        // 弹窗里的标签点一下 = 以这个词就地搜索：展开搜索栏把词显示出来，
-        // 列表走 [searchText] 过滤（与手打关键词同一条路径，不额外打网络请求）。
-        onTagSearch = { tag ->
-            searchExpanded = true
-            query = tag
-            // 这一页的列表可能已经滚到几十项之后，过滤后结果集变短，不回到顶部会停在空处。
-            scope.launch { listState.scrollToItem(0) }
-        },
-        secretCard = secretCard,
-        onSecretCard = { secretCard = it },
-        publishTarget = publishTarget,
-        onPublishTarget = { publishTarget = it },
-        forkTarget = forkTarget,
-        onForkTarget = { forkTarget = it },
-    )
     }
 }
 
@@ -1587,7 +1372,7 @@ private fun cardsList(
 }
 
 /** 数字类信息（版本号、票数、体积、哈希）统一走等宽数字，避免上下行对不齐。 */
-private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
+internal fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
 /**
  * 行首图标：照 iOS 26 设置行，28dp（[MochiListDefaults.LeadingSize]）连续圆角方块 + 12% 主色底，图标 17dp 主色。
@@ -1595,7 +1380,7 @@ private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
  * 内容类型就靠这一枚图标区分，行里不再写「技能合集」这类字样。
  */
 @Composable
-private fun RowIcon(icon: ImageVector, tint: Color = MochiTheme.colorScheme.primary) {
+internal fun RowIcon(icon: ImageVector, tint: Color = MochiTheme.colorScheme.primary) {
     Box(
         modifier = Modifier
             .size(MochiListDefaults.LeadingSize)
@@ -2358,7 +2143,7 @@ private fun PosterActionPill(
  * 但整体收进主题的色域），再把亮度封顶到 0.34：白字对比度稳定在 6:1 以上，
  * 浅色 / 深色主题、开不开动态取色都成立。
  */
-private fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Color {
+internal fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Color {
     val mixed = Color(
         red = identity.red * (1f - mix) + primary.red * mix,
         green = identity.green * (1f - mix) + primary.green * mix,
@@ -2380,7 +2165,7 @@ private fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Col
 }
 
 /** 海报渐变：左上亮一档、右下暗一档，纯平色块看着像没画完。 */
-private fun posterGradient(base: Color): Brush = Brush.linearGradient(
+internal fun posterGradient(base: Color): Brush = Brush.linearGradient(
     colors = listOf(
         Color(
             red = (base.red * 1.38f).coerceIn(0f, 1f),
@@ -2407,17 +2192,17 @@ private fun posterGradient(base: Color): Brush = Brush.linearGradient(
 /**
  * 卡片药丸的三种语义。轮播卡与详情页共用同一套判定，避免「同一张卡在两个地方说两句话」。
  */
-private enum class CardInstallState { INSTALL, UPDATE, INSTALLED }
+internal enum class CardInstallState { INSTALL, UPDATE, INSTALLED }
 
 @Composable
-private fun CardInstallState.label(): String = when (this) {
+internal fun CardInstallState.label(): String = when (this) {
     CardInstallState.INSTALL -> stringResource(R.string.explore_market_state_install)
     CardInstallState.UPDATE -> stringResource(R.string.explore_market_state_update)
     CardInstallState.INSTALLED -> stringResource(R.string.explore_market_state_installed)
 }
 
 @Composable
-private fun CardInstallState.busyLabel(): String = when (this) {
+internal fun CardInstallState.busyLabel(): String = when (this) {
     CardInstallState.INSTALL -> stringResource(R.string.explore_market_state_installing)
     CardInstallState.UPDATE -> stringResource(R.string.explore_market_state_updating)
     CardInstallState.INSTALLED -> stringResource(R.string.explore_market_state_uninstalling)
@@ -2430,7 +2215,7 @@ private fun CardInstallState.busyLabel(): String = when (this) {
  * 版本号不是合法 semver 时退回字符串比较 —— 解析失败绝不能把「装的是最新版」误判成
  * 「有新版本」，否则药丸会一直显示更新，而服务端并没有更新的包可下。
  */
-private fun cardInstallState(installedVersion: String?, marketVersion: String): CardInstallState {
+internal fun cardInstallState(installedVersion: String?, marketVersion: String): CardInstallState {
     if (installedVersion == null) return CardInstallState.INSTALL
     // 市场条目没给版本号（索引异常）时不能判定成「有新版本」，否则药丸永远显示更新。
     if (marketVersion.isBlank()) return CardInstallState.INSTALLED
@@ -2494,7 +2279,7 @@ private fun downloadsLabel(downloads: Long): String {
 }
 
 /** ICU 短紧凑格式（android.icu，API 24+，本项目 minSdk 26）；紧凑数据缺失退化成普通数字时返回 null 交兜底分支。 */
-private fun compactDownloadCount(downloads: Long, locale: Locale): String? = runCatching {
+internal fun compactDownloadCount(downloads: Long, locale: Locale): String? = runCatching {
     CompactDecimalFormat.getInstance(locale, CompactDecimalFormat.CompactStyle.SHORT).format(downloads)
 }.getOrNull()?.takeIf { it != NumberFormat.getIntegerInstance(locale).format(downloads) }
 
@@ -2598,195 +2383,6 @@ private fun CompactCard(
     )
 }
 
-/**
- * 卡片详情：Mochi 半屏面板（[MochiSheet]），自带遮罩与拖拽收起。
- *
- * 版面自上而下：面板头部（名称 + 关闭）→ 图标瓦片与「版本 / 引擎 · 权限」→ 描述 → 标签 →
- * 原生依赖分区 → 次级操作分区（密钥 / 卸载 / 发布 / 提交改进 / 投票）→ 主操作按钮（安装 / 更新 / 运行）。
- *
- * 主操作单独放在最下面：它的文案和数量随卡状态变（未装=安装；已装=运行 / 更新到 vX），
- * 次级动作是分区里的一行行列表项，不和主操作抢同一个视觉高度。
- */
-@Composable
-private fun CardDetailSheet(
-    entry: CardIndexEntry,
-    installedVersion: String?,
-    triggers: List<String>,
-    hubInfo: HubCardMarketInfo?,
-    activated: Boolean,
-    busy: Boolean,
-    onDismiss: () -> Unit,
-    /** 点面板里的标签：先把面板收掉，再由页面拿这段文字去搜索。 */
-    onTagSearch: (String) -> Unit,
-    onToast: (String, Boolean) -> Unit,
-    onSecretsClick: () -> Unit,
-    onPublishClick: () -> Unit,
-    onForkClick: () -> Unit,
-    onRun: () -> Unit,
-    onInstall: () -> Unit,
-    onUpdate: () -> Unit,
-    onUninstall: () -> Unit,
-    onVote: () -> Unit,
-) {
-    val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
-
-    // 次级动作在组合期拼好：文案全是 stringResource，只能在这里取。
-    val secretsLabel = stringResource(R.string.explore_market_secrets)
-    val uninstallLabel = stringResource(R.string.explore_market_uninstall)
-    val publishLabel = stringResource(R.string.explore_market_publish_to_hub)
-    val forkLabel = stringResource(R.string.explore_market_submit_revision)
-    val voteLabel = stringResource(R.string.explore_market_vote)
-    val voteNeedsActivationLabel = stringResource(R.string.explore_market_vote_needs_activation)
-    val secondaryActions = buildList {
-        if (installedVersion != null) {
-            add(DetailAction(secretsLabel, vpnKey, onSecretsClick))
-            add(DetailAction(uninstallLabel, deleteForever, onUninstall, destructive = true))
-        }
-        if (installedVersion != null && activated) {
-            add(DetailAction(publishLabel, upload, onPublishClick))
-            add(DetailAction(forkLabel, editNote, onForkClick))
-        }
-        if (hubInfo != null) {
-            add(DetailAction(if (activated) voteLabel else voteNeedsActivationLabel, keyboardArrowUp, onVote))
-        }
-    }
-
-    val showRun = installedVersion != null && CardManifest.TRIGGER_USER in triggers
-    val showUpdate = installedVersion != null && installedVersion != entry.version && entry.url.isNotBlank()
-    val showInstall = installedVersion == null && entry.url.isNotBlank()
-
-    val sheet = rememberMochiSheetState()
-    LaunchedEffect(Unit) { sheet.show() }
-    // 标签点击：先收面板（有退场动画），再让页面去搜这个标签 —— 搜索框 morph 与
-    // 面板下滑同时发生，不会被「面板还盖着、底下已经换了一屏」吓一跳。
-    val searchTag: (String) -> Unit = { tag ->
-        sheet.hide()
-        onTagSearch(tag)
-    }
-
-    MochiSheet(state = sheet, onDismiss = onDismiss) {
-        DetailSheetHeader(title = entry.name, onClose = { sheet.hide() })
-        MochiSheetContent {
-            DetailSheetHero(
-                icon = extension,
-                version = stringResource(R.string.explore_market_version_prefix, entry.version),
-                kicker = listOf(entry.engine, entry.privilege).filter { it.isNotBlank() }.joinToString(" · "),
-            )
-
-            val description = entry.summary.ifBlank { entry.description }
-            if (description.isNotBlank()) {
-                Text(
-                    text = description,
-                    style = MochiTheme.textStyles.subhead,
-                    color = MochiTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp), spacing = 6.dp) {
-                if (installedVersion != null) {
-                    TagChip(
-                        label = stringResource(R.string.explore_market_installed_version_badge, installedVersion),
-                        containerColor = MochiTheme.colorScheme.primaryContainer,
-                        contentColor = MochiTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-                // 桥接名 / 触发方式 / 授权三样是**可点的标签**：点一下按这个属性搜同类卡片。
-                // 依赖名与价格、下载量、票数不参与 —— 前者的同名桥接已在上面，后三者是
-                // 统计量而不是分类维度，拿它们当搜索词只会搜出噪音。
-                entry.bridges.distinct().forEach { bridge ->
-                    TagChip(
-                        label = bridge,
-                        icon = bolt,
-                        seed = bridge,
-                        onClick = { searchTag(bridge) },
-                    )
-                }
-                entry.dependencies.forEach { dependency ->
-                    TagChip(
-                        label = stringResource(R.string.explore_market_name_version, dependency.name, dependency.version),
-                        icon = deployedCode,
-                        seed = dependency.name,
-                    )
-                }
-                displayTriggers.forEach { trigger ->
-                    val label = if (trigger == CardManifest.TRIGGER_AI) {
-                        stringResource(R.string.explore_market_card_filter_ai)
-                    } else {
-                        stringResource(R.string.explore_market_trigger_user)
-                    }
-                    TagChip(label = label, onClick = { searchTag(label) })
-                }
-                hubInfo?.let { info ->
-                    // 免费卡片不挂「免费」胶囊（默认就是免费，标签只是噪音）；
-                    // 收费卡片的价格仍然必须露出，否则用户看不到计费方式。
-                    if (info.priceCents > 0L) {
-                        TagChip(
-                            label = stringResource(R.string.explore_market_price_per_call, formatYuan(info.priceCents)),
-                            containerColor = MochiTheme.colorScheme.tertiaryContainer,
-                            contentColor = MochiTheme.colorScheme.onTertiaryContainer,
-                        )
-                    }
-                    info.downloadsText()?.let { text -> TagChip(label = text) }
-                    if (info.license.isNotBlank()) {
-                        TagChip(label = info.license, onClick = { searchTag(info.license) })
-                    }
-                    // 票数保留，它是用户能自己改变的量。
-                    if (info.votes > 0) {
-                        TagChip(label = "▲ ${info.votes}")
-                    }
-                }
-            }
-
-            if (entry.dependencies.isNotEmpty()) {
-                MochiListSection(header = stringResource(R.string.explore_market_section_dependencies)) {
-                    entry.dependencies.forEach { dependency ->
-                        MochiListRow(
-                            title = dependency.name,
-                            value = dependency.version,
-                            leading = { RowIcon(deployedCode) },
-                        )
-                    }
-                }
-            }
-
-            if (busy) DetailBusyRow()
-
-            if (secondaryActions.isNotEmpty()) {
-                MochiListSection {
-                    secondaryActions.forEach { action ->
-                        MochiListRow(
-                            title = action.label,
-                            onClick = action.onClick,
-                            leading = {
-                                RowIcon(
-                                    action.icon,
-                                    tint = if (action.destructive) {
-                                        MochiTheme.colorScheme.error
-                                    } else {
-                                        MochiTheme.colorScheme.primary
-                                    },
-                                )
-                            },
-                            chevron = !action.destructive,
-                            destructive = action.destructive,
-                        )
-                    }
-                }
-            }
-
-            if (showRun) {
-                DetailPrimaryButton(stringResource(R.string.explore_market_run_card), onClick = onRun)
-            }
-            if (showUpdate) {
-                DetailPrimaryButton(stringResource(R.string.explore_market_update_to_version, entry.version), onClick = onUpdate)
-            }
-            if (showInstall) {
-                DetailPrimaryButton(stringResource(R.string.explore_market_install_card), onClick = onInstall)
-            }
-        }
-    }
-}
-
 /** 详情面板头部：标题居中，右上角一枚关闭键（面板头部按钮与面板圆角同心）。 */
 @Composable
 private fun DetailSheetHeader(title: String, onClose: () -> Unit) {
@@ -2888,16 +2484,8 @@ private fun DetailPrimaryButton(
     }
 }
 
-/** 次级操作的一行定义：文案在组合期取好，点按回调原样透传。 */
-private class DetailAction(
-    val label: String,
-    val icon: ImageVector,
-    val onClick: () -> Unit,
-    val destructive: Boolean = false,
-)
-
 @Composable
-private fun PublishCardDialog(
+internal fun PublishCardDialog(
     entry: CardIndexEntry,
     onDismiss: () -> Unit,
     onConfirm: (license: String, price: Double, changelog: String) -> Unit,
@@ -2942,7 +2530,7 @@ private fun PublishCardDialog(
 }
 
 @Composable
-private fun ForkCardDialog(
+internal fun ForkCardDialog(
     entry: CardIndexEntry,
     parentVersion: String,
     onDismiss: () -> Unit,
@@ -3031,7 +2619,7 @@ private fun DialogMultilineTextField(value: String, onValueChange: (String) -> U
     )
 }
 
-private fun formatYuan(cents: Long): String {
+internal fun formatYuan(cents: Long): String {
     val yuan = cents / 100.0
     return if (cents % 100 == 0L) yuan.toLong().toString()
     else "%.2f".format(yuan).trimEnd('0').trimEnd('.')
@@ -3057,7 +2645,7 @@ private data class LocalDependencyView(
  *  MCP 服务器 → 原生依赖包（卡片声明的 + 本机已缓存的）。
  *
  * 数据与一级页完全同源（同一个 [ExploreMarketViewModel]，各自持有一个实例），
- * 卡片的详情 / 运行 / 卸载 / 发布继续复用 [CardMarketOverlays]；
+ * 卡片的详情 / 运行 / 卸载 / 发布都在 [ExploreCardDetailPage]；
  * 工具、技能、MCP 的点按落到各自原有的管理页，这一页不自建第二套编辑入口。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -3086,10 +2674,6 @@ fun ExploreLocalPage() {
     // 已安装卡片声明的依赖包：本地页要连「还没下载的」一起列出来。
     val declaredDependencies by vm.declaredDependencies.collectAsStateWithLifecycle()
 
-    var selectedCard by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var secretCard by remember { mutableStateOf<String?>(null) }
-    var publishTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
-    var forkTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
     // P0-5：本机 MCP 行的「配置」抽屉（缺必填的状态由 mcpCardStatus 现算）。
     var mcpConfigTarget by remember { mutableStateOf<McpInstallPlan?>(null) }
 
@@ -3124,11 +2708,6 @@ fun ExploreLocalPage() {
         }
     }
 
-    // 本机卡片没有市场条目，就地合成一个只含名称/版本/空 url 的索引项，
-    // 让详情抽屉（运行、卸载、密钥）对它同样可用 —— 一级页的「本机卡片」也是这么做的。
-    fun installedEntry(name: String): CardIndexEntry =
-        cards.firstOrNull { it.name == name }
-            ?: CardIndexEntry(name = name, version = installed[name].orEmpty(), url = "")
 
     KedgeSettingsPageScaffold(
         title = stringResource(R.string.explore_market_local_page_title),
@@ -3154,7 +2733,7 @@ fun ExploreLocalPage() {
                                     name = name,
                                     version = installed[name].orEmpty(),
                                     triggers = triggers[name].orEmpty(),
-                                    onClick = { selectedCard = installedEntry(name) },
+                                    onClick = { navController.navigate(Screen.ExploreCardDetail(name)) },
                                 )
                             }
                         }
@@ -3171,7 +2750,7 @@ fun ExploreLocalPage() {
                                     name = name,
                                     version = installed[name].orEmpty(),
                                     triggers = triggers[name].orEmpty(),
-                                    onClick = { selectedCard = installedEntry(name) },
+                                    onClick = { navController.navigate(Screen.ExploreCardDetail(name)) },
                                 )
                             }
                         }
@@ -3319,23 +2898,4 @@ fun ExploreLocalPage() {
         )
     }
 
-    CardMarketOverlays(
-        vm = vm,
-        installed = installed,
-        triggers = triggers,
-        hubInfo = hubInfo,
-        activated = activated,
-        busyCard = busyCard,
-        refreshQuery = "",
-        selectedCard = selectedCard,
-        onSelectCard = { selectedCard = it },
-        // 本地页没有搜索栏：标签点击跳到卡片市场页，以这个词进场（那边入场即展开搜索框）。
-        onTagSearch = { tag -> navController.navigate(Screen.ExploreCards(tag)) },
-        secretCard = secretCard,
-        onSecretCard = { secretCard = it },
-        publishTarget = publishTarget,
-        onPublishTarget = { publishTarget = it },
-        forkTarget = forkTarget,
-        onForkTarget = { forkTarget = it },
-    )
 }

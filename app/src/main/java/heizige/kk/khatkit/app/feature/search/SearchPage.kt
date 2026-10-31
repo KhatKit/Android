@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.search
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.Md3RadioButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -110,6 +111,8 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
     }
 
     KedgeSettingsPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         title = stringResource(R.string.search_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
@@ -244,7 +247,8 @@ private fun SearchResultSection(
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxSize(),
+                        // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
+                        modifier = Modifier.fillMaxSize().kkScrollEdgeFade(bottom = 0.dp),
                     ) {
                         items(vm.results) { result ->
                             SearchResultItem(

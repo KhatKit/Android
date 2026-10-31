@@ -1320,7 +1320,6 @@
   <string name="setting_display_page_background_effect_type">배경 효과 유형</string>
   <string name="setting_display_page_background_effect_blur">블러</string>
   <string name="setting_display_page_background_effect_glass">글래스</string>
-
   <!-- 自动化审批策略 -->
   <string name="approval_category_card_run">카드 실행</string>
   <string name="approval_category_ui_action">UI 작업</string>
@@ -1336,7 +1335,6 @@
   <string name="approval_hands_off_desc">확인 없이 모든 자동화 작업을 허용 ·</string>
   <string name="approval_status_on">켜짐</string>
   <string name="approval_status_off">꺼짐</string>
-
   <string name="setting_page_blur_title">블러</string>
   <!-- 套餐与激活页（SettingsPackagePage）-->
   <string name="setting_package_page_title">요금제 및 활성화</string>
@@ -1358,30 +1356,31 @@
   <string name="setting_package_page_clear">이 기기의 활성화 정보 삭제</string>
   <string name="setting_package_page_clear_desc">기기에 저장된 토큰만 삭제하며 서버 계정에는 영향이 없습니다</string>
   <string name="setting_package_page_tip">요금제 구매 시 활성화 토큰이 발급됩니다. 웹에서 이 기기를 활성화하세요. 오프라인에서도 로컬 카드는 동작하며, 서버가 명시적으로 거부할 때만 차단됩니다.</string>
-<string name="safe_mode_enter_app">進入應用程式</string>
-<string name="setting_tts_page_temperature">溫度</string>
-<string name="setting_tts_page_temperature_description">랜덤성(0.0 - 1.0, 높을수록 표현력 증가)</string>
-<string name="setting_tts_page_fish_audio_speed_description">말하기 속도(0.5 - 2.0)</string>
-<string name="theme_name_claude">Claude</string>
-<string name="workspace_terminal_tab">終端機 %1$d</string>
-<string name="workspace_terminal_new_tab">新增終端機分頁</string>
-<string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
-<string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
-<string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
-<string name="skills_page_search_placeholder">스킬 검색</string>
-<string name="skills_page_search_no_result">找不到符合的技能</string>
-<string name="assistant_page_local_tools_chart_display_title">차트</string>
-<string name="assistant_page_local_tools_chart_display_desc">AI가 선형 차트, 막대 차트, 산점도 차트를 표시할 수 있도록 합니다</string>
-<string name="chat_message_tool_chart_display">차트 표시</string>
-<string name="chat_message_tool_chart_display_with_title">차트 표시: %1$s</string>
-<string name="chart_mode_chart">圖表</string>
-<string name="chart_mode_table">表格</string>
-<string name="chart_series">數列</string>
-<string name="chart_series_name">數列 %1$d</string>
+  <string name="safe_mode_enter_app">進入應用程式</string>
+  <string name="setting_tts_page_temperature">溫度</string>
+  <string name="setting_tts_page_temperature_description">랜덤성(0.0 - 1.0, 높을수록 표현력 증가)</string>
+  <string name="setting_tts_page_fish_audio_speed_description">말하기 속도(0.5 - 2.0)</string>
+  <string name="theme_name_claude">Claude</string>
+  <string name="workspace_terminal_tab">終端機 %1$d</string>
+  <string name="workspace_terminal_new_tab">新增終端機分頁</string>
+  <string name="workspace_terminal_close_tab">關閉終端機 %1$d</string>
+  <string name="workspace_terminal_no_tabs">沒有開啟的終端機分頁</string>
+  <string name="assistant_page_context_message_limit_too_small">上下文訊息限制不能小於 %1$d。已重設為 %1$d。</string>
+  <string name="skills_page_search_placeholder">스킬 검색</string>
+  <string name="skills_page_search_no_result">找不到符合的技能</string>
+  <string name="assistant_page_local_tools_chart_display_title">차트</string>
+  <string name="assistant_page_local_tools_chart_display_desc">AI가 선형 차트, 막대 차트, 산점도 차트를 표시할 수 있도록 합니다</string>
+  <string name="chat_message_tool_chart_display">차트 표시</string>
+  <string name="chat_message_tool_chart_display_with_title">차트 표시: %1$s</string>
+  <string name="chart_mode_chart">圖表</string>
+  <string name="chart_mode_table">表格</string>
+  <string name="chart_series">數列</string>
+  <string name="chart_series_name">數列 %1$d</string>
   <string name="error_fast_model_not_found">빠른 모델을 찾을 수 없습니다. 설정에서 하나를 선택해 주세요.</string>
   <string name="error_fast_model_provider_not_found">빠른 모델의 제공자를 찾을 수 없습니다</string>
   <string name="image_preview_saving">저장 중…</string>
   <string name="image_preview_saved">이미지가 저장되었습니다</string>
   <string name="setting_display_page_floating_chat">플로팅 채팅 창</string>
   <string name="setting_display_page_floating_chat_desc">백그라운드 생성 중 플로팅 버블을 표시합니다. 눌러서 답장하세요. 오버레이 권한이 필요합니다.</string>
+  <string name="splash_tagline">Android 네이티브 AI 채팅</string>
 </resources>

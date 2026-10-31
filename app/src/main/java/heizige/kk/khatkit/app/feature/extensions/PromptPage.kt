@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichInputChip
@@ -111,6 +112,11 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabColumn
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiSmallFab
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable
@@ -121,6 +127,8 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     KedgeSettingsPageScaffold(
+        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
+        edgeFade = false,
         title = stringResource(R.string.prompt_page_title),
         scrollBehavior = scrollBehavior,
         rail = {
@@ -141,12 +149,11 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
                 ),
             )
         },
-    ) { innerPadding ->
+    ) { _ ->
+        // 底栏浮在正文上：各页列表自己按 contentBottomPadding() 在底部留白
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) { page ->
             when (page) {
                 0 -> ModeInjectionTab(
@@ -168,7 +175,6 @@ private fun ModeInjectionTab(
     modeInjections: List<PromptInjection.ModeInjection>,
     onUpdate: (List<PromptInjection.ModeInjection>) -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(true) }
     val lazyListState = rememberLazyListState()
     val toaster = LocalToaster.current
     val currentModeInjections by rememberUpdatedState(modeInjections)
@@ -204,14 +210,17 @@ private fun ModeInjectionTab(
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
+            // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
                 .fillMaxSize()
-                .floatingToolbarVerticalNestedScroll(
-                    expanded = expanded,
-                    onExpand = { expanded = true },
-                    onCollapse = { expanded = false }
-                ),
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
+                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+            // 底部留出浮动底栏 + 右下角 FAB 的高度
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding() + MochiFabDefaults.stackHeight(smallCount = 1),
+            ),
             verticalArrangement = Arrangement.spacedBy(cards.gap),
             state = lazyListState
         ) {
@@ -266,31 +275,17 @@ private fun ModeInjectionTab(
             }
         }
 
-        KkFloatingToolbar(
-            expanded = expanded,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -ScreenOffset),
-            leadingContent = {
-                MochiIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(uploadFile, null)
-                }
-            },
-        ) {
-            MochiButton(onClick = { editState.open(PromptInjection.ModeInjection()) }, shapes = ButtonDefaults.shapes()) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(add, null)
-                    AnimatedVisibility(expanded) {
-                        Row {
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(stringResource(R.string.prompt_page_add_mode_injection))
-                        }
-                    }
-                }
-            }
+        MochiFabColumn {
+            MochiSmallFab(
+                icon = uploadFile,
+                contentDescription = "从文件导入",
+                onClick = { importer.importFromFile() },
+            )
+            MochiFab(
+                icon = add,
+                contentDescription = stringResource(R.string.prompt_page_add_mode_injection),
+                onClick = { editState.open(PromptInjection.ModeInjection()) },
+            )
         }
     }
 
@@ -567,7 +562,6 @@ private fun LorebookTab(
     lorebooks: List<Lorebook>,
     onUpdate: (List<Lorebook>) -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(true) }
     val lazyListState = rememberLazyListState()
     val toaster = LocalToaster.current
     val currentLorebooks by rememberUpdatedState(lorebooks)
@@ -603,14 +597,17 @@ private fun LorebookTab(
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
+            // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
                 .fillMaxSize()
-                .floatingToolbarVerticalNestedScroll(
-                    expanded = expanded,
-                    onExpand = { expanded = true },
-                    onCollapse = { expanded = false }
-                ),
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 128.dp),
+                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+            // 底部留出浮动底栏 + 右下角 FAB 的高度
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding() + MochiFabDefaults.stackHeight(smallCount = 1),
+            ),
             verticalArrangement = Arrangement.spacedBy(cards.gap),
             state = lazyListState
         ) {
@@ -665,31 +662,17 @@ private fun LorebookTab(
             }
         }
 
-        KkFloatingToolbar(
-            expanded = expanded,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = -ScreenOffset),
-            leadingContent = {
-                MochiIconButton(onClick = { importer.importFromFile() }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(uploadFile, null)
-                }
-            },
-        ) {
-            MochiButton(onClick = { editState.open(Lorebook()) }, shapes = ButtonDefaults.shapes()) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(add, null)
-                    AnimatedVisibility(expanded) {
-                        Row {
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(stringResource(R.string.prompt_page_add_lorebook))
-                        }
-                    }
-                }
-            }
+        MochiFabColumn {
+            MochiSmallFab(
+                icon = uploadFile,
+                contentDescription = "从文件导入",
+                onClick = { importer.importFromFile() },
+            )
+            MochiFab(
+                icon = add,
+                contentDescription = stringResource(R.string.prompt_page_add_lorebook),
+                onClick = { editState.open(Lorebook()) },
+            )
         }
     }
 

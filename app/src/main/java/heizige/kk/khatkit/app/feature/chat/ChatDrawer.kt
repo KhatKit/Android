@@ -1,13 +1,16 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import ui.feice.mochi.navigation.MochiSidebarHeader
-import ui.feice.mochi.navigation.MochiSidebarDefaults
+import ui.feice.mochi.navigation.MochiSidebarHeaderButton
+import ui.feice.mochi.navigation.MochiSidebarItem
+import ui.feice.mochi.navigation.MochiSidebarProfileRow
+import ui.feice.mochi.basic.MochiChip
+import ui.feice.mochi.shape.MochiCapsule
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.graphics.vector.ImageVector
 import ui.feice.mochi.effect.mask.mochiFadeMask
 import ui.feice.mochi.effect.mask.MochiFadeEdges
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
-import androidx.compose.material3.IconButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.rememberMochiSheetState
@@ -95,6 +98,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
+import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
 import heizige.kk.khatkit.app.core.data.model.Conversation
@@ -134,8 +138,6 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
-import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import androidx.compose.foundation.layout.asPaddingValues
@@ -185,6 +187,10 @@ fun ChatDrawerContent(
 
     val roleChats by drawerVm.roleChats.collectAsStateWithLifecycle()
 
+    // 侧栏的「当前角色」和角色 sheet 同源：跟当前会话的角色走（会话角色缺失时才退回全局当前角色）。
+    // 以前这里直接用 settings.assistantId：打开别的角色的老会话时，侧栏勾的是 A、角色 sheet 勾的是 B。
+    val currentRoleId = settings.getAssistantById(current.assistantId)?.id ?: settings.assistantId
+
     val conversationJobs by vm.conversationJobs.collectAsStateWithLifecycle(
         initialValue = emptyMap(),
     )
@@ -233,7 +239,7 @@ fun ChatDrawerContent(
     }
 
     // SIDE2：照 Mochi 侧边栏示例排版 —— 顶部是 MochiSidebarHeader（搜索框 + 圆钮），
-    // 中间列表占满剩余高度、上下缘渐隐，底部一排入口。状态栏/导航栏 insets 由
+    // 中间列表占满剩余高度、上下缘渐隐，底部是个人资料行（设置 + 套餐 chip）。状态栏/导航栏 insets 由
     // MochiSidebarLayout 统一垫好（宽屏常驻侧栏在 ChatPage 那层自己垫），这里不再叠加。
     val sheetContent: @Composable () -> Unit = {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -243,14 +249,14 @@ fun ChatDrawerContent(
                 // 搜索范围是当前角色的消息正文（不按角色名/会话标题过滤）
                 placeholder = stringResource(R.string.chat_page_search_chats),
             ) {
-                // 与设置页顶栏同一套图标按钮：栏按钮（圆底 + 栏玻璃/模糊 + 栏颜色）
-                KkBarIconScope {
-                    MochiIconButton(
-                        onClick = { navController.navigate(Screen.Assistant) },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(edit, contentDescription = null)
-                    }
+                // Mochi 侧栏头部圆钮：与搜索框同高、同一套玻璃/色调底（MochiSidebarHeaderButton）
+                MochiSidebarHeaderButton(onClick = { navController.navigate(Screen.Assistant) }) {
+                    Icon(
+                        imageVector = edit,
+                        contentDescription = null,
+                        tint = MochiTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
             Box(
@@ -266,7 +272,7 @@ fun ChatDrawerContent(
                         keyword = searchKeyword,
                         state = messageSearch,
                         roleName = settings.assistants
-                            .firstOrNull { it.id == settings.assistantId }?.name
+                            .firstOrNull { it.id == currentRoleId }?.name
                             ?: "当前角色",
                         groupByConversation = false,
                         contentPadding = DrawerListPadding,
@@ -282,7 +288,7 @@ fun ChatDrawerContent(
                     // 文件夹功能整体移除，因此这里既没有切换 tab，也没有文件夹分组。
                     RoleDrawerList(
                         roles = settings.assistants,
-                        selected = settings.assistantId,
+                        selected = currentRoleId,
                         chats = roleChats,
                         running = conversationJobs.filterValues { it?.isActive == true }.keys,
                         keyword = searchKeyword,
@@ -298,72 +304,65 @@ fun ChatDrawerContent(
                         },
                         onManage = { navController.navigate(Screen.Assistant) },
                         header = {
-                            if (updateChecksEnabled && !isPlayStore) UpdateCard(vm)
-                            BackupReminderCard(settings = settings, onClick = { navController.navigate(Screen.Backup) })
+                            // lazy item 里多个根节点会叠在一起画，这里显式竖排
+                            Column {
+                                if (updateChecksEnabled && !isPlayStore) UpdateCard(vm)
+                                BackupReminderCard(settings = settings, onClick = { navController.navigate(Screen.Backup) })
+                                // 照 Mochi 侧栏示例：功能入口作为列表顶部的普通行（胶囊高亮），
+                                // 不再挤在底栏一排图标里
+                                MochiSidebarItem(
+                                    title = stringResource(R.string.explore_market_title),
+                                    onClick = {
+                                        sidebarState?.close()
+                                        navController.navigate(Screen.ExploreMarket)
+                                    },
+                                    leading = { DrawerRowIcon(extension) },
+                                    modifier = Modifier.testTag("drawer_explore_market"),
+                                )
+                                MochiSidebarItem(
+                                    title = stringResource(R.string.chat_drawer_download_center),
+                                    onClick = { navController.navigate(Screen.DownloadCenter) },
+                                    leading = { DrawerRowIcon(download) },
+                                    modifier = Modifier.testTag("drawer_download_center"),
+                                )
+                            }
                         },
                     )
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MochiSidebarDefaults.ItemInset, vertical = 8.dp),
-            ) {
-                DrawerAction(
-                    icon = {
-                        Icon(settingsIcon, null)
-                    },
-                    label = stringResource(R.string.settings),
-                    onClick = {
-                        navController.navigate(Screen.Setting)
-                    },
-                )
-
-                MochiTextTooltipBox(stringResource(R.string.chat_drawer_plan)) {
-                    MochiButton(
-                        onClick = {
-                            navController.navigate(Screen.SettingPackage)
-                        },
-                        modifier = Modifier.height(32.dp),
-                        variant = MochiButtonVariant.Secondary,
-                        colors = KedgeDrawerButtonColors.md3(),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            // 底部照 Mochi 侧栏示例用个人资料行：整行进设置，行尾胶囊 chip 显示套餐状态、
+            // 点它直达套餐页（有效订阅时 chip 为选中色）。探索市场 / 下载中心已移到列表顶部。
+            MochiSidebarProfileRow(
+                name = stringResource(R.string.app_name),
+                subtitle = stringResource(R.string.settings),
+                onClick = { navController.navigate(Screen.Setting) },
+                avatar = {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(MochiTheme.colorScheme.primaryContainer, MochiCapsule),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = subscriptionLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                        Icon(
+                            imageVector = settingsIcon,
+                            contentDescription = null,
+                            tint = MochiTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                }
-
-                Spacer(Modifier.weight(1f))
-
-                // 探索市场入口：卡片市场并进 Screen.ExploreMarket 后从这里进合并后的市场页。
-                DrawerAction(
-                    icon = {
-                        Icon(extension, null)
-                    },
-                    label = stringResource(R.string.explore_market_title),
-                    onClick = {
-                        sidebarState?.close()
-                        navController.navigate(Screen.ExploreMarket)
-                    },
-                )
-
-                DrawerAction(
-                    icon = {
-                        Icon(download, null)
-                    },
-                    label = stringResource(R.string.chat_drawer_download_center),
-                    onClick = {
-                        navController.navigate(Screen.DownloadCenter)
-                    },
-                )
-            }
+                },
+                trailing = {
+                    MochiChip(
+                        label = subscriptionLabel,
+                        selected = account?.active == true,
+                        onClick = { navController.navigate(Screen.SettingPackage) },
+                        modifier = Modifier
+                            .widthIn(max = 160.dp)
+                            .testTag("drawer_plan_chip"),
+                    )
+                },
+                modifier = Modifier.testTag("drawer_profile_row"),
+            )
         }
     }
 
@@ -440,53 +439,19 @@ fun ChatDrawerContent(
         }
 }
 
+/** 侧栏功能行的前导图标：与 Mochi 示例同一尺寸（20dp），次要文字色 */
 @Composable
-private fun DrawerAction(
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-    label: String,
-    onClick: () -> Unit,
-) {
-    MochiTextTooltipBox(label) {
-        MochiIconButton(
-            onClick = onClick,
-            modifier = modifier,
-        ) {
-            icon()
-        }
-    }
+private fun DrawerRowIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MochiTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(20.dp),
+    )
 }
-
 
 // 侧栏列表的留白：上下缘有渐隐遮罩，底部照 Mochi 示例留 12dp，横向与 MochiSidebarItem 自带的内缩一致（0）
 private val DrawerListPadding = PaddingValues(bottom = 12.dp)
-
-private object KedgeDrawerButtonColors {
-    /**
-     * 从 secondaryContainer 朝 secondary 混合的比例。
-     *
-     * 取值只允许三档：0.27f / 0.54f / 0.87f，与 MD3 的配色分档对齐，不要填中间值。
-     * 当前取最深一档 0.87f：0.27f / 0.54f 实测都偏淡，抽屉底色接近时看不出按钮
-     * 边界；0.87f 是三档里唯一能看清的，又还没到纯 secondary 实色蓝的程度。
-     * 要调档只改这一个常量。
-     *
-     * 文字色不传 contentColor，交给 MiuixButton / filledTonalButton 各自的默认
-     * 配对（Miuix 侧是 onSecondaryVariant、MD3 侧是 onTonalSurface）。手动指定
-     * 试过 onSecondaryContainer / onSecondary / secondary 都不如默认的合适。
-     */
-    private const val TOWARD_SECONDARY = 0.87f
-
-    @Composable
-    fun md3(): androidx.compose.material3.ButtonColors {
-        val scheme = androidx.compose.material3.MaterialTheme.colorScheme
-        return androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-            // 中性容器色 + 同族内容色：与抽屉其它卡片一致，且不出现深底深字。
-            containerColor = scheme.surfaceContainerHigh,
-            contentColor = scheme.onSurface,
-        )
-    }
-
-}
 
 // ---------------------------------------------------------------------------
 // 抽屉搜索态：当前角色消息正文检索结果（FTS 命中）
