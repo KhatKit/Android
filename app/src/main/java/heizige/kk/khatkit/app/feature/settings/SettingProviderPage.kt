@@ -68,6 +68,7 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
+import heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
@@ -86,6 +87,7 @@ import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
 import heizige.kk.khatkit.app.core.ui.icons.dns
 import heizige.kk.khatkit.app.core.ui.icons.image
+import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
@@ -362,6 +364,8 @@ private fun ImportProviderButton(
     val toaster = LocalToaster.current
     val context = LocalContext.current
     var showImportDialog by remember { mutableStateOf(false) }
+    // 扫码导入：CameraX 取景 + zxing 解码（上游 d8ba9cf67；不再依赖 ML Kit barhopper）
+    var showScanner by remember { mutableStateOf(false) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -403,8 +407,7 @@ private fun ImportProviderButton(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // 从相册选择（扫码导入已随 libbarhopper 一并移除，
-                        // 供应商配置仍可从图片或手动填写导入）
+                        // 从相册选择（图片里带二维码也能导入）
                         MochiButton(
                             onClick = {
                                 showImportDialog = false
@@ -436,6 +439,35 @@ private fun ImportProviderButton(
                                 )
                             }
                         }
+
+                        // 扫码导入：CameraX 取景 + zxing 解码（不再走 ML Kit barhopper）
+                        MochiButton(
+                            onClick = {
+                                showImportDialog = false
+                                showScanner = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = photoCamera,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = stringResource(R.string.setting_provider_page_scan_qr_code),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -451,6 +483,39 @@ private fun ImportProviderButton(
                     )
                 }
             }
+        )
+    }
+
+    // 扫码弹层：onResult(null) 是「权限被拒 / 无相机 / 用户取消」的统一回落路径
+    if (showScanner) {
+        QrScannerSheet(
+            onResult = { content ->
+                showScanner = false
+                if (content.isNullOrEmpty()) {
+                    Toast.show(
+                        context.getString(R.string.setting_provider_page_scan_fallback),
+                        isError = true
+                    )
+                } else {
+                    runCatching {
+                        val setting = decodeProviderSetting(content)
+                        onAdd(setting)
+                        Toast.show(
+                            context.getString(R.string.setting_provider_page_import_success),
+                            isError = false
+                        )
+                    }.onFailure { error ->
+                        Toast.show(
+                            context.getString(
+                                R.string.setting_provider_page_qr_decode_failed,
+                                error.message ?: ""
+                            ),
+                            isError = true
+                        )
+                    }
+                }
+            },
+            onDismiss = { showScanner = false },
         )
     }
 }

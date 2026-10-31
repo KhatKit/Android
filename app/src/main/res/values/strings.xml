@@ -1794,4 +1794,7 @@
   <string name="skill_detail_page_save_failed">Save failed</string>
   <string name="image_preview_saving">Saving…</string>
   <string name="image_preview_saved">Image saved</string>
+  <string name="setting_provider_page_scan_qr_code">Scan QR Code</string>
+  <string name="setting_provider_page_scan_fallback">Cannot use the camera to scan, please paste the config or pick an image instead</string>
+  <string name="setting_provider_page_qr_decode_failed">Failed to parse the QR code: %1$s</string>
 </resources>

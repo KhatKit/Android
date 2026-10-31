@@ -267,21 +267,21 @@ dependencies {
     // YAML front matter
     implementation(libs.snakeyaml)
 
-    // zxing (二维码生成 + 从图片解码；实时扫码的
-    // libbarhopper 已移除，供应商配置改从图片或手动导入)
+    // zxing（二维码生成 + 图片解码 + 实时扫码的帧解码，纯 Java 约 0.5MB）
     implementation(libs.zxing.core)
 
-    // 实时扫码取景（CameraX 1.6.2 + MLKit Barcode Scanning 17.3.0 bundled）
-    // 选型理由：不自己手写 camera2 + 逐帧 ZXing 解码。
+    // 实时扫码取景（CameraX 1.6.2 + zxing 解码）
+    // 选型理由：不自己手写 camera2。
     // - camera-view 提供 PreviewView 承载取景画面；
     // - camera-core/camera-camera2/camera-lifecycle 提供 Preview + ImageAnalysis 用例与生命周期绑定；
-    // - MLKit barcode-scanning 只开 QR_CODE 格式，缩小检测面、提帧率。
+    // - 解码不用 ML Kit 的 bundled barcode-scanning（barhopper 模型 ~4.7MB），改成
+    //   core/ui/components/ui/QRCodeDecoder（zxing MultiFormatReader，只认 QR_CODE + TRY_HARDER），
+    //   与上游 d8ba9cf67 同方案；顺带能纯 JVM 单测带行填充的相机帧。
     // camera-camera2-pipe / camera-video 由 camera-view 传递引入，无需显式声明。
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
-    implementation(libs.mlkit.barcode.scanning)
 
     // Room
     implementation(libs.androidx.room.runtime)

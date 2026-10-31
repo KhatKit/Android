@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
@@ -38,12 +37,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.android.gms.tasks.Task
-import com.google.mlkit.vision.barcode.BarcodeScanner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionCamera
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionStatus
@@ -147,79 +140,25 @@ fun shouldAnalyzeFrame(lastAnalyzedTimestamp: Long, frameTimestamp: Long): Boole
 }
 
 /**
- * 构造扫码用的 MLKit scanner：只开 `QR_CODE` 一种格式。
- *
- * 从 [QrScanSession] 的字段初始化里**原样提取**，只为给 androidTest 一个与生产逐字同款的
- * scanner 入口 —— 测试必须用这条路径建 scanner，才能断言真实的 `mediaImage -> MLKit` 解码链路，
- * 而不是另起一套 options。
- */
-internal fun buildQrScanner(): BarcodeScanner =
-    BarcodeScanning.getClient(
-        BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .build()
-    )
-
-/**
- * 把一帧 [ImageProxy] 转成 MLKit [InputImage]。
- *
- * 这是相机扫码链路里**唯一**把底层 `android.media.Image`（[ImageProxy.getImage]）交给 MLKit 的
- * 地方：`InputImage.fromMediaImage(mediaImage, imageInfo.rotationDegrees)`。抽成 `internal`
- * 顶层函数是为了让 androidTest 能用真实 `ImageProxy`（ImageReader 合成帧）直接调用并断言
- * `InputImage.rotationDegrees` / `mediaImage`，从而覆盖此前只跑过 `InputImage.fromBitmap`、
- * 从未在 `mediaImage` 这一层跑通的路径。
- *
- * `proxy.image` 为 null（非 [android.media.Image] 支撑的代理）时返回 `null`，与 [analyzeFrame]
- * 的早退语义一致。
- */
-@androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
-internal fun toQrInputImage(image: ImageProxy): InputImage? {
-    val mediaImage = image.image ?: return null
-    return InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
-}
-
-/**
- * 把一帧 [ImageProxy] 交给 MLKit 解码，返回异步任务。
- *
- * 生产 `analyzeFrame` 通过本函数走完整解码；androidTest 用真实 `ImageProxy` 调它来覆盖
- * `mediaImage -> MLKit` 的完整链路。
- */
-internal fun processQrFrame(
-    image: ImageProxy,
-    scanner: BarcodeScanner,
-): Task<List<Barcode>>? {
-    val inputImage = toQrInputImage(image) ?: return null
-    return scanner.process(inputImage)
-}
-
-/**
- * 从一帧解出的全部 barcode 里取**第一个**有 `rawValue` 的字符串。
- *
- * 从 [QrScanSession] 的 success 回调里**原样提取**（`firstNotNullOfOrNull { it.rawValue }`）：
- * 一帧出现多个二维码时生产语义就是「只回调第一个」，抽出来才能在 androidTest 里钉住。
- */
-internal fun firstQrValue(barcodes: List<Barcode>): String? =
-    barcodes.firstNotNullOfOrNull { it.rawValue }
-
-/**
- * 相机扫码弹层：用 CameraX 取景 + MLKit Barcode Scanning 扫二维码。
+ * 相机扫码弹层：用 CameraX 取景 + zxing 解码扫二维码。
  *
  * 选型说明（为什么是这两个库而不是手写）：
  * - 取景与生命周期绑定直接用 CameraX 的 `Preview` + `ImageAnalysis` + `ProcessCameraProvider`，
  *   手写 camera2 意味着自己处理 SurfaceTexture、矩阵变换、SENSOR_ORIENTATION 与
  *   前后台重绑，代码量和出错面都大得多，且 CameraX 已经把这些坑填好了。
- * - 解码用 MLKit 的 bundled `barcode-scanning`：模型随 APK 打包，不依赖 Google Play Services，
- *   离线设备（含无 GMS 的国产 ROM）也能扫。
+ * - 解码用 zxing（纯 Java，约 0.5MB）：相机帧的亮度平面直接喂 [QRCodeDecoder]。
+ *   上游 d8ba9cf67 把这里从「quickie + ML Kit barhopper」换成 CameraX + zxing，arm64 包体减了 4.7MB；
+ *   本 fork 走的同一条路 —— ML Kit 的 bundled 模型随 APK 打包，离线可用但太贵，而二维码只需要一次
+ *   Harris/定位图案检测，zxing 足够且能纯 JVM 单测（见 `QRCodeDecoderTest`）。
  *
  * 关键取舍：
- * - **只扫 QR_CODE**：群聊导入只认二维码链接。MLKit 默认会跑全格式检测，
- *   限定格式后每帧的检测区域大幅收窄，取景帧率明显更跟手。
+ * - **只扫 QR_CODE**：群聊导入只认二维码链接。zxing 的 `POSSIBLE_FORMATS` 只留 QR_CODE，
+ *   再开 `TRY_HARDER` 兼顾运动模糊与小尺寸码。
  * - **STRATEGY_KEEP_ONLY_LATEST**：图像分析是「只看当下」的场景，旧帧没有回放价值。
  *   保持相机最新一帧、丢掉积压帧，才能让预览延迟稳定在可接受范围内；
  *   若用 KEEP_ONLY_LATEST 之外会积压的策略，内存会被拖高且回显越来越迟。
  * - **每帧必关 [ImageProxy]**：`ImageProxy` 背后的 buffer 数量有限，漏关一次就会
- *   丢帧甚至耗尽图像流。这里在 `finally` 里兜底（含异常路径），异步解码分支则
- *   交给 MLKit 的 complete 回调关闭，避免还在读就被关掉。
+ *   丢帧甚至耗尽图像流。zxing 解码是同步的，所以关闭放在 `finally` 里，异常路径也照样关。
  * - **fallback 是硬要求**：相机权限被拒、或设备根本没有相机时，扫码无法进行。
  *   此时组件不崩溃、不空转，而是回调 `onResult(null)`，由调用方回落到「手动粘贴」。
  *   群聊导入必须保留粘贴入口，否则弱权限设备上功能直接不可用。
@@ -322,8 +261,8 @@ fun QrScannerSheet(
                             .fillMaxWidth()
                             .aspectRatio(1f),
                     )
-                    // 取景框只是视觉引导；真正裁剪检索区域的是 MLKit 内部检测器，
-                    // 这里不额外做区域裁剪 —— 移动端每帧裁剪的收益抵不过实现复杂度。
+                    // 取景框只是视觉引导；zxing 在整帧里找定位图案，这里不额外做区域裁剪 ——
+                    // 移动端每帧裁剪的收益抵不过实现复杂度。
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.7f)
@@ -354,10 +293,10 @@ fun QrScannerSheet(
 }
 
 /**
- * 一次取景会话：持有 MLKit scanner、分析线程与 CameraX 绑定句柄。
+ * 一次取景会话：持有 zxing 解码器、分析线程与 CameraX 绑定句柄。
  *
  * 生命周期与 QrScannerSheet 的取景分支一一对应，靠 [release] 收尾。
- * 之所以做成独立类而不是一堆 Composable 局部状态，是因为 scanner 与线程池都是
+ * 之所以做成独立类而不是一堆 Composable 局部状态，是因为线程池与相机句柄都是
  * 「需要显式关闭的资源」，把它们关在可被 Compose 精确控制的确定性作用域里最省心。
  */
 private class QrScanSession(
@@ -368,10 +307,10 @@ private class QrScanSession(
         const val TAG = "QrScannerSheet"
     }
 
-    // 单线程即可：分析是串行的，多线程只会让 MLKit 任务排队并放大内存占用。
+    // 单线程即可：分析是串行的，多线程只会让解码任务排队并放大内存占用。
     private val analysisExecutor = Executors.newSingleThreadExecutor()
 
-    private val scanner = buildQrScanner()
+    private val decoder = QRCodeDecoder()
 
     private var cameraProvider: ProcessCameraProvider? = null
 
@@ -439,50 +378,34 @@ private class QrScanSession(
     }
 
     /**
-     * 单帧分析。**必须保证 [proxy] 一定被关闭**。
+     * 单帧分析。**必须保证 [proxy] 一定被关闭**（zxing 解码是同步的，`finally` 兜底）。
      *
-     * 异步解码路径把关闭动作交给 MLKit 的 complete 回调（此时 buffer 才真正读完）；
-     * 同步退出路径（空帧、过期帧、抛异常）由 finally 兜底关闭。
-     *
-     * `ImageProxy.getImage()` 在 CameraX 里标注了 `@ExperimentalGetImage`：拿到的是
-     * 底层 `android.media.Image`，跨进程传递需要自己保证格式与生命周期。这里只在本方法内
-     * 读取并立刻交给 MLKit，不把 image 存到字段或跨帧复用，所以显式 opt-in 是安全的。
-     *
-     * 这里必须用 `androidx.annotation.OptIn` 而不是 Kotlin 的 `kotlin.OptIn`：CameraX 的
-     * `@ExperimentalGetImage` 是 Java 侧标记，Android Lint 的 UnsafeOptInUsageError 只认前者。
+     * 只取第 0 个平面（Y/亮度）：[QRCodeDecoder] 只需要灰度图，U/V 两个色度平面不用搬。
+     * `rowStride` 常常大于帧宽（相机每行末尾有对齐填充），必须原样传给解码器，
+     * 否则整帧会被斜着解释、什么都解不出来（`QRCodeDecoderTest` 里钉住了这一条）。
      */
-    @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
     private fun analyzeFrame(proxy: ImageProxy) {
-        var closeInFinally = true
         try {
-            val mediaImage = proxy.image
-            if (mediaImage == null) return
-
             val imageInfo = proxy.imageInfo
             if (!shouldAnalyzeFrame(lastAnalyzedTimestamp, imageInfo.timestamp)) return
             if (imageInfo.timestamp > 0L) lastAnalyzedTimestamp = imageInfo.timestamp
 
-            val task = processQrFrame(proxy, scanner) ?: return
-            task
-                .addOnSuccessListener { barcodes ->
-                    val raw = firstQrValue(barcodes) ?: return@addOnSuccessListener
-                    onBarcode(raw)
-                }
-                .addOnFailureListener {
-                    // 单帧解码失败（运动模糊、遮挡）不值得中断取景，丢弃本帧继续下一帧。
-                }
-                .addOnCompleteListener { proxy.close() }
-            closeInFinally = false
+            val plane = proxy.planes[0]
+            val buffer = plane.buffer
+            val data = ByteArray(buffer.remaining()).also { buffer.get(it) }
+            decoder.decode(data, plane.rowStride, proxy.width, proxy.height)?.let(onBarcode)
+        } catch (error: Exception) {
+            // 单帧解码失败（运动模糊、遮挡、缓冲异常）不值得中断取景，丢弃本帧继续下一帧。
+            Log.w(TAG, "单帧解码异常，已丢弃该帧", error)
         } finally {
-            if (closeInFinally) proxy.close()
+            proxy.close()
         }
     }
 
-    /** 释放全部资源：解绑用例、关闭 scanner、回收线程池 */
+    /** 释放全部资源：解绑用例、回收线程池 */
     fun release() {
         runCatching { cameraProvider?.unbindAll() }
         cameraProvider = null
-        runCatching { scanner.close() }
         analysisExecutor.shutdown()
     }
 }

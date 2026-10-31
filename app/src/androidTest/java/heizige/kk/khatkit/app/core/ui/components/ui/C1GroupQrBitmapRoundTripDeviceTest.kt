@@ -7,11 +7,6 @@ import android.net.Uri
 import androidx.core.content.IntentCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
 import com.google.zxing.WriterException
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.model.GroupChat
@@ -49,8 +44,8 @@ import java.util.concurrent.TimeUnit
  * 生产里编码是 zxing、解码是 MLKit：
  * - 编码 [encodeQrBitmap] 从 [QRCode] 的 `@Composable` 体内**原样提取**（本次唯一的生产
  *   改动，见该函数 KDoc）。提取后它能吃普通 `String` / `Int`，可以在测试里独立调用。
- * - 解码走生产同款 `BarcodeScanning.getClient(BarcodeScannerOptions...FORMAT_QR_CODE)`，
- *   输入用 `InputImage.fromBitmap(bitmap, 0)` 而不是相机帧——**这正是绕开摄像头的路径**。
+ * - 解码走生产同款 zxing（`QRCodeDecoder`，与相机帧同一条解码路径），
+ *   输入是把位图转成灰度平面而不是相机帧——**这正是绕开摄像头的路径**。
  *   MLKit 需要 Android 运行时，JVM 单测（`testImplementation` 只有 junit，无 Robolectric）跑不了。
  *
  * 位图里装的字节就是 [GroupChat.encodeQr] 的返回值；解出的字符串再交给生产
@@ -391,21 +386,25 @@ class C1GroupQrBitmapRoundTripDeviceTest {
     // ==================================================================
 
     /** MLKit 从生产位图解码。带超时上限，避免设备上挂死。 */
+    /** zxing 从生产位图解码（与扫码同一条 zxing 路径；ML Kit 已随体积优化移除）。 */
     private fun decodeQrFromBitmap(bitmap: Bitmap): String {
-        val scanner = BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .build()
-        )
-        try {
-            val image = InputImage.fromBitmap(bitmap, 0)
-            val barcodes = Tasks.await(scanner.process(image), 30, TimeUnit.SECONDS)
-            val decoded = barcodes.firstNotNullOfOrNull { it.rawValue }
-            assertNotNull("MLKit 未能从生产位图解出任何二维码", decoded)
-            return decoded!!
-        } finally {
-            scanner.close()
+        val width = bitmap.width
+        val height = bitmap.height
+        val luminance = ByteArray(width * height)
+        val row = IntArray(width)
+        for (y in 0 until height) {
+            bitmap.getPixels(row, 0, width, 0, y, width, 1)
+            for (x in 0 until width) {
+                val pixel = row[x]
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                luminance[y * width + x] = ((r * 299 + g * 587 + b * 114) / 1000).toByte()
+            }
         }
+        val decoded = QRCodeDecoder().decode(luminance, width, width, height)
+        assertNotNull("zxing 未能从生产位图解出任何二维码", decoded)
+        return decoded!!
     }
 
     private fun writeEvidence(

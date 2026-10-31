@@ -6,11 +6,7 @@ import android.graphics.Color
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
+import heizige.kk.khatkit.app.core.ui.components.ui.QRCodeDecoder
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.Model
@@ -85,7 +81,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
 
@@ -3454,7 +3449,7 @@ class C1LiveModelSequenceTest {
      *    把**这同一条真实对话**导出成酒馆群聊 JSONL，记录 `export_sha256` /
      *    `export_bytes` / `export_line_count`，并复制到 external files dir 供 `adb pull` 复算；
      * 3. 从**同一个群的 config**（从真库读回）走**生产** [GroupChat.encodeQr] 生成二维码载荷，
-     *    再走生产 `encodeQrBitmap` 画位图，经 MLKit `InputImage.fromBitmap` 解回，
+     *    再走生产 `encodeQrBitmap` 画位图，经 zxing `QRCodeDecoder` 解回，
      *    逐字比较并交给生产 [GroupChat.decodeSharePayload] / [GroupChat.importShare] 逐字段核验。
      *
      * ## 为什么三类产物「确属这条流程本身」
@@ -3797,7 +3792,7 @@ class C1LiveModelSequenceTest {
                     put("foreground", "BLACK")
                     put("background", "WHITE")
                     put("argb_8888", bitmap.config == Bitmap.Config.ARGB_8888)
-                    put("decoder", "MLKit BarcodeScanning FORMAT_QR_CODE via InputImage.fromBitmap")
+                    put("decoder", "zxing MultiFormatReader QR_CODE via QRCodeDecoder")
                 }
                 put("decoded_equals_raw", qrRaw == decoded)
                 put("payload_config_equals_stored_config", payload.config == storedConfig)
@@ -3881,21 +3876,25 @@ class C1LiveModelSequenceTest {
     }
 
     /** MLKit 从生产位图解码；带超时上限，避免设备上挂死。 */
+    /** zxing 从生产位图解码（与扫码同一条 zxing 路径；ML Kit 已随体积优化移除）。 */
     private fun decodeQrFromBitmap(bitmap: Bitmap): String {
-        val scanner = BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .build(),
-        )
-        try {
-            val image = InputImage.fromBitmap(bitmap, 0)
-            val barcodes = Tasks.await(scanner.process(image), 30, TimeUnit.SECONDS)
-            val decoded = barcodes.firstNotNullOfOrNull { it.rawValue }
-            assertNotNull("MLKit 未能从生产位图解出任何二维码", decoded)
-            return decoded!!
-        } finally {
-            scanner.close()
+        val width = bitmap.width
+        val height = bitmap.height
+        val luminance = ByteArray(width * height)
+        val row = IntArray(width)
+        for (y in 0 until height) {
+            bitmap.getPixels(row, 0, width, 0, y, width, 1)
+            for (x in 0 until width) {
+                val pixel = row[x]
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                luminance[y * width + x] = ((r * 299 + g * 587 + b * 114) / 1000).toByte()
+            }
         }
+        val decoded = QRCodeDecoder().decode(luminance, width, width, height)
+        assertNotNull("zxing 未能从生产位图解出任何二维码", decoded)
+        return decoded!!
     }
 
     // ==================================================================
