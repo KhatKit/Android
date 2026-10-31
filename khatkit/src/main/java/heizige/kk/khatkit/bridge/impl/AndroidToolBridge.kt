@@ -9,11 +9,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.PowerManager
 import android.util.Base64
-import com.google.android.gms.tasks.Tasks
 import heizige.kk.khatkit.bridge.ToolBridge
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
