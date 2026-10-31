@@ -12,7 +12,6 @@ import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.Intent
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -109,6 +108,8 @@ import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceFileType
 import heizige.kk.khatkit.app.feature.workspace.data.detectFileType
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -152,8 +153,19 @@ fun WorkspaceDetailPage(id: String) {
         vm.exportFilesToDirectory(uri, context.contentResolver)
     }
 
-    BackHandler(enabled = pagerState.currentPage == 1 && state.path.isNotBlank()) {
-        vm.goUp()
+    // U7a-6：文件浏览在子目录时返回先回上级目录（登记到 PageBackInterceptor）。
+    val upBackToken = remember { Any() }
+    val upBackEnabled = pagerState.currentPage == 1 && state.path.isNotBlank()
+    DisposableEffect(upBackEnabled) {
+        if (upBackEnabled) {
+            PageBackInterceptor.push(upBackToken) {
+                vm.goUp()
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(upBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(upBackToken) }
     }
 
     KedgeSettingsPageScaffold(
@@ -622,9 +634,19 @@ private fun WorkspaceFilesPage(
     fun toggleSelection(entry: WorkspaceFileEntry) {
         selectedPaths = if (entry.path in selectedPaths) selectedPaths - entry.path else selectedPaths + entry.path
     }
-    BackHandler(enabled = selecting && isActive) {
-        selecting = false
-        selectedPaths = emptySet()
+    val pickBackToken = remember { Any() }
+    val pickBackEnabled = selecting && isActive
+    DisposableEffect(pickBackEnabled) {
+        if (pickBackEnabled) {
+            PageBackInterceptor.push(pickBackToken) {
+                selecting = false
+                selectedPaths = emptySet()
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(pickBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(pickBackToken) }
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

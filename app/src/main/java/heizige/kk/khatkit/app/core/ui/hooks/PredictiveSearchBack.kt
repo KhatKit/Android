@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.hooks
 
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
@@ -10,7 +9,8 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 /**
  * 顶栏搜索展开状态，暴露一个 0f（标题态）→ 1f（搜索态）的跟手进度。
@@ -39,23 +39,20 @@ fun rememberSearchExpandState(
         progress.animateTo(if (expanded) 1f else 0f, animationSpec)
     }
 
-    PredictiveBackHandler(enabled = expanded) { backEvents ->
-        try {
-            dragging.value = true
-            backEvents.collect { event ->
-                // 手势进度 0→1 == 收起进度 0→1，展开进度即 1 - progress
-                progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
+    // U7a-6：返回收敛到 PageBackInterceptor（只在展开时登记），不再自己挂 PredictiveBackHandler。
+    // 代价：搜索框收起不再跟手，改为直接把展开布尔置 false（progress 由上面的 LaunchedEffect 补间）。
+    // dragging 恒为 false，保留给调用方兼容（它们据此判断是否直接用 progress）。
+    val expandBackToken = remember { Any() }
+    DisposableEffect(expanded) {
+        if (expanded) {
+            PageBackInterceptor.push(expandBackToken) {
+                onCollapse()
+                true
             }
-            // 手势提交：先收起，再把展开布尔置为 false（收敛动画继续进行）
-            progress.animateTo(0f, animationSpec)
-            onCollapse()
-        } catch (e: CancellationException) {
-            // 手势取消：弹回展开态
-            progress.animateTo(1f, animationSpec)
-            throw e
-        } finally {
-            dragging.value = false
+        } else {
+            PageBackInterceptor.pop(expandBackToken)
         }
+        onDispose { PageBackInterceptor.pop(expandBackToken) }
     }
 
     return remember(progress) { SearchExpandState(progress.asState(), dragging) }

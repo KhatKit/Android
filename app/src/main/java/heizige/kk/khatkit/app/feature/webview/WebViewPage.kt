@@ -3,7 +3,6 @@ package heizige.kk.khatkit.app.feature.webview
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +42,8 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,8 +78,18 @@ fun WebViewPage(url: String, contentId: String) {
     var showDropdown by remember { mutableStateOf(false) }
     var showConsoleSheet by remember { mutableStateOf(false) }
 
-    BackHandler(state.canGoBack) {
-        state.goBack()
+    // U7a-6：WebView 内可后退时先退网页，登记到 PageBackInterceptor（不再页面级 BackHandler）。
+    val webBackToken = remember { Any() }
+    DisposableEffect(state.canGoBack) {
+        if (state.canGoBack) {
+            PageBackInterceptor.push(webBackToken) {
+                state.goBack()
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(webBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(webBackToken) }
     }
 
     MochiPageScaffold(

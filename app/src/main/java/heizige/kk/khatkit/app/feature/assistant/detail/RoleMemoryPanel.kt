@@ -6,7 +6,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import android.content.Intent
 import android.provider.DocumentsContract
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +59,8 @@ import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.save as saveIcon
 import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 @Composable
 internal fun RoleMemoryPanel(
@@ -81,7 +82,19 @@ internal fun RoleMemoryPanel(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val cards = listCardStyle()
     val dirty = document != null && draft != document?.content
-    BackHandler(enabled = dirty || busy) { if (!busy) confirmExit = true }
+    // U7a-6：改用 PageBackInterceptor 登记（有未保存改动/正忙时先收返回），不再挂页面级 BackHandler。
+    val memoryBackToken = remember { Any() }
+    DisposableEffect(dirty || busy) {
+        if (dirty || busy) {
+            PageBackInterceptor.push(memoryBackToken) {
+                if (!busy) confirmExit = true
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(memoryBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(memoryBackToken) }
+    }
 
     suspend fun open(path: String) {
         try {

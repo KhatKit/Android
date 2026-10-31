@@ -4,7 +4,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -75,6 +74,8 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.searchInsights
 import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 enum class SearchMode {
     OFF,
@@ -182,8 +183,18 @@ fun SearchPickerButton(
             // MD3 侧 Khromia `BasicBottomSheet` 注册了 PredictiveBackHandler/BackHandler，
             // 两者都把返回变成「关闭弹层」而不是退出页面）。BackHandler 只在本 `if
             // (showSearchPicker)` 分支里组合，弹层收起后整个不注册 ⇒ 不会全 App 吞返回。
-            BackHandler(enabled = selectingProvider) {
-                selectingProvider = false
+            // U7a-6：只在该子页接管返回（登记到 PageBackInterceptor），不再挂页面级 BackHandler。
+            val pickerBackToken = remember { Any() }
+            DisposableEffect(selectingProvider) {
+                if (selectingProvider) {
+                    PageBackInterceptor.push(pickerBackToken) {
+                        selectingProvider = false
+                        true
+                    }
+                } else {
+                    PageBackInterceptor.pop(pickerBackToken)
+                }
+                onDispose { PageBackInterceptor.pop(pickerBackToken) }
             }
             AnimatedContent(
                 targetState = selectingProvider,

@@ -7,7 +7,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.KkSurface
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
@@ -118,6 +117,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 @Composable
 fun ImageGenPage(
@@ -129,8 +130,18 @@ fun ImageGenPage(
 
     val isGenerating by vm.isGenerating.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
-    BackHandler(isGenerating) {
-        showCancelDialog = true
+    // U7a-6：生成中返回 = 弹取消确认，登记到 PageBackInterceptor（不再页面级 BackHandler）。
+    val genBackToken = remember { Any() }
+    DisposableEffect(isGenerating) {
+        if (isGenerating) {
+            PageBackInterceptor.push(genBackToken) {
+                showCancelDialog = true
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(genBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(genBackToken) }
     }
     if (showCancelDialog) {
         CancelDialog(
@@ -551,8 +562,18 @@ private fun ImageGalleryScreen(
         }
     }
 
-    BackHandler(enabled = isActive && selectionMode) {
-        if (!isDeleting) clearSelection()
+    val selectBackToken = remember { Any() }
+    val selectBackEnabled = isActive && selectionMode
+    DisposableEffect(selectBackEnabled) {
+        if (selectBackEnabled) {
+            PageBackInterceptor.push(selectBackToken) {
+                if (!isDeleting) clearSelection()
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(selectBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(selectBackToken) }
     }
     LaunchedEffect(isActive) {
         if (!isActive && !isDeleting) clearSelection()

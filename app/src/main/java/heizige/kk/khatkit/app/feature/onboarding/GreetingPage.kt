@@ -106,9 +106,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
 import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -178,6 +175,8 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -207,12 +206,21 @@ fun GreetingPage(onFinish: () -> Unit) {
         }
     }
 
-    val backEventState = rememberNavigationEventState(currentInfo = NavigationEventInfo.None)
-    NavigationBackHandler(
-        state = backEventState,
-        isBackEnabled = step != GreetingStep.Welcome,
-        onBackCompleted = goBack,
-    )
+    // U7a-6：页面级返回收敛到 PageBackInterceptor（返回单点仍是 Mochi 的 PredictiveBackHandler）。
+    // 只在引导流程可回退的步骤登记；Welcome 步不登记，否则会常驻抢走系统返回、磨掉预测动画。
+    val stepBackToken = remember { Any() }
+    val stepBackEnabled = step != GreetingStep.Welcome
+    DisposableEffect(stepBackEnabled) {
+        if (stepBackEnabled) {
+            PageBackInterceptor.push(stepBackToken) {
+                goBack()
+                true
+            }
+        } else {
+            PageBackInterceptor.pop(stepBackToken)
+        }
+        onDispose { PageBackInterceptor.pop(stepBackToken) }
+    }
 
     // 骨架也走 Kedge：MD3Exp 下等价于原生 Scaffold，Miuix 下换成 Miuix Scaffold
     // （inset 只垫水平方向，竖向由顶/底栏各自的 navigationBarsPadding /

@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
 import android.os.Build
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
@@ -47,9 +46,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
 
 /** 进场时长：与头像编辑弹层同一档，卡片缩放 + 淡入。 */
 private const val PopupEnterMillis = 220
@@ -110,19 +110,21 @@ fun GlassPopup(
     // 预测性返回：手势拖到哪，卡片就缩/淡到哪；松手提交才走 [dismiss]，取消则弹回。
     // 只留这一条 handler（原来的 BackHandler 已并入）：两者注册在同一个
     // OnBackPressedDispatcher 上，同时存在会互相抢占，手势进度就在半路断掉。
+    // U7a-6：返回收敛到 PageBackInterceptor（浮层打开时登记，关闭时注销），不再自己挂
+    // PredictiveBackHandler 抢返回。代价：这条浮层失去了原来的「跟手进度」，卡片改为
+    // 走 dismiss 的退场动画；保留 backProgress 只为下面两处绘制读值（恒为 0）。
     val backProgress = remember { Animatable(0f) }
-    PredictiveBackHandler(enabled = !closing) { backEvents ->
-        try {
-            backEvents.collect { event ->
-                backProgress.snapTo(event.progress.coerceIn(0f, 1f))
+    val popupBackToken = remember { Any() }
+    DisposableEffect(!closing) {
+        if (!closing) {
+            PageBackInterceptor.push(popupBackToken) {
+                dismiss()
+                true
             }
-            // 手势提交：卡片此刻已经淡到只剩影子，余下的交给 [dismiss] 的退场动画收尾。
-            dismiss()
-        } catch (e: CancellationException) {
-            // 手势取消：弹回完全打开态（与进场同一档时长，手感对称）。
-            backProgress.animateTo(0f, tween(durationMillis = PopupEnterMillis))
-            throw e
+        } else {
+            PageBackInterceptor.pop(popupBackToken)
         }
+        onDispose { PageBackInterceptor.pop(popupBackToken) }
     }
 
     val scrim by animateFloatAsState(
