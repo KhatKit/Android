@@ -71,6 +71,7 @@ sealed interface GenerationChunk {
 class GenerationLoop(
     private val context: Context,
     private val providerManager: ProviderManager,
+    private val usageRecorder: UsageRecorder,
     private val json: Json,
 ) {
     fun generateText(
@@ -516,6 +517,17 @@ class GenerationLoop(
                             }
                         }
                         messages = attemptMessages
+                        runCatching {
+                            usageRecorder.record(
+                                source = UsageRecorder.SOURCE_CHAT,
+                                usage = attemptMessages.lastOrNull()?.usage,
+                                providerId = provider.id.toString(),
+                                modelId = model.id.toString(),
+                                modelName = model.modelId,
+                                assistantId = assistant.id.toString(),
+                                conversationId = conversationId?.toString(),
+                            )
+                        }
                         break
                     } catch (error: Throwable) {
                         if (error is StreamChunkHandlingException) {
@@ -554,6 +566,17 @@ class GenerationLoop(
                         messages
                     }
                 messages = mergeBase.handleTextGenerationResult(result = result, model = model)
+                runCatching {
+                    usageRecorder.record(
+                        source = UsageRecorder.SOURCE_CHAT,
+                        usage = result.usage,
+                        providerId = provider.id.toString(),
+                        modelId = model.id.toString(),
+                        modelName = model.modelId,
+                        assistantId = assistant.id.toString(),
+                        conversationId = conversationId?.toString(),
+                    )
+                }
                 onUpdateMessages(messages)
             }
         } finally {

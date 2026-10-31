@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.di
 
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -102,7 +103,8 @@ object RepositoryHiltModule {
     fun provideMemoryExtractor(
         memoryRepository: MemoryRepository,
         providerManager: ProviderManager,
-    ): MemoryExtractor = MemoryExtractor(memoryRepository, providerManager)
+        usageRecorder: UsageRecorder,
+    ): MemoryExtractor = MemoryExtractor(memoryRepository, providerManager, usageRecorder)
 
     @Provides
     @Singleton

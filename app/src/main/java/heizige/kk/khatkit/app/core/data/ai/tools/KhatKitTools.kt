@@ -207,6 +207,7 @@ class KhatKitToolProvider(
     private val scope: CoroutineScope,
     private val json: Json,
     private val providerManager: ProviderManager,
+    private val usageRecorder: heizige.kk.khatkit.app.core.data.ai.UsageRecorder,
     private val settingsRepository: SettingsRepository,
     private val cardRunDao: CardRunDAO,
     private val cardArtifactDao: CardArtifactDAO,
@@ -252,6 +253,7 @@ class KhatKitToolProvider(
      */
     private val aiBridge = CardAiBridge(
         engine = CardAiEngine(
+            usageRecorder = usageRecorder,
             providerManager = providerManager,
             settings = { settingsRepository.settingsFlow.value },
             onCall = ::reportAiCall,

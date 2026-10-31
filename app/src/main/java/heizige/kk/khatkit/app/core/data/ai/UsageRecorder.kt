@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.data.ai
 
 import heizige.kk.khatkit.app.core.data.db.dao.UsageRecordDAO
+import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.app.core.data.db.entity.UsageRecordEntity
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +46,30 @@ class UsageRecorder @Inject constructor(
         }
     }
 
+    /** 便捷重载：调用方只拿到 TokenUsage 时用；usage 为空则忽略。 */
+    suspend fun record(
+        source: String,
+        usage: TokenUsage?,
+        providerId: String? = null,
+        modelId: String? = null,
+        modelName: String? = null,
+        assistantId: String? = null,
+        conversationId: String? = null,
+    ) {
+        val u = usage ?: return
+        record(
+            source = source,
+            promptTokens = u.promptTokens,
+            completionTokens = u.completionTokens,
+            cachedTokens = u.cachedTokens,
+            providerId = providerId,
+            modelId = modelId,
+            modelName = modelName,
+            assistantId = assistantId,
+            conversationId = conversationId,
+        )
+    }
+
     companion object {
         const val SOURCE_CHAT = "CHAT"
         const val SOURCE_COMPRESS = "COMPRESS"
@@ -53,5 +78,6 @@ class UsageRecorder @Inject constructor(
         const val SOURCE_TRANSLATE = "TRANSLATE"
         const val SOURCE_MEMORY = "MEMORY"
         const val SOURCE_OCR = "OCR"
+        const val SOURCE_CARD = "CARD"
     }
 }

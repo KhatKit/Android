@@ -63,7 +63,7 @@ object AppHiltModule {
     @Provides
     @Singleton
     fun provideChatFloatingWindows(
-        @ApplicationContext application: Application,
+        @ApplicationContext context: android.content.Context, // Application 会被 Hilt 判成重复绑定，用 Context
         appScope: AppScope,
         lazyChatManager: dagger.Lazy<ChatManager>,
         settingsStore: SettingsRepository,
@@ -71,7 +71,7 @@ object AppHiltModule {
         // Dagger 的 Lazy 和 Kotlin 的 Lazy 不是一个类型：tracker/windows 要 Kotlin Lazy
         val managerLazy = lazy { lazyChatManager.get() }
         return heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows(
-            context = application,
+            context = context,
             appScope = appScope,
             tracker = heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingTracker(
                 appScope = appScope,
@@ -175,6 +175,7 @@ object AppHiltModule {
         settingsStore: SettingsRepository,
         cardRunDao: heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO,
         cardArtifactDao: heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO,
+        usageRecorder: heizige.kk.khatkit.app.core.data.ai.UsageRecorder,
     ): KhatKitToolProvider = KhatKitToolProvider(
         context = context,
         scope = appScope,
@@ -183,6 +184,7 @@ object AppHiltModule {
         settingsRepository = settingsStore,
         cardRunDao = cardRunDao,
         cardArtifactDao = cardArtifactDao,
+        usageRecorder = usageRecorder,
     )
 
     // 事件触发器：卡片在定时/通知/应用启动/充电时自动运行

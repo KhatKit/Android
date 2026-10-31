@@ -8,10 +8,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import heizige.kk.khatkit.ai.core.ReasoningLevel
+import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.TextGenerationParams
 import heizige.kk.khatkit.ai.registry.ModelRegistry
+import heizige.kk.khatkit.ai.ui.StreamChunk
 import heizige.kk.khatkit.ai.ui.StreamChunkHandler
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -22,6 +24,7 @@ import java.util.Locale
 
 class TranslationHandler(
     private val providerManager: ProviderManager,
+    private val usageRecorder: UsageRecorder,
 ) {
     fun translateText(
         settings: Settings,
@@ -44,6 +47,7 @@ class TranslationHandler(
 
             var messages = listOf(UIMessage.user(prompt))
             val streamChunkHandler = StreamChunkHandler(model)
+            var translationUsage: TokenUsage? = null
 
             providerHandler.streamText(
                 providerSetting = provider,
@@ -53,6 +57,7 @@ class TranslationHandler(
                     reasoningLevel = ReasoningLevel.fromBudgetTokens(settings.translateThinkingBudget),
                 ),
             ).collect { chunk ->
+                if (chunk is StreamChunk.Usage) translationUsage = chunk.usage
                 messages = streamChunkHandler.handle(messages, chunk)
                 val translatedText = messages.lastOrNull()?.toText() ?: ""
 
@@ -60,6 +65,15 @@ class TranslationHandler(
                     onStreamUpdate?.invoke(translatedText)
                     emit(translatedText)
                 }
+            }
+            runCatching {
+                usageRecorder.record(
+                    source = UsageRecorder.SOURCE_TRANSLATE,
+                    usage = translationUsage,
+                    providerId = provider.id.toString(),
+                    modelId = model.id.toString(),
+                    modelName = model.modelId,
+                )
             }
         } else {
             // Use Qwen MT model with special translation options
@@ -85,6 +99,15 @@ class TranslationHandler(
                     ),
                 ),
             )
+            runCatching {
+                usageRecorder.record(
+                    source = UsageRecorder.SOURCE_TRANSLATE,
+                    usage = result.usage,
+                    providerId = provider.id.toString(),
+                    modelId = model.id.toString(),
+                    modelName = model.modelId,
+                )
+            }
             val translatedText = result.message.toText()
 
             if (translatedText.isNotBlank()) {

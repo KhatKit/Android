@@ -16,6 +16,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.common.cache.LruCache
 import heizige.kk.khatkit.common.cache.SingleFileCacheRepository
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
 import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
@@ -33,6 +34,7 @@ class OcrTransformer @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsStore: SettingsRepository,
     private val providerManager: ProviderManager,
+    private val usageRecorder: UsageRecorder,
 ) : InputMessageTransformer {
     private val cache by lazy {
         val json = Json { allowStructuredMapKeys = true }
@@ -131,6 +133,15 @@ class OcrTransformer @Inject constructor(
                     customBody = model.customBodies,
                 ),
             )
+            runCatching {
+                usageRecorder.record(
+                    source = UsageRecorder.SOURCE_OCR,
+                    usage = result.usage,
+                    providerId = providerSetting.id.toString(),
+                    modelId = model.id.toString(),
+                    modelName = model.modelId,
+                )
+            }
             val content = result.message.toText().ifBlank { return@runCatching null }
             Log.i(TAG, "performOcr: $content")
             val ocrResult = """

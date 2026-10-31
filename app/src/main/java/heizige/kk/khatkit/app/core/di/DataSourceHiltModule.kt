@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.di
 
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -160,17 +161,21 @@ object DataSourceHiltModule {
     fun provideGenerationLoop(
         @ApplicationContext context: Context,
         providerManager: ProviderManager,
+        usageRecorder: UsageRecorder,
         json: Json,
     ): GenerationLoop = GenerationLoop(
         context = context,
         providerManager = providerManager,
+        usageRecorder = usageRecorder,
         json = json,
     )
 
     @Provides
     @Singleton
-    fun provideTranslationHandler(providerManager: ProviderManager): TranslationHandler =
-        TranslationHandler(providerManager = providerManager)
+    fun provideTranslationHandler(
+        providerManager: ProviderManager,
+        usageRecorder: UsageRecorder,
+    ): TranslationHandler = TranslationHandler(providerManager = providerManager, usageRecorder = usageRecorder)
 
     @Provides
     @Singleton

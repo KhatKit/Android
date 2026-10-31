@@ -39,6 +39,7 @@ data class AiCallReport(
  * 结果 best-effort 经 [onCall] 上报 Hub，失败不阻塞脚本。
  */
 class CardAiEngine(
+    private val usageRecorder: UsageRecorder,
     private val providerManager: ProviderManager,
     private val settings: () -> Settings,
     private val onCall: (AiCallReport) -> Unit = {},
@@ -76,6 +77,15 @@ class CardAiEngine(
                 maxTokens = request.maxTokens.takeIf { it > 0 },
             ),
         )
+        runCatching {
+            usageRecorder.record(
+                source = UsageRecorder.SOURCE_CARD,
+                usage = result.usage,
+                providerId = provider.id.toString(),
+                modelId = model.id.toString(),
+                modelName = model.modelId,
+            )
+        }
         return result.message.toText().ifBlank {
             throw IllegalStateException("模型返回了空内容：可重试或改用其他模型")
         }

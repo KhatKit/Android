@@ -8,6 +8,7 @@ import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.provider.TextGenerationParams
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
 import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
@@ -33,6 +34,7 @@ import kotlinx.serialization.json.intOrNull
 class MemoryExtractor(
     private val memoryRepository: MemoryRepository,
     private val providerManager: ProviderManager,
+    private val usageRecorder: UsageRecorder,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
     companion object {
@@ -127,6 +129,15 @@ class MemoryExtractor(
                     reasoningLevel = settings.memoryConsolidationReasoningLevel(),
                 ),
             )
+            runCatching {
+                usageRecorder.record(
+                    source = UsageRecorder.SOURCE_MEMORY,
+                    usage = result.usage,
+                    providerId = provider.id.toString(),
+                    modelId = modelDef.id.toString(),
+                    modelName = modelDef.modelId,
+                )
+            }
             parseAndStore(
                 spaceId = spaceId,
                 response = result.message.toText(),
