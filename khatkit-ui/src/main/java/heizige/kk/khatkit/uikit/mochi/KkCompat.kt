@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import ui.feice.mochi.basic.MochiSegmentedControl
 import ui.feice.mochi.basic.MochiChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -73,16 +74,14 @@ fun KkSingleChoiceSegmentedRow(
     modifier: Modifier = Modifier,
     @Suppress("UNUSED_PARAMETER") fillWidth: Boolean = true,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        items.forEachIndexed { index, item ->
-            SegmentedButton(
-                selected = item.selected,
-                onClick = item.onClick,
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = items.size),
-                label = { Text(item.label) },
-            )
-        }
-    }
+    // SW1：单选分段控件换 Mochi 真组件（滑块式选中块 + 触觉）。Mochi 的 items 是纯文本，
+    // SegmentedItem.label 本就是 String，映射即可；带图标/自定义 slot 的调用点见文件末尾说明。
+    MochiSegmentedControl(
+        selectedIndex = items.indexOfFirst { it.selected },
+        onSelect = { index -> items.getOrNull(index)?.onClick?.invoke() },
+        items = kotlinx.collections.immutable.persistentListOf(*items.map { it.label }.toTypedArray()),
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 /** 多选分段控件：用同一套 SegmentedButton，但每项独立勾选。 */

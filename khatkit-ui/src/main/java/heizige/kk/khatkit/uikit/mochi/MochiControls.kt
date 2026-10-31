@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import ui.feice.mochi.basic.MochiSwitch
+import ui.feice.mochi.basic.MochiSlider
+import ui.feice.mochi.basic.MochiHapticProfile
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -319,16 +322,16 @@ fun KkSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    // INT2②：开关翻转时震一下（Mochi 的 confirm 语义），不再交给系统默认的静音开关。
-    val haptics = rememberKkHaptics()
-    androidx.compose.material3.Switch(
+    // SW1：换成 Mochi 的开关 —— z 弹性、gel 形变、glow 与触觉都是组件自带的，
+    // 这里不再自己震（否则会和 Mochi 内部触觉双发）。
+    val effects = LocalKkEffectsEnabled.current
+    MochiSwitch(
         checked = checked,
-        onCheckedChange = { newValue ->
-            haptics.confirm()
-            onCheckedChange?.invoke(newValue)
-        },
+        onCheckedChange = { newValue -> onCheckedChange?.invoke(newValue) },
         modifier = modifier,
         enabled = enabled,
+        gel = if (effects) 0.6f else 0f,
+        hapticProfile = if (effects) MochiHapticProfile.IosLike else MochiHapticProfile.Off,
     )
 }
 
@@ -365,31 +368,19 @@ fun KkSlider(
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
 ) {
-    // U3：回 MD3 Slider —— 自带拖拽/点击、步进与无障碍语义。
-    // INT2②：按 Mochi 的滑杆规则补触觉 —— 每跨一档 tick 一次，松手 confirm 一次。
-    val haptics = rememberKkHaptics()
-    val lastStep = remember { intArrayOf(Int.MIN_VALUE) }
-    val stepSize = if (steps > 0) (valueRange.endInclusive - valueRange.start) / (steps + 1) else 0f
-    androidx.compose.material3.Slider(
+    // SW1：换成 Mochi 滑杆 —— 跟手、每档 tick 与松手 confirm、两端光效都由组件自带，
+    // 这里不再手写 tick/confirm（会双发触觉）。
+    val effects = LocalKkEffectsEnabled.current
+    MochiSlider(
         value = value,
-        onValueChange = { newValue ->
-            onValueChange(newValue)
-            if (stepSize > 0f) {
-                val step = ((newValue - valueRange.start) / stepSize).roundToInt()
-                if (step != lastStep[0]) {
-                    lastStep[0] = step
-                    haptics.tick()
-                }
-            }
-        },
+        onValueChange = onValueChange,
         modifier = modifier.semantics { contentDescription = "slider" },
         enabled = enabled,
         valueRange = valueRange,
         steps = steps,
-        onValueChangeFinished = {
-            haptics.confirm()
-            onValueChangeFinished?.invoke()
-        },
+        onValueChangeFinished = onValueChangeFinished,
+        gel = if (effects) 0.6f else 0f,
+        hapticProfile = if (effects) MochiHapticProfile.IosLike else MochiHapticProfile.Off,
     )
 }
 
