@@ -13,12 +13,15 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
+import ui.feice.mochi.ios.iosMaterials
 import ui.feice.mochi.theme.ColorSchemeMode
+import ui.feice.mochi.theme.MochiMaterials
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.theme.ThemeController
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
+import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchExpressiveEnabled
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchScale
 
@@ -133,11 +136,33 @@ fun KhatKitTheme(
     //  ⇒ 所以「把当前值原样转发下去」就等于本层不 provide，取的正是平台默认工厂。
     val overscrollFactory = LocalOverscrollFactory.current
 
+    // FX1（主人拍板）：液态玻璃 / 光效 / 交互动效**默认开**。
+    //  · 开：mochi-ios 的 iOS 26 玻璃配方（栏 / 菜单 / 面板 / 弹窗），并用 themeAccent = true
+    //    让玻璃里选中的图标/文字用**主题强调色**（本仓调色板不是 iOS 的，不传会用 iOS 蓝）；
+    //    scrollEdge 渐进模糊也一起来。
+    //  · 关：给 MochiMaterials()（全 null）⇒ 上述位置全部退回纯色，glow/模糊一起消失。
+    //  玻璃只作用在 bars / menus / sheets / alerts（MochiMaterials 的语义，§7-4）；
+    //  正文按钮是否玻璃由按钮样式决定，这里不碰，也不在页面里写外观分支。
+    val effectsEnabled = settings.displaySetting.effectsEnabled
+    val mochiMaterials = remember(effectsEnabled, darkTheme) {
+        if (effectsEnabled) {
+            iosMaterials(isDark = darkTheme, themeAccent = true)
+        } else {
+            MochiMaterials()
+        }
+    }
+
     // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
     // colorScheme / textStyles / shapes，由 MochiTheme 独家管理系统栏图标对比度。
-    MochiTheme(controller = mochiController, systemBarAppearance = !darkTheme) {
+    MochiTheme(
+        controller = mochiController,
+        systemBarAppearance = !darkTheme,
+        materials = mochiMaterials,
+    ) {
         CompositionLocalProvider(
             LocalDarkMode provides darkTheme,
+            // FX1 总开关：Kk 层按压形变 / 触觉 / 高光都读它（见 uikit/mochi/LocalKkEffects.kt）
+            LocalKkEffectsEnabled provides effectsEnabled,
             LocalExtendColors provides extendColors,
             // U8：Miuix 已删，回弹一律走 Mochi 的工厂（根 ProvideMochiOverscroll 提供），不再有置空分支。
             LocalOverscrollFactory provides overscrollFactory,

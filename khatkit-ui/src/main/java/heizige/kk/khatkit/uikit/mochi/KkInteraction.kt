@@ -27,34 +27,43 @@ import ui.feice.mochi.utils.rememberMochiHaptics
  * 与 Mochi 的 composition 原语是两条路，同时用会听到两声）。
  */
 @Stable
-class KkHaptics internal constructor(private val mochi: MochiHaptics) {
+class KkHaptics internal constructor(
+    private val mochi: MochiHaptics,
+    /** FX1 总开关（[LocalKkEffectsEnabled]）：关掉后所有方法静默，一次都不震。 */
+    private val enabled: Boolean = true,
+) {
+    private fun emit(block: () -> Unit) {
+        if (enabled) block()
+    }
+
     /** 点开一个东西（菜单、弹层、页面 push）。 */
-    fun open() = mochi.tapOpen()
+    fun open() = emit { mochi.tapOpen() }
 
     /** 长按开始（拖拽排序、长按菜单）。 */
-    fun longPress() = mochi.longPress()
+    fun longPress() = emit { mochi.longPress() }
 
     /** 经过新的一项 / 一步 / 中点（滑杆步进、换档吸附、列表滑过新项）。 */
-    fun tick() = mochi.tick()
+    fun tick() = emit { mochi.tick() }
 
     /** 确认（开关、选中、松手完成）。 */
-    fun confirm() = mochi.confirm()
+    fun confirm() = emit { mochi.confirm() }
 
     /** 越过「松手即提交」阈值（滑动删除、阈值型手势），来回越都震。 */
-    fun threshold() = mochi.threshold()
+    fun threshold() = emit { mochi.threshold() }
 
     /** 拖拽排序开始 = 长按开拖。 */
-    fun dragStarted() = mochi.longPress()
+    fun dragStarted() = emit { mochi.longPress() }
 
     /** 拖拽排序结束 = 松手落位。 */
-    fun dragStopped() = mochi.confirm()
+    fun dragStopped() = emit { mochi.confirm() }
 }
 
-/** 子树的统一触觉入口。 */
+/** 子树的统一触觉入口；跟随 [LocalKkEffectsEnabled]（FX1 总开关关掉时静默）。 */
 @Composable
 fun rememberKkHaptics(): KkHaptics {
     val mochi = rememberMochiHaptics(MochiHapticProfile.IosLike)
-    return remember(mochi) { KkHaptics(mochi) }
+    val effectsEnabled = LocalKkEffectsEnabled.current
+    return remember(mochi, effectsEnabled) { KkHaptics(mochi, effectsEnabled) }
 }
 
 /**
@@ -87,9 +96,11 @@ fun Modifier.kkPressState(
     pressedScale: Float = 0.97f,
 ): Modifier = composed {
     val reduceMotion = rememberKkReduceMotion()
+    // FX1：总开关关掉时不做按压形变（交互仍然可用，只是没有缩放）
+    val effectsEnabled = LocalKkEffectsEnabled.current
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) pressedScale else 1f,
+        targetValue = if (pressed && enabled && effectsEnabled) pressedScale else 1f,
         animationSpec = if (reduceMotion) snap() else MochiMotions.responseSpring(0.2f, 1f),
         label = "kk_press_scale",
     )

@@ -628,6 +628,8 @@
   <string name="setting_asr_page_edit_provider">編輯 ASR 供應商</string>
   <string name="setting_display_page_amoled_dark_mode_desc">深色主題使用純黑背景</string>
   <string name="setting_display_page_amoled_dark_mode_title">AMOLED 暗色模式</string>
+  <string name="setting_display_page_effects_desc">浮在內容上的欄、選單、面板與彈窗使用液態玻璃，並啟用按壓形變、發光與觸感回饋</string>
+  <string name="setting_display_page_effects_title">液態玻璃與光效</string>
   <string name="setting_display_page_auto_collapse_thinking_title">自動折疊思考</string>
   <string name="setting_display_page_auto_play_tts_desc">回覆產生完後自動播放 TTS</string>
   <string name="setting_display_page_auto_play_tts_title">產生後自動播放 TTS</string>

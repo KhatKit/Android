@@ -886,6 +886,8 @@
   <string name="setting_asr_page_edit_provider">Edit ASR Provider</string>
   <string name="setting_display_page_amoled_dark_mode_desc">Pure black background in dark theme</string>
   <string name="setting_display_page_amoled_dark_mode_title">AMOLED Dark Mode</string>
+  <string name="setting_display_page_effects_desc">Liquid glass on bars, menus, sheets and alerts, plus press deformation, glow and haptics</string>
+  <string name="setting_display_page_effects_title">Liquid Glass &amp; Effects</string>
   <string name="setting_display_page_auto_collapse_thinking_title">Auto Collapse Thinking</string>
   <string name="setting_display_page_auto_play_tts_desc">Play TTS when a reply finishes</string>
   <string name="setting_display_page_auto_play_tts_title">Auto-play TTS After Generation</string>

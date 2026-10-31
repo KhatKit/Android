@@ -722,6 +722,17 @@ data class DisplaySetting(
     val chatCustomFontName: String = "",
     val enableVolumeKeyScroll: Boolean = false,
     val volumeKeyScrollRatio: Float = 1.0f,
+    /**
+     * FX1：液态玻璃 / 光效 / 交互动效总开关，**默认开**（主人拍板）。
+     *
+     * 关掉时：MochiTheme 收到 `MochiMaterials()`（栏/菜单/面板/弹窗退回纯色、scrollEdge 模糊关），
+     * 且 `LocalKkEffectsEnabled = false`（Kk 层按压形变/触觉静默）。Mochi 真组件内部的
+     * pressScale 属基础触感，不随此开关。
+     *
+     * 兼容性：本字段是**新增**的，老安装的 JSON 里没有这个 key ⇒ 反序列化取默认 true，
+     * 不需要迁移（对比 [showAssistantBubble] 那种「老安装显式写了 false」的情况）。
+     */
+    val effectsEnabled: Boolean = true,
 )
 
 @Serializable

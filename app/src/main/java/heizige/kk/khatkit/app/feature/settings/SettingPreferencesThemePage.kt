@@ -270,6 +270,22 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { amoledDarkMode = it },
                         )
                     )
+                    // FX1：液态玻璃 / 光效总开关（默认开，落 DisplaySetting.effectsEnabled）。
+                    // 关掉 ⇒ Theme.kt 传 MochiMaterials()（栏/菜单/面板/弹窗纯色）+ LocalKkEffectsEnabled=false。
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_effects_title,
+                            R.string.setting_display_page_effects_desc,
+                            checked = settings.displaySetting.effectsEnabled,
+                            onCheckedChange = { enabled ->
+                                vm.updateSettings(
+                                    settings.copy(
+                                        displaySetting = settings.displaySetting.copy(effectsEnabled = enabled),
+                                    )
+                                )
+                            },
+                        )
+                    )
                 }
             }
 
