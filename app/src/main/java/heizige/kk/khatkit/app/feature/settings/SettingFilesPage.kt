@@ -289,7 +289,7 @@ private fun FolderRow(
             KkFilterChip(
                 selected = selectedFolder == folder,
                 onClick = { onFolderSelected(folder) },
-                label = { Text(folderDisplayName(folder)) }
+                label = folderDisplayName(folder)
             )
         }
     }

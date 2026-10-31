@@ -814,7 +814,7 @@ private fun SettingsBottomSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             KedgeFormRow(
-                label = { Text(stringResource(R.string.imggen_page_generation_count)) },
+                label = stringResource(R.string.imggen_page_generation_count),
                 description = { Text(stringResource(R.string.imggen_page_generation_count_desc)) }
             ) {
                 OutlinedNumberInput(
@@ -825,7 +825,7 @@ private fun SettingsBottomSheet(
             }
 
             KedgeFormRow(
-                label = { Text("Image Size") }
+                label = "Image Size"
             ) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -835,7 +835,7 @@ private fun SettingsBottomSheet(
                         KkFilterChip(
                             selected = size == sizeOption.value,
                             onClick = { vm.updateSize(sizeOption.value) },
-                            label = { Text(sizeOption.value) }
+                            label = sizeOption.value
                         )
                     }
                 }
@@ -845,7 +845,7 @@ private fun SettingsBottomSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
-                    label = { Text("Custom size") },
+                    label = "Custom size",
                     placeholder = { Text("e.g. 1024x1024") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),

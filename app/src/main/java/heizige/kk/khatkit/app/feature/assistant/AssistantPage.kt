@@ -464,9 +464,7 @@ private fun AssistantTagsFilterRow(
                                     }
                                 )
                             },
-                            label = {
-                                Text(tag.name)
-                            },
+                            label = tag.name,
                             selected = tag.id in selectedTagIds,
                             shape = RoundedCornerShape(50),
                             modifier = Modifier

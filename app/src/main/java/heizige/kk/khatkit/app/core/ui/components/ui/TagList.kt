@@ -74,9 +74,7 @@ fun TagsInput(
     ) {
         // 显示已选择的tags
         selectedTags.fastForEach { tag ->
-            KkInputChip(selected = false, onClick = {}, label = {
-                Text(tag.name)
-            }, trailingIcon = {
+            KkInputChip(selected = false, onClick = {}, label = tag.name, trailingIcon = {
                 Icon(
                     imageVector = close,
                     contentDescription = null,
@@ -177,7 +175,7 @@ fun TagsInput(
                             onClick = {
                                 onValueChange(value + tag.id, tags)
                                 resetAndClose()
-                            }, label = { Text(tag.name) }
+                            }, label = tag.name
                         )
                     }
                 }
@@ -201,7 +199,7 @@ fun TagsInput(
                     showError = false
                     keepOpenAfterValidation = false
                 },
-                label = { Text(stringResource(R.string.tag_input_dialog_label)) },
+                label = stringResource(R.string.tag_input_dialog_label),
                 placeholder = { Text(stringResource(R.string.tag_input_dialog_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,

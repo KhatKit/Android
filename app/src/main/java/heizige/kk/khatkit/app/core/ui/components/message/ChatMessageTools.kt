@@ -83,16 +83,12 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
                 )
             }
         },
-        label = {
-            Text(
-                text = stringResource(R.string.chat_message_tool_call_generic, tool.toolName),
+        label = text = stringResource(R.string.chat_message_tool_call_generic, tool.toolName),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
+                overflow = TextOverflow.Ellipsis,,
     )
 }
 
@@ -156,16 +152,12 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 )
             }
         },
-        label = {
-            Text(
-                text = renderer.title(context),
+        label = text = renderer.title(context),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
+                overflow = TextOverflow.Ellipsis,,
         extra = if (isPending && onToolApproval != null) {
             {
                 Row(
@@ -311,9 +303,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                 )
             }
         },
-        label = {
-            Text(
-                text = if (questions.size <= 1) firstQuestion else stringResource(
+        label = text = if (questions.size <= 1) firstQuestion else stringResource(
                     R.string.chat_message_tool_ask_questions,
                     questions.size
                 ),
@@ -321,9 +311,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
+                overflow = TextOverflow.Ellipsis,,
         content = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -362,12 +350,8 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                                     answers[q.id] = option
                                                 }
                                             },
-                                            label = {
-                                                Text(
-                                                    text = option,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                )
-                                            },
+                                            label = text = option,
+                                                    style = MaterialTheme.typography.labelSmall,,
                                         )
                                     }
                                 }
@@ -481,7 +465,7 @@ private fun ToolDenyReasonDialog(
         Md3OutlinedTextFieldWithSlots(
             value = reason,
             onValueChange = { reason = it },
-            label = { Text(stringResource(R.string.chat_message_tool_deny_dialog_hint)) },
+            label = stringResource(R.string.chat_message_tool_deny_dialog_hint),
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
             minLines = 2,

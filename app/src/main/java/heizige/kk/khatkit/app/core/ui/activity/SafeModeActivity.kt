@@ -232,7 +232,7 @@ private fun AssistantPickerSheet(
                                     selectedTagIds + tag.id
                                 }
                             },
-                            label = { Text(tag.name) },
+                            label = tag.name,
                             selected = tag.id in selectedTagIds,
                             shape = RoundedCornerShape(50),
                         )

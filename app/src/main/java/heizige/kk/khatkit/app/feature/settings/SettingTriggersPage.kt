@@ -254,7 +254,7 @@ fun SettingTriggersPage() {
                                     KkFilterChip(
                                         selected = triggerState.maxParallel == value,
                                         onClick = { controller.setMaxParallel(value) },
-                                        label = { Text("$value") },
+                                        label = "$value",
                                     )
                                 }
                             }
@@ -601,7 +601,7 @@ private fun FlowOverviewCard(
                 KkFilterChip(
                     selected = false,
                     onClick = onAddAi,
-                    label = { Text("AI 介入") },
+                    label = "AI 介入",
                 )
                 Text(
                     "节点可在下方逐个展开编辑",

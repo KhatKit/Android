@@ -2,19 +2,63 @@ package heizige.kk.khatkit.app.core.ui.components.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import ui.feice.mochi.basic.MochiChip
 
 /**
- * U4b：旧 Kedge 芯片的兼容壳，内部一律 material3 [FilterChip]。
+ * CH1：多选/筛选芯片统一走 Mochi。
  *
- * 只保留调用点真正用到的参数（选中态/点击/文案/图标/禁用）；Kedge 专有的
- * 圆角/内边距/自定义配色槽在这里丢弃 —— 圆角统一由 U2 Bridge 的 Shapes 决定。
+ * [MochiChip] 的 label 是 String，并且自带选中态、勾选槽和按压/形变反馈，所以常规调用点用
+ * String 重载：选中态走 selected，勾选标记走 showCheck，行内图标走 leadingIcon。
+ * 富内容（多行、自定义排版）的少数调用点仍用下面的 @Composable label 重载，
+ * 内部退回 material3 [FilterChip]（MochiChip 只接受 String，表达不了富内容）。
  */
+@Composable
+fun KkFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    showCheck: Boolean = true,
+    leadingIcon: (@Composable () -> Unit)? = null,
+) {
+    MochiChip(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        showCheck = showCheck,
+        leadingIcon = leadingIcon,
+    )
+}
+
+@Composable
+fun KkInputChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    showCheck: Boolean = false,
+    leadingIcon: (@Composable () -> Unit)? = null,
+) {
+    MochiChip(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        showCheck = showCheck,
+        leadingIcon = leadingIcon,
+    )
+}
+
+/** 富内容回退：label 是 Compose 内容，MochiChip 表达不了，仍用 material3 [FilterChip]。 */
 @Composable
 fun KkFilterChip(
     selected: Boolean,
@@ -40,7 +84,7 @@ fun KkFilterChip(
     )
 }
 
-/** U4b：输入芯片的兼容壳（语义同 [KkFilterChip]，未选中态即可输入样式）。 */
+/** 富内容回退，同 [KkFilterChip]。 */
 @Composable
 fun KkInputChip(
     selected: Boolean,

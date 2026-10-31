@@ -161,7 +161,7 @@ internal fun TriggerCardEditorSheet(
                         Md3OutlinedTextFieldWithSlots(
                             value = retryDelay,
                             onValueChange = { retryDelay = it.filter { c -> c.isDigit() }.take(4) },
-                            label = { Text("重试间隔（秒）") },
+                            label = "重试间隔（秒）",
                             supportingText = { Text("默认 0 秒，即下一个轮询周期立即重试") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
@@ -218,7 +218,7 @@ internal fun TriggerCardEditorSheet(
                                 expandedIndex = events.lastIndex
                                 showTypePicker = false
                             },
-                            label = { Text(eventTypeLabel(type)) },
+                            label = eventTypeLabel(type),
                         )
                     }
                 }
@@ -689,7 +689,7 @@ private fun ChipSelector(
                 KkFilterChip(
                     selected = value == selected,
                     onClick = { onSelect(value) },
-                    label = { Text(text) },
+                    label = text,
                 )
             }
         }
@@ -706,7 +706,7 @@ private fun TextStateField(
     Md3OutlinedTextFieldWithSlots(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = label,
         placeholder = placeholder?.let { { Text(it) } },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
@@ -733,7 +733,7 @@ private fun IntStateField(
             text = filtered
             filtered.toIntOrNull()?.let(onValueChange)
         },
-        label = { Text(label) },
+        label = label,
         keyboardOptions = KeyboardOptions(
             keyboardType = if (allowNegative) KeyboardType.Number else KeyboardType.Number
         ),
@@ -757,7 +757,7 @@ private fun DoubleStateField(
             text = filtered
             onValueChange(filtered.toDoubleOrNull())
         },
-        label = { Text(label) },
+        label = label,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),

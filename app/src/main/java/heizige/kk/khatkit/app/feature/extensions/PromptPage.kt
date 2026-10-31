@@ -426,7 +426,7 @@ private fun ModeInjectionEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = injection.name,
                     onValueChange = { onEdit(injection.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
+                    label = stringResource(R.string.prompt_page_name),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -434,7 +434,7 @@ private fun ModeInjectionEditSheet(
                 Md3SwitchFormRow(
                     checked = injection.enabled,
                     onCheckedChange = { onEdit(injection.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
+                    label = stringResource(R.string.prompt_page_enabled),
                 )
 
                 Md3OutlinedTextFieldWithSlots(
@@ -442,7 +442,7 @@ private fun ModeInjectionEditSheet(
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
                     },
-                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+                    label = stringResource(R.string.prompt_page_priority_label),
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -463,7 +463,7 @@ private fun ModeInjectionEditSheet(
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
                         },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
+                        label = stringResource(R.string.prompt_page_inject_depth),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(16.dp)
@@ -486,7 +486,7 @@ private fun ModeInjectionEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = injection.content,
                     onValueChange = { onEdit(injection.copy(content = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
+                    label = stringResource(R.string.prompt_page_injection_content),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
@@ -841,7 +841,7 @@ private fun LorebookEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = book.name,
                     onValueChange = { onEdit(book.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
+                    label = stringResource(R.string.prompt_page_name),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -849,7 +849,7 @@ private fun LorebookEditSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = book.description,
                     onValueChange = { onEdit(book.copy(description = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_description)) },
+                    label = stringResource(R.string.prompt_page_description),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -857,7 +857,7 @@ private fun LorebookEditSheet(
                 Md3SwitchFormRow(
                     checked = book.enabled,
                     onCheckedChange = { onEdit(book.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
+                    label = stringResource(R.string.prompt_page_enabled),
                 )
 
                 // 条目列表
@@ -978,7 +978,7 @@ private fun RegexInjectionEditDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = entry.name,
                     onValueChange = { onEdit(entry.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
+                    label = stringResource(R.string.prompt_page_name),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -986,7 +986,7 @@ private fun RegexInjectionEditDialog(
                 Md3SwitchFormRow(
                     checked = entry.enabled,
                     onCheckedChange = { onEdit(entry.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
+                    label = stringResource(R.string.prompt_page_enabled),
                 )
 
                 Md3OutlinedTextFieldWithSlots(
@@ -994,7 +994,7 @@ private fun RegexInjectionEditDialog(
                     onValueChange = {
                         it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
                     },
-                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+                    label = stringResource(R.string.prompt_page_priority_label),
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -1015,7 +1015,7 @@ private fun RegexInjectionEditDialog(
                         onValueChange = {
                             it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
                         },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
+                        label = stringResource(R.string.prompt_page_inject_depth),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(16.dp)
@@ -1032,7 +1032,7 @@ private fun RegexInjectionEditDialog(
                         KkInputChip(
                             selected = false,
                             onClick = {},
-                            label = { Text(keyword) },
+                            label = keyword,
                             trailingIcon = {
                                 MochiIconButton(
                                     onClick = {
@@ -1055,7 +1055,7 @@ private fun RegexInjectionEditDialog(
                     Md3OutlinedTextFieldWithSlots(
                         value = newKeyword,
                         onValueChange = { newKeyword = it },
-                        label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
+                        label = stringResource(R.string.prompt_page_new_keyword),
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
@@ -1076,19 +1076,19 @@ private fun RegexInjectionEditDialog(
                 Md3SwitchFormRow(
                     checked = entry.useRegex,
                     onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_use_regex)) },
+                    label = stringResource(R.string.prompt_page_use_regex),
                 )
 
                 Md3SwitchFormRow(
                     checked = entry.caseSensitive,
                     onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
+                    label = stringResource(R.string.prompt_page_case_sensitive),
                 )
 
                 Md3SwitchFormRow(
                     checked = entry.constantActive,
                     onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_constant_active)) },
+                    label = stringResource(R.string.prompt_page_constant_active),
                     description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
                 )
 
@@ -1097,7 +1097,7 @@ private fun RegexInjectionEditDialog(
                     onValueChange = {
                         it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
                     },
-                    label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
+                    label = stringResource(R.string.prompt_page_scan_depth),
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
@@ -1119,7 +1119,7 @@ private fun RegexInjectionEditDialog(
                 Md3OutlinedTextFieldWithSlots(
                     value = entry.content,
                     onValueChange = { onEdit(entry.copy(content = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
+                    label = stringResource(R.string.prompt_page_injection_content),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp),
