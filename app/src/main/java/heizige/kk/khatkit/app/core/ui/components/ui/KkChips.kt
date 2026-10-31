@@ -24,6 +24,11 @@ fun KkFilterChip(
     enabled: Boolean = true,
     showCheck: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
+    // 旧签名兼容：调用点可能还传这些参数（形状/内边距/配色由 Mochi 主题统一决定，这里接收后忽略）。
+    @Suppress("UNUSED_PARAMETER") cornerRadius: Dp? = null,
+    @Suppress("UNUSED_PARAMETER") shape: Shape? = null,
+    @Suppress("UNUSED_PARAMETER") contentPadding: PaddingValues? = null,
+    @Suppress("UNUSED_PARAMETER") colors: Any? = null,
 ) {
     MochiChip(
         label = label,
@@ -45,6 +50,11 @@ fun KkInputChip(
     enabled: Boolean = true,
     showCheck: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
+    // 旧签名兼容：调用点可能还传这些参数（形状/内边距/配色由 Mochi 主题统一决定，这里接收后忽略）。
+    @Suppress("UNUSED_PARAMETER") cornerRadius: Dp? = null,
+    @Suppress("UNUSED_PARAMETER") shape: Shape? = null,
+    @Suppress("UNUSED_PARAMETER") contentPadding: PaddingValues? = null,
+    @Suppress("UNUSED_PARAMETER") colors: Any? = null,
 ) {
     MochiChip(
         label = label,
