@@ -149,7 +149,7 @@ class BridgeRegistry(
             quotaMb = manifest.store.quotaMb,
             networkAllow = manifest.network.allow.ifEmpty {
                 manifest.capabilities.filter { it.startsWith("net:") }.map { it.substringAfter(':') }
-            }.map { it.lowercase().substringBefore(':') }.toSet(),
+            }.mapNotNull(::normalizeNetworkHost).toSet(),
             permissions = manifest.permissions.methods,
             approvalGate = approvalGate,
             deadlineAt = deadlineAt,
@@ -226,6 +226,15 @@ class BridgeRegistry(
             engine.define(name, scopedBridge(context, name, impl))
         }
         return true
+    }
+
+    private fun normalizeNetworkHost(raw: String): String? {
+        val value = raw.trim().trimEnd('.').lowercase()
+        if (value == "*") return value
+        val host = runCatching {
+            if ("://" in value) java.net.URI(value).host else value
+        }.getOrNull()?.trimEnd('.')
+        return host?.takeIf { it.isNotEmpty() && !it.contains('/') && !it.contains(':') }
     }
 
     companion object {

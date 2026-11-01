@@ -63,7 +63,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
@@ -98,6 +97,7 @@ import ui.feice.mochi.effect.content.MochiMorphIcon
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
+import heizige.kk.khatkit.app.feature.tools.ToolCatalogueWidget
 
 /** An independent overlay: it never changes message-list keys or scroll indices. */
 @Composable
@@ -187,20 +187,6 @@ private fun ChatWelcome(
     val widgets = remember(state.widgets) { state.widgets.filter { it.enabled } }
     // 编辑态里把最后一个也移除了：没东西可编辑，退回「添加小组件」那一行。
     LaunchedEffect(widgets.isEmpty()) { if (widgets.isEmpty()) editing = false }
-    // TEMP: 崩溃复现开关（debug 包）：进欢迎页后自动来回切编辑态，不用手指点。查完删掉。
-    if (BuildConfig.DEBUG) {
-        LaunchedEffect(widgets.isNotEmpty()) {
-            if (!widgets.isNotEmpty()) return@LaunchedEffect
-            kotlinx.coroutines.delay(2500)
-            editing = true
-            kotlinx.coroutines.delay(2500)
-            editing = false
-            kotlinx.coroutines.delay(1500)
-            editing = true
-            kotlinx.coroutines.delay(1500)
-            editing = false
-        }
-    }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 32.dp),
@@ -240,6 +226,11 @@ private fun ChatWelcome(
                         modifier = Modifier.welcomeReveal(1),
                     )
                 }
+            }
+        }
+        if (widgets.isEmpty()) {
+            item(key = "all_tools", contentType = "widget") {
+                ToolCatalogueWidget()
             }
         }
         item(key = "ideas_title", contentType = "section") {

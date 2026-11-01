@@ -152,9 +152,15 @@ class AndroidNetBridge(
     }
 
     private fun checkHost(url: String) {
-        val host = URI(url).host?.lowercase()
+        val host = URI(url).host?.trimEnd('.')?.lowercase()
             ?: throw IllegalArgumentException("网络地址缺少有效域名：$url")
-        if (allow.any { it == "*" || host == it || host.endsWith(".$it") }) return
+        val allowed = allow.mapNotNull { raw ->
+            val value = raw.trim().trimEnd('.').lowercase()
+            if (value == "*") value else runCatching {
+                if ("://" in value) URI(value).host else value
+            }.getOrNull()?.trimEnd('.')?.takeIf { it.isNotEmpty() && !it.contains('/') && !it.contains(':') }
+        }
+        if (allowed.any { it == "*" || host == it || host.endsWith(".$it") }) return
         throw SecurityException("访问被卡片 network 白名单拒绝：$host；请在 card.json 的 network.allow 中声明该域名")
     }
 

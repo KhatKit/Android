@@ -29,6 +29,7 @@ internal data class WelcomeWidget(
 
 internal data class ChatWelcomeState(
     val widgets: List<WelcomeWidget> = emptyList(),
+    val toolSize: WidgetCells = WidgetSizeLimits.ALL_TOOLS.default,
     /** AI 生成的开场提示（标题 + 说明）；空表示还没拿到（UI 退回内置静态提示）。 */
     val ideas: List<WelcomeIdeas.Idea> = emptyList(),
     val ideasLoading: Boolean = false,
@@ -45,6 +46,7 @@ internal class ChatWelcomeManager(
     val provider: KhatKitToolProvider,
     private val loadIdeas: suspend (localeTags: List<String>, count: Int) -> List<WelcomeIdeas.Idea> = { _, _ -> emptyList() },
 ) {
+    private var itemOrder: List<String> = emptyList()
     private val _state = MutableStateFlow(ChatWelcomeState())
     val state = _state.asStateFlow()
     private val jobs = mutableMapOf<String, Job>()
@@ -66,6 +68,7 @@ internal class ChatWelcomeManager(
             revision = catalogueRevision
             // 用户拖过的顺序优先；没排过（或新装）的按安装顺序排在后面。sortedBy 是稳定排序。
             val order = provider.widgetOrder().withIndex().associate { (index, name) -> name to index }
+            itemOrder = provider.widgetOrder()
             _state.value = ChatWelcomeState(
                 widgets = cards.mapNotNull { card -> card.manifest.widget?.let { card to it } }.map { (card, spec) ->
                     val limits = WidgetSizeLimits.of(spec.size)
@@ -76,6 +79,8 @@ internal class ChatWelcomeManager(
                     old?.copy(card = card, enabled = provider.widgetEnabled(card), size = size, limits = limits)
                         ?: WelcomeWidget(card, provider.widgetEnabled(card), size, limits)
                 }.sortedBy { order[it.card.manifest.name] ?: Int.MAX_VALUE },
+                toolSize = provider.widgetSize(ALL_TOOLS_WIDGET)?.let { WidgetSizeLimits.ALL_TOOLS.clamp(WidgetCells(it.first, it.second)) }
+                    ?: WidgetSizeLimits.ALL_TOOLS.default,
                 ideas = if (languageChanged) emptyList() else _state.value.ideas,
             )
             if (languageChanged) ideasAsked = false
@@ -147,6 +152,12 @@ internal class ChatWelcomeManager(
      * 松手时 [persist] = true 才落盘。
      */
     fun setSize(name: String, size: WidgetCells, persist: Boolean) {
+        if (name == ALL_TOOLS_WIDGET) {
+            val saved = WidgetSizeLimits.ALL_TOOLS.clamp(size)
+            _state.update { it.copy(toolSize = saved) }
+            if (persist) provider.setWidgetSize(name, saved.width, saved.height)
+            return
+        }
         update(name) { it.copy(size = it.limits.clamp(size)) }
         if (persist) {
             val saved = _state.value.widgets.firstOrNull { it.card.manifest.name == name }?.size ?: return
@@ -168,8 +179,29 @@ internal class ChatWelcomeManager(
         }
     }
 
+    fun itemOrder(names: List<String>): List<String> {
+        val available = names.toSet()
+        return (itemOrder.filter { it in available } + names.filterNot { it in itemOrder }).distinct()
+    }
+
+    fun itemSize(name: String, fallback: WidgetCells): WidgetCells {
+        return if (name == ALL_TOOLS_WIDGET) _state.value.toolSize else fallback
+    }
+
+    fun moveItem(name: String, index: Int, names: List<String>) {
+        val current = itemOrder(names).toMutableList()
+        val from = current.indexOf(name)
+        if (from < 0 || index !in current.indices || from == index) return
+        current.add(index, current.removeAt(from))
+        itemOrder = current
+        val rank = current.withIndex().associate { (position, item) -> item to position }
+        _state.update { state ->
+            state.copy(widgets = state.widgets.sortedBy { rank[it.card.manifest.name] ?: Int.MAX_VALUE })
+        }
+    }
+
     fun persistOrder() {
-        provider.setWidgetOrder(_state.value.widgets.map { it.card.manifest.name })
+        provider.setWidgetOrder(itemOrder.ifEmpty { _state.value.widgets.map { it.card.manifest.name } })
     }
 
     /** Auto-loading is read-only; only an explicit header click uses this action. */
@@ -195,3 +227,12 @@ internal class ChatWelcomeManager(
         }
     }
 }
+
+internal const val ALL_TOOLS_WIDGET = "__khatkit_all_tools"
+
+internal val WidgetSizeLimits.Companion.ALL_TOOLS: WidgetSizeLimits
+    get() = WidgetSizeLimits(
+        min = WidgetCells(1, 1),
+        max = WidgetCells(4, 6),
+        default = WidgetCells(4, 1),
+    )

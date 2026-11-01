@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * [ScreenRoutes] 的护栏：
- * - 64 个 [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
+ * - 67 个 [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
  *   这里再从「名字集合 == routeNames」和「逐个可逆」两头兜住）；
  * - `routeOf` / `screenOf` 互为逆运算，route 字符串本身稳定（重复编码不漂）。
  */
@@ -57,6 +57,7 @@ class ScreenRoutesTest {
         Screen.SettingSpeech,
         Screen.SettingMcp,
         Screen.ExploreMarket,
+        Screen.ToolCatalogue,
         Screen.ExploreCards(initialQuery = "moon"),
         Screen.ExploreLocal,
         Screen.ExploreCardDetail(name = "moon-card"),
@@ -83,11 +84,12 @@ class ScreenRoutesTest {
         Screen.MessageSearch,
         Screen.DownloadCenter,
         Screen.Stats,
+        Screen.AboutTerminal,
     )
 
     @Test
     fun everyScreenHasARouteAndRoundTrips() {
-        assertEquals("Screen 子类代表实例数量", 66, samples.size)
+        assertEquals("Screen 子类代表实例数量", 68, samples.size)
         for (screen in samples) {
             val route = ScreenRoutes.routeOf(screen)
             assertEquals("route 解析回原型: $route", screen, ScreenRoutes.screenOf(route))
@@ -100,7 +102,7 @@ class ScreenRoutesTest {
         val routes = samples.map { ScreenRoutes.routeOf(it) }
         assertEquals("route 两两不同", routes.size, routes.toSet().size)
         assertEquals("名字集合与 routeNames 一致", ScreenRoutes.routeNames, routes.map { it.substringBefore('?') }.toSet())
-        assertEquals("routeNames 条数", 66, ScreenRoutes.routeNames.size)
+        assertEquals("routeNames 条数", 68, ScreenRoutes.routeNames.size)
     }
 
     @Test

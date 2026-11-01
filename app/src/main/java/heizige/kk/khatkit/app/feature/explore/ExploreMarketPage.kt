@@ -124,6 +124,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
+import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
@@ -1008,7 +1009,10 @@ fun ExploreMarketPage() {
                             color = MochiTheme.colorScheme.tertiaryContainer,
                             contentColor = MochiTheme.colorScheme.onTertiaryContainer,
                         ) {
-                            MochiBarIconButton(onClick = { navController.navigate(Screen.ExploreLocal) }) {
+                            MochiBarIconButton(
+                                onClick = { navController.navigate(Screen.ExploreLocal) },
+                                colors = kkSolidBarColors(),
+                            ) {
                                 Icon(
                                     imageVector = folderManaged,
                                     contentDescription = stringResource(R.string.explore_market_local_page_title),
@@ -1313,7 +1317,7 @@ private fun cardsList(
             item(key = "card_filters") {
                 // 轨道外扩回屏幕边（bleed）：chip 能滑到屏幕边缘，不被列表的左右 16dp 夹断。
                 MochiChipGroup(
-                    modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp),
                     contentPadding = PaddingValues(0.dp),
                     bleed = 16.dp,
                 ) {
@@ -2389,7 +2393,7 @@ private fun DetailSheetHeader(title: String, onClose: () -> Unit) {
     MochiSheetHeader(
         title = title,
         actions = {
-            MochiBarIconButton(onClick = onClose) {
+            MochiBarIconButton(onClick = onClose, colors = kkSolidBarColors()) {
                 Icon(
                     imageVector = close,
                     contentDescription = stringResource(R.string.explore_market_cancel),

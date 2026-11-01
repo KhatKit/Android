@@ -117,7 +117,7 @@ private fun FormContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             rows.forEach { row ->
-                if (row.size == 1 && isFullWidthItem(row.first())) {
+                if (row.size == 1 && (isFullWidthItem(row.first()) || !twoColumn)) {
                     FormWidget(row.first(), values, pickerHost)
                 } else {
                     Row(
@@ -180,6 +180,7 @@ internal fun FormWidget(
     val type = item["type"]?.toString() ?: "text"
     val id = item["id"]?.toString().orEmpty()
     val label = item["label"]?.toString().orEmpty()
+    val supportingText = item["supportingText"]?.toString()?.takeIf { it.isNotBlank() }
 
     when (type) {
         "text", "markdown" -> Text(label.ifBlank { item["value"]?.toString().orEmpty() })
@@ -192,6 +193,7 @@ internal fun FormWidget(
             singleLine = item["multiline"] != true,
             minLines = (item["lines"] as? Number)?.toInt() ?: 1,
             placeholder = item["placeholder"] as? String,
+            supportingText = supportingText,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -200,6 +202,7 @@ internal fun FormWidget(
             onValueChange = { values[id] = it.toDoubleOrNull() ?: it },
             label = label,
             singleLine = true,
+            supportingText = supportingText,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -259,6 +262,7 @@ internal fun FormWidget(
                     onValueChange = { values[id] = it },
                     label = stringResource(R.string.khatkit_form_path_label, label),
                     singleLine = true,
+                    supportingText = supportingText,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

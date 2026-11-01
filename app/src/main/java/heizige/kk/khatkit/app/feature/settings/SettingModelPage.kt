@@ -2,23 +2,25 @@ package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,21 +54,24 @@ import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiTabItem
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import ui.feice.mochi.navigation.MochiTabScaffold
 import ui.feice.mochi.navigation.rememberMochiTabScaffoldState
-import ui.feice.mochi.navigation.MochiLargeTitleScaffold
-import androidx.compose.foundation.layout.fillMaxWidth
+import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.navigation.MochiTitleBarDefaults
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
-    
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
+    val tabState = rememberMochiTabScaffoldState(pagerState.currentPage)
+    LaunchedEffect(pagerState.currentPage) {
+        tabState.select(pagerState.currentPage)
+    }
 
     // P3a：页面骨架直接换成 Mochi 的 TabScaffold（底部 Tab 栏由 Mochi 自己画），
-    // 标题/返回走 MochiLargeTitleScaffold 的标题管线。
+    // 固定全屏 Pager 避免放进竖向滚动列；标题栏和底部 Tab 分层浮在页面内容上。
     val tabItems = persistentListOf(
         MochiTabItem(
             label = stringResource(R.string.setting_model_page_tab_model),
@@ -79,23 +84,32 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     )
     MochiTabScaffold(
         items = tabItems,
-        state = rememberMochiTabScaffoldState(pagerState.currentPage),
+        state = tabState,
         onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
     ) {
-        MochiLargeTitleScaffold(
-            title = stringResource(R.string.setting_model_page_title),
-            navigationIcon = { heizige.kk.khatkit.app.core.ui.components.nav.BackButton() },
-        ) {
-            val contentPadding = PaddingValues(0.dp)
+        Box(Modifier.fillMaxSize()) {
+            val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val contentPadding = PaddingValues(
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
+            )
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topInset + MochiTitleBarDefaults.Height),
             ) { page ->
                 when (page) {
                     0 -> ModelSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
                     1 -> PromptSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
                 }
             }
+            MochiTitleBar(
+                title = stringResource(R.string.setting_model_page_title),
+                navigationIcon = { heizige.kk.khatkit.app.core.ui.components.nav.BackButton() },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding(),
+            )
         }
     }
 }

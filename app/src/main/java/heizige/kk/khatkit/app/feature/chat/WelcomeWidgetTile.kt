@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -20,12 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -53,6 +50,7 @@ import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.feature.tools.ToolCatalogueWidget
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
@@ -64,13 +62,11 @@ import heizige.kk.khatkit.ui.CardWidgetLayout
 import heizige.kk.khatkit.ui.WidgetFrame
 import heizige.kk.khatkit.uikit.Render
 import heizige.kk.khatkit.uikit.mochi.KkHaptics
+import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
 import heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion
 import ui.feice.mochi.anim.MochiSprings
-import ui.feice.mochi.effect.content.MochiBlurCrossfade
-import ui.feice.mochi.effect.content.MochiBlurVisibility
 import ui.feice.mochi.effect.elastic.mochiPressDeform
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.navigation.mochiNavSource
@@ -115,9 +111,14 @@ internal fun WelcomeWidgetBoard(
     val maxCell = with(density) { WidgetGridGeometry.MaxCell.roundToPx() }
     var width by remember { mutableIntStateOf(0) }
     val geometry = remember(width, gap, maxCell) { WidgetGridGeometry.of(width, gap, maxCell) }
-    val names = widgets.map { it.card.manifest.name }
+    val cardNames = widgets.map { it.card.manifest.name }
+    val names = manager.itemOrder(cardNames + ALL_TOOLS_WIDGET)
+    val cards = remember(widgets, names) { widgets.associateBy { it.card.manifest.name } }
     // 「添加」那格排在最后，只占位置、不参与换序。
-    val sizes = widgets.map { it.size } + listOfNotNull(AddTileCells.takeIf { editing })
+    val sizes = names.map { name ->
+        if (name == ALL_TOOLS_WIDGET) manager.itemSize(name, WidgetSizeLimits.ALL_TOOLS.default)
+        else cards[name]?.size ?: WidgetCells(4, 1)
+    } + listOfNotNull(AddTileCells.takeIf { editing })
     val rects = remember(sizes, geometry) { widgetRects(sizes, geometry) }
     val latestNames by rememberUpdatedState(names)
     val latestRects by rememberUpdatedState(rects)
@@ -125,7 +126,7 @@ internal fun WelcomeWidgetBoard(
     val states = remember { HashMap<String, WidgetResizeState>() }
     val move = remember { WidgetMoveState(scope) }
     // 被拖/拖尺寸的那格会盖到邻居和列表其它项上：整块网格抬高，子项里再把它抬到邻居上面。
-    val active = move.name != null || move.settling != null || names.any { states[it]?.frame != null }
+    val active = move.name != null || move.settling != null || names.any { states[it]?.edge != null }
 
     fun slot(name: String): Offset = latestRects.getOrNull(latestNames.indexOf(name))?.topLeft ?: Offset.Zero
 
@@ -138,7 +139,7 @@ internal fun WelcomeWidgetBoard(
         if (hit != move.hovered) move.hovered = null
         if (hit != null && hit != name && move.hovered == null) {
             move.hovered = hit
-            manager.move(name, latestNames.indexOf(hit))
+            manager.moveItem(name, latestNames.indexOf(hit), latestNames)
             haptics.tick()
         }
     }
@@ -148,8 +149,65 @@ internal fun WelcomeWidgetBoard(
         geometry = { WidgetGridGeometry.of(it, gap, maxCell) },
         modifier = modifier.fillMaxWidth().onSizeChanged { width = it.width }.zIndex(if (active) 1f else 0f),
     ) {
-        widgets.forEachIndexed { index, widget ->
-            val name = widget.card.manifest.name
+        names.forEachIndexed { index, name ->
+            if (name == ALL_TOOLS_WIDGET) {
+                key(name) {
+                    val state = remember { states.getOrPut(name) { WidgetResizeState(scope) } }
+                    val size = manager.itemSize(name, WidgetSizeLimits.ALL_TOOLS.default)
+                    val lifted = move.lifted(name)
+                    Box(
+                        Modifier
+                            .zIndex(if (lifted || state.edge != null) 1f else 0f)
+                            // 拖边时的像素级预览：卡片按手指尺寸画，格子尺寸照旧
+                            .then(Modifier.widgetResizePreview(state.preview))
+                            .graphicsLayer {
+                                val offset = move.translation(name, slot(name))
+                                translationX = offset.x
+                                translationY = offset.y
+                            }
+                            .then(
+                                if (editing) Modifier.pointerInput(name) {
+                                    detectDragGestures(
+                                        onDragStart = {
+                                            move.start(name, slot(name))
+                                            haptics.dragStarted()
+                                        },
+                                        onDragEnd = {
+                                            haptics.dragStopped()
+                                            move.drop(slot(name), reduceMotion)
+                                            manager.persistOrder()
+                                        },
+                                        onDragCancel = {
+                                            haptics.dragStopped()
+                                            move.drop(slot(name), reduceMotion)
+                                            manager.persistOrder()
+                                        },
+                                    ) { change, amount ->
+                                        change.consume()
+                                        dragged(name, amount)
+                                    }
+                                } else Modifier,
+                            ),
+                    ) {
+                        ToolCatalogueWidget(Modifier.fillMaxSize())
+                        if (editing) {
+                            Box(Modifier.matchParentSize().mochiBorder(2.dp, MochiTheme.colorScheme.primary.copy(alpha = 0.55f), MochiRoundedRectangle(tileCorner()))) {
+                                WidgetResizeHandles(
+                                    size = size,
+                                    limits = WidgetSizeLimits.ALL_TOOLS,
+                                    geometry = geometry,
+                                    state = state,
+                                    haptics = haptics,
+                                    reduceMotion = reduceMotion,
+                                    onResize = { manager.setSize(name, it, persist = false) },
+                                    onResizeEnd = { manager.setSize(name, size, persist = true) },
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+            val widget = cards[name] ?: return@forEachIndexed
             key(name) {
                 val state = remember { states.getOrPut(name) { WidgetResizeState(scope) } }
                 val strings = remember(widget.card.manifest, locales) { CardStrings(widget.card.manifest, locales) }
@@ -157,9 +215,9 @@ internal fun WelcomeWidgetBoard(
                 val lifted = move.lifted(name)
                 val reorder = listOfNotNull(
                     (index - 1).takeIf { it >= 0 }?.let { stringResource(R.string.chat_widget_move_earlier) to it },
-                    (index + 1).takeIf { it < widgets.size }?.let { stringResource(R.string.chat_widget_move_later) to it },
+                    (index + 1).takeIf { it < names.size }?.let { stringResource(R.string.chat_widget_move_later) to it },
                 ).map { (label, target) ->
-                    CustomAccessibilityAction(label) { manager.move(name, target); manager.persistOrder(); true }
+                    CustomAccessibilityAction(label) { manager.moveItem(name, target, names); manager.persistOrder(); true }
                 }
                 WelcomeWidgetTile(
                     widget = widget,
@@ -194,14 +252,14 @@ internal fun WelcomeWidgetBoard(
                         manager.persistOrder()
                     },
                     modifier = Modifier
-                        .animateGridPlacement(animate = !reduceMotion && !lifted)
-                        .zIndex(if (lifted || state.frame != null) 1f else 0f),
+                        .zIndex(if (lifted || state.edge != null) 1f else 0f),
                 )
+            }
             }
         }
         if (editing) {
             key("widgets_add_tile") {
-                AddWidgetTile(onAdd, Modifier.animateGridPlacement(animate = !reduceMotion))
+                AddWidgetTile(onAdd)
             }
         }
     }
@@ -252,21 +310,21 @@ private fun WelcomeWidgetTile(
     val follow by rememberUpdatedState(onMove)
     val end by rememberUpdatedState(onMoveEnd)
     // 拿起来的那格放大一点、带阴影，像从网格里浮起来。
+    // 抬起 / 放下走 Mochi 的弹簧：原来是一步跳到 1，浮起没有过渡
     val lift by animateFloatAsState(
-        if (moving) 1f else 0f,
-        if (reduceMotion) snap() else MochiSprings.snappy(300),
-        label = "widget_lift",
+        targetValue = if (moving) 1f else 0f,
+        animationSpec = MochiSprings.snappy(300),
+        label = "widgetLift",
     )
     // 进出编辑态：描边从外面收进来、把手淡入、叉号从小弹到原大；退出时反着走完再拆掉。
+    // 进出编辑态：描边淡入 + 轻微收放。图层只在过渡期间存在，静止时不留常驻 RenderNode
     val edit by animateFloatAsState(
-        if (editing) 1f else 0f,
-        if (reduceMotion) snap() else MochiSprings.snappy(350),
-        label = "widget_edit",
+        targetValue = if (editing) 1f else 0f,
+        animationSpec = MochiSprings.snappy(280),
+        label = "widgetEdit",
     )
     Box(
-        modifier
-            .resizeFrame(state)
-            .then(
+        modifier.then(
                 if (editing) {
                     Modifier.resizeSemantics(
                         sizeDescription, widget.size, widget.limits, if (widget.limits.resizable) labels else emptyList(),
@@ -279,7 +337,7 @@ private fun WelcomeWidgetTile(
             ),
     ) {
         // 拖着走的时候原位留一块淡色占位：松手就吸附到这里。
-        if (lift > 0f) {
+        if (lift > 0.01f) {
             Box(
                 Modifier
                     .matchParentSize()
@@ -292,6 +350,8 @@ private fun WelcomeWidgetTile(
         Box(
             Modifier
                 .matchParentSize()
+                // 拖边时的像素级预览：卡片按手指尺寸画（外层仍占格子），邻居格位不动
+                .then(Modifier.widgetResizePreview(state.preview))
                 .graphicsLayer {
                     val offset = shift()
                     translationX = offset.x
@@ -301,13 +361,21 @@ private fun WelcomeWidgetTile(
             Box(
                 Modifier
                     .matchParentSize()
-                    .graphicsLayer {
-                        val scale = 1f + 0.04f * lift
-                        scaleX = scale
-                        scaleY = scale
-                        shadowElevation = 16.dp.toPx() * lift
-                        this.shape = shape
-                    }
+                    // 缩放 + 阴影层只在拿起（含抬起/放下那段弹簧）时加：静止时它是恒等变换，
+                    // 常驻会让每张卡片多一个带 outline 的 RenderNode，是这次 hwui 递归崩溃的触发点。
+                    .then(
+                        if (lift > 0.01f) {
+                            Modifier.graphicsLayer {
+                                val scale = 1f + 0.04f * lift
+                                scaleX = scale
+                                scaleY = scale
+                                shadowElevation = 16.dp.toPx() * lift
+                                this.shape = shape
+                            }
+                        } else {
+                            Modifier
+                        },
+                    )
                     // 来源登记记录整张卡片：页面从这里长出来，关闭时缩回这里。
                     .then(if (onOpen != null) Modifier.mochiNavSource(widgetSourceKey(name), corner, color) else Modifier)
                     .then(if (onOpen != null && !editing) Modifier.mochiPressDeform() else Modifier)
@@ -338,16 +406,23 @@ private fun WelcomeWidgetTile(
             ) {
                 WidgetTileContent(widget, title, description, corner, readOnly = editing || widget.loading, manager)
             }
-            if (edit > 0f) {
+            if (edit > 0.01f) {
                 Box(
                     Modifier
                         .matchParentSize()
-                        .graphicsLayer {
-                            alpha = edit.coerceIn(0f, 1f)
-                            val scale = 1.03f - 0.03f * edit
-                            scaleX = scale
-                            scaleY = scale
-                        }
+                        // 淡入淡出用的 alpha/缩放层只在过渡期间加；静止（edit = 1）时恒为单位值，不留 RenderNode
+                        .then(
+                            if (edit < 0.999f) {
+                                Modifier.graphicsLayer {
+                                    alpha = edit.coerceIn(0f, 1f)
+                                    val scale = 1.03f - 0.03f * edit
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                            } else {
+                                Modifier
+                            },
+                        )
                         .mochiBorder(
                             2.dp,
                             if (dragging || moving) accent else accent.copy(alpha = 0.55f),
@@ -356,7 +431,13 @@ private fun WelcomeWidgetTile(
                 )
                 // 把手只在编辑态里组合（退出时直接拆，免得淡出途中还接得到拖动）。
                 if (editing && widget.limits.resizable && !moving) {
-                    Box(Modifier.matchParentSize().graphicsLayer { alpha = edit.coerceIn(0f, 1f) }) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .then(
+                                if (edit < 0.999f) Modifier.graphicsLayer { alpha = edit.coerceIn(0f, 1f) } else Modifier,
+                            ),
+                    ) {
                         WidgetResizeHandles(widget.size, widget.limits, geometry, state, haptics, reduceMotion, resize, persist)
                     }
                 }
@@ -413,38 +494,33 @@ private fun BoxScope.RemoveBadge(label: String, progress: () -> Float, onRemove:
 private fun AddWidgetTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.chat_widgets_add)
     val shape = MochiRoundedRectangle(tileCorner())
-    // 只在进入编辑态时才组合，进场靠这一拍从 false 翻到 true。
-    var shown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { shown = true }
     Box(modifier) {
-        MochiBlurVisibility(shown, Modifier.matchParentSize()) {
-            Row(
-                Modifier
-                    .fillMaxSize()
-                    .mochiPressDeform()
-                    .background(MochiListDefaults.colors().container.copy(alpha = 0.6f), shape)
-                    .mochiBorder(1.5.dp, MochiTheme.colorScheme.outlineVariant, shape)
-                    .clip(shape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        role = Role.Button,
-                        onClick = onClick,
-                    )
-                    .padding(horizontal = TilePadding),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(add, null, Modifier.size(20.dp), tint = MochiTheme.colorScheme.primary)
-                Text(
-                    label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MochiTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        Row(
+            Modifier
+                .fillMaxSize()
+                .mochiPressDeform()
+                .background(MochiListDefaults.colors().container.copy(alpha = 0.6f), shape)
+                .mochiBorder(1.5.dp, MochiTheme.colorScheme.outlineVariant, shape)
+                .clip(shape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    role = Role.Button,
+                    onClick = onClick,
                 )
-            }
+                .padding(horizontal = TilePadding),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(add, null, Modifier.size(20.dp), tint = MochiTheme.colorScheme.primary)
+            Text(
+                label,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MochiTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -475,33 +551,28 @@ private fun WidgetTileContent(
     }
     val errors = remember(content) { mutableStateMapOf<String, String>() }
     val picked = content?.pick(widget.size.width, widget.size.height)
-    MochiBlurCrossfade(
-        targetState = picked,
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopStart,
-    ) { layout ->
-        val body: @Composable () -> Unit = { WidgetBody(widget, layout, values, errors, readOnly, manager) }
-        when (layout?.frame ?: WidgetFrame.HEADER) {
-            WidgetFrame.HEADER -> WelcomeWidgetFrame(
-                title = title,
-                description = description,
-                corner = corner,
-                loading = widget.loading,
-                onRefresh = {
-                    val root = layout?.root
-                    errors.clear()
-                    root?.errors(values)?.let(errors::putAll)
-                    if (errors.isEmpty()) manager.refreshFromHeader(name, root?.collect(values).orEmpty())
-                },
-                modifier = Modifier.fillMaxSize(),
-                content = body,
-            )
-            WidgetFrame.PLAIN -> Box(Modifier.fillMaxSize().padding(TilePadding)) {
-                MochiConcentricContainer(corner, TilePadding, body)
-            }
-            WidgetFrame.FULL -> Box(Modifier.fillMaxSize()) {
-                MochiConcentricContainer(corner, 0.dp, body)
-            }
+    val layout = picked
+    val body: @Composable () -> Unit = { WidgetBody(widget, layout, values, errors, readOnly, manager) }
+    when (layout?.frame ?: WidgetFrame.HEADER) {
+        WidgetFrame.HEADER -> WelcomeWidgetFrame(
+            title = title,
+            description = description,
+            corner = corner,
+            loading = widget.loading,
+            onRefresh = {
+                val root = layout?.root
+                errors.clear()
+                root?.errors(values)?.let(errors::putAll)
+                if (errors.isEmpty()) manager.refreshFromHeader(name, root?.collect(values).orEmpty())
+            },
+            modifier = Modifier.fillMaxSize(),
+            content = body,
+        )
+        WidgetFrame.PLAIN -> Box(Modifier.fillMaxSize().padding(TilePadding)) {
+            MochiConcentricContainer(corner, TilePadding, body)
+        }
+        WidgetFrame.FULL -> Box(Modifier.fillMaxSize()) {
+            MochiConcentricContainer(corner, 0.dp, body)
         }
     }
 }
@@ -578,8 +649,7 @@ internal fun WelcomeWidgetFrame(
     corner: Dp = listCardStyle().largeCorner,
     content: @Composable () -> Unit,
 ) {
-    // 格子里尺寸是定死的，这里的尺寸弹簧只在独立使用（内容自己撑高）时起作用。
-    Column(modifier.kkAnimateContentSize()) {
+    Column(modifier) {
         MochiOptionItem(
             onClick = null,
             modifier = Modifier.fillMaxWidth(),
@@ -613,8 +683,11 @@ internal fun WelcomeWidgetFrame(
                 WelcomeRefreshButton(stringResource(R.string.chat_widget_refresh), refresh, loading, onRefresh)
             },
         )
-        Box(Modifier.fillMaxWidth().padding(start = TilePadding, end = TilePadding, top = 4.dp, bottom = TilePadding)) {
-            MochiConcentricContainer(corner, TilePadding, content)
+        Column(Modifier.fillMaxWidth()) {
+            MochiHorizontalDivider(Modifier.padding(horizontal = TilePadding))
+            Box(Modifier.fillMaxWidth().padding(start = TilePadding, end = TilePadding, top = 4.dp, bottom = TilePadding)) {
+                MochiConcentricContainer(corner, TilePadding, content)
+            }
         }
     }
 }

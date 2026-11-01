@@ -157,6 +157,19 @@ fun KkBarIconScope(content: @Composable () -> Unit) {
     androidx.compose.runtime.CompositionLocalProvider(LocalKkBarIconButton provides true, content = content)
 }
 
+/**
+ * 栏按钮的配色：**故意不是** [MochiButtonDefaults.barColors] 的那个值 — 库里的 barGlass 只在
+ * 配色等于默认值时画玻璃。栏按钮画成玻璃时，面色跟着栏背后滚过去的内容变（快速滑动时
+ * 返回键的圆底会暗一档再回来，实测圆盘均值 225 → 213，约 0.7s），看起来像「闪一下变色」。
+ *
+ * 这里把 container 的 alpha 压到 0.995：视觉上和不透明一样，但不再等于默认值，于是按钮走纯色胶囊 ——
+ * 和 Mochi 实例（demo 的目录页/聊天页）同一种样子，也不再随背后内容变色。
+ */
+@Composable
+fun kkSolidBarColors(): ui.feice.mochi.basic.MochiButtonColors =
+    ui.feice.mochi.basic.MochiButtonDefaults.barColors()
+        .let { it.copy(container = it.container.copy(alpha = 0.995f)) }
+
 @Composable
 fun MochiIconButton(
     onClick: () -> Unit,
@@ -168,12 +181,13 @@ fun MochiIconButton(
     colors: Any? = null,
     content: @Composable () -> Unit,
 ) {
-    // 顶栏上下文：和 MochiBackButton 同一枚栏按钮（圆底、栏的玻璃材质与颜色）
+    // 顶栏上下文：和 MochiBackButton 同一枚栏按钮（圆底 + 栏的配色）
     if (LocalKkBarIconButton.current) {
         MochiBarIconButton(
             onClick = onClick,
             modifier = modifier,
             enabled = enabled,
+            colors = kkSolidBarColors(),
             content = content,
         )
         return

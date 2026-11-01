@@ -90,6 +90,18 @@ class HubClient(
     suspend fun fetchLibIndex(): LibIndex =
         client.get(resolve("/api/khatkit/libs/index.json")).body()
 
+    /** 用户工具目录与 AI 语义召回分开：目录必须支持分页，且网络错误交给页面重试。 */
+    suspend fun fetchUserToolPage(capabilities: Set<String>, offset: Int, limit: Int = 200): CardIndex {
+        val response = client.get(resolve("/api/khatkit/index.json")) {
+            parameter("bridges", capabilities.sorted().joinToString(","))
+            parameter("userToolsOnly", true)
+            parameter("offset", offset)
+            parameter("limit", limit)
+        }
+        check(response.status.isSuccess()) { "工具目录暂时无法连接" }
+        return response.body()
+    }
+
     // ===== 统一市场目录（§7.1，`GET /api/items`）=====
 
     /**

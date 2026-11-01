@@ -38,9 +38,10 @@ class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
                 if (bridge != "net") return false
                 val url = parseArgs(argsJson).firstOrNull() as? String ?: return false
                 val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
-                val host = uri.host?.lowercase() ?: return false
-                val domain = cap.substringAfter(':').lowercase()
-                uri.scheme in setOf("http", "https") &&
+                val host = normalizeHost(uri.host) ?: return false
+                val domainRaw = cap.substringAfter(':')
+                val domain = if (domainRaw.trim() == "*") "*" else normalizeHost(domainRaw) ?: return false
+                uri.scheme?.lowercase() in setOf("http", "https") &&
                     (domain == "*" || host == domain || host.endsWith(".$domain"))
             }
             else -> cap in setOf("tool", "accessibility", "store", "download", "web",
@@ -90,5 +91,10 @@ class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
         val element = runCatching { JsonValues.json.parseToJsonElement(argsJson) }.getOrNull()
         val array = element as? JsonArray ?: return emptyList()
         return array.map { JsonValues.fromElement(it) }
+    }
+
+    private fun normalizeHost(raw: String?): String? {
+        val value = raw?.trim()?.trimEnd('.')?.lowercase().orEmpty()
+        return value.takeIf { it.isNotEmpty() && it != "*" && !it.contains('/') && !it.contains(':') }
     }
 }

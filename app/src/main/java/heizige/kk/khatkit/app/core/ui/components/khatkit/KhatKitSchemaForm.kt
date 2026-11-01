@@ -51,6 +51,7 @@ object KhatKitSchemaFormSpec {
         val options: List<String> = emptyList(),
         val defaultValue: Any? = null,
         val placeholder: String? = null,
+        val supportingText: String? = null,
         val multiline: Boolean = false,
         val minimum: Double? = null,
         val maximum: Double? = null,
@@ -65,6 +66,7 @@ object KhatKitSchemaFormSpec {
             put(MARKER, true)
             defaultValue?.let { put("default", it) }
             placeholder?.takeIf { it.isNotBlank() }?.let { put("placeholder", it) }
+            supportingText?.takeIf { it.isNotBlank() }?.let { put("supportingText", it) }
             if (multiline) put("multiline", true)
             if (options.isNotEmpty()) put("options", options)
             if (widget == "slider") {
@@ -138,6 +140,9 @@ object KhatKitSchemaFormSpec {
                     options = enumOptions(spec, hint),
                     defaultValue = defaultOf(spec, hint),
                     placeholder = (hint?.get("placeholder")?.plain() as? String)?.takeIf { it.isNotBlank() },
+                    supportingText = (hint?.get("description")?.plain() as? String)
+                        ?.takeIf { it.isNotBlank() }
+                        ?: (spec?.get("description")?.plain() as? String)?.takeIf { it.isNotBlank() },
                     multiline = hint?.get("multiline")?.plain() == true,
                     minimum = number(spec?.get("minimum") ?: spec?.get("min")),
                     maximum = number(spec?.get("maximum") ?: spec?.get("max")),
@@ -202,7 +207,6 @@ object KhatKitSchemaFormSpec {
             hint?.get("label"),
             hint?.get("title"),
             spec?.get("title"),
-            spec?.get("description"),
         )
         return candidates.firstNotNullOfOrNull { (it?.plain() as? String)?.takeIf { text -> text.isNotBlank() } }
             ?: id

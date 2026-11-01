@@ -39,6 +39,8 @@ data class CardIndexEntry(
     val bridges: List<String> = emptyList(),
     /** Manifest-level hint; runtime still enforces the actual UI bridge. */
     val hasUi: Boolean = false,
+    /** True only when the card declares an embeddable widget entry. */
+    val hasWidget: Boolean = false,
     /** 触发方式：ai（AI 工具）/ user（用户手动），未提供时按旧卡片默认两者都允许 */
     val triggers: List<String> = CardManifest.DEFAULT_TRIGGERS,
     /** 卡片包下载地址（相对 CDN 根或绝对 URL） */
@@ -67,6 +69,8 @@ data class CardIndexEntry(
     /** 语言映射标题（`display_name`，§3.3）。旧索引没有则空映射。 */
     @JsonNames("display_name")
     val displayName: LocaleMap = LocaleMap.Empty,
+    @JsonNames("description_i18n")
+    val descriptionI18n: LocaleMap = LocaleMap.Empty,
     /** 跨源去重键 `(kind, slug)`（§7.1）；旧卡片索引无该字段时保持空串。 */
     val slug: String = "",
     /** 图标（§4）：下载地址 / sha256 / MIME / 无障碍替代文案（`icon_alt` 同样是语言映射）。 */
@@ -103,6 +107,8 @@ data class CardLibRef(
 data class CardIndex(
     val updatedAt: String = "",
     val cards: List<CardIndexEntry> = emptyList(),
+    /** 分页目录总量；null 表示旧服务端不支持分页。 */
+    val total: Int? = null,
 )
 
 @Serializable

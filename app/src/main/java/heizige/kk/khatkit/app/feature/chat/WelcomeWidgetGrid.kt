@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector2D
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -21,28 +20,24 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.round
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.uikit.mochi.KkHaptics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import ui.feice.mochi.anim.MochiSprings
 import ui.feice.mochi.effect.elastic.rubberBand
@@ -137,7 +132,8 @@ internal data class WidgetGridGeometry(val cell: Int, val gap: Int, val left: In
 
 /**
  * 小组件网格。[sizes] 与子项一一对应；子项拿到的约束就是它占的格子（宽高都是固定值），
- * 所以卡片内容可以 `fillMaxSize`。格位变化时子项用 [animateGridPlacement] 平移过去。
+ * 所以卡片内容可以 `fillMaxSize`。格位变化时子项直接落到新格位，避免在自定义
+ * Layout 的放置回调里再次触发布局树重排。
  */
 @Composable
 internal fun WidgetGrid(
@@ -164,26 +160,6 @@ internal fun WidgetGrid(
     }
 }
 
-/**
- * 网格重排时的平移动画：只在放置阶段偏移，不参与测量，所以拖动尺寸时不会抖。
- * [animate] 为 false（减弱动效，或这一格正被手指拖着、位置由 [WidgetMoveState] 管）时直接跳到新格位。
- */
-internal fun Modifier.animateGridPlacement(animate: Boolean): Modifier = composed {
-    val scope = rememberCoroutineScope()
-    var target by remember { mutableStateOf<IntOffset?>(null) }
-    val animatable = remember { mutableStateOf<Animatable<IntOffset, AnimationVector2D>?>(null) }
-    onPlaced { target = it.positionInParent().round() }.offset {
-        val goal = target ?: return@offset IntOffset.Zero
-        val anim = animatable.value ?: Animatable(goal, IntOffset.VectorConverter).also { animatable.value = it }
-        if (!animate) {
-            if (anim.value != goal) scope.launch(start = CoroutineStart.UNDISPATCHED) { anim.snapTo(goal) }
-            return@offset IntOffset.Zero
-        }
-        if (anim.targetValue != goal) scope.launch { anim.animateTo(goal, MochiSprings.snappy(400)) }
-        anim.value - goal
-    }
-}
-
 /** 网格里第 [index] 个小组件的格位（左上角像素 + 尺寸），和 [WidgetGrid] 摆出来的严格一致。 */
 internal fun widgetRects(sizes: List<WidgetCells>, g: WidgetGridGeometry): List<Rect> =
     packWidgets(sizes, WidgetGridGeometry.Columns).zip(sizes) { slot, size ->
@@ -195,7 +171,7 @@ internal fun widgetRects(sizes: List<WidgetCells>, g: WidgetGridGeometry): List<
 
 /**
  * 编辑态拖动换位。被拖那格跟着手指走（[translation] = 起点 + 位移 − 当前格位），
- * 它的中心压到别的格子上就换到那一格的序号，其它格子用 [animateGridPlacement] 让位；
+ * 它的中心压到别的格子上就换到那一格的序号，其它格子直接让位；
  * 松手后从手指位置弹回自己的新格位。
  */
 @Stable
@@ -265,59 +241,74 @@ internal enum class ResizeEdge(val horizontal: Boolean, val vertical: Boolean) {
  * 一张小组件的拖动尺寸状态。
  *
  * 手指拖动期间 [frame] 是像素级的「跟手」尺寸：越过 min/max 时走 Mochi 的橡皮筋；
- * 格数（[WidgetCells]）按四舍五入吸附，越过一格回调一次。松手后 [frame] 用 snappy 弹簧
- * 收回到吸附后的格子尺寸，然后清空，布局重新只认格子。减弱动效时直接跳过去。
+ * 格数（[WidgetCells]）按四舍五入吸附，越过一格回调一次。松手后立即收回到吸附后的
+ * 格子尺寸，然后清空，布局重新只认格子，避免确认阶段持续触发自定义测量。
  */
 @Stable
 internal class WidgetResizeState(private val scope: CoroutineScope) {
-    private val anim = Animatable(Size.Zero, Size.VectorConverter)
-    private var settling by mutableStateOf(false)
-
     /** 正在拖的那条边；null 表示没在拖。 */
     var edge by mutableStateOf<ResizeEdge?>(null)
         private set
 
-    /** 跟手尺寸（像素）；不在拖、也不在回弹时为 null。 */
-    val frame: Size? get() = if (edge != null || settling) anim.value else null
+    /** 跟手的像素级预览尺寸；null = 认格子尺寸（见 [widgetResizePreview]）。 */
+    var preview by mutableStateOf<Size?>(null)
+        private set
+
+    private var settleJob: Job? = null
 
     fun start(edge: ResizeEdge, from: Size) {
+        settleJob?.cancel()
         this.edge = edge
-        settling = false
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { anim.snapTo(from) }
+        preview = null
     }
 
     fun follow(size: Size) {
-        scope.launch(start = CoroutineStart.UNDISPATCHED) { anim.snapTo(size) }
+        settleJob?.cancel()
+        preview = size
     }
 
+    /**
+     * 松手：把预览从当前像素尺寸用 spring 收回吸附后的格子尺寸，然后清空。
+     * 弹簧参数与页面其它过渡同一套（MochiSprings），收回的过程就是「变大变小」的收尾动画。
+     */
     fun settle(to: Size, reduceMotion: Boolean) {
         edge = null
-        if (reduceMotion) {
-            settling = false
+        settleJob?.cancel()
+        val from = preview
+        if (from == null || reduceMotion) {
+            preview = null
             return
         }
-        settling = true
-        scope.launch {
-            try {
-                anim.animateTo(to, MochiSprings.snappy(400))
-            } finally {
-                if (edge == null) settling = false
+        settleJob = scope.launch {
+            Animatable(0f).animateTo(1f, MochiSprings.snappy(320)) {
+                preview = Size(
+                    from.width + (to.width - from.width) * value,
+                    from.height + (to.height - from.height) * value,
+                )
             }
+            preview = null
         }
     }
 }
 
 /**
- * 跟手尺寸生效：拖动/回弹期间按 [WidgetResizeState.frame] 测量内容，
- * 但对网格报告原本的格子尺寸，左上角不动，所以邻居只在格数真的变化时才挪。
+ * 拖边改尺寸的像素级预览：卡片按 [size] 画，但**向上报的还是格子的尺寸**。
+ *
+ * 于是只有被拖的这一张在自己的格子里「长出去」压住邻居，网格的格位、邻居位置一动不动 ——
+ * 这是和「把预览尺寸喂回自定义 Layout 重新排整张网格」的关键区别：后者会让提交时的重排
+ * 落到已经放置好的子树上，正是 hwui 递归崩溃的触发点（配合卡片常驻的阴影层一起复现）。
  */
-internal fun Modifier.resizeFrame(state: WidgetResizeState): Modifier = layout { measurable, constraints ->
-    val frame = state.frame
-    val width = frame?.width?.roundToInt()?.coerceAtLeast(1) ?: constraints.maxWidth
-    val height = frame?.height?.roundToInt()?.coerceAtLeast(1) ?: constraints.maxHeight
-    val placeable = measurable.measure(Constraints.fixed(width, height))
-    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, 0) }
-}
+internal fun Modifier.widgetResizePreview(size: Size?): Modifier =
+    if (size == null) {
+        this
+    } else {
+        layout { measurable, constraints ->
+            val w = size.width.roundToInt().coerceAtLeast(1)
+            val h = size.height.roundToInt().coerceAtLeast(1)
+            val placeable = measurable.measure(Constraints.fixed(w, h))
+            layout(constraints.minWidth, constraints.minHeight) { placeable.place(0, 0) }
+        }
+    }
 
 /**
  * 拖动换算：沿两轴各自把「起始尺寸 + 位移」夹在 min/max 跨度内，越界部分过橡皮筋；

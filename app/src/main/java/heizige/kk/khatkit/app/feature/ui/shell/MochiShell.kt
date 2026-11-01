@@ -219,6 +219,14 @@ fun MochiPageScaffold(
     snackbarHost: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     containerColor: Color = MochiTheme.colorScheme.background,
+    /**
+     * 栏玻璃取样源（bar backdrop）底下垫的底色，默认跟 [containerColor]。
+     *
+     * 页面自己的底色是透明（正文里铺助手背景图/渐层）时必须单独给一个**不透明**的页面底色：
+     * 取样源录的是「底色 + 正文」，底色透明时录出来的是一张半透明的图层，玻璃在它上面取样算出来的面色
+     * 发灰（浅色下栏按钮是一块 #A0A0A0 的圆盘，而不是白胶囊）。给成页面实际底色就正常了。
+     */
+    barBackdropColor: Color = containerColor,
     floatingActionButtonPosition: Any? = null,
     md3ScrollBehavior: Any? = null,
     /** 非空时走 Mochi 真页面骨架（大标题/紧凑标题），content 仍拿 PaddingValues.Zero。 */
@@ -263,7 +271,7 @@ fun MochiPageScaffold(
     }
     // 栏玻璃的取样源（材质开玻璃才非空）：正文录一层，顶栏从 CompositionLocal 里读。
     // 所有走本骨架的页面（设置、列表、工具页……）因此共用同一套栏材质，不再有的页有模糊、有的没有。
-    val barBackdrop = rememberMochiBarBackdrop(background = containerColor)
+    val barBackdrop = rememberMochiBarBackdrop(background = barBackdropColor)
     // 栏量出来高度为 0 = 这一页没有那条栏，那一边就没有交界、不遮
     var topBarHeight by remember { mutableIntStateOf(0) }
     var bottomBarHeight by remember { mutableIntStateOf(0) }

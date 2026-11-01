@@ -16,6 +16,7 @@ class WasmCapabilityTest {
 
     @Test fun networkCapabilityBindsTheRequestedDomainAndProtocol() {
         assertTrue(dispatcher.wasmAllowed("net:example.com", "net.get", """["https://api.example.com/a"]"""))
+        assertTrue(dispatcher.wasmAllowed("net:EXAMPLE.COM.", "net.get", """["HTTPS://API.EXAMPLE.COM./a"]"""))
         assertFalse(dispatcher.wasmAllowed("net:example.com", "net.get", """["https://example.com.evil.org/a"]"""))
         assertFalse(dispatcher.wasmAllowed("net:example.com", "net.get", """["https://example.com@evil.org/a"]"""))
         assertFalse(dispatcher.wasmAllowed("net:*", "net.get", """["file:///tmp/a"]"""))

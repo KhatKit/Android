@@ -110,6 +110,7 @@ import heizige.kk.khatkit.app.feature.log.LogPage
 import heizige.kk.khatkit.app.feature.stats.StatsPage
 import heizige.kk.khatkit.app.feature.search.SearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingAboutPage
+import heizige.kk.khatkit.app.feature.settings.AboutTerminalPage
 import heizige.kk.khatkit.app.feature.settings.SettingPermissionsPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
 import heizige.kk.khatkit.app.feature.settings.SettingThemeColorsPage
@@ -430,6 +431,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingModels -> SettingModelPage()
                             is Screen.TraceAudit -> heizige.kk.khatkit.app.feature.automation.TraceAuditPage()
                             is Screen.SettingAbout -> SettingAboutPage()
+                            is Screen.AboutTerminal -> AboutTerminalPage()
                             is Screen.SettingSearch -> SettingSearchPage()
                             is Screen.SettingSearchDetail -> {
                                 val id = Uuid.parse(screen.serviceId)
@@ -438,6 +440,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingSpeech -> SettingSpeechPage()
                             is Screen.SettingMcp -> SettingMcpPage()
                             is Screen.ExploreMarket -> ExploreMarketPage()
+                            is Screen.ToolCatalogue -> heizige.kk.khatkit.app.feature.tools.ToolCataloguePage()
                             is Screen.ExploreCards -> ExploreCardsPage(initialQuery = screen.initialQuery)
                             is Screen.ExploreLocal -> ExploreLocalPage()
                             is Screen.ExploreCardDetail -> ExploreCardDetailPage(name = screen.name)
@@ -730,6 +733,10 @@ sealed interface Screen : NavKey {
     @Serializable
     data object SettingAbout : Screen
 
+    /** 关于页图标彩蛋的落点：不在任何菜单里的隐藏终端（见 AboutTerminalPage）。 */
+    @Serializable
+    data object AboutTerminal : Screen
+
     @Serializable
     data object SettingSearch : Screen
 
@@ -744,6 +751,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object ExploreMarket : Screen
+
+    @Serializable
+    data object ToolCatalogue : Screen
 
     /** 卡片市场二级页：[initialQuery] 从一级页带过来，保住已经输入的关键词。 */
     @Serializable

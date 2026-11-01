@@ -29,9 +29,9 @@ object ScreenRoutes {
         "setting-preferences-general", "setting-preferences-ui", "setting-preferences-ui-message",
         "setting-preferences-ui-font", "setting-preferences-ui-code", "setting-permissions",
         "setting-preferences-network", "setting-provider", "setting-provider-detail",
-        "setting-models", "setting-about", "setting-search", "setting-search-detail",
+        "setting-models", "setting-about", "about-terminal", "setting-search", "setting-search-detail",
         "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget",
-        "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
+        "tool-catalogue", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
         "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
         "workspace-terminal", "workspace-file-editor", "skill-detail", "message-search",
@@ -90,11 +90,13 @@ object ScreenRoutes {
         is Screen.SettingProviderDetail -> Route("setting-provider-detail").str("providerId", screen.providerId).build()
         Screen.SettingModels -> "setting-models"
         Screen.SettingAbout -> "setting-about"
+        Screen.AboutTerminal -> "about-terminal"
         Screen.SettingSearch -> "setting-search"
         is Screen.SettingSearchDetail -> Route("setting-search-detail").str("serviceId", screen.serviceId).build()
         Screen.SettingSpeech -> "setting-speech"
         Screen.SettingMcp -> "setting-mcp"
         Screen.ExploreMarket -> "explore-market"
+        Screen.ToolCatalogue -> "tool-catalogue"
         is Screen.ExploreCards -> Route("explore-cards").str("initialQuery", screen.initialQuery).build()
         Screen.ExploreLocal -> "explore-local"
         is Screen.ExploreCardDetail -> Route("explore-card-detail").str("name", screen.name).build()
@@ -183,11 +185,13 @@ object ScreenRoutes {
             "setting-provider-detail" -> Screen.SettingProviderDetail(params.str("providerId") ?: return null)
             "setting-models" -> Screen.SettingModels
             "setting-about" -> Screen.SettingAbout
+            "about-terminal" -> Screen.AboutTerminal
             "setting-search" -> Screen.SettingSearch
             "setting-search-detail" -> Screen.SettingSearchDetail(params.str("serviceId") ?: return null)
             "setting-speech" -> Screen.SettingSpeech
             "setting-mcp" -> Screen.SettingMcp
             "explore-market" -> Screen.ExploreMarket
+            "tool-catalogue" -> Screen.ToolCatalogue
             "explore-cards" -> Screen.ExploreCards(initialQuery = params.str("initialQuery") ?: return null)
             "explore-local" -> Screen.ExploreLocal
             "explore-card-detail" -> Screen.ExploreCardDetail(name = params.str("name") ?: return null)

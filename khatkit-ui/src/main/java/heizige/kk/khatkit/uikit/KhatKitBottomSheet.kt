@@ -61,8 +61,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.onSizeChanged
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationBar
 import heizige.kk.khatkit.uikit.mochi.MochiNavigationItem
@@ -139,6 +141,8 @@ fun KhatKitBottomSheet(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val dismissThreshold = with(density) { 96.dp.toPx() }
+    var navigationBarSize by remember { mutableStateOf(IntSize.Zero) }
+    val navigationBarHeight = with(density) { navigationBarSize.height.toDp() }
     val hasTopBar = headerActions.isNotEmpty() ||
         (overflowIcon != null && overflowActions.isNotEmpty())
     val dismissable = options.dismissable
@@ -247,7 +251,11 @@ fun KhatKitBottomSheet(
                         )
                     }
                     .then(
-                        if (dismissable) {
+                        // A full-screen card owns a vertical scroll container (LazyColumn,
+                        // pager page, or the sheet ScrollState). A sheet-wide draggable
+                        // modifier otherwise wins the gesture before that container can
+                        // scroll, which makes long cards appear frozen.
+                        if (dismissable && !options.fullscreen) {
                             Modifier.draggable(
                                 state = draggableState,
                                 orientation = Orientation.Vertical,
@@ -322,40 +330,55 @@ fun KhatKitBottomSheet(
                             SheetDragHandle()
                         }
                     }
-                    Column(
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
-                            .then(
-                                if (topBarBehavior != null) {
-                                    Modifier.nestedScroll(topBarBehavior.nestedScrollConnection)
-                                } else {
-                                    Modifier
-                                },
-                            )
-                            .then(if (lazyListState == null && pagerState == null) Modifier.verticalScroll(scrollState) else Modifier),
+                            .fillMaxWidth(),
                     ) {
-                        content(onDismiss)
-                    }
-                    if (navVisible) {
-                        MochiNavigationBar(
-                            selectedItem = navSelected ?: navigation.items.first().event,
-                            onItemSelected = { event ->
-                                if ((pagerState != null || !navigationPending) && event != navSelected &&
-                                    navigation.items.any { it.event == event && it.enabled }) {
-                                    if (pagerState == null) navigationPending = true
-                                    onNavigate(event)
-                                }
-                            },
-                            navigationItems = navigation.items.map { item ->
-                                MochiNavigationItem(
-                                    key = item.event,
-                                    label = item.label,
-                                    icon = item.icon?.let { UiIconVectors.vector(it) } ?: Icons.Filled.Circle,
-                                    enabled = item.enabled,
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                // Navigation is an overlay. Reserve exactly its measured
+                                // height so the final card item can scroll clear of it.
+                                .padding(bottom = if (navVisible) navigationBarHeight else 0.dp)
+                                .then(
+                                    if (topBarBehavior != null) {
+                                        Modifier.nestedScroll(topBarBehavior.nestedScrollConnection)
+                                    } else {
+                                        Modifier
+                                    },
                                 )
-                            },
-                        )
+                                .then(if (lazyListState == null && pagerState == null) Modifier.verticalScroll(scrollState) else Modifier),
+                        ) {
+                            content(onDismiss)
+                        }
+                        if (navVisible) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .onSizeChanged { navigationBarSize = it },
+                            ) {
+                                MochiNavigationBar(
+                                    selectedItem = navSelected ?: navigation.items.first().event,
+                                    onItemSelected = { event ->
+                                        if ((pagerState != null || !navigationPending) && event != navSelected &&
+                                            navigation.items.any { it.event == event && it.enabled }) {
+                                            if (pagerState == null) navigationPending = true
+                                            onNavigate(event)
+                                        }
+                                    },
+                                    navigationItems = navigation.items.map { item ->
+                                        MochiNavigationItem(
+                                            key = item.event,
+                                            label = item.label,
+                                            icon = item.icon?.let { UiIconVectors.vector(it) } ?: Icons.Filled.Circle,
+                                            enabled = item.enabled,
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                     if (bottomBarVisible) {
                         if (hasTopBar) {

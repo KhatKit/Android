@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.nav
 
+import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
 import ui.feice.mochi.navigation.MochiBackButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,6 +19,11 @@ fun BackButton(
     val navController = LocalNavController.current
     val back = { onClick?.invoke() ?: navController.popBackStack() }
     // 照 Mochi：顶栏左上角的圆形返回（44dp + 描边「‹」，与 MochiTitleBar 的按钮同高同色）。
+    // 配色显式给成纯色栏按钮：玻璃栏按钮会随背后滚过去的内容改面色，快速滑动时圆底会闪一下。
     // 返回行为不变，仍是 navController.popBackStack。
-    MochiBackButton(modifier = modifier, onClick = { back() })
+    MochiBackButton(
+        modifier = modifier,
+        colors = kkSolidBarColors(),
+        onClick = { back() },
+    )
 }

@@ -489,7 +489,15 @@ class KhatKitToolProvider(
     private val _cardCatalogueRevision = MutableStateFlow(0L)
     val cardCatalogueRevision = _cardCatalogueRevision.asStateFlow()
 
-    suspend fun chatCards(): List<LoadedCard> = withContext(Dispatchers.IO) { loadInstalledCards() }
+    suspend fun chatCards(): List<LoadedCard> = withContext(Dispatchers.IO) {
+        // Welcome widgets execute the installed package directly, so they must follow
+        // the same remote-version check as AI tools instead of staying on stale Lua.
+        runCatching {
+            val remote = HubFilters.byCapability(remoteCards(), capabilities())
+            syncInstalledCardUpdates(remote)
+        }.onFailure { Log.w(TAG, "欢迎页工具版本检查失败，继续使用本地缓存", it) }
+        loadInstalledCards()
+    }
 
     fun widgetEnabled(card: LoadedCard): Boolean =
         settings.getBoolean("chat_widget.${card.manifest.name}", card.manifest.widget?.autostart == true)
@@ -2110,6 +2118,10 @@ class KhatKitToolProvider(
                 hub().search(query, capabilities(), limit).cards
             }.getOrDefault(emptyList())
         }
+
+    /** 使用同一个 Hub 客户端及能力声明，保留 HTTP 失败给工具目录显示重试。 */
+    suspend fun userToolPage(offset: Int): heizige.kk.khatkit.hub.CardIndex =
+        withContext(Dispatchers.IO) { hub().fetchUserToolPage(capabilities(), offset) }
 
     /** 按需下载并安装卡片；force=true 用于更新覆盖。安装后下一次 [tools] 即可被 AI 调用。 */
     override suspend fun installCard(entry: CardIndexEntry, force: Boolean): Boolean =

@@ -24,6 +24,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
+import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -570,6 +571,9 @@ internal fun ChatScaffold(
                     )
             },
             containerColor = Color.Transparent,
+            // 页面底色是透明的（正文铺助手背景图/渐变），但栏玻璃取样必须垫一层不透明页面底色，
+            // 否则录出来的取样源是半透明的 → 顶栏两枚按钮在浅色下变成灰圆盘（Mochi 实例里是白胶囊）
+            barBackdropColor = CustomColors.pageContainerColor,
             // 正文里铺着助手背景图，整槽渐隐会把背景一起擦掉：交界过渡由 ChatList 自己加在消息列表上
             edgeFade = false,
     ) { innerPadding ->
@@ -903,6 +907,9 @@ private fun TopBar(
             Modifier
         }
     val cs = MochiTheme.colorScheme
+    // 栏按钮配色照 Mochi 实例（demo 的聊天页/目录页）：白胶囊（浅色）/ 深胶囊（深色）+ 深色图标。
+    // 纯色而不是玻璃，见 uikit 的 kkSolidBarColors：本页的栏取样源在透明底色/背景图上取样出来的面色发灰。
+    val solidBarColors = kkSolidBarColors()
     val edgeProgress = MochiScrollEdgeDefaults.progress(listState)
 
     Box(barModifier.fillMaxWidth()) {
@@ -975,6 +982,7 @@ private fun TopBar(
                 if (!bigScreen || p > 0.001f) {
                     MochiBarIconButton(
                         onClick = { if (p >= 0.5f) onCollapseSearch() else sidebarState.open() },
+                        colors = solidBarColors,
                         modifier = if (bigScreen) Modifier.graphicsLayer { alpha = searchProgress.value } else Modifier,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -1005,9 +1013,9 @@ private fun TopBar(
             actions = {
                 KkBarIconScope {
                 // 和设置页顶栏同一套图标按钮（MochiIconButton + shapes），不再单独用栏里的圆钮
-                MochiIconButton(
+                MochiBarIconButton(
                     onClick = onClickMenu,
-                    shapes = IconButtonDefaults.shapes(),
+                    colors = solidBarColors,
                 ) {
                     // 搜索 ↔ 清除：没在搜 → 放大镜；在搜且有字 → ×；在搜还没字 → 空
                     val searching = searchProgress.value >= 0.5f
