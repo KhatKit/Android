@@ -49,7 +49,7 @@ dependencyResolutionManagement {
             maven("https://maven.aliyun.com/repository/google")
             maven("https://maven.aliyun.com/repository/gradle-plugin")
         }
-        // 本地 m2 可能有自发布依赖（如 mochi 0.2.0-khatkit），放最前面：JitPack 等远端仓库
+        // 本地 m2 可能有自发布依赖（如 mochi 0.3.0-khatkit），放最前面：JitPack 等远端仓库
         // 对未知坐标会返回 401，Gradle 会直接失败而不会继续走到 mavenLocal
         mavenLocal()
         google()

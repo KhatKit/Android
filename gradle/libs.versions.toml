@@ -72,8 +72,8 @@ termux = "0.118.0"
 diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
-# 本地源码库产物（mavenLocal，由 ../Mochi 源码 publishToMavenLocal 生成；见 docs/mochi-migration-plan.md §13）
-mochi = "0.2.0-khatkit"
+# 本地源码库产物（mavenLocal，由 mochi-compose main + .github/scripts/patch-mochi.py 生成；见 docs/mochi-migration-plan.md §12）
+mochi = "0.3.0-khatkit"
 richeditorCompose = "1.0.0"
 
 [libraries]

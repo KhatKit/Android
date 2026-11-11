@@ -49,7 +49,7 @@ P0 基线 arm64 为 **94,756,786 B**，差值 **−3,803,116 B（−4.01%）**�
 | 依赖 | 坐标 | 说明 |
 |---|---|---|
 | Compose BOM | `2026.09.00`（foundation/ui 解析 1.13.0-alpha01） | 骨架层 |
-| mochi-compose / mochi-ios / mochi-icons | `io.github.feice11:*:0.2.0-khatkit` | **mavenLocal 本地源码产物**，见 §12 |
+| mochi-compose / mochi-ios / mochi-icons | `io.github.feice11:*:0.3.0-khatkit` | **mavenLocal 本地源码产物**，见 §12 |
 | kedge / khromia / miuix | — | **已删除**（U5a 删坐标与 includeBuild） |
 
 `settings.gradle.kts` 不再有 `includeBuild(../Kedge|../Khromia)` 与 substitution；
@@ -147,15 +147,15 @@ stat -c '%s' app/build/outputs/apk/debug/app-arm64-v8a-debug.apk                
 - **D P7 记账**：三屏（聊天/探索/设置）浅+深截图入库；APK 体积数字；删 `MochiSpikeActivity`（若仍在）。
 - **E 回归**：深链 PROCESS_TEXT / ACTION_SEND；VIEW `rikkahub://shortcut` 偏差项；返回不双 pop。
 
-## 12. 本地 Mochi 源码库（mavenLocal `0.2.0-khatkit`）
+## 12. 本地 Mochi 源码库（mavenLocal `0.3.0-khatkit`）
 
 - 源码：`/home/heizige/文档/Android/Project/Mochi`（tag `v0.2.0` / commit `3f4eda8`）
-- 发布：`cd ../Mochi && ./gradlew publishToMavenLocal -PVERSION_NAME=0.2.0-khatkit`
-- 产物：`~/.m2/repository/io/github/feice11/mochi-{compose,ios,icons}/0.2.0-khatkit`
+- 发布：`cd ../Mochi && ./gradlew publishToMavenLocal -PVERSION_NAME=0.3.0-khatkit`
+- 产物：`~/.m2/repository/io/github/feice11/mochi-{compose,ios,icons}/0.3.0-khatkit`
 - 改库循环：改源码 → 重新发布 → `./gradlew :app:assembleDebug --refresh-dependencies`
   （同版本号 m2 产物会被 Gradle 缓存，必须 refresh）
 - 不用 composite build：Mochi 的 AGP 8.13.2 只支持 Gradle 8.x，与本仓 Gradle 9.7.1 不兼容。
-- 换机器/CI：`0.2.0-khatkit` 只在本地 m2，必须先发布或换成已发布坐标。
+- 换机器/CI：`0.3.0-khatkit` 只在本地 m2，必须先发布或换成已发布坐标。
 
 ## 13. 不要再重新讨论的决定
 
