@@ -564,6 +564,11 @@ app-x86_64-*.apk      ← 只含 x86_64（模拟器 / 极少数 Intel 设备）
 | 6 | **`force_min` / `stable` / `beta` 通道语义** | 与包体无关，不受影响。 |
 | 7 | **真机验收** | 按 §3.5c 的 9 条清单走一遍（字体、裁剪、PDF、OCR、扫码、中文搜索、mermaid、终端、表情）。`debug` 与 `release` 有 R8 差异，这步不能省。 |
 
+> **2026-11-11 更新**：release 签名密钥统一为 `khatkit` keystore（alias 与两个密码均为 `khatkit`，
+> SHA-256 `32:3C:87:...:1B:C4:53`），旧的 `CN=Hei zige` 密钥停止使用。CI 走仓库 secrets
+> `KEY_BASE64` / `SIGNING_CONFIG`。上表第 1 条关于「必须与更新通道同一把密钥」仍然成立：
+> 更新通道需同步切换，否则存量用户升级时需卸载重装。详见 [release-signing.md](release-signing.md)。
+
 ---
 
 ## 7. 明确「不建议做」的项（列出来，避免以后被当成待办）

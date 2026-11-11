@@ -2,10 +2,9 @@ name: Build APK
 
 # 手动触发的 APK 构建，产物作为 Actions artifact 上传（不发布 Release）。
 # 两点说明：
-#   1. release 用仓库 secrets 里的签名密钥（KEY_BASE64 + SIGNING_CONFIG，alias/password 均为
-#      khatkit）。它不是官方发布密钥（官方为 CN=Hei zige），包名与官方一致
-#      （heizige.kk.khatkit）但签名不同，覆盖安装官方版前需先卸载。
-#      没有配置这两个 secrets 时（例如 fork）退化为一次性临时密钥。
+#   1. release 用仓库 secrets 里的项目签名密钥（KEY_BASE64 + SIGNING_CONFIG，alias/password
+#      均为 khatkit，见 docs/release-signing.md）。没有配置这两个 secrets 时（例如 fork）
+#      退化为一次性临时密钥。
 #   2. app 依赖的 io.github.feice11:mochi-*:0.2.0-khatkit 只存在于开发者本地 mavenLocal
 #      （见 docs/mochi-migration-plan.md §12），这里用公开源码
 #      feice11/mochi-compose@v0.2.0 + .github/scripts/patch-mochi.py 补齐 app 需要的
