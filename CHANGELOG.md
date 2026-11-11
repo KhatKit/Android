@@ -1,6 +1,7 @@
 # 更新日志
 
 ## 未发布（自动化 Toast 与图片选择器迁移）
+- 修掉应用内「运行卡片」授权条挤进状态栏：`AutomationInAppHost` 的 `FullscreenPopup` 内层 `Box` 只加了 `navigationBarsPadding` + 底部留白，但外层没有 `fillMaxSize` / 对齐，默认 `TopStart` 把整条授权看板顶到屏幕最上方，压住时间/信号图标。现在外层改为 `fillMaxSize()` + `contentAlignment = BottomCenter`（`statusBarsPadding` 仅作兜底），与后台悬浮看板（`AutomationOverlayService` 的 `gravity=BOTTOM` + 底部留白）同一套定位（`app/feature/automation/AutomationInAppHost.kt`）。
 
 - 修掉「工具台」分类横向 chip 行**不能按着 chip 拖动滚动**的问题：`MochiChipGroup` 本身是 `horizontalScroll`，但内部 `MochiButton` 的手势把按下之后的整段移动都 `consume()` 掉了（原注释：外层的滚动、面板拖动、右滑返回都不会接手），于是手指按在 chip 上左右拖，滚动容器永远收不到拖动，只有点在 chip 之间的空隙才能滑。CI 的 mochi 补丁（`.github/scripts/patch-mochi.py`，第 3 条）改成：移动事件不再吞（交给外层滚动容器），并补上「拖动超过 touchSlop 就不算点击」（`!moved` 才触发 click、才消费抬起），避免滚动时误选分类。影响面是所有 MochiButton：拖动现在交给外层滚动，按下/点击语义不变。
 - 修掉聊天侧栏首行被顶边渐隐「糊住」：侧栏列表外层原先挂的是固定强度的 `mochiFadeMask(MochiFadeEdges.vertical())`（`amount` 用默认的 `MochiFadeMaskDefaults.Full`，恒为 1），列表**停在顶部**时首行照样吃 24dp 渐隐；FX 开启（默认）时同一段还会叠加渐进模糊，模糊范围是渐隐长度的 2 倍（48dp，`BlurReach = 2f`）—— 侧栏首个 item 是 header 里的「探索市场 / 下载中心」，整行 44dp 落在模糊带里，看起来就是被糊住。改成两个列表各自持有 `LazyListState` 并用 `kkScrollEdgeFade(listState)`：按滚动位置算每条边的深浅，滚到顶那一边是实的、首行清晰，滚动后仍保留原来的边缘渐隐/模糊过渡（`app/feature/chat/ChatDrawer.kt`、`app/feature/chat/RoleDrawerList.kt`）。

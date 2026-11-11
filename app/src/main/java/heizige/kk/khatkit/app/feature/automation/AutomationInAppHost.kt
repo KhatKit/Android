@@ -1,8 +1,11 @@
 package heizige.kk.khatkit.app.feature.automation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -42,10 +45,17 @@ fun AutomationInAppHost() {
     if (status == null && approval == null) return
 
     KkFullscreenPopup(passThroughTouches = true) {
-        // 仅内容可点击，定位用的底部留白触摸穿透到应用。
-        Box(Modifier.navigationBarsPadding().padding(
-            bottom = heizige.kk.khatkit.uikit.mochi.screenSizeMin * KkToastDefaults.BottomScreenFraction,
-        )) {
+        // 与系统悬浮看板同一套定位（AutomationOverlayService 用 gravity=BOTTOM + 底部留白）：
+        // 看板贴底居中。此前外层 Box 没有 fillMaxSize/对齐，默认 TopStart 把授权条顶进了
+        // 状态栏（压住时间/信号图标）；statusBarsPadding 只作兜底，正常路径不会用到。
+        Box(
+            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            // 仅内容可点击，定位用的底部留白触摸穿透到应用。
+            Box(Modifier.navigationBarsPadding().padding(
+                bottom = heizige.kk.khatkit.uikit.mochi.screenSizeMin * KkToastDefaults.BottomScreenFraction,
+            )) {
             AutomationStatusBoard(
                 status = status,
                 approval = approval,
@@ -56,6 +66,7 @@ fun AutomationInAppHost() {
                 onRemember = { AutomationBus.approveAndRemember() },
                 onDismiss = { AutomationBus.hideOverlayTemporarily() },
             )
+            }
         }
     }
 }
