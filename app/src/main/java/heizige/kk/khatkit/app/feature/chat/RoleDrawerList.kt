@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import ui.feice.mochi.navigation.MochiSidebarItem
 import ui.feice.mochi.navigation.MochiSidebarSectionHeader
 import heizige.kk.khatkit.app.core.data.model.Assistant
@@ -101,8 +103,12 @@ internal fun RoleDrawerList(
             }
         }
     }
+    // 渐隐/渐进模糊跟着滚动位置走（滚到顶时顶边是实的），否则首行 —— 列表头里的
+    // 「探索市场 / 下载中心」—— 会一直被顶边的固定渐隐 + 模糊糊住。
+    val listState = rememberLazyListState()
     LazyColumn(
-        modifier = Modifier.fillMaxSize().testTag("drawer_role_list"),
+        modifier = Modifier.fillMaxSize().testTag("drawer_role_list").kkScrollEdgeFade(listState),
+        state = listState,
         contentPadding = contentPadding,
     ) {
         item("header") { header() }

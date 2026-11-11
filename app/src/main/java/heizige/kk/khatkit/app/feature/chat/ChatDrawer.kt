@@ -8,8 +8,6 @@ import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.shape.MochiCapsule
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.vector.ImageVector
-import ui.feice.mochi.effect.mask.mochiFadeMask
-import ui.feice.mochi.effect.mask.MochiFadeEdges
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
@@ -55,6 +53,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkEditDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditField
 import androidx.compose.material3.Icon
@@ -259,11 +258,14 @@ fun ChatDrawerContent(
                     )
                 }
             }
+            // 渐隐（含 FX 开启时的渐进模糊）不再挂死在这一层：之前用固定强度
+            // MochiFadeMaskDefaults.Full，列表停在顶部时首行（探索市场/下载中心所在 header
+            // 之后的第一项）照样被 24dp 渐隐 + 48dp 模糊盖住。改成每个列表按自己的滚动位置
+            // 用 kkScrollEdgeFade(listState)：滚到顶那一边是实的，首行清晰。
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .mochiFadeMask(MochiFadeEdges.vertical()),
+                    .weight(1f),
             ) {
                 if (searchKeyword.isNotBlank()) {
                     // 搜索态：命中**当前角色**会话的消息正文（角色名 + 「标题/片段/时间」行），
@@ -523,8 +525,10 @@ private fun DrawerMessageSearchList(
     val pending = state.searching || state.keyword != keyword
     val hasAny = grouped.isNotEmpty() || state.titleFallback.isNotEmpty()
 
+    val listState = rememberLazyListState()
     LazyColumn(
-        modifier = Modifier.fillMaxSize().testTag(listTag),
+        modifier = Modifier.fillMaxSize().testTag(listTag).kkScrollEdgeFade(listState),
+        state = listState,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

@@ -2,6 +2,7 @@
 
 ## 未发布（自动化 Toast 与图片选择器迁移）
 
+- 修掉聊天侧栏首行被顶边渐隐「糊住」：侧栏列表外层原先挂的是固定强度的 `mochiFadeMask(MochiFadeEdges.vertical())`（`amount` 用默认的 `MochiFadeMaskDefaults.Full`，恒为 1），列表**停在顶部**时首行照样吃 24dp 渐隐；FX 开启（默认）时同一段还会叠加渐进模糊，模糊范围是渐隐长度的 2 倍（48dp，`BlurReach = 2f`）—— 侧栏首个 item 是 header 里的「探索市场 / 下载中心」，整行 44dp 落在模糊带里，看起来就是被糊住。改成两个列表各自持有 `LazyListState` 并用 `kkScrollEdgeFade(listState)`：按滚动位置算每条边的深浅，滚到顶那一边是实的、首行清晰，滚动后仍保留原来的边缘渐隐/模糊过渡（`app/feature/chat/ChatDrawer.kt`、`app/feature/chat/RoleDrawerList.kt`）。
 - 卡片 UI DSL 补上「自定义颜色 / 字号 / 图标」：`Text` 新增 `color`(`#RRGGBB` / `#AARRGGBB`) / `size`(sp，6–64) / `weight`(`normal|medium|semibold|bold`)，`Badge` 支持 `color`；新增 **`Icon` 节点**（54 个 Material 图标名，`name` 必填、`tone` / `color` / `size` / `contentDescription`）与 `Button.icon`、`Button.color`；`Button` 也补上 `modifier`（此前只能靠外套一层带 `weight` 的 `Box` 均分宽度）。校验双份同步：运行时 `NodeTree.kt` 与卡片侧 `ui_kit.lua`，`UiIconsTest` 比对两份图标名单、`UiIconVectorsTest` 保证每个名字都有 ImageVector（`khatkit/ui/NodeTree.kt`、`khatkit/ui/UiIcons.kt`、`khatkit-ui/uikit/UiIconVectors.kt`）。
 - 卡片 UI DSL 再加三样：**`IconButton` 节点**（只有图标：`icon` + `action` 必填，`tone` / `disabled` / `contentDescription` / `modifier`，用于顶栏刷新、外链这种图标动作）、**`Modifier.background("#RRGGBB"|"#AARRGGBB")`**（配合 `clip` 画圆角底色面板 / 胶囊 / 日历格子）。校验仍双份同步（`NodeTree.kt` + `ui_kit.lua`），`UiWidgetVocabulary.NODES` 同步加入 `IconButton`。
 - 卡片弹层新增 **`topbar = "large"` 大标题栏**（Kedge `KedgeLargeTopAppBar` 的折叠大标题 + `top_actions` 右侧图标动作，最多 3 个）与 **`top_actions`**：顶栏观察内容滚动的折叠行为，点动作回传 event（`khatkit-ui/uikit/KhatKitBottomSheet.kt`、`khatkit/ui/UiBridgeHost.kt`）。
