@@ -2,10 +2,14 @@ pluginManagement {
     includeBuild("build-logic")
 
     repositories {
-        // 国内镜像优先（直连 Maven Central 会 403）
-        maven("https://maven.aliyun.com/repository/public")
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
+        // 国内镜像优先（直连 Maven Central 会 403）。但 GitHub Actions runner 访问 aliyun
+        // 会返回 502，而 Gradle 解析插件时遇到 5xx 不会回退到后面的仓库，所以 CI 里跳过
+        // 镜像、直连官方源。
+        if (System.getenv("CI") != "true") {
+            maven("https://maven.aliyun.com/repository/public")
+            maven("https://maven.aliyun.com/repository/google")
+            maven("https://maven.aliyun.com/repository/gradle-plugin")
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -39,14 +43,18 @@ dependencyResolutionManagement {
                 includeGroupByRegex("com\\.google\\.android\\..*")
             }
         }
-        // 国内镜像优先（直连 Maven Central 会 403）
-        maven("https://maven.aliyun.com/repository/public")
-        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
+        // CI 里 aliyun 会 502，跳过镜像直连官方源（本地开发仍走镜像，直连 Maven Central 会 403）
+        if (System.getenv("CI") != "true") {
+            maven("https://maven.aliyun.com/repository/public")
+            maven("https://maven.aliyun.com/repository/google")
+            maven("https://maven.aliyun.com/repository/gradle-plugin")
+        }
+        // 本地 m2 可能有自发布依赖（如 mochi 0.2.0-khatkit），放最前面：JitPack 等远端仓库
+        // 对未知坐标会返回 401，Gradle 会直接失败而不会继续走到 mavenLocal
+        mavenLocal()
         google()
         mavenCentral()
         maven("https://jitpack.io")
-        mavenLocal()
     }
 }
 
