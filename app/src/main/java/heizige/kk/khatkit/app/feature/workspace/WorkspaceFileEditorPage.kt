@@ -19,7 +19,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,7 +43,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -87,7 +86,7 @@ fun WorkspaceFileEditorPage(
         }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
         title = fileName,

@@ -192,6 +192,7 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.termux.terminal.view)
+    // SSH1：远程 SSH 插件不再编译进基础包，改为 Hub 下载 + DexClassLoader（kind=dependency）。
     implementation(libs.guava.listenablefuture)
 
     // Compose

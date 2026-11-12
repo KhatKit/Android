@@ -57,6 +57,9 @@ import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBarScrollBehavior
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import ui.feice.mochi.navigation.MochiTitleBar
 
 /**
  * P3a 外壳层：把原来走 Kedge 的「页面骨架 + 底部导航栏」换成 Mochi 实现。
@@ -168,6 +171,47 @@ fun MochiNavBottomBar(
  * 不要再让每个页面各自 remember 一份。
  */
 internal val LocalKkBarBackdrop = staticCompositionLocalOf<MochiBackdrop?> { null }
+
+/**
+ * Compact Mochi settings page shell used by extension/workspace pages.
+ *
+ * This lives next to the actual Mochi shell so feature pages do not depend on the legacy
+ * Kedge/Miuix compatibility package.
+ */
+@Composable
+fun MochiSettingsPageScaffold(
+    title: String,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = { BackButton() },
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    rail: (@Composable () -> Unit)? = null,
+    floatingActionButton: @Composable () -> Unit = {},
+    floatingActionButtonPosition: Any? = null,
+    @Suppress("UNUSED_PARAMETER") largeTitle: Boolean = true,
+    @Suppress("UNUSED_PARAMETER") scrollBehavior: TopAppBarScrollBehavior? = null,
+    edgeFade: Boolean = true,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    MochiPageScaffold(
+        modifier = modifier,
+        topBar = {
+            MochiTitleBar(
+                title = title,
+                navigationIcon = { KkBarIconScope { navigationIcon() } },
+                actions = { KkBarIconScope { actions() } },
+                background = MochiTheme.colorScheme.background,
+                backdrop = LocalKkBarBackdrop.current,
+            )
+        },
+        bottomBar = bottomBar,
+        rail = rail,
+        floatingActionButton = floatingActionButton,
+        floatingActionButtonPosition = floatingActionButtonPosition,
+        containerColor = MochiDefaults.groupedBackground(),
+        edgeFade = edgeFade,
+    ) { innerPadding -> content(innerPadding) }
+}
 
 /** 浮动底栏的滚动收起（往下滚收成小圆、往上滚展开）；只在 [MochiPageScaffold] 的底部 rail 里有。 */
 private val LocalKkNavBarScrollBehavior = staticCompositionLocalOf<MochiTabBarScrollBehavior?> { null }

@@ -25,6 +25,11 @@ import heizige.kk.khatkit.app.core.data.ocr.OcrPluginInstaller
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRecord
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginHub
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginInstaller
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,6 +100,10 @@ class ExploreMarketViewModel @Inject constructor(
     private val _ocrPlugin = MutableStateFlow<OcrPluginRecord?>(null)
     val ocrPlugin: StateFlow<OcrPluginRecord?> = _ocrPlugin.asStateFlow()
 
+    // SSH1：远程 SSH 原生插件（kind=dependency, name=remote-ssh）的安装状态。
+    private val _sshPlugin = MutableStateFlow<SshPluginRecord?>(null)
+    val sshPlugin: StateFlow<SshPluginRecord?> = _sshPlugin.asStateFlow()
+
     // OCR4：市场扩展/依赖包条目（/api/items?kind=dependency），由 hub 客户端拉取后映射成资源行。
     private val _extensionItems = MutableStateFlow<List<HubResourceEntry>>(emptyList())
     val extensionItems: StateFlow<List<HubResourceEntry>> = _extensionItems.asStateFlow()
@@ -103,6 +112,8 @@ class ExploreMarketViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             OcrPluginLoader.prepare(appContext)
             _ocrPlugin.value = OcrPluginStore(appContext).read()
+            SshPluginLoader.prepare(appContext)
+            _sshPlugin.value = SshPluginStore(appContext).read()
         }
         refreshExtensionItems()
     }
@@ -119,6 +130,9 @@ class ExploreMarketViewModel @Inject constructor(
             HubClient(provider.hubBaseUrl.trim().trimEnd('/'))
                 .extensionItems(kind = "dependency", appVersion = appVersion)
                 .filter { it.status.isBlank() || it.status == "approved" }
+                // 同一个插件可能有多代版本条目；只留服务端标记的首选版本，避免市场里一行变两行。
+                .groupBy { it.name }
+                .mapNotNull { (_, releases) -> releases.firstOrNull { it.preferred } ?: releases.firstOrNull() }
                 .map { summary ->
                     HubResourceEntry(
                         slug = summary.id.ifBlank { summary.name },
@@ -170,6 +184,29 @@ class ExploreMarketViewModel @Inject constructor(
             _busyResource.value = null
             onResult(message)
         }
+
+    /** SSH1：市场里 name=remote-ssh 的条目：下载 zip → sha256 校验 → 安装。 */
+    fun installSshPlugin(entry: HubResourceEntry, onResult: (String) -> Unit = {}) =
+        viewModelScope.launch {
+            _busyResource.value = entry.slug
+            val message = withContext(Dispatchers.IO) {
+                SshPluginHub.install(appContext, provider.hubBaseUrl, entry.slug).fold(
+                    onSuccess = { "远程 SSH 插件已安装 " + it.version },
+                    onFailure = { "远程 SSH 插件安装失败：" + (it.message ?: it.javaClass.simpleName) },
+                )
+            }
+            SshPluginLoader.updateRecord(SshPluginStore(appContext).read())
+            _sshPlugin.value = SshPluginStore(appContext).read()
+            _busyResource.value = null
+            onResult(message)
+        }
+
+    /** SSH1：卸载远程 SSH 插件（删目录 + 清记录 + 清加载器缓存）。 */
+    fun uninstallSshPlugin(onResult: (String) -> Unit = {}) = viewModelScope.launch {
+        val ok = withContext(Dispatchers.IO) { SshPluginInstaller.uninstall(appContext) }
+        _sshPlugin.value = null
+        onResult(if (ok) "远程 SSH 插件已卸载" else "远程 SSH 插件卸载失败")
+    }
 
     /** 卸载 OCR 插件（删目录 + 清 DataStore + 清加载器缓存）。 */
     fun uninstallOcrPlugin(onResult: (String) -> Unit = {}) = viewModelScope.launch {

@@ -97,6 +97,7 @@ import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
 import heizige.kk.khatkit.app.feature.extensions.QuickMessagesPage
+import heizige.kk.khatkit.app.feature.extensions.PluginHostPage
 import heizige.kk.khatkit.app.feature.extensions.skills.SkillDetailPage
 import heizige.kk.khatkit.app.feature.extensions.skills.SkillsPage
 import heizige.kk.khatkit.app.feature.workspace.WorkspacePage
@@ -192,6 +193,8 @@ class RouteActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // OCR2b：把动态 OCR 插件解析器接到 common 的 OcrEngineProvider 上（未装插件时返回 null，自动降级）。
         heizige.kk.khatkit.app.core.di.installOcrPluginResolver(this)
+        // SSH1：远程 SSH 插件解析器（插件包未安装时返回 null，页面显示「未安装」）。
+        heizige.kk.khatkit.app.core.di.installSshPluginResolver(this)
         if (CrashHandler.hasCrashed(this)) {
             startActivity(Intent(this, SafeModeActivity::class.java))
             finish()
@@ -456,6 +459,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.Debug -> DebugPage()
                             is Screen.Log -> LogPage()
                             is Screen.Extensions -> ExtensionsPage()
+                            is Screen.Plugin -> PluginHostPage(screen.pluginId)
                             is Screen.QuickMessages -> QuickMessagesPage()
                             is Screen.Prompts -> PromptPage()
                             is Screen.Skills -> SkillsPage()
@@ -804,6 +808,10 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Extensions : Screen
+
+    /** Installed opt-in plugin UI. The host keeps plugin ids in the plugin registry. */
+    @Serializable
+    data class Plugin(val pluginId: String) : Screen
 
     @Serializable
     data object QuickMessages : Screen

@@ -39,6 +39,8 @@ object OcrPluginLoader {
             val dir = OcrPluginInstaller.versionDir(context, current.version)
             val dex = File(dir, "classes.dex")
             if (!dex.isFile) return null
+            // Android 14+ 拒绝加载可写的 dex；老安装器留下的可写文件加载前修一次权限。
+            if (dex.canWrite()) dex.setReadOnly()
             val nativeDir = OcrPluginInstaller.nativeLibDir(context, current)
             val optimized = File(context.codeCacheDir, "ocr_plugins").apply { mkdirs() }
             val loader = DexClassLoader(

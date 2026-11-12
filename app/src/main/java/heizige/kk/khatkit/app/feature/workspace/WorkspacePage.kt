@@ -22,7 +22,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -60,7 +59,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 
 @Composable
 fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
@@ -71,7 +70,7 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.workspace_page_title),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {

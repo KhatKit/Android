@@ -43,7 +43,6 @@ import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVertica
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -73,7 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
@@ -106,9 +105,8 @@ import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.menuBook
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiSwitchFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
@@ -126,7 +124,7 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
         title = stringResource(R.string.prompt_page_title),
@@ -435,7 +433,7 @@ private fun ModeInjectionEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = injection.enabled,
                     onCheckedChange = { onEdit(injection.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
@@ -852,7 +850,7 @@ private fun LorebookEditSheet(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = book.enabled,
                     onCheckedChange = { onEdit(book.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
@@ -981,7 +979,7 @@ private fun RegexInjectionEditDialog(
                     shape = RoundedCornerShape(16.dp)
                 )
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.enabled,
                     onCheckedChange = { onEdit(entry.copy(enabled = it)) },
                     label = { Text(stringResource(R.string.prompt_page_enabled)) },
@@ -1071,19 +1069,19 @@ private fun RegexInjectionEditDialog(
                     }
                 }
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.useRegex,
                     onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
                     label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                 )
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.caseSensitive,
                     onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
                 )
 
-                Md3SwitchFormRow(
+                MochiSwitchFormRow(
                     checked = entry.constantActive,
                     onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
                     label = { Text(stringResource(R.string.prompt_page_constant_active)) },

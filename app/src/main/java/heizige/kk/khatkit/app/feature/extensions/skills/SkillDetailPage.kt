@@ -26,7 +26,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -67,7 +66,7 @@ import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -94,7 +93,7 @@ fun SkillDetailPage(skillName: String) {
         }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = skillName,
         scrollBehavior = scrollBehavior,
         floatingActionButton = {

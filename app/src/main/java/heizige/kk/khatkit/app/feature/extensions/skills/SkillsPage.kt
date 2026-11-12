@@ -29,7 +29,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,7 +53,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.InvalidSkillDir
@@ -78,7 +77,7 @@ import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.warning
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 
 @Composable
 fun SkillsPage() {
@@ -181,13 +180,12 @@ fun SkillsPage() {
         }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        val isMiuix = false
         // Scaffold 的 innerPadding 挂在**整列**上（助手列表 / 提供商列表 / 搜索页同款），
         // 不再塞进列表自己的 padding：以前搜索框留在 y=0 被顶栏压住，列表却整体下移了
         // 一个顶栏高度，于是「搜索框下方到首项」空出一大块（顶栏高 + 16dp）。
@@ -204,9 +202,7 @@ fun SkillsPage() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                // MD3 的 Md3SearchBar 自带 16dp 顶距，Miuix 分支为 0，由调用点补
-                // （与 AssistantPage 的补偿同款），两种风格搜索框上方都是 16dp。
-                .padding(top = if (isMiuix) 16.dp else 0.dp),
+                .padding(top = 0.dp),
         ) {
             Md3SearchBar(
                 value = searchQuery,
@@ -215,10 +211,9 @@ fun SkillsPage() {
                 active = searchExpanded,
                 onActiveChange = { searchExpanded = it },
                 cancelLabel = stringResource(R.string.cancel),
-                // MD3 侧留白由组件自己给（跟助手/提供商页同款 16dp），Miuix 侧才要调用点补。
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = if (isMiuix) 16.dp else 0.dp),
+                    .padding(horizontal = 0.dp),
                 // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出技能列表。
                 expandedContent = {
                     // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩。

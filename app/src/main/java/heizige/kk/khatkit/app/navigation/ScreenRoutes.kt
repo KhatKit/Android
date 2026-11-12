@@ -33,6 +33,7 @@ object ScreenRoutes {
         "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget",
         "tool-catalogue", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
         "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
+        "plugin",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
         "workspace-terminal", "workspace-file-editor", "skill-detail", "message-search",
         "download-center", "stats",
@@ -112,6 +113,7 @@ object ScreenRoutes {
         Screen.Debug -> "debug"
         Screen.Log -> "log"
         Screen.Extensions -> "extensions"
+        is Screen.Plugin -> Route("plugin").str("id", screen.pluginId).build()
         Screen.QuickMessages -> "quick-messages"
         Screen.Prompts -> "prompts"
         Screen.Skills -> "skills"
@@ -207,6 +209,7 @@ object ScreenRoutes {
             "debug" -> Screen.Debug
             "log" -> Screen.Log
             "extensions" -> Screen.Extensions
+            "plugin" -> Screen.Plugin(params.str("id") ?: return null)
             "quick-messages" -> Screen.QuickMessages
             "prompts" -> Screen.Prompts
             "skills" -> Screen.Skills

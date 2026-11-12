@@ -78,6 +78,8 @@ object OcrPluginInstaller {
                         val out = File(tmp, name)
                         out.parentFile?.mkdirs()
                         zip.getInputStream(entry).use { input -> out.outputStream().use { output -> input.copyTo(output) } }
+                        // Android 14+ 拒绝加载可写 dex，安装后置只读（与 SSH 插件安装器一致）。
+                        out.setReadOnly()
                     }
                     val target = versionDir(context, manifest.version)
                     val backup = File(pluginsRoot(context), manifest.version + ".old")

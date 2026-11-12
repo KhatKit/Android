@@ -22,7 +22,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -58,7 +57,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
@@ -68,7 +67,7 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
     var editTarget by remember { mutableStateOf<QuickMessage?>(null) }
     var deleteTarget by remember { mutableStateOf<QuickMessage?>(null) }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_quick_messages),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {

@@ -112,6 +112,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
+import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.card.Semver
@@ -383,6 +384,8 @@ fun ExploreMarketPage() {
     val busyResource by vm.busyResource.collectAsStateWithLifecycle()
     // OCR2：市场里原生插件（dependency）的安装状态，用于显示大小/卸载入口。
     val ocrPlugin by vm.ocrPlugin.collectAsStateWithLifecycle()
+    // SSH1：远程 SSH 原生插件（kind=dependency, name=remote-ssh）的安装状态。
+    val sshPlugin by vm.sshPlugin.collectAsStateWithLifecycle()
     // OCR4：/api/items 里的扩展条目（OCR 原生插件）。空列表 = 服务端没有/网络失败，整组不渲染。
     val extensionItems by vm.extensionItems.collectAsStateWithLifecycle()
 
@@ -761,21 +764,47 @@ fun ExploreMarketPage() {
                 }
             }
 
-            // 3.9 OCR 插件：/api/items?kind=dependency 的扩展条目（不会出现在资源索引里），
-            // 复用资源行动作（安装走 OCR2 安装器、已装显示大小与卸载）；空/失败时整组不渲染。
+            // 3.9 原生插件：/api/items?kind=dependency 的扩展条目（不会出现在资源索引里），
+            // 按条目分发到各自的安装器：remote-ssh 走 SSH 安装器、ocr-mlkit 走 OCR 安装器；
+            // 其它 dependency 条目还没接安装链路，只显示、不假装能装。空/失败时整组不渲染。
             if (extensionItems.isNotEmpty()) {
                 item(key = "ocr_extensions") {
                     MochiListSection(modifier = swapIn(sectionPad), header = "原生插件") {
                         extensionItems.forEach { entry ->
+                            val isSsh = entry.name == SshPluginInfo.MARKET_NAME
                             key(entry.slug) {
                                 ResourceRow(
                                     entry = entry,
                                     busy = busyResource == entry.slug,
-                                    onInstall = { installResource(entry) },
-                                    onClick = { installResource(entry) },
-                                    onUninstall = { vm.uninstallOcrPlugin() },
+                                    onInstall = {
+                                        if (isSsh) {
+                                            vm.installSshPlugin(entry) { message ->
+                                                scope.launch { Toast.show(message) }
+                                            }
+                                        } else {
+                                            installResource(entry)
+                                        }
+                                    },
+                                    onClick = {
+                                        if (isSsh) {
+                                            vm.installSshPlugin(entry) { message ->
+                                                scope.launch { Toast.show(message) }
+                                            }
+                                        } else {
+                                            installResource(entry)
+                                        }
+                                    },
+                                    onUninstall = if (isSsh) {
+                                        ({
+                                            vm.uninstallSshPlugin { message ->
+                                                scope.launch { Toast.show(message) }
+                                            }
+                                        })
+                                    } else {
+                                        ({ vm.uninstallOcrPlugin() })
+                                    },
                                     sizeLabel = if (entry.sizeBytes > 0) formatBytes(entry.sizeBytes) else null,
-                                    installed = ocrPlugin != null,
+                                    installed = if (isSsh) sshPlugin != null else ocrPlugin != null,
                                 )
                             }
                         }

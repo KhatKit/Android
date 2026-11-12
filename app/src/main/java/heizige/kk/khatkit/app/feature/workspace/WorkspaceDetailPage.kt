@@ -50,7 +50,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -102,7 +101,7 @@ import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.undo
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
@@ -172,7 +171,7 @@ fun WorkspaceDetailPage(id: String) {
         onDispose { PageBackInterceptor.pop(upBackToken) }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = state.workspace?.name ?: stringResource(R.string.workspace_detail_title),
         actions = {
             if (pagerState.currentPage == 1) {
