@@ -208,6 +208,7 @@ object AppHiltModule {
     @Provides
     @Singleton
     fun provideChatToolFactory(
+        @ApplicationContext context: Context,
         json: Json,
         memoryRepository: MemoryRepository,
         conversationRepository: ConversationRepository,
@@ -220,6 +221,7 @@ object AppHiltModule {
         settingsRepository: SettingsRepository,
         roleMemoryRepository: RoleMemoryRepository,
     ): ChatToolFactory = ChatToolFactory(
+        context = context,
         json = json,
         memoryRepository = memoryRepository,
         conversationRepository = conversationRepository,

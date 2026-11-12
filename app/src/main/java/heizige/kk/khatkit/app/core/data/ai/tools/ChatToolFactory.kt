@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.data.ai.tools
 
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
@@ -88,6 +89,7 @@ object MemoryToolScopeResolver {
 
 /** Creates the complete tool set for one generation run, including approval resumption. */
 class ChatToolFactory(
+    private val context: Context,
     private val json: Json,
     private val memoryRepository: MemoryRepository,
     private val conversationRepository: ConversationRepository,
@@ -181,6 +183,7 @@ class ChatToolFactory(
             addAll(createSearchTools(settings))
         }
         addAll(localTools.getTools(assistant.localTools))
+        addAll(createPluginTools(context))
         if (assistant.enableRecentChatsReference && !(assistant.enableMemory && roleMemoryRepository != null)) {
             // C1-M：群聊里 `recent_chats` / `conversation_search` 走的是「该助手名下全部
             // 会话」，会把别的群和用户私聊的标题送给群角色——同样属于「隐藏但仍发送」。
