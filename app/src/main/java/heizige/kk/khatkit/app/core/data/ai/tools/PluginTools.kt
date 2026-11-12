@@ -4,6 +4,8 @@ import android.content.Context
 import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
 import heizige.kk.khatkit.ssh.api.SshEngineProvider
@@ -22,8 +24,7 @@ import kotlinx.serialization.json.put
  *
  * The catalogue tool is always available so the model can discover which plugins are installed.
  * A plugin's operational tools are added only when its engine is loaded successfully.
- */
-/**
+ *
  * Builds the tools exposed by installed plugins for one generation.
  *
  * Loading the persisted plugin record here matters because chat can be opened before the
@@ -32,6 +33,7 @@ import kotlinx.serialization.json.put
 suspend fun createPluginTools(context: Context): List<Tool> {
     val appContext = context.applicationContext
     SshPluginLoader.prepare(appContext)
+    OcrPluginLoader.prepare(appContext)
     return buildList {
         add(
             Tool(
@@ -40,6 +42,7 @@ suspend fun createPluginTools(context: Context): List<Tool> {
                 parameters = { InputSchema.Obj(properties = buildJsonObject {}) },
                 execute = {
                     val ssh = SshPluginStore(appContext).read()
+                    val ocr = OcrPluginStore(appContext).read()
                     val payload = buildJsonObject {
                         put("plugins", buildJsonObject {
                             if (ssh != null) {
@@ -51,6 +54,19 @@ suspend fun createPluginTools(context: Context): List<Tool> {
                                     put("description", SshPluginInfo.DESCRIPTION)
                                     put("installed", true)
                                     put("available", available)
+                                    put("ai_callable", available)
+                                })
+                            }
+                            if (ocr != null) {
+                                val available = heizige.kk.khatkit.ocr.api.OcrEngineProvider.engine() != null
+                                put(ocr.pluginId, buildJsonObject {
+                                    put("name", "本机 OCR")
+                                    put("version", ocr.version)
+                                    put("capability", "image_ocr")
+                                    put("description", "本机图片文字识别")
+                                    put("installed", true)
+                                    put("available", available)
+                                    put("ai_callable", false)
                                 })
                             }
                         })

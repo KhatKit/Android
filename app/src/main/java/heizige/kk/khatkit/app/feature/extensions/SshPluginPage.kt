@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +29,7 @@ import heizige.kk.khatkit.ssh.api.SshEngineProvider
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import heizige.kk.khatkit.ssh.api.SshRequest
 import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import kotlinx.coroutines.Dispatchers
@@ -117,28 +117,28 @@ fun SshPluginPage(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        OutlinedTextField(
+                        Md3OutlinedTextFieldWithSlots(
                             value = host,
                             onValueChange = { host = it },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("主机地址") },
                             singleLine = true,
                         )
-                        OutlinedTextField(
+                        Md3OutlinedTextFieldWithSlots(
                             value = port,
                             onValueChange = { port = it.filter(Char::isDigit).take(5) },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("端口") },
                             singleLine = true,
                         )
-                        OutlinedTextField(
+                        Md3OutlinedTextFieldWithSlots(
                             value = username,
                             onValueChange = { username = it },
                             modifier = Modifier.fillMaxWidth(),
                             label = { Text("用户名") },
                             singleLine = true,
                         )
-                        OutlinedTextField(
+                        Md3OutlinedTextFieldWithSlots(
                             value = password,
                             onValueChange = { password = it },
                             modifier = Modifier.fillMaxWidth(),
@@ -146,7 +146,7 @@ fun SshPluginPage(
                             visualTransformation = PasswordVisualTransformation(),
                             singleLine = true,
                         )
-                        OutlinedTextField(
+                        Md3OutlinedTextFieldWithSlots(
                             value = command,
                             onValueChange = { command = it },
                             modifier = Modifier.fillMaxWidth(),
