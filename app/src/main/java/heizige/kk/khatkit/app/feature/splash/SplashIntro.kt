@@ -44,7 +44,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -55,6 +54,7 @@ import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.theme.GoogleSansFlex
 import heizige.kk.khatkit.app.feature.splash.SplashGlyph.drawSplashGlyph
+import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -193,9 +193,10 @@ fun SplashIntroHost(state: SplashIntroState, content: @Composable () -> Unit) {
 @Composable
 private fun SplashIntroOverlay(state: SplashIntroState, reveal: Animatable<Float, *>) {
     val density = LocalDensity.current
-    val background = colorResource(R.color.splash_background)
-    val foreground = colorResource(R.color.splash_foreground)
-    val contentColor = colorResource(R.color.splash_content)
+    val colors = MochiTheme.colorScheme
+    val background = colors.background
+    val foreground = colors.primary
+    val contentColor = colors.onSurfaceVariant
 
     // API 31+ 交接前覆盖层被系统启动页盖着，先垫一个完整字形：部分 ROM（ColorOS 实测）在退场回调时
     // 先撤掉图标 surface，覆盖层若是空的会闪一帧底色。31 以下没有系统启动页，从头画。
