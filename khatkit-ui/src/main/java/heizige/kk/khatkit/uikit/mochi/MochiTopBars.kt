@@ -7,12 +7,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.navigation.MochiTitleBar
@@ -28,6 +34,71 @@ import ui.feice.mochi.theme.MochiTheme
  */
 
 private val BarHeight = 56.dp
+
+/**
+ * A large-title host bar for pages whose body owns its scroll container.
+ *
+ * [titleProgress] is 0 while the large title is fully visible and 1 after it
+ * has collapsed. The body scroll offset grows when the user swipes upward
+ * (content moves up), so that gesture hides the large title; swiping downward
+ * brings it back. Keeping the scroll reader outside this component lets card
+ * pages feed their own LazyColumn/ScrollState without introducing a nested
+ * scroll container in the host scaffold.
+ */
+@Composable
+fun MochiLargeTitleTopBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    titleProgress: () -> Float = { 0f },
+    backgroundProgress: (() -> Float)? = null,
+    backdrop: MochiBackdrop? = null,
+) {
+    val collapsed = titleProgress().coerceIn(0f, 1f)
+    val expanded = 1f - collapsed
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MochiDefaults.groupedBackground()),
+    ) {
+        MochiTitleBar(
+            title = title,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            background = MochiDefaults.groupedBackground(),
+            titleProgress = { collapsed },
+            backgroundProgress = {
+                (backgroundProgress?.invoke() ?: collapsed).coerceIn(0f, 1f)
+            },
+            backdrop = backdrop,
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clipToBounds()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(
+                        constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity),
+                    )
+                    val shown = (placeable.height * expanded).roundToInt().coerceIn(0, placeable.height)
+                    layout(placeable.width, shown) {
+                        placeable.place(0, shown - placeable.height)
+                    }
+                }
+                .graphicsLayer { alpha = expanded }
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        ) {
+            Text(
+                text = title,
+                style = MochiTheme.textStyles.largeTitle,
+                color = MochiTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
 
 @Composable
 private fun BarTitle(title: String, subtitle: String?, titleAlpha: Float, centered: Boolean, titleContent: (@Composable () -> Unit)?) {

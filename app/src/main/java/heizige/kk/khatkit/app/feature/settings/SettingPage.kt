@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.mochi.KkAnimatedRadioItem
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.util.writeClipboardText
+import ui.feice.mochi.basic.MochiSearchBar
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
@@ -89,7 +91,6 @@ import heizige.kk.khatkit.app.core.ui.icons.inventory2
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
-    
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     // 设置里的子页一律普通压栈（侧滑推入），不再用共享元素整页形变：
@@ -97,18 +98,25 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     // 形变反而让每层进入的动效都不一样（设置→界面是形变、界面→主题是侧推）。
     val settings by vm.settings.collectAsStateWithLifecycle()
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val searchEntries = rememberSettingSearchEntries()
+    val filteredSearchEntries = remember(searchQuery, searchEntries) {
+        val normalized = searchQuery.trim().lowercase()
+        if (normalized.isEmpty()) {
+            searchEntries
+        } else {
+            searchEntries.filter { entry ->
+                listOf(entry.title, entry.description, entry.keywords)
+                    .joinToString(" ")
+                    .lowercase()
+                    .contains(normalized)
+            }
+        }
+    }
 
     MochiSettingsPageScaffold(
         title = stringResource(R.string.settings),
         scrollBehavior = scrollBehavior,
-        actions = {
-            MochiIconButton(onClick = { navController.navigate(Screen.SettingFeatureSearch) }) {
-                Icon(
-                    imageVector = search,
-                    contentDescription = "Search settings",
-                )
-            }
-        },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -120,6 +128,38 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item("settingsSearch") {
+                MochiSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    placeholder = stringResource(R.string.search_picker_title),
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
+            if (searchQuery.isNotBlank()) {
+                item("settingsSearchResults") {
+                    CardGroup(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) {
+                        filteredSearchEntries.forEach { entry ->
+                            item(
+                                onClick = { navController.navigate(entry.destination) },
+                                chevron = true,
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = entry.icon,
+                                        contentDescription = null,
+                                    )
+                                },
+                                supportingContent = entry.description
+                                    .takeIf(String::isNotBlank)
+                                    ?.let { description -> { Text(description) } },
+                                headlineContent = { Text(entry.title) },
+                            )
+                        }
+                    }
+                }
+            } else {
             if (settings.isNotConfigured()) {
                 item {
                     ProviderConfigWarningCard(navController)
@@ -418,6 +458,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text(stringResource(R.string.setting_page_share)) },
                     )
                 }
+            }
             }
         }
     }

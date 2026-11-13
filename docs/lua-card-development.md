@@ -503,10 +503,10 @@ manifest 的 `i18n` 不会修改远端索引。
 
 #### 脚本入口契约
 
-- **独立入口、独立运行**：每次刷新/点按钮都是一次完整运行，走与普通卡片相同的审批、方法权限、域名白名单、文件授权、并发闸门与计量。`triggers` 里不需要写 `widget`，也不需要 `ai` / `user`。
+- **独立入口、独立运行**：每次刷新/点按钮都是一次完整运行，走方法策略、域名白名单、文件授权、并发闸门与计量，但不显示卡片级审批。`triggers` 里不需要写 `widget`，也不需要 `ai` / `user`。
 - **参数**：`args.widget = { action, values, locale }`；`args.__khatkit_trigger == "聊天小组件"`。首次加载时 `action == ""`、`values == {}`；标题栏刷新使用脚本声明的 `refresh_action`（未声明时仍为空），并收集当前字段值；`locale` 是当前首选语言标签（同时驱动 `i18n` 与 `@string/key` 解析）。
 - **返回值**：普通 map，可带 `error` 字段（非空字符串会被宿主当作失败展示）；**内容只能靠 `ui.show`**，不调就是 `WIDGET_EMPTY`。
-- **预算**：30 秒硬预算（含排队与审批等待），到点 `WIDGET_TIMEOUT`。所以小组件入口只做「读缓存 + 画内容」，不要在里面跑长任务、下载大依赖或发模型请求。
+- **预算**：30 秒硬预算（含排队等待），到点 `WIDGET_TIMEOUT`。所以小组件入口只做「读缓存 + 画内容」，不要在里面跑长任务、下载大依赖或发模型请求。
 
 ```lua
 -- widget.lua
@@ -660,7 +660,7 @@ if (res && res.__error) return { error: "读取失败：" + res.__error };
 | `BRIDGE_INJECT_FAILED` | 依赖在注入阶段解析失败（能力协商兜底）。 |
 | `CARD_EXECUTOR` | 执行器内未预期异常统一收敛。 |
 | `CARD_RUN_CRASH` / `CARD_CANCELLED` | 并发闸门内崩溃 / 协程被取消。 |
-| `CARD_DENIED` | 用户在看板上拒绝了本次运行的授权。 |
+| `CARD_DENIED` | AI 调用时用户在看板上拒绝了本次运行的授权。 |
 | `CARD_UNAVAILABLE` / `TRIGGER_DENIED` / `CARD_TOOL` | AI 调用时卡片不可下载 / 未声明 `ai` / 工具层异常。 |
 | `COMMAND_*` | command 卡片的命令缺失、宿主无执行能力、执行失败。 |
 | `CARD_ALREADY_RUNNING` | 用户手动入口：同一张卡片上一轮还没结束就再次「运行」。AI / 事件入口共用并发闸门，不返回这个码。 |
@@ -1708,14 +1708,15 @@ schedule.cancel(job)
 
 ### 5.2 审批、悬浮看板与放手模式
 
-卡片在任何入口运行（AI / 用户 / 事件）都会经过统一的自动化流程：
+卡片在任何入口运行（AI / 用户 / 小组件 / flow / 定时 / 事件）都会经过统一的执行流程；卡片级人工审批只保留给 AI 工具调用：
 
 1. 若已请求取消，直接返回 `CARD_CANCELLED`。
 2. 发布看板状态「正在运行卡片：<name>」。
-3. 通过 `AutomationBus.requestApproval("运行卡片：<name>", "触发来源：<AI|用户|事件触发>")` 请求授权。
+3. 仅当触发来源是 `AI` 时，通过 `AutomationBus.requestApproval("运行卡片：<name>", "触发来源：AI")` 请求授权。
    - 放手模式开启，或本次运行已授权过 → 直接放行（一次运行内不再重复询问）。
    - 未授予悬浮窗权限（`SYSTEM_ALERT_WINDOW`）→ **审批直接失败**，卡片不会执行（错误 `CARD_DENIED`）。无障碍服务在线时看板走 `TYPE_ACCESSIBILITY_OVERLAY` 也能显示，但授权判断仍要求悬浮窗权限；建议授予悬浮窗权限或开启放手模式。
    - 否则在悬浮看板上显示允许/拒绝按钮，**60 秒未响应按拒绝处理**（看板显示「N 秒后自动拒绝」）；同一时刻只允许一个审批请求。
+   用户页面、聊天小组件、flow 子步骤、定时任务和事件触发均不显示卡片级审批；这些入口的 bridge 内部审批点也按本地触发直接放行，但 manifest 显式 `deny` 仍然生效。
 4. 执行卡片（并发上限 2）。
 5. 运行结束（成功或失败）调用 `finish()`，看板显示「任务完成」约 3 秒后退场；期间新的运行会取消退场。
 
@@ -1723,9 +1724,9 @@ schedule.cancel(job)
 
 - 显示当前步骤、最多 3 条历史步骤（内部缓存 4 条，重复 label 去重）、进度文字（`ui.progress` 的 label）与「停止」按钮。
 - 可拖动；运行期间保持屏幕常亮（WakeLock）；空闲/结束约 3 秒后自动隐藏；同时有一个常驻前台服务通知。
-- 无悬浮窗权限且无障碍离线时看板静默跳过；此时审批弹不出来，卡片会被 `CARD_DENIED` 拒绝（除非开启放手模式或已在本次运行中授权过）。
+- 无悬浮窗权限且无障碍离线时看板静默跳过；只有 AI 入口的卡片级审批会因此失败，其他本地入口不受影响。
 - 点「停止」调用 `AutomationBus.requestCancel()`，脚本通过 `ui.isCancelled()` 感知；看板按钮变为「正在停止」。取消不会强杀脚本，需要脚本配合轮询。
-- 「放手模式」在权限面板开启，语义是：高权限/高风险卡片不再逐条确认，全部交给 AI 执行。开启后审批一律放行。
+- 「放手模式」在权限面板开启，语义是：AI 调用的高权限/高风险卡片不再逐条确认，全部交给 AI 执行。开启后 AI 审批一律放行。
 
 提示位置自动切换：KhatKit 在应用前台时把自动化步骤显示为应用内底部 Toast 卡片；应用退到后台或切换到其他应用后，才启动悬浮看板服务继续显示。两种提示共用同一条 `AutomationBus` 状态，不会重复显示。Toast 动画与 Khromia/ImageToolbox 风格一致：进入为 `fadeIn(300ms) + scaleIn(spring, bottom-center) + slideInVertically(spring, half-height)`，退出为 `fadeOut(250ms) + scaleOut(spring, bottom-center) + slideOutVertically(500ms, half-height)`。点击应用内或悬浮的提示卡片可提前隐藏当前提示，自动化任务本身不会因此被强制终止；需要停止任务时使用看板的「停止」按钮。
 

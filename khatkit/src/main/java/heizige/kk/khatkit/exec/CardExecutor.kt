@@ -38,7 +38,22 @@ data class CardExecutionOptions(
     val locales: List<String>? = null,
     val deadlineAt: Long = 0L,
     val interactionId: String? = null,
+    /**
+     * 卡片内部敏感 bridge 的审批策略。
+     *
+     * 普通页面/后台触发由宿主显式设为 [CardApprovalMode.BYPASS]，这样它们不会
+     * 弹出自动化审批；AI 工具调用保留默认的 [CardApprovalMode.DEFAULT]。
+     */
+    val approvalMode: CardApprovalMode = CardApprovalMode.DEFAULT,
 )
+
+enum class CardApprovalMode {
+    /** 使用宿主提供的审批闸门。 */
+    DEFAULT,
+
+    /** 本次卡片运行不显示审批，直接放行 bridge 内部的审批点。 */
+    BYPASS,
+}
 
 /**
  * 卡片执行器：manifest + 引擎 + bridge 注入。
@@ -149,8 +164,12 @@ class CardExecutor(
         } else EngineFactory.create(card.engineKind, card.dir)
         val runResources = mutableListOf<AutoCloseable>()
         return try {
+            val runApprovalGate = when (options.approvalMode) {
+                CardApprovalMode.DEFAULT -> approvalGate
+                CardApprovalMode.BYPASS -> ALLOW_ALL_APPROVAL_GATE
+            }
             if (!bridges.inject(
-                    engine, card.manifest, approvalGate = approvalGate, runResources = runResources,
+                    engine, card.manifest, approvalGate = runApprovalGate, runResources = runResources,
                     uiOverride = options.ui, uiMode = options.uiMode,
                     locales = options.locales, deadlineAt = options.deadlineAt,
                     requiredOverride = card.bridgeSubset, interactionId = options.interactionId,
@@ -204,5 +223,7 @@ class CardExecutor(
             }
 
         private val SAFE_VALUE = Regex("^[A-Za-z0-9._\\-/:@]+$")
+
+        private val ALLOW_ALL_APPROVAL_GATE = ApprovalGate { _, _, _ -> true }
     }
 }

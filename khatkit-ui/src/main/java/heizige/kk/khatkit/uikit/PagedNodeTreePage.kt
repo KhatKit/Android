@@ -73,7 +73,10 @@ internal fun PagedNodeTreePage(
     // Data updates retain every tab's scroll/input state. A deliberate script
     // selection (e.g. leaving settings) may still choose a different page.
     LaunchedEffect(navigation.selected) {
-        if (pager.settledPage != initial) pager.scrollToPage(initial)
+        val target = ids.indexOf(navigation.selected).coerceAtLeast(0)
+        if (pager.currentPage != target || pager.currentPageOffsetFraction != 0f) {
+            pager.animateScrollToPage(target, animationSpec = tween(260))
+        }
     }
     val activeId = ids[pager.settledPage]
     val activePage = pages.getValue(activeId)
@@ -85,22 +88,42 @@ internal fun PagedNodeTreePage(
     val density = LocalDensity.current
     val edgeFadePx = with(density) { 8.dp.toPx() }
     val collapsePx = with(density) { 72.dp.toPx() }
-    fun activeScroll(): Float {
-        val index = pager.settledPage
+    fun pageScrollProgress(index: Int, edgePx: Float): Float {
         val page = pages.getValue(ids[index])
-        return if (page.root.lazyScreenRoot()) {
+        val scroll = if (page.root.lazyScreenRoot()) {
             val list = lists[index]
             if (list.firstVisibleItemIndex > 0) Float.MAX_VALUE / 4f
             else list.firstVisibleItemScrollOffset.toFloat()
         } else {
             scrolls[index].value.toFloat()
         }
+        return smoothstep(0f, edgePx, scroll)
     }
+
+    /**
+     * `settledPage` changes only after a swipe crosses the snap point. Reading
+     * it directly made the top bar jump at that boundary: the outgoing page
+     * could be collapsed while the incoming page suddenly started expanded.
+     * Blend the two visible pages using the live pager offset so the bar follows
+     * the same horizontal gesture as the content.
+     */
+    fun pagedProgress(edgePx: Float): Float {
+        val from = pager.currentPage.coerceIn(0, ids.lastIndex)
+        val signedOffset = pager.currentPageOffsetFraction
+        val direction = if (signedOffset >= 0f) 1 else -1
+        val target = (from + direction).coerceIn(0, ids.lastIndex)
+        val fraction = (kotlin.math.abs(signedOffset) * 2f).coerceIn(0f, 1f)
+        val fromProgress = pageScrollProgress(from, edgePx)
+        val targetProgress = pageScrollProgress(target, edgePx)
+        return fromProgress + (targetProgress - fromProgress) * fraction
+    }
+
     // 卡片页顶部本来就是页内大标题（page_title），栏里的小标题应当等大标题滚走后再渐现：
-    // 滚动进入 collapsePx 才淡入，滚回顶部让位给正文标题。切页/刷新时用当前页的滚动量算，
-    // 因此栏不会闪（新页若停在顶部，进度仍是 0）。
-    val titleProgress: () -> Float = { smoothstep(0f, collapsePx, activeScroll()) }
-    val backgroundProgress: () -> Float = { smoothstep(0f, edgeFadePx, activeScroll()) }
+    // 手指向上滑、内容向上滚过 collapsePx 才淡入；向下回到顶部则让位给正文标题。
+    // 横向切页时同时混合相邻页，
+    // 顶栏和页面内容保持同一条手势进度，避免在 settledPage 切换点突然跳变。
+    val titleProgress: () -> Float = { pagedProgress(collapsePx) }
+    val backgroundProgress: () -> Float = { pagedProgress(edgeFadePx) }
 
     KhatKitPage(
         title = title,

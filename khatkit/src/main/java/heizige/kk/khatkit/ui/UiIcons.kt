@@ -19,6 +19,12 @@ object UiIcons {
         "trending_up", "verified", "visibility", "warning",
         // Material Symbols Rounded 补齐（khatkit-ui 的 UiIconsSymbols.kt 提供矢量）
         "casino", "emoji_events",
+        // 云盘解析卡片用到的图标（material-icons-core/extended 直接提供）
+        "add_circle", "chevron_left", "chevron_right", "content_paste", "clear_history",
+        "folder", "folder_open", "insert_drive_file", "key", "verified_user",
+        // 厂商品牌 logo（khatkit-ui 的 UiIconsBrands.kt，Simple Icons 路径）
+        "brand_baidu", "brand_xhs", "brand_kuaishou", "brand_weibo", "brand_douyin",
+        "brand_bilibili", "brand_pixiv", "brand_github",
     )
 
     fun isValid(name: String): Boolean = name in names

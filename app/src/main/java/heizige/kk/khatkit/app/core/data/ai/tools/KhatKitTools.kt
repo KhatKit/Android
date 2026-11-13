@@ -51,6 +51,7 @@ import heizige.kk.khatkit.dependency.DependencyCache
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
+import heizige.kk.khatkit.exec.CardApprovalMode
 import heizige.kk.khatkit.exec.CardExecutionOptions
 import heizige.kk.khatkit.ui.LateUiAnswer
 import heizige.kk.khatkit.ui.ReplayUiBridge
@@ -837,21 +838,33 @@ class KhatKitToolProvider(
 
             if (automation) AutomationBus.update("正在运行卡片：${card.manifest.name}")
             runCatching { cardRunDao.updateStatus(runId, CardRunEntity.RUNNING, System.currentTimeMillis()) }
-            val category = cardApprovalCategory(card)
-            if (!AutomationBus.requestApproval(
-                    "运行卡片：${card.manifest.name}", "触发来源：$trigger", category,
-                    grantSession = automation,
-                )) {
-                val denied = EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
-                recordCardRunFinished(runId, denied)
-                return denied
+            // 卡片运行审批只属于 AI 工具调用。用户页面、聊天小组件、flow、
+            // 定时任务和事件触发都已经是明确的本地触发，不再重复弹审批。
+            if (trigger == "AI") {
+                val category = cardApprovalCategory(card)
+                if (!AutomationBus.requestApproval(
+                        "运行卡片：${card.manifest.name}", "触发来源：$trigger", category,
+                        grantSession = automation,
+                    )) {
+                    val denied = EngineResult.Err("CARD_DENIED", "用户拒绝授权，已取消运行卡片：${card.manifest.name}")
+                    recordCardRunFinished(runId, denied)
+                    return denied
+                }
             }
             val startedAt = System.currentTimeMillis()
             // 脚本可见的运行期上下文：触发来源（AI / 用户 / 定时任务 / 事件触发 / flow / 聊天小组件）。
             // `__khatkit_ui` 是宿主开关，不进脚本参数。
             val scriptArgs = arguments.filterKeys { !it.startsWith("__khatkit_ui") } + mapOf("__khatkit_trigger" to trigger)
+            val executionOptions = options.copy(
+                interactionId = runId,
+                approvalMode = if (trigger == "AI") {
+                    CardApprovalMode.DEFAULT
+                } else {
+                    CardApprovalMode.BYPASS
+                },
+            )
             val result = runManager.run(card, scriptArgs) { loaded, input ->
-                executor().execute(loaded, input, options.copy(interactionId = runId))
+                executor().execute(loaded, input, executionOptions)
             }
             val uiTimedOut = uiHost.hasPendingInteraction(runId)
             if (!uiTimedOut) pendingInteractions.remove(runId)

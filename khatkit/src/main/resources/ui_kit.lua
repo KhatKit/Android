@@ -14,7 +14,12 @@ do
     edit email error event expand_more favorite favorite_border folded_hands history hourglass_top info insights
     link lock more_vert notifications open_in_new paid people person psychology public refresh remove
     rocket_launch schedule search settings share star star_border sync thumb_down thumb_up timer
-    trending_down trending_up verified visibility warning]]):gmatch("%S+") do icons[name] = true end
+    trending_down trending_up verified visibility warning
+    add_circle chevron_left chevron_right content_paste clear_history folder folder_open
+    insert_drive_file key verified_user
+    brand_baidu brand_xhs brand_kuaishou brand_weibo brand_douyin brand_bilibili brand_pixiv
+    brand_github
+    casino emoji_events]]):gmatch("%S+") do icons[name] = true end
   local schemas = {
     Column={spacing="number",hAlign="start|center|end",scrollable="boolean",modifier="modifier"},
     Row={spacing="number",vAlign="start|center|end|space_between",modifier="modifier"},

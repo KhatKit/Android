@@ -1020,23 +1020,18 @@ private fun TopBar(
             actions = {
                 KkBarIconScope {
                 // 和设置页顶栏同一套图标按钮（MochiIconButton + shapes），不再单独用栏里的圆钮
+                val searching = searchProgress.value >= 0.5f
                 MochiBarIconButton(
-                    onClick = onClickMenu,
+                    onClick = if (searching) onCollapseSearch else onClickMenu,
                     colors = barColors,
                 ) {
-                    // 搜索 ↔ 清除：没在搜 → 放大镜；在搜且有字 → ×；在搜还没字 → 空
-                    val searching = searchProgress.value >= 0.5f
+                    // 搜索 ↔ 取消：Mochi 模糊交叉淡化保持按钮位置不变，取消时同时收起并清空搜索。
                     MochiBlurCrossfade(
-                        when {
-                            !searching -> 0
-                            searchQuery.isNotEmpty() -> 1
-                            else -> 2
-                        },
+                        if (searching) 1 else 0,
                     ) { icon ->
                         when (icon) {
-                            0 -> Icon(search, "Chat Options")
-                            1 -> Icon(close, "Chat Options")
-                            else -> Box(Modifier.size(24.dp))
+                            0 -> Icon(search, "搜索消息")
+                            else -> Icon(close, "取消搜索")
                         }
                     }
                 }

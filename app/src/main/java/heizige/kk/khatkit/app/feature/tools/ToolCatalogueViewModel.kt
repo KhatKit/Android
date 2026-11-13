@@ -97,6 +97,12 @@ internal class ToolCatalogueViewModel @Inject constructor(
         }
     }
 
+    suspend fun refreshAndAwait() {
+        loadMoreJob?.takeIf { it.isActive }?.join()
+        if (refreshJob?.isActive != true) refresh()
+        refreshJob?.join()
+    }
+
     fun loadMore() {
         if (_state.value.loading || _state.value.complete || loadMoreJob?.isActive == true) return
         loadMoreJob = viewModelScope.launch {

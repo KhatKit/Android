@@ -56,6 +56,16 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.ui.graphics.vector.ImageVector
 import heizige.kk.khatkit.ui.UiIcons
 
@@ -121,9 +131,21 @@ object UiIconVectors {
         // Material Symbols Rounded 补齐（见 UiIconsSymbols.kt，规格 24dp/opsz24/wght400/FILL0/GRAD0）
         "casino" to casinoIcon,
         "emoji_events" to emojiEventsIcon,
+        // 云盘解析卡片所需（material-icons-core/extended）
+        "add_circle" to Icons.Filled.AddCircle,
+        "chevron_left" to Icons.Filled.ChevronLeft,
+        "chevron_right" to Icons.Filled.ChevronRight,
+        "content_paste" to Icons.Filled.ContentPaste,
+        "clear_history" to Icons.Filled.DeleteSweep,
+        "folder" to Icons.Filled.Folder,
+        "folder_open" to Icons.Filled.FolderOpen,
+        "insert_drive_file" to Icons.Filled.InsertDriveFile,
+        "key" to Icons.Filled.Key,
+        "verified_user" to Icons.Filled.VerifiedUser,
     )
 
-    fun vector(name: String): ImageVector? = vectors[name]
+    /** Material / Symbol 矢量优先，厂商 logo 走 [UiIconsBrands]（Simple Icons 路径）。 */
+    fun vector(name: String): ImageVector? = vectors[name] ?: UiIconsBrands.vector(name)
 
-    val names: Set<String> get() = vectors.keys
+    val names: Set<String> get() = vectors.keys + UiIconsBrands.names
 }
