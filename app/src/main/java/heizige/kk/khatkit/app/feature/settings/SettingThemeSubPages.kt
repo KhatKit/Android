@@ -27,12 +27,13 @@ import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import heizige.kk.khatkit.app.core.ui.theme.rememberColorModeChanger
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.NavBarLabelStyle
 import kotlinx.collections.immutable.toImmutableList
 import kotlin.math.roundToInt
 import ui.feice.mochi.basic.MochiSegmentedControl
@@ -44,7 +45,7 @@ import ui.feice.mochi.theme.MochiTheme
 /**
  * 主题设置的三张二级页：配色、材质、列表卡片。
  *
- * 三页的顶栏与设置页统一（KedgeSettingsPageScaffold，左上返回和「设置 / 界面」是同一枚），
+ * 三页的顶栏与设置页统一（MochiSettingsPageScaffold，左上返回和「设置 / 界面」是同一枚），
  * 正文是懒加载列表；分组走 [CardGroup]
  * （Mochi 分组卡片：26dp 圆角、iOS 26 行高与分隔线、按下整行灰底），行高变化用 Mochi
  * 同款尺寸弹簧。圆角与项间距读 listCardStyle()，所以「列表卡片」页的滑块在这三页和
@@ -74,7 +75,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
         stringResource(R.string.greeting_settings_theme_dark),
     ).toImmutableList()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "配色",
         largeTitle = false,
     ) { innerPadding ->
@@ -171,7 +172,7 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
         stringResource(R.string.setting_display_page_button_style_solid),
     ).toImmutableList()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "材质",
         largeTitle = false,
     ) { innerPadding ->
@@ -254,7 +255,7 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
 fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "列表卡片",
         largeTitle = false,
     ) { innerPadding ->
@@ -313,6 +314,155 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     defaultValue = 0f,
                     steps = 15,
                     suffix = "dp",
+                )
+            }
+        }
+        }
+    }
+}
+
+/**
+ * 二级页：导航栏。照 Mochi 示例 demo 的两块能力：
+ * - 「导航栏与搜索」/ 首页标签栏演示的三种排法：图标+文字、仅选中项显示文字、仅图标；
+ *   外加 Mochi 的滚动收起（内容往下滚缩成只剩当前图标的小胶囊）。
+ * - 「主题 → 液态玻璃」页的自定义项：通透度滑条 + 仅模糊开关，作用是整块栏玻璃
+ *   （栏、栏里的按钮、警告框、玻璃样式按钮），菜单 / 面板固定「实」档不跟通透度变。
+ *
+ * 两个开关都只改主题材质 / 标签栏 behavior，页面里没有外观分支；改完立刻生效。
+ */
+@Composable
+fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
+    val settings by vm.settings.collectAsStateWithLifecycle()
+    val display = settings.displaySetting
+    val labelStyleLabels = listOf(
+        "图标 + 文字",
+        "仅选中项文字",
+        "仅图标",
+    ).toImmutableList()
+
+    MochiSettingsPageScaffold(
+        title = "导航栏",
+        largeTitle = false,
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = innerPadding + PaddingValues(
+                start = 16.dp,
+                top = 12.dp,
+                end = 16.dp,
+                bottom = 16.dp + PageMetrics.BottomContentPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
+        ) {
+        item(key = "navBarStyle") {
+            CardGroup(
+                title = { Text("底部导航栏") },
+                footer = "标签样式跟 Mochi 标签栏的三种排法（默认「图标 + 文字」）。「仅选中项文字」和「仅图标」会把底栏换成 52dp 的图标栏；" +
+                    "大屏（600–840dp）的左侧导航轨同步隐藏未选中项的文字。",
+            ) {
+                // 三档标签较长，放行尾会把标题列挤成竖排；改成标题 + 全宽分段控件
+                item(
+                    headlineContent = { Text("导航栏样式") },
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "底部导航栏显示哪些文字",
+                                style = MochiTheme.textStyles.footnote,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
+                            )
+                            MochiSegmentedControl(
+                                selectedIndex = NavBarLabelStyle.entries.indexOf(display.navBarLabelStyle).coerceAtLeast(0),
+                                onSelect = { index ->
+                                    vm.updateSettings(
+                                        settings.copy(
+                                            displaySetting = display.copy(
+                                                navBarLabelStyle = NavBarLabelStyle.entries[index],
+                                            ),
+                                        )
+                                    )
+                                },
+                                items = labelStyleLabels,
+                                modifier = Modifier.fillMaxWidth(),
+                                behavior = ThemeToggleBehavior,
+                            )
+                        }
+                    },
+                )
+                item(
+                    headlineContent = { Text("滚动时收起") },
+                    supportingContent = { Text("内容往下滚时缩成只剩当前图标的小胶囊，往上滚或点它展开") },
+                    onClick = {
+                        vm.updateSettings(
+                            settings.copy(
+                                displaySetting = display.copy(
+                                    navBarCollapseOnScroll = !display.navBarCollapseOnScroll,
+                                ),
+                            )
+                        )
+                    },
+                    trailingContent = {
+                        KkSwitch(
+                            checked = display.navBarCollapseOnScroll,
+                            onCheckedChange = { on ->
+                                vm.updateSettings(
+                                    settings.copy(
+                                        displaySetting = display.copy(navBarCollapseOnScroll = on),
+                                    )
+                                )
+                            },
+                        )
+                    },
+                )
+            }
+        }
+        item(key = "barGlass") {
+            CardGroup(
+                title = { Text("栏玻璃") },
+                footer = "通透度照 Mochi 示例「主题 → 液态玻璃」：往左更透明、往右更接近毛玻璃；「仅模糊」保留背景模糊和内容对比，去掉折射、色散和边光。" +
+                    "先打开「材质 → 液态玻璃效果」才生效。",
+            ) {
+                sliderItem(
+                    title = { "通透度" },
+                    value = display.glassTint,
+                    onValueChange = { value ->
+                        vm.updateSettings(
+                            settings.copy(
+                                displaySetting = display.copy(
+                                    glassTint = (value * 100f).roundToInt() / 100f,
+                                ),
+                            )
+                        )
+                    },
+                    valueRange = 0f..1f,
+                    defaultValue = 0.5f,
+                    steps = 19,
+                    displayScale = 100f,
+                    suffix = "%",
+                )
+                item(
+                    headlineContent = { Text("仅模糊") },
+                    supportingContent = { Text("只保留背景模糊，去掉玻璃的光学边缘、色散和按压玻璃泡") },
+                    onClick = {
+                        vm.updateSettings(
+                            settings.copy(
+                                displaySetting = display.copy(
+                                    glassBlurOnly = !display.glassBlurOnly,
+                                ),
+                            )
+                        )
+                    },
+                    trailingContent = {
+                        KkSwitch(
+                            checked = display.glassBlurOnly,
+                            onCheckedChange = { on ->
+                                vm.updateSettings(
+                                    settings.copy(
+                                        displaySetting = display.copy(glassBlurOnly = on),
+                                    )
+                                )
+                            },
+                        )
+                    },
                 )
             }
         }

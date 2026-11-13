@@ -618,12 +618,16 @@ fun ChatInput(
                         } else Modifier
                     ),
                 shape = containerShape,
-                color = Color.Transparent,
-                // 收起时不描边，展开过程中出现（KodeHead 风格）
+                // 收起时保持输入栏原有的轻量感；展开后变成独立的 Mochi surface，
+                // 让 FAB 拉起的能力面板与工具台/设置页的分组容器有明确层次。
+                color = MochiTheme.colorScheme.surfaceContainer.copy(alpha = easedProgress()),
+                contentColor = MochiTheme.colorScheme.onSurface,
+                shadowElevation = (4f * easedProgress()).dp,
+                // 收起时不描边，展开过程中出现 Mochi outline。
                 border = if (easedProgress() > 0.05f) {
                     BorderStroke(
                         width = (2f * easedProgress()).dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                        color = MochiTheme.colorScheme.outlineVariant.copy(alpha = 0.7f * easedProgress()),
                     )
                 } else null,
             ) {
@@ -642,7 +646,7 @@ fun ChatInput(
                             onRetry = { onStartVoiceMode?.invoke() },
                         )
                         MochiHorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            color = MochiTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
                     }
                     if (state.messageContent.isNotEmpty()) {
@@ -783,16 +787,7 @@ fun ChatInput(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         MochiRealIconButton(
-                            onClick = {
-                                val start = progress.value
-                                val target = if (start > 0.5f) 0f else 1f
-                                scope.launch {
-                                    progress.animateTo(
-                                        targetValue = target,
-                                        animationSpec = flbSettleSpec(start, target),
-                                    )
-                                }
-                            },
+                            onClick = onMoreClick,
                             // 与顶栏按钮同一套：设置里选玻璃就画玻璃，选实心时库退回 Tonal
                             style = MochiButtonStyle.Glass,
                         ) {
@@ -800,10 +795,7 @@ fun ChatInput(
                                 imageVector = add,
                                 contentDescription = stringResource(R.string.more_options),
                                 tint = MochiTheme.colorScheme.onSurface,
-                                // 展开时 + 旋转 135° 变成 ×
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .rotate(135f * easedProgress()),
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                         Row(
@@ -1360,12 +1352,19 @@ private fun QuickMessageButton(
         ) {
             quickMessages.forEach { quickMessage ->
                 KkSurface(
-                    onClick = {
-                        state.appendText(quickMessage.content)
-                        expanded = false
-                    },
                     color = Color.Transparent,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = {
+                                state.appendText(quickMessage.content)
+                                expanded = false
+                            },
+                            onLongClick = {
+                                state.replaceText(quickMessage.content)
+                                expanded = false
+                            },
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(8.dp)

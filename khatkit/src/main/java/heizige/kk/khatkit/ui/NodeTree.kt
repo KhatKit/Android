@@ -60,8 +60,8 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
 class UiNodeException(message: String) : IllegalArgumentException(message)
 
 object UiNodeParser {
-    val fields = setOf("TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton")
-    private val containers = setOf("Column", "Row", "Box", "Card", "Section")
+    val fields = setOf("TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector")
+    private val containers = setOf("Column", "Row", "Box", "Card", "Section", "Group")
     private fun schema(vararg entries: Pair<String, String>) = entries.toMap()
     private val schemas = mapOf(
         "Column" to schema("spacing" to "number", "hAlign" to "start|center|end", "scrollable" to "boolean", "modifier" to "modifier"),
@@ -71,10 +71,20 @@ object UiNodeParser {
         "Divider" to emptyMap(),
         "Card" to schema("title" to "string", "modifier" to "modifier"),
         "Section" to schema("title" to "string", "modifier" to "modifier"),
+        // 设置页那种「iOS inset grouped」的一整组行：组内行与行之间是分隔线，没有间距。
+        "Group" to schema("modifier" to "modifier"),
+        // 分组里的一行（设置项）：前导图标 + 标题 + 行尾值 + 可选对勾/箭头，点了回传 action。
+        "ListRow" to schema(
+            "label" to "string", "value" to "string", "icon" to "icon", "action" to "string",
+            "chevron" to "boolean", "selected" to "boolean", "disabled" to "boolean",
+            "caption" to "string", "tone" to "primary|warning|danger",
+            "modifier" to "modifier",
+        ),
         "Text" to schema(
             "text" to "string", "style" to "title|subtitle|body|label|code",
             "tone" to "default|muted|primary|error", "bold" to "boolean",
             "color" to "color", "size" to "number", "weight" to "normal|medium|semibold|bold",
+            "counter" to "boolean",
             "modifier" to "modifier",
         ),
         "Icon" to schema(
@@ -96,7 +106,7 @@ object UiNodeParser {
         "CounterButton" to schema(
             "action" to "string", "count" to "number", "localCount" to "number",
             "caption" to "string", "revision" to "number", "disabled" to "boolean",
-            "tone" to "primary|default", "modifier" to "modifier",
+            "tone" to "primary|default", "icon" to "icon", "modifier" to "modifier",
         ),
         "Button" to schema(
             "label" to "string", "action" to "string", "tone" to "primary|default|danger",
@@ -108,12 +118,23 @@ object UiNodeParser {
             "color" to "color",
             "disabled" to "boolean", "contentDescription" to "string", "modifier" to "modifier",
         ),
+        // Mochi 步进器（iOS UIStepper 样式）：id/value 由 fields 机制补，min/max/step 做范围钳制。
+        "Stepper" to schema(
+            "action" to "string", "min" to "number", "max" to "number", "step" to "number",
+            "showValue" to "boolean", "disabled" to "boolean", "revision" to "number",
+            "modifier" to "modifier",
+        ),
+        // Mochi 分段选择器：id/value 由 fields 机制补，options 为等宽分段文案。
+        "Selector" to schema(
+            "action" to "string", "options" to "strings", "disabled" to "boolean",
+            "modifier" to "modifier",
+        ),
     ).mapValues { (name, props) ->
         val keyed = props + schema("key" to "string")
         if (name !in fields) keyed else keyed + schema(
             "id" to "string", "label" to "string", "hint" to "string", "required" to "boolean",
             "value" to when (name) {
-                "NumberField", "Slider", "CounterButton" -> "number"
+                "NumberField", "Slider", "CounterButton", "Stepper" -> "number"
                 "Switch", "Checkbox" -> "boolean"
                 "FilePicker" -> "paths"
                 else -> "string"
@@ -170,6 +191,19 @@ object UiNodeParser {
             if (name == "IconButton" &&
                 ((copy["action"] as? String).isNullOrEmpty() || (copy["icon"] as? String).isNullOrEmpty())
             ) fail("$name.action", "action and icon are required")
+            if (name == "Stepper" && (copy["action"] as? String).isNullOrBlank()) {
+                fail("$name.action", "required")
+            }
+            if (name == "Selector") {
+                if ((copy["action"] as? String).isNullOrBlank()) fail("$name.action", "required")
+                val options = copy["options"] as? List<*>
+                if (options.isNullOrEmpty()) fail("$name.options", "required")
+                val selected = copy["value"] as? String
+                if (selected != null && selected !in options) fail("$name.value", "must be one of options")
+            }
+            if (name == "ListRow" && (copy["action"] as? String).isNullOrBlank() &&
+                (copy["chevron"] == true || copy["selected"] != null)
+            ) fail("$name.action", "required")
             if (name == "Icon" && (copy["name"] as? String).isNullOrEmpty()) fail("$name.name", "required")
             if (name == "Text" || name == "Icon") {
                 (copy["size"] as? Number)?.toDouble()?.let { if (it < 6 || it > 64) fail("$name.size", "expected 6..64") }

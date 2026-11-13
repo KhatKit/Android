@@ -20,9 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -53,7 +50,7 @@ import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.keepOff
 import heizige.kk.khatkit.app.core.ui.icons.pushPin
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarResult
@@ -75,7 +72,7 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
     val conversations by vm.conversations.collectAsStateWithLifecycle()
 
     Box {
-        KedgeSettingsPageScaffold(
+        MochiSettingsPageScaffold(
             title = stringResource(R.string.history_page_title),
             actions = {
                 MochiIconButton(

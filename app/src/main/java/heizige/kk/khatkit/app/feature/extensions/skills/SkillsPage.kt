@@ -1,13 +1,11 @@
 package heizige.kk.khatkit.app.feature.extensions.skills
 
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
-import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
+import ui.feice.mochi.basic.MochiSearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,11 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
@@ -66,7 +61,6 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -78,6 +72,7 @@ import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.warning
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun SkillsPage() {
@@ -116,8 +111,6 @@ fun SkillsPage() {
     val visibleInvalidSkillDirs = remember(invalidSkillDirs, searchQuery) {
         invalidSkillDirs.filter { searchQuery.isBlank() || it.dirName.contains(searchQuery, true) }
     }
-    var searchExpanded by remember { mutableStateOf(false) }
-
     // 技能列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
     val skillsList: @Composable (Modifier) -> Unit = { listModifier ->
         // 与助手/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
@@ -135,18 +128,12 @@ fun SkillsPage() {
                 item { SkillsEmptyState() }
             } else {
                 lazyItemsIndexed(visibleSkills, key = { _, skill -> skill.skillDir.absolutePath }) { index, skill ->
-                    KkGroupedColumn(
+                    SkillCard(
+                        skill = skill,
                         shape = cards.indexedShape(index, visibleSkills.size),
-                        containerColor = MochiListDefaults.colors().container,
-                        topDivider = index > 0 && cards.gap == 0.dp,
-                    ) {
-                        SkillCard(
-                            skill = skill,
-                            shape = cards.indexedShape(index, visibleSkills.size),
-                            onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
-                            onDelete = { deleteTarget = skill },
-                        )
-                    }
+                        onClick = { navController.navigate(Screen.SkillDetail(skill.name)) },
+                        onDelete = { deleteTarget = skill },
+                    )
                 }
             }
 
@@ -155,8 +142,8 @@ fun SkillsPage() {
                 item(key = "invalid_skill_dirs_title") {
                     Text(
                         text = stringResource(R.string.skills_page_invalid_dirs_title),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MochiTheme.textStyles.footnote,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 4.dp, top = cards.gap, bottom = 4.dp),
                     )
                 }
@@ -164,17 +151,11 @@ fun SkillsPage() {
                     visibleInvalidSkillDirs,
                     key = { _, dir -> "invalid_dir_${dir.dirName}" },
                 ) { index, dir ->
-                    KkGroupedColumn(
+                    InvalidSkillDirCard(
+                        dir = dir,
                         shape = cards.indexedShape(index, visibleInvalidSkillDirs.size),
-                        containerColor = MochiListDefaults.colors().container,
-                        topDivider = index > 0 && cards.gap == 0.dp,
-                    ) {
-                        InvalidSkillDirCard(
-                            dir = dir,
-                            shape = cards.indexedShape(index, visibleInvalidSkillDirs.size),
-                            onDelete = { invalidDeleteTarget = dir },
-                        )
-                    }
+                        onDelete = { invalidDeleteTarget = dir },
+                    )
                 }
             }
         }
@@ -201,42 +182,22 @@ fun SkillsPage() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(top = 0.dp),
+                .padding(innerPadding),
         ) {
-            Md3SearchBar(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+            MochiSearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
                 placeholder = stringResource(R.string.skills_page_search_placeholder),
-                active = searchExpanded,
-                onActiveChange = { searchExpanded = it },
-                cancelLabel = stringResource(R.string.cancel),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 0.dp),
-                // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出技能列表。
-                expandedContent = {
-                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩。
-                    // 全屏槽不吃折叠态的 listPadding，横向 16dp 得在这里自己补，
-                    // 否则展开态列表会贴到屏幕边上（和折叠态的 16dp 对不齐）。
-                    NoHeroTransition {
-                        skillsList(
-                            Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                        )
-                    }
-                },
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            // 展开期间列表整个抽掉，只在全屏槽里出现一次（其它页同款）。
-            if (!searchExpanded) {
-                skillsList(
-                    Modifier
-                        .fillMaxSize()
-                        .then(listPadding),
-                )
-            }
+            skillsList(
+                Modifier
+                    .fillMaxSize()
+                    .then(listPadding),
+            )
         }
     }
 
@@ -339,17 +300,17 @@ private fun SkillsEmptyState() {
             imageVector = extension,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MochiTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.skills_page_empty_title),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.skills_page_empty_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -374,28 +335,28 @@ private fun SkillCard(
                 imageVector = extension,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MochiTheme.colorScheme.primary,
             )
         },
         titleContent = {
             Text(
                 text = skill.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
             )
         },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = skill.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                 )
                 if (!skill.compatibility.isNullOrBlank()) {
                     Text(
                         text = skill.compatibility,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
+                        style = MochiTheme.textStyles.labelSmall,
+                        color = MochiTheme.colorScheme.tertiary,
                     )
                 }
             }
@@ -404,8 +365,8 @@ private fun SkillCard(
             if (skill.builtin) {
                 Text(
                     text = stringResource(R.string.skills_page_builtin_badge),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
+                    style = MochiTheme.textStyles.labelSmall,
+                    color = MochiTheme.colorScheme.secondary,
                 )
             } else {
                 // 内置技能只读，不提供删除
@@ -483,21 +444,21 @@ private fun InvalidSkillDirCard(
                 imageVector = warning,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.error,
+                tint = MochiTheme.colorScheme.error,
             )
         },
         titleContent = {
             Text(
                 text = dir.dirName,
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
                 maxLines = 1,
             )
         },
         supportingContent = {
             Text(
                 text = invalidSkillReasonText(dir.reason),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )
         },
@@ -506,7 +467,7 @@ private fun InvalidSkillDirCard(
                 imageVector = delete,
                 contentDescription = stringResource(R.string.delete),
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.error,
+                tint = MochiTheme.colorScheme.error,
             )
         },
     )
@@ -615,7 +576,7 @@ private fun AddSkillDialog(
                     if (nameError) Text(
                         validationError?.let { stringResource(it.messageRes, *it.formatArgs) }
                             ?: stringResource(R.string.skills_page_name_error),
-                        color = MaterialTheme.colorScheme.error
+                        color = MochiTheme.colorScheme.error
                     )
                     else if (name != null) Text(stringResource(R.string.skills_page_skill_name, name))
                     else Text(stringResource(R.string.skills_page_paste_hint))
@@ -623,7 +584,7 @@ private fun AddSkillDialog(
                 isError = nameError,
                 minLines = 8,
                 maxLines = 14,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                textStyle = MochiTheme.textStyles.body.copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -658,8 +619,8 @@ private fun ImportSkillDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.skills_page_import_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
                 Md3OutlinedTextFieldWithSlots(
                     value = url,
@@ -681,7 +642,7 @@ private fun ImportSkillDialog(
                         KkProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Text(
                             stringResource(R.string.skills_page_downloading),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MochiTheme.textStyles.body
                         )
                     }
                 }

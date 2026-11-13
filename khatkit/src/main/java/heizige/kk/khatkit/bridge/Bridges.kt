@@ -71,6 +71,13 @@ interface ToolBridge {
 
 /** L0 网络能力；每次请求均受本次卡片的域名白名单约束。 */
 interface NetBridge {
+    /** Bounded text response with repeated headers preserved; redirects are returned, never followed. */
+    fun request(
+        url: String,
+        method: String,
+        body: String,
+        headers: Map<String, Any?>,
+    ): Map<String, Any?> = throw UnsupportedOperationException("当前宿主不支持 net.request，请更新 KhatKit")
     fun get(url: String, headers: Map<String, Any?> = emptyMap()): String
     fun post(url: String, body: String, headers: Map<String, Any?> = emptyMap()): String
     fun put(url: String, body: String, headers: Map<String, Any?> = emptyMap()): String

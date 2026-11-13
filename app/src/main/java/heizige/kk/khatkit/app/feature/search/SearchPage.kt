@@ -18,13 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -62,9 +61,10 @@ import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.sort
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -110,7 +110,7 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
         )
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
         title = stringResource(R.string.search_page_title),
@@ -212,8 +212,8 @@ private fun SearchResultSection(
                                 current,
                                 total
                             ) else stringResource(R.string.search_page_rebuilding_simple),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -224,8 +224,8 @@ private fun SearchResultSection(
                     ) {
                         Text(
                             text = stringResource(R.string.search_page_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -237,8 +237,8 @@ private fun SearchResultSection(
                     ) {
                         Text(
                             text = stringResource(R.string.search_page_no_results),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -306,7 +306,7 @@ private fun SearchResultItem(
     result: MessageSearchResult,
     onClick: () -> Unit,
 ) {
-    val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
+    val highlightColor = MochiTheme.colorScheme.tertiaryContainer
     val untitled = stringResource(R.string.search_page_untitled)
     val snippetText = buildAnnotatedString {
         val snippet = result.snippet
@@ -339,7 +339,7 @@ private fun SearchResultItem(
     KkSurface(
         onClick = onClick,
         color = CustomColors.listItemColors.containerColor,
-        shape = MaterialTheme.shapes.large,
+        shape = MochiTheme.shapes.large,
     ) {
         Column(
             modifier = Modifier
@@ -349,18 +349,18 @@ private fun SearchResultItem(
         ) {
             Text(
                 text = result.title.ifBlank { untitled },
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MochiTheme.textStyles.titleMedium,
+                color = MochiTheme.colorScheme.onSurface,
             )
             Text(
                 text = snippetText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurface,
             )
             Text(
                 text = formattedTime,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.labelSmall,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

@@ -428,7 +428,7 @@ private fun CardDetailHero(
     onRun: () -> Unit,
 ) {
     val identityIndex = abs(entry.name.hashCode()) % roleAvatarPalette.size
-    val poster = posterBase(roleAvatarColor(entry.name), MochiTheme.colorScheme.primary)
+    val poster = posterBase(roleAvatarColor(entry.name), MochiTheme.colorScheme)
     val posterFill = remember(poster) { posterGradient(poster) }
     val badgeShape = extensionShapes[identityIndex].toShape()
     val blobShape = extensionShapes[(identityIndex + extensionShapes.size / 2) % extensionShapes.size]

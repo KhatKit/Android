@@ -30,6 +30,8 @@ class ScopedNetBridge(
     }
 
     override fun get(url: String, headers: Map<String, Any?>): String = scoped.get(url, headers)
+    override fun request(url: String, method: String, body: String, headers: Map<String, Any?>): Map<String, Any?> =
+        scoped.request(url, method, body, headers)
     override fun post(url: String, body: String, headers: Map<String, Any?>): String =
         scoped.post(url, body, headers)
     override fun put(url: String, body: String, headers: Map<String, Any?>): String =

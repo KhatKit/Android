@@ -38,7 +38,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -104,6 +103,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
@@ -184,13 +184,6 @@ fun WorkspaceDetailPage(id: String) {
             }
             MochiIconButton(onClick = { vm.refresh() }) {
                 Icon(refresh, contentDescription = null)
-            }
-            if (state.workspace?.shellStatus != WorkspaceShellStatus.DISABLED.name) {
-                MochiIconButton(
-                    onClick = { navController.navigate(Screen.WorkspaceTerminal(id)) }
-                ) {
-                    Icon(terminal, contentDescription = null)
-                }
             }
         },
         rail = {
@@ -453,8 +446,8 @@ private fun WorkspaceBasicPage(
                         Text(stringResource(R.string.workspace_detail_compatibility_mode))
                         Text(
                             text = stringResource(R.string.workspace_detail_compatibility_mode_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
@@ -495,8 +488,8 @@ private fun WorkspaceToolApprovalCard(
                 Text(stringResource(R.string.workspace_detail_tool_approval))
                 Text(
                     text = stringResource(R.string.workspace_detail_tool_approval_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },
@@ -562,8 +555,8 @@ private fun RootfsProgress(progress: RootfsInstallProgress) {
 
                 RootfsInstallStage.INSTALLED -> stringResource(R.string.workspace_detail_install_complete)
             },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -585,8 +578,8 @@ private fun InstallRootfsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.workspace_detail_install_rootfs_desc, workspace.name),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
                 Md3OutlinedTextFieldWithSlots(
                     value = url,
@@ -780,8 +773,8 @@ private fun WorkspacePathBar(
         Text(
             text = path.ifBlank { "/" },
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -854,14 +847,14 @@ private fun WorkspaceFileCard(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        .background(MochiTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = insertDriveFile,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MochiTheme.colorScheme.onSurfaceVariant,
                     )
                     imageRequest?.let {
                         AsyncImage(
@@ -882,9 +875,9 @@ private fun WorkspaceFileCard(
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
                         tint = if (entry.isDirectory) {
-                            MaterialTheme.colorScheme.primary
+                            MochiTheme.colorScheme.primary
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MochiTheme.colorScheme.onSurfaceVariant
                         },
                     )
                 }
@@ -897,14 +890,14 @@ private fun WorkspaceFileCard(
             ) {
                 Text(
                     text = entry.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MochiTheme.textStyles.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = if (entry.isDirectory) entry.path else "${entry.path} · ${entry.sizeBytes.fileSizeToString()}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -961,12 +954,12 @@ private fun EmptyDirectoryState() {
             imageVector = folder,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MochiTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.workspace_detail_empty_directory),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -980,8 +973,8 @@ private fun ErrorCard(message: String) {
         Text(
             text = message,
             modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.error,
         )
     }
 }

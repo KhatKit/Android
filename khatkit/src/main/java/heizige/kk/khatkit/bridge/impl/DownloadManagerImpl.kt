@@ -52,6 +52,7 @@ class DownloadManagerImpl(
     private val http: HttpClient,
     private val maxConcurrent: Int = 3,
     private val userAgent: String = "KhatKit/1.0",
+    private val mediaDownloadHandler: MediaDownloadHandler? = null,
 ) : DownloadBridge {
 
     @Serializable
@@ -65,6 +66,9 @@ class DownloadManagerImpl(
         val state: String = STATE_QUEUED,
         val bytes: Long = 0,
         val total: Long = -1,
+        val hls: Boolean = false,
+        val audioUrl: String = "",
+        val audioHeaders: Map<String, String> = emptyMap(),
     )
 
     private inner class Record(
@@ -74,6 +78,9 @@ class DownloadManagerImpl(
         val target: String,
         val headers: Map<String, String>,
         val threads: Int = 1,
+        val hls: Boolean = false,
+        val audioUrl: String = "",
+        val audioHeaders: Map<String, String> = emptyMap(),
         @Volatile var state: String = STATE_QUEUED,
         @Volatile var bytes: Long = 0,
         @Volatile var total: Long = -1,
@@ -139,6 +146,10 @@ class DownloadManagerImpl(
                     target = File(rootDir, "files/${name.replace('/', '_')}").absolutePath,
                     headers = headers,
                     threads = (task["threads"]?.toString()?.toIntOrNull() ?: 1).coerceIn(1, 32),
+                    hls = task["hls"] == true,
+                    audioUrl = task["audio_url"]?.toString().orEmpty(),
+                    audioHeaders = (task["audio_headers"] as? Map<*, *>)?.entries
+                        ?.associate { it.key.toString() to it.value.toString() }.orEmpty(),
                 )
                 record.bytes = File(record.target + ".part").takeIf { it.exists() }?.length() ?: 0
                 tasks[record.id] = record
@@ -253,18 +264,40 @@ class DownloadManagerImpl(
             record.state = STATE_RUNNING
             persist()
 
-            if (record.threads > 1) {
-                parallelDownload(record)
+            if (record.hls || record.audioUrl.isNotBlank()) {
+                val handler = mediaDownloadHandler ?: error("本体尚未提供媒体下载处理")
+                record.bytes = 0
+                var lastTick = System.nanoTime()
+                var lastBytes = 0L
+                handler.download(record.url, record.headers, record.hls, record.audioUrl,
+                    record.audioHeaders, part) { delta ->
+                    record.bytes += delta
+                    val now = System.nanoTime()
+                    val seconds = (now - lastTick) / 1_000_000_000.0
+                    if (seconds >= 1.0) {
+                        record.speedBps = ((record.bytes - lastBytes) / seconds).toLong()
+                        lastTick = now
+                        lastBytes = record.bytes
+                        refreshNotification()
+                    }
+                }
+                require(part.length() > 0 && part.renameTo(target)) { "无法保存媒体文件" }
+                record.bytes = target.length()
+                record.total = record.bytes
+                record.speedBps = 0
+                record.state = STATE_DONE
                 return
             }
+            if (record.threads > 1 && parallelDownload(record)) return
 
             var offset = if (part.exists()) part.length() else 0L
             record.bytes = offset
             http.prepareGet(record.url) {
                 record.headers.forEach { (key, value) -> header(key, value) }
-                header(HttpHeaders.UserAgent, userAgent)
+                if (record.headers.keys.none { it.equals(HttpHeaders.UserAgent, true) }) header(HttpHeaders.UserAgent, userAgent)
                 if (offset > 0) header(HttpHeaders.Range, "bytes=$offset-")
             }.execute { response ->
+                require(response.status.value in 200..299) { "下载失败：HTTP ${response.status.value}" }
                 if (response.status == HttpStatusCode.PartialContent) {
                     record.total = parseRangeTotal(response) ?: -1
                 } else {
@@ -321,21 +354,20 @@ class DownloadManagerImpl(
     }
 
     /** YunX 风格 Range 分片下载；每片独立落盘，重启后已完成分片直接复用。 */
-    private suspend fun parallelDownload(record: Record) = coroutineScope {
+    private suspend fun parallelDownload(record: Record): Boolean = coroutineScope {
         val probe = http.prepareGet(record.url) {
             record.headers.forEach { (key, value) -> header(key, value) }
-            header(HttpHeaders.UserAgent, userAgent)
+            if (record.headers.keys.none { it.equals(HttpHeaders.UserAgent, true) }) header(HttpHeaders.UserAgent, userAgent)
             header(HttpHeaders.Range, "bytes=0-0")
         }.execute { response ->
-            if (response.status != HttpStatusCode.PartialContent) {
-                error("服务端不支持 Range 分片（HTTP ${response.status.value}），已改用普通下载")
-            }
-            parseRangeTotal(response) ?: error("无法确定文件大小")
+            if (response.status == HttpStatusCode.PartialContent) parseRangeTotal(response) else null
         }
+        if (probe == null) return@coroutineScope false
         require(probe > 0) { "文件大小无效" }
         record.total = probe
-        val chunkCount = minOf(record.threads * 8, 128).coerceAtLeast(record.threads)
-        val chunkSize = (probe + chunkCount - 1) / chunkCount
+        val desiredChunks = minOf(record.threads * 8L, 128L, probe).toInt().coerceAtLeast(1)
+        val chunkSize = (probe + desiredChunks - 1) / desiredChunks
+        val chunkCount = ((probe + chunkSize - 1) / chunkSize).toInt()
         val next = AtomicInteger(0)
         val parts = Array(chunkCount) { index ->
             val start = index * chunkSize
@@ -356,10 +388,13 @@ class DownloadManagerImpl(
                     file.parentFile?.mkdirs()
                     http.prepareGet(record.url) {
                         record.headers.forEach { (key, value) -> header(key, value) }
-                        header(HttpHeaders.UserAgent, userAgent)
+                        if (record.headers.keys.none { it.equals(HttpHeaders.UserAgent, true) }) header(HttpHeaders.UserAgent, userAgent)
                         header(HttpHeaders.Range, "bytes=${range.first}-${range.second}")
                     }.execute { response ->
                         require(response.status == HttpStatusCode.PartialContent) { "分片 $index 未返回 206" }
+                        require(response.headers[HttpHeaders.ContentRange] == "bytes ${range.first}-${range.second}/$probe") {
+                            "分片 $index 返回了错误的字节范围"
+                        }
                         FileOutputStream(file, false).use { output ->
                             response.bodyAsChannel().toInputStream().use { input -> input.copyTo(output, 64 * 1024) }
                         }
@@ -383,6 +418,7 @@ class DownloadManagerImpl(
         record.bytes = probe
         record.speedBps = 0
         record.state = STATE_DONE
+        true
     }
 
     private fun parseRangeTotal(response: HttpResponse): Long? {
@@ -403,6 +439,9 @@ class DownloadManagerImpl(
                     state = record.state,
                     bytes = record.bytes,
                     total = record.total,
+                    hls = record.hls,
+                    audioUrl = record.audioUrl,
+                    audioHeaders = record.audioHeaders,
                 )
             }
         }
@@ -434,6 +473,9 @@ class DownloadManagerImpl(
                     state = if (persisted.state == STATE_RUNNING) STATE_PAUSED else persisted.state,
                     bytes = persisted.bytes,
                     total = persisted.total,
+                    hls = persisted.hls,
+                    audioUrl = persisted.audioUrl,
+                    audioHeaders = persisted.audioHeaders,
                 )
                 if (record.state == STATE_DONE) record.completion.complete(Unit)
                 tasks[record.id] = record

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.ssh.api.SshEngineProvider
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.ssh.api.SshRequest
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -94,7 +94,7 @@ fun SshPluginPage(
                         Text(
                             text = "插件引擎加载失败：插件包可能损坏或不支持当前 ABI，去扩展页重新安装。",
                             modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MochiTheme.textStyles.body,
                         )
                     }
                 }
@@ -110,12 +110,12 @@ fun SshPluginPage(
                     ) {
                         Text(
                             text = "连接远程主机",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MochiTheme.textStyles.titleMedium,
                         )
                         Text(
                             text = "首次连接会记住主机密钥；密钥发生变化时将拒绝连接。密码只走内存，不落盘。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.footnote,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                         )
                         Md3OutlinedTextFieldWithSlots(
                             value = host,
@@ -204,11 +204,11 @@ fun SshPluginPage(
                         contentPadding = PaddingValues(0.dp),
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("输出", style = MaterialTheme.typography.titleMedium)
+                            Text("输出", style = MochiTheme.textStyles.titleMedium)
                             Text(
                                 text = text.ifBlank { "(没有输出)" },
                                 modifier = Modifier.padding(top = 8.dp),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MochiTheme.textStyles.body,
                             )
                         }
                     }

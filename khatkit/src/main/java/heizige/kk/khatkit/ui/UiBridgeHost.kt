@@ -76,6 +76,28 @@ data class UiSheetOptions(
     val topActions: List<UiSheetNavItem> = emptyList(),
     /** 滚到内容底部时回传的 event（`load_more = "..."` 或 `load_more = true` → `"load_more"`）。 */
     val loadMoreEvent: String? = null,
+    /**
+     * 下拉刷新回传的 event（`pull_refresh = "refresh"`）：卡片页在顶部下拉时回传它，
+     * 宿主也认这个 event（不再需要顶栏刷新按钮）。
+     */
+    val pullRefreshEvent: String? = null,
+    /**
+     * 返回手势回传的 event（`back_event = "settings_close"`）：子页里按返回先回上一屏，
+     * 而不是直接关掉整个弹层（卡片设置页用）。
+     */
+    val backEvent: String? = null,
+    /**
+     * 压一层新页面（`push = true`）：在卡片页（全屏页）之上叠一层，宿主自己做页面栈 ——
+     * 新页从右边滑进来、盖住上一页，返回逐层退栈，而不是再开一张新弹层。
+     * 非 push 的全屏屏就是「回到根页/刷新根页」，深栈会退掉。
+     */
+    val push: Boolean = false,
+    /**
+     * 这一屏是卡片页的一层（\u0060layer = true\u0060）：和 [push] 不同，它表示「归属」，不是「压栈」。
+     * 同一层原地刷新（push = false）时也要带上它，宿主才认得出这是卡片页里的那一层，
+     * 不会把它当普通页面内屏领走（那样会掉出来、没有顶栏也没有兜底页面）。
+     */
+    val layer: Boolean = false,
 ) {
     /**
      * 需要自定义大弹层（自绘遮罩 + 顶/底栏完全受控）时为 true。
@@ -134,6 +156,15 @@ data class UiSheetOptions(
                 largeTopBar = map.largeTopBarFlag(),
                 topActions = map.topActionsFlag(),
                 loadMoreEvent = map.loadMoreFlag(),
+                pullRefreshEvent = map.flag(
+                    "pull_refresh", "pull_refresh_event", "refresh_event", "pull_to_refresh",
+                )?.toString()?.trim()?.ifBlank { null },
+                backEvent = map.flag("back_event", "on_back", "navigate_back")
+                    ?.toString()?.trim()?.ifBlank { null },
+                push = map.flag("push", "nav_push", "page_push").toBooleanFlag() ||
+                    map.flag("presentation")?.toString()?.trim()?.lowercase() == "push",
+                layer = map.flag("layer", "nav_layer", "page_layer", "in_stack").toBooleanFlag() ||
+                    map.flag("presentation")?.toString()?.trim()?.lowercase() == "layer",
             )
         }
 
@@ -312,16 +343,9 @@ data class SheetAction(
 
 /** 一个等待宿主 UI 处理的请求。 */
 sealed interface UiRequest {
-    /**
-     * 能不能铺进一张普通页面（而不是弹层）：只有节点树，且不依赖弹层自己的底部导航、
-     * 分页、顶栏动作这些外框。确认框、动作面板、网页登录仍然弹层。
-     */
+    /** All card content uses pages; confirmations use a Mochi dialog. */
     val pageHostable: Boolean
-        get() = when (this) {
-            is FormTree, is ShowTree -> true
-            is Screen -> pages.isEmpty() && options.navigation == null && options.topActions.isEmpty()
-            else -> false
-        }
+        get() = this !is Confirm
 
     data class Sheet(
         val title: String,
@@ -408,8 +432,11 @@ class UiBridgeHost(
     private val onCancelled: () -> Boolean = { false },
 ) : UiBridge {
     companion object {
-        /** 宿主挂载宽限：运行开始到 Compose 首次组合之间允许的最大等待。 */
-        const val HOST_ATTACH_GRACE_MS = 1_500L
+        /**
+         * 宿主挂载宽限：给前台页面一次 Compose 组合机会，但后台卡片不应为 UI 等待太久。
+         * 页面已经挂载时不会经过这段延迟。
+         */
+        const val HOST_ATTACH_GRACE_MS = 300L
 
         /** 脚本线程的卡片名上下文，由 [ScopedUiBridge]（`BridgeContextDecorator`）写入。 */
         internal val cardNameContext = ThreadLocal<String?>()
@@ -551,7 +578,11 @@ class UiBridgeHost(
         var timedOut = false
         val result = try {
             CardRunContext.awaitInteraction {
-                if (!awaitHostAttached()) return@awaitInteraction null
+                if (!awaitHostAttached()) {
+                    android.util.Log.i("KhatKitUI", "awaitRequest: host not attached, drop $request")
+                    return@awaitInteraction null
+                }
+                android.util.Log.i("KhatKitUI", "awaitRequest: enqueue $request budget=$budget pageHostable=${request.pageHostable}")
                 val ready = enqueue(request)
                 // Queueing is cancellable and does not consume the user's answer budget.
                 // A fast UI can answer before this thread observes the StateFlow.
@@ -576,6 +607,7 @@ class UiBridgeHost(
             removeRequest(request)
             throw error
         }
+        android.util.Log.i("KhatKitUI", "awaitRequest: result=$result timedOut=$timedOut req=${request.javaClass.simpleName}")
         if (!timedOut) {
             // 操作屏（Screen）在提交后继续留在组合里：脚本下一次 ui.screen 直接替换内容，
             // 不再「关掉再重开」。运行结束时由 [endScreen] 收掉。
@@ -734,7 +766,8 @@ class UiBridgeHost(
         // 事件必须真的来自这张树：Button / IconButton 的 action，或底部导航条目的 event。
         // 只认 Button 会把 IconButton（刷新 / 外链）和 nav 全吞掉 —— 点下去毫无反应。
         val fromNode = activeRoot.walk().any {
-            (it.type == "Button" || it.type == "IconButton" || it.type == "CounterButton") &&
+            (it.type == "Button" || it.type == "IconButton" || it.type == "CounterButton" ||
+                it.type == "Stepper" || it.type == "Selector" || it.type == "ListRow") &&
                 it.props["action"] == event && it.props["disabled"] != true &&
                 (it.type != "CounterButton" || ((values[it.props["id"]] as? Number)?.toInt() ?: 0) in 1..10)
         }
@@ -742,7 +775,11 @@ class UiBridgeHost(
             ?.any { it.event == event && it.enabled } == true
         val fromTopBar = screen.options.topActions.any { it.event == event }
         val fromLoadMore = (page?.loadMoreEvent ?: if (page == null) screen.options.loadMoreEvent else null) == event
-        if (!fromNode && !fromNav && !fromTopBar && !fromLoadMore) return
+        // 下拉刷新：页面在顶部下拉时宿主替用户回传的事件（= 卡片的刷新动作）。
+        val fromPullRefresh = screen.options.pullRefreshEvent == event
+        // 返回手势回传的事件（设置这类子页「返回上一屏」）。
+        val fromBack = screen.options.backEvent == event
+        if (!fromNode && !fromNav && !fromTopBar && !fromLoadMore && !fromPullRefresh && !fromBack) return
         val result = mapOf("event" to event, "values" to activeRoot.collect(values)) +
             if (page != null) mapOf("page" to pageId) else emptyMap()
         if (expired.remove(screen)) {

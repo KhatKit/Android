@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
@@ -33,8 +33,8 @@ import heizige.kk.khatkit.app.feature.backup.tabs.S3Tab
 import heizige.kk.khatkit.app.feature.backup.tabs.WebDavTab
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
 
 @Composable
 fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
@@ -43,7 +43,7 @@ fun BackupPage(vm: BackupViewModel = hiltViewModel()) {
     var showRestartDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeTabPageScaffold(
+    MochiTabPageScaffold(
         title = stringResource(R.string.backup_page_title),
         titles = listOf(
             stringResource(R.string.backup_page_import_export),

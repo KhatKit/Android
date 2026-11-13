@@ -54,7 +54,7 @@ pub use crate::host::{CardHost, DefaultHost, HostError};
 pub use crate::manifest::{Capability, Limits, LimitsSpec, Manifest, ManifestError, ManifestSpec};
 pub use crate::mock_host::{MockCall, MockHost};
 pub use crate::ui::{
-    components, normalize_tree, NullUiPresenter, ScriptedUiPresenter, UiPresenter, UiRenderHost,
+    components, normalize_screen_pages, normalize_tree, NullUiPresenter, ScriptedUiPresenter, UiPresenter, UiRenderHost,
     UiRequest, MAX_DEPTH, MAX_NODES,
 };
 pub use crate::package::{

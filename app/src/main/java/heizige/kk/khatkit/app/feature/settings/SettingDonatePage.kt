@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 
 /**
  * 捐赠页（MD3 版）。内容已按要求清空，只保留顶栏。
@@ -22,7 +22,7 @@ fun SettingDonatePage() {
     
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.donate_page_title),
         scrollBehavior = scrollBehavior,
     ) { paddings ->

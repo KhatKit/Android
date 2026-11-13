@@ -20,11 +20,8 @@ import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
@@ -56,8 +53,14 @@ import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
@@ -71,9 +74,12 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
         title = stringResource(R.string.assistant_page_quick_messages),
         scrollBehavior = scrollBehavior,
         floatingActionButton = {
-            KkFloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(add, contentDescription = null)
-            }
+            MochiFab(
+                icon = add,
+                contentDescription = stringResource(R.string.quick_messages_page_add_title),
+                onClick = { showAddDialog = true },
+                modifier = Modifier.navigationBarsPadding().padding(16.dp),
+            )
         },
     ) { innerPadding ->
         // 与助手列表/提供商列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
@@ -82,7 +88,12 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
         val cards = listCardStyle()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(16.dp),
+            contentPadding = innerPadding + PaddingValues(
+                start = 16.dp,
+                top = 16.dp,
+                end = 16.dp,
+                bottom = MochiFabDefaults.stackHeight() + 16.dp,
+            ) + WindowInsets.navigationBars.asPaddingValues(),
             verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (settings.quickMessages.isEmpty()) {
@@ -98,17 +109,17 @@ fun QuickMessagesPage(vm: QuickMessagesViewModel = hiltViewModel()) {
                             imageVector = bolt,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MochiTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = stringResource(R.string.quick_messages_page_empty_title),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = stringResource(R.string.quick_messages_page_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -196,13 +207,13 @@ private fun QuickMessageItem(
                 imageVector = bolt,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MochiTheme.colorScheme.primary,
             )
         },
         titleContent = {
             Text(
                 text = quickMessage.title.ifBlank { stringResource(R.string.quick_messages_page_untitled) },
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.body,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -210,8 +221,8 @@ private fun QuickMessageItem(
         supportingContent = {
             Text(
                 text = quickMessage.content.ifBlank { stringResource(R.string.quick_messages_page_empty_content) },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

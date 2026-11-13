@@ -21,7 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -101,7 +101,7 @@ fun WebViewPage(url: String, contentId: String) {
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
        topBar = {
-            KedgePageTopBar(
+            MochiPageTopBar(
                 title = state.pageTitle?.takeIf { it.isNotEmpty() } ?: state.currentUrl
                         ?: "",
                 navigationIcon = {

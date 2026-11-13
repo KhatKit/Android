@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
@@ -666,6 +667,8 @@ private fun SherpaLocalASRConfiguration(
     onValueChange: (ASRProviderSetting) -> Unit,
 ) {
     val context = LocalContext.current
+    val appEntryPoint = rememberAppEntryPoint()
+    val downloadProvider = appEntryPoint.khatKitToolProvider()
     val store = remember { SherpaModelManager(context) }
     val scope = rememberCoroutineScope()
     var downloadedIds by remember {
@@ -715,7 +718,11 @@ private fun SherpaLocalASRConfiguration(
                                 engineDownloading = true
                                 engineProgress = 0f
                                 runCatching {
-                                    store.downloadEngine { engineProgress = it }
+                                    val archive = downloadProvider.downloadFile(
+                                        SherpaModels.ENGINE_URL,
+                                        "sherpa-onnx-${SherpaModels.ENGINE_VERSION}.aar",
+                                    ) ?: error("下载失败")
+                                    store.installEngineArchive(archive).also { archive.delete() }
                                 }.onSuccess {
                                     engineReady = true
                                 }.onFailure {
@@ -791,7 +798,11 @@ private fun SherpaLocalASRConfiguration(
                                     downloadingId = preset.id
                                     progress = 0f
                                     runCatching {
-                                        store.download(preset) { progress = it }
+                                        val archive = downloadProvider.downloadFile(
+                                            preset.url,
+                                            "${preset.id}.tar.bz2",
+                                        ) ?: error("下载失败")
+                                        store.installModelArchive(preset, archive).also { archive.delete() }
                                     }.onSuccess {
                                         downloadedIds = downloadedIds + preset.id
                                         onValueChange(

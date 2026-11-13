@@ -11,12 +11,18 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.request.prepareRequest
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.utils.io.readAvailable
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.URI
@@ -27,6 +33,50 @@ class AndroidNetBridge(
     private val allow: Set<String> = emptySet(),
 ) : NetBridge {
     fun httpClient(): HttpClient = httpClient
+    override fun request(
+        url: String,
+        method: String,
+        body: String,
+        headers: Map<String, Any?>,
+    ): Map<String, Any?> = runBlocking {
+        val uri = URI(url)
+        require(uri.scheme?.lowercase() in setOf("http", "https") && uri.userInfo == null) {
+            "网络地址必须为不含用户信息的 HTTP(S) URL"
+        }
+        checkHost(url)
+        val verb = method.uppercase()
+        require(verb in setOf("GET", "POST", "PUT", "DELETE", "HEAD")) { "不支持的网络方法：$method" }
+        // A redirect must not leak credentials or escape the per-card allowlist.
+        httpClient.config { followRedirects = false }.use { client ->
+            client.prepareRequest(url) {
+                this.method = HttpMethod.parse(verb)
+                expectSuccess = false
+                applyHeaders(headers)
+                if (verb == "POST" || verb == "PUT") {
+                    if (headers.keys.none { it.equals("Content-Type", ignoreCase = true) }) {
+                        contentType(ContentType.Application.Json)
+                    }
+                    setBody(body)
+                }
+            }.execute { response ->
+                val channel = response.bodyAsChannel()
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val count = channel.readAvailable(buffer, 0, buffer.size)
+                    if (count < 0) break
+                    require(output.size() + count <= 192 * 1024) { "net.request 响应超过 192 KiB，请缩小分页" }
+                    output.write(buffer, 0, count)
+                }
+                mapOf(
+                    "status" to response.status.value,
+                    "headers" to response.headers.entries().associate { it.key.lowercase() to it.value },
+                    "body" to output.toString(Charsets.UTF_8.name()),
+                )
+            }
+        }
+    }
+
     override fun get(url: String, headers: Map<String, Any?>): String = runBlocking {
         checkHost(url)
         httpClient.get(url) { applyHeaders(headers) }.bodyAsText()

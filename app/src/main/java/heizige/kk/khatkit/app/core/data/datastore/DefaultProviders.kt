@@ -167,6 +167,31 @@ val DEFAULT_PROVIDERS = listOf(
         useResponseApi = true,
     ),
     ProviderSetting.OpenAI(
+        id = Uuid.parse("3de58b04-7ac6-4f25-8880-2e2638aeb1d6"),
+        name = "STA1N API🍪",
+        baseUrl = "https://sta1n.ai/v1",
+        apiKey = "",
+        enabled = false,
+        builtIn = true,
+        description = {
+            Text(
+                text = buildAnnotatedString {
+                    append("主要为 RP 玩家服务的站点")
+                    appendLine()
+                    append("官网：")
+                    withLink(LinkAnnotation.Url("https://sta1n.ai")) {
+                        withStyle(SpanStyle(MaterialTheme.colorScheme.primary)) {
+                            append("https://sta1n.ai")
+                        }
+                    }
+                }
+            )
+        },
+        shortDescription = {
+            Text("主要为 RP 玩家服务的站点")
+        },
+    ),
+    ProviderSetting.OpenAI(
         id = Uuid.parse("5197b3ae-21fd-4924-abb0-2aa70ff4ac42"),
         name = "极客猫",
         baseUrl = "https://api.zenneko.top/v1",

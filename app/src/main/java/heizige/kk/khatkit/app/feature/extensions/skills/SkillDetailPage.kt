@@ -24,11 +24,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -67,6 +64,7 @@ import heizige.kk.khatkit.app.core.ui.icons.folderOpen
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun SkillDetailPage(skillName: String) {
@@ -209,7 +207,7 @@ private fun FileItem(
 ) {
     KkSurface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = MochiTheme.colorScheme.surface,
     ) {
         Row(
             modifier = Modifier
@@ -221,11 +219,11 @@ private fun FileItem(
                 imageVector = description,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MochiTheme.colorScheme.primary,
             )
             Text(
                 text = skillFile.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MochiTheme.textStyles.body,
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier
                     .weight(1f)
@@ -233,8 +231,8 @@ private fun FileItem(
             )
             Text(
                 text = "${skillFile.size} B",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
             MochiIconButton(onClick = onEdit, modifier = Modifier.size(36.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
@@ -249,7 +247,7 @@ private fun FileItem(
                         imageVector = delete,
                         contentDescription = stringResource(R.string.delete),
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = MochiTheme.colorScheme.error,
                     )
                 }
             }
@@ -269,7 +267,7 @@ private fun DirItem(
 
     KkSurface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = MochiTheme.colorScheme.surface,
     ) {
         Column {
             Row(
@@ -284,19 +282,19 @@ private fun DirItem(
                     imageVector = if (expanded) keyboardArrowDown else chevronRight,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MochiTheme.colorScheme.onSurfaceVariant,
                 )
                 Icon(
                     imageVector = if (expanded) folderOpen else folder,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.tertiary,
+                    tint = MochiTheme.colorScheme.tertiary,
                 )
                 Text(
                     text = node.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MochiTheme.textStyles.body,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MochiTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -335,7 +333,7 @@ private fun EditFileDialog(
                 label = { Text(stringResource(R.string.skill_detail_page_content)) },
                 minLines = 10,
                 maxLines = 20,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                textStyle = MochiTheme.textStyles.body.copy(fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -377,13 +375,13 @@ private fun AddFileDialog(
                     supportingText = {
                         if (fileNameError) Text(
                             stringResource(R.string.skill_detail_page_file_name_invalid),
-                            color = MaterialTheme.colorScheme.error,
+                            color = MochiTheme.colorScheme.error,
                         )
                     },
                     isError = fileNameError,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                    textStyle = MochiTheme.textStyles.body.copy(fontFamily = FontFamily.Monospace),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
@@ -393,7 +391,7 @@ private fun AddFileDialog(
                     label = { Text(stringResource(R.string.skill_detail_page_content)) },
                     minLines = 6,
                     maxLines = 14,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                    textStyle = MochiTheme.textStyles.body.copy(fontFamily = FontFamily.Monospace),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )

@@ -7,8 +7,8 @@
   <color name="teal_700">#FF018786</color>
   <color name="black">#FF000000</color>
   <color name="white">#FFFFFFFF</color>
-  <!-- API 31 以下的中性回退色；Compose 启动画面进入后使用当前 MochiTheme 调色板。 -->
-  <color name="splash_background">#FFFAF9FC</color>
-  <color name="splash_foreground">#FF465D91</color>
-  <color name="splash_content">#FF444652</color>
+  <!-- API 31 以下的 Mochi 默认 Tonal Spot 回退色；Compose 启动画面进入后使用当前主题。 -->
+  <color name="splash_background">#FFF6FAF7</color>
+  <color name="splash_foreground">#FF256A59</color>
+  <color name="splash_content">#FF57615D</color>
 </resources>

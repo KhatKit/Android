@@ -80,12 +80,20 @@ impl CardHost for MockHost {
             .get("args")
             .cloned()
             .unwrap_or(serde_json::Value::Null);
+        let request_url = args.get(0).and_then(|value| value.as_str()).unwrap_or("").to_string();
         self.calls.push(MockCall {
             capability: cap.to_string(),
             method: method.clone(),
             args,
         });
         if let Some(reply) = self.replies.get(&method) {
+            // URL 定向应答：{"net.get": {"__urls": {"https://...": {"__raw": "..."}}}}
+            if let Some(urls) = reply.get("__urls").and_then(|value| value.as_object()) {
+                let url = request_url.as_str();
+                if let Some(picked) = urls.get(url).or_else(|| urls.get("__default")) {
+                    return Ok(Self::reply_json(picked));
+                }
+            }
             return Ok(Self::reply_json(reply));
         }
         match &self.fallback {

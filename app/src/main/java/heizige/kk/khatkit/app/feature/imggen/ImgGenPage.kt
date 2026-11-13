@@ -46,13 +46,12 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -113,9 +112,10 @@ import heizige.kk.khatkit.app.core.ui.icons.photo
 import heizige.kk.khatkit.app.core.ui.icons.save
 import heizige.kk.khatkit.app.core.ui.icons.tune
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import ui.feice.mochi.theme.MochiTheme
 
 
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
@@ -161,13 +161,13 @@ fun ImageGenPage(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
        topBar = {
-            KedgePageTopBar(
+            MochiPageTopBar(
                 title = stringResource(R.string.imggen_page_title),
                 navigationIcon = {
                     BackButton()
                 },
                 actions = {
-                    // 顶栏按钮统一用 Miuix IconButton（MD3 下 KedgePageTopBar 会自行分支，
+                    // 顶栏按钮统一用 Miuix IconButton（MD3 下 MochiPageTopBar 会自行分支，
                     // 这里显式给 Miuix 分支原生控件）
                                         MochiIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
                         Icon(
@@ -399,7 +399,7 @@ private fun InputBar(
             minLines = 1,
             maxLines = 5,
             shape = RoundedCornerShape(16.dp),
-            textStyle = MaterialTheme.typography.bodyMedium,
+            textStyle = MochiTheme.textStyles.body,
         )
 
         Row(
@@ -457,9 +457,9 @@ private fun InputBar(
                 modifier = Modifier.size(40.dp),
                 shape = CircleShape,
                 color = when {
-                    isGenerating -> MaterialTheme.colorScheme.errorContainer
-                    !canSend -> MaterialTheme.colorScheme.surfaceContainerHigh
-                    else -> MaterialTheme.colorScheme.primary
+                    isGenerating -> MochiTheme.colorScheme.errorContainer
+                    !canSend -> MochiTheme.colorScheme.surfaceContainerHigh
+                    else -> MochiTheme.colorScheme.primary
                 },
             ) {
                 Box(
@@ -470,9 +470,9 @@ private fun InputBar(
                         imageVector = if (isGenerating) close else arrowUpward,
                         contentDescription = stringResource(R.string.imggen_page_generate_image),
                         tint = when {
-                            isGenerating -> MaterialTheme.colorScheme.onErrorContainer
-                            !canSend -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            else -> MaterialTheme.colorScheme.onPrimary
+                            isGenerating -> MochiTheme.colorScheme.onErrorContainer
+                            !canSend -> MochiTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            else -> MochiTheme.colorScheme.onPrimary
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -497,8 +497,8 @@ private fun ReferenceImagesRow(
             KkSurface(
                 modifier = Modifier.size(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, MochiTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                color = MochiTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Box {
                     AsyncImage(
@@ -515,13 +515,13 @@ private fun ReferenceImagesRow(
                             .padding(3.dp)
                             .size(20.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+                        color = MochiTheme.colorScheme.scrim.copy(alpha = 0.55f),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = delete,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.inverseOnSurface,
+                                tint = MochiTheme.colorScheme.inverseOnSurface,
                                 modifier = Modifier.size(12.dp)
                             )
                         }
@@ -662,13 +662,13 @@ private fun ImageGalleryScreen(
                             imageVector = photo,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MochiTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.imggen_page_no_generated_images),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -705,7 +705,7 @@ private fun ImageGalleryScreen(
                                     onLongClickLabel = stringResource(R.string.imggen_page_select_image)
                                 ),
                                 border = if (it.id in selectedImages) {
-                                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                    BorderStroke(2.dp, MochiTheme.colorScheme.primary)
                                 } else null
                             ) {
                                 Column {
@@ -737,13 +737,13 @@ private fun ImageGalleryScreen(
                                         Column {
                                             Text(
                                                 text = it.model,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.primary
+                                                style = MochiTheme.textStyles.labelSmall,
+                                                color = MochiTheme.colorScheme.primary
                                             )
                                             Text(
                                                 text = it.prompt.take(20) + if (it.prompt.length > 20) "..." else "",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = MochiTheme.textStyles.body,
+                                                color = MochiTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 2
                                             )
                                         }
@@ -803,7 +803,7 @@ private fun ImageGalleryScreen(
                                                     imageVector = delete,
                                                     contentDescription = stringResource(R.string.imggen_page_delete),
                                                     modifier = Modifier.size(16.dp),
-                                                    tint = MaterialTheme.colorScheme.error
+                                                    tint = MochiTheme.colorScheme.error
                                                 )
                                             }
                                         }
@@ -848,7 +848,7 @@ private fun SettingsBottomSheet(
                 .imePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            KedgeFormRow(
+            MochiFormRow(
                 label = { Text(stringResource(R.string.imggen_page_generation_count)) },
                 description = { Text(stringResource(R.string.imggen_page_generation_count_desc)) }
             ) {
@@ -859,7 +859,7 @@ private fun SettingsBottomSheet(
                 )
             }
 
-            KedgeFormRow(
+            MochiFormRow(
                 label = { Text("Image Size") }) {
                 // CH1：单选 chip 组统一用 MochiChipGroup（wrap = true 自动换行）。
                 MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp)) {
@@ -881,7 +881,7 @@ private fun SettingsBottomSheet(
                     placeholder = { Text("e.g. 1024x1024") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = MaterialTheme.typography.bodyMedium,
+                    textStyle = MochiTheme.textStyles.body,
                     shape = RoundedCornerShape(16.dp)
                 )
             }

@@ -29,7 +29,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -78,8 +78,8 @@ import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormCard
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.feature.settings.data.addSearchRepository
@@ -124,7 +124,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
         removeSearchRepository(vm = vm, settings = settings, service = service)
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
         edgeFade = false,
         title = stringResource(R.string.setting_page_search_title),
@@ -301,7 +301,7 @@ private fun SearchServiceList(
             item("common_options") {
                 // 通用选项是**另一个分组**：列表项间距已经是 cards.gap，组与组之间
                 // 另外留 12dp，否则两组卡片会贴成一张（Miuix 那一支的 10dp 由
-                // KedgeFormCard 自己加，不需要这里再给）。
+                // MochiFormCard 自己加，不需要这里再给）。
                 CommonOptions(
                     settings = settings,
                     modifier = Modifier.padding(top = 12.dp),
@@ -564,10 +564,10 @@ fun SearchAbilityTagLine(
 /**
  * 通用选项分组：标题 + 结果数量行，一整组分段卡片。
  *
- * 改造前是 `KkCard { Column(padding 16) { 标题; KedgeFormRow } }` —— 外壳自己画卡，
+ * 改造前是 `KkCard { Column(padding 16) { 标题; MochiFormRow } }` —— 外壳自己画卡，
  * 行又自己画一张四角全圆的卡（`FormItem` 在组外按「整组只有一行」算），Miuix 下更明显：
  * 分组底色与圆角都来自 MD3 的 `KkCard`，与同页其它分组不同源。
- * 现在外壳交给 `KedgeFormCard`（InlineCardGroup）：底色/圆角由组统一出，组内行只留内侧
+ * 现在外壳交给 `MochiFormCard`（InlineCardGroup）：底色/圆角由组统一出，组内行只留内侧
  * 小圆角，首项上边、末项下边由整组裁切给出，两种风格一致。
  */
 @Composable
@@ -579,7 +579,7 @@ internal fun CommonOptions(
     var commonOptions by remember(settings.searchCommonOptions) {
         mutableStateOf(settings.searchCommonOptions)
     }
-    KedgeFormCard(modifier = modifier) {
+    MochiFormCard(modifier = modifier) {
         // 标题是组内「不带底色的子项」，卡片底由 InlineCardGroup 那一层透出来；
         // 内边距自己补（组容器不加内边距，行组件自带 16dp 是行的）。
         Column(
@@ -593,7 +593,7 @@ internal fun CommonOptions(
             )
         }
 
-        KedgeFormRow(
+        MochiFormRow(
             label = {
                 Text(stringResource(R.string.setting_page_search_result_size))
             }

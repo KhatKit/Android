@@ -25,18 +25,18 @@ object ScreenRoutes {
         "assistant-memory", "assistant-request", "assistant-mcp", "assistant-local-tool",
         "assistant-injections", "translator", "setting", "backup", "image-gen", "web-view",
         "setting-preferences-theme", "setting-theme-colors", "setting-theme-materials",
-        "setting-theme-list-cards", "setting-preferences-notification",
+        "setting-theme-list-cards", "setting-theme-nav-bar", "setting-preferences-notification",
         "setting-preferences-general", "setting-preferences-ui", "setting-preferences-ui-message",
         "setting-preferences-ui-font", "setting-preferences-ui-code", "setting-permissions",
         "setting-preferences-network", "setting-provider", "setting-provider-detail",
-        "setting-models", "setting-about", "about-terminal", "setting-search", "setting-search-detail",
-        "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget",
+        "setting-models", "setting-about", "about-terminal", "setting-search", "setting-feature-search", "setting-search-detail",
+        "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget", "card-interaction",
         "tool-catalogue", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
         "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
         "plugin",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
         "workspace-terminal", "workspace-file-editor", "skill-detail", "message-search",
-        "download-center", "stats",
+        "download-center", "stats", "history",
     )
 
     /** 把一页编成确定性路由。同名同参数 ⇒ 同字符串。 */
@@ -79,6 +79,7 @@ object ScreenRoutes {
         Screen.SettingThemeColors -> "setting-theme-colors"
         Screen.SettingThemeMaterials -> "setting-theme-materials"
         Screen.SettingThemeListCards -> "setting-theme-list-cards"
+        Screen.SettingThemeNavBar -> "setting-theme-nav-bar"
         Screen.SettingPreferencesNotification -> "setting-preferences-notification"
         Screen.SettingPreferencesGeneral -> "setting-preferences-general"
         Screen.SettingPreferencesUI -> "setting-preferences-ui"
@@ -93,6 +94,7 @@ object ScreenRoutes {
         Screen.SettingAbout -> "setting-about"
         Screen.AboutTerminal -> "about-terminal"
         Screen.SettingSearch -> "setting-search"
+        Screen.SettingFeatureSearch -> "setting-feature-search"
         is Screen.SettingSearchDetail -> Route("setting-search-detail").str("serviceId", screen.serviceId).build()
         Screen.SettingSpeech -> "setting-speech"
         Screen.SettingMcp -> "setting-mcp"
@@ -102,7 +104,9 @@ object ScreenRoutes {
         Screen.ExploreLocal -> "explore-local"
         is Screen.ExploreCardDetail -> Route("explore-card-detail").str("name", screen.name).build()
         Screen.CardRuns -> "card-runs"
+        Screen.History -> "history"
         is Screen.CardWidget -> Route("card-widget").str("name", screen.name).str("title", screen.title).build()
+        is Screen.CardInteraction -> Route("card-interaction").str("name", screen.name).build()
         Screen.SettingDonate -> "setting-donate"
         Screen.SettingFiles -> "setting-files"
         Screen.SettingMemory -> "setting-memory"
@@ -175,6 +179,7 @@ object ScreenRoutes {
             "setting-theme-colors" -> Screen.SettingThemeColors
             "setting-theme-materials" -> Screen.SettingThemeMaterials
             "setting-theme-list-cards" -> Screen.SettingThemeListCards
+            "setting-theme-nav-bar" -> Screen.SettingThemeNavBar
             "setting-preferences-notification" -> Screen.SettingPreferencesNotification
             "setting-preferences-general" -> Screen.SettingPreferencesGeneral
             "setting-preferences-ui" -> Screen.SettingPreferencesUI
@@ -189,6 +194,7 @@ object ScreenRoutes {
             "setting-about" -> Screen.SettingAbout
             "about-terminal" -> Screen.AboutTerminal
             "setting-search" -> Screen.SettingSearch
+            "setting-feature-search" -> Screen.SettingFeatureSearch
             "setting-search-detail" -> Screen.SettingSearchDetail(params.str("serviceId") ?: return null)
             "setting-speech" -> Screen.SettingSpeech
             "setting-mcp" -> Screen.SettingMcp
@@ -198,7 +204,9 @@ object ScreenRoutes {
             "explore-local" -> Screen.ExploreLocal
             "explore-card-detail" -> Screen.ExploreCardDetail(name = params.str("name") ?: return null)
             "card-runs" -> Screen.CardRuns
+            "history" -> Screen.History
             "card-widget" -> Screen.CardWidget(params.str("name") ?: return null, params.str("title") ?: return null)
+            "card-interaction" -> Screen.CardInteraction(params.str("name") ?: return null)
             "setting-donate" -> Screen.SettingDonate
             "setting-files" -> Screen.SettingFiles
             "setting-memory" -> Screen.SettingMemory

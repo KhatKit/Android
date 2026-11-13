@@ -214,9 +214,9 @@ val LocalInlineCardGroup = compositionLocalOf<InlineCardGroupMarker?> { null }
  *
  * 1. **组底色**（F1）：`clip(indexedShape(0, 1))` + 底色铺在整组底下。组内那些自己不
  *    画底色的子项（Miuix 的 `ArrowPreference`、MD3 的 `MochiListItem`、
- *    `KedgeFormCard` 里混进来的标题 `Text` 与任意控件）靠这层才有卡片底；自带底色的行
+ *    `MochiFormCard` 里混进来的标题 `Text` 与任意控件）靠这层才有卡片底；自带底色的行
  *    （`MochiOptionItem`）盖在它上面。配色来源见 [inlineGroupContainerColor] —— 与改造前
- *    `KedgeFormCard` 那张卡逐值相同，就是 t1 统一行渲染时弄丢的那一层。
+ *    `MochiFormCard` 那张卡逐值相同，就是 t1 统一行渲染时弄丢的那一层。
  * 2. **组外形**：位号 0 / 总数 1，也就是「一整组只有一行」的形状（四角大圆角），由
  *    `clip` 裁出首项上边、末项下边的大圆角，中间子项因此只需内侧小圆角。
  * 3. **组内间距**：[heizige.kk.khatkit.app.core.ui.theme.ListCardStyle.gap]。
@@ -234,7 +234,7 @@ val LocalInlineCardGroup = compositionLocalOf<InlineCardGroupMarker?> { null }
  * 换「任意子项都有正确圆角」划算。
  *
  * 与 [CardGroup] 的分工：`CardGroup` 是**声明式**的（子项先收集后渲染，能把 index/count
- * 直接给出去）；本组件给的是子项必须留在原处的调用点（`KedgeFormCard`）。
+ * 直接给出去）；本组件给的是子项必须留在原处的调用点（`MochiFormCard`）。
  */
 @Composable
 fun InlineCardGroup(
@@ -272,7 +272,7 @@ fun InlineCardGroup(
  * - MD3Exp：`CustomColors.cardColorsOnSurfaceContainer.containerColor`（= `surfaceContainerHigh`，
  *   见 `themecompat/Color.kt` 里 CustomColors 的说明：刻意不用 `surfaceBright` —— 那个角色浅色下
  *   与 surface 同色会让分组整片消失、深色下又比 surface 亮太多），
- *   与改造前 `KedgeFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）同源。
+ *   与改造前 `MochiFormCard` 的 MD3 分支（`KkCard(colors = CustomColors.cardColorsOnSurfaceContainer)`）同源。
  * - Miuix：`MaterialTheme.colorScheme.surfaceContainer`（= `MochiTheme.colorScheme.surfaceContainer`），
  *   与改造前 Miuix 分支那张卡、以及 `MochiOptionItem` 自己的行卡片同色。
  *

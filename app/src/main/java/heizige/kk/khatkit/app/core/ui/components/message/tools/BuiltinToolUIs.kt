@@ -521,6 +521,17 @@ object GetScreenTimeToolUI : ToolUIRenderer {
     }
 }
 
+/** 上游 Phone Use 以及兼容网关的统一手机操作工具标题/图标。 */
+object PhoneUseToolUI : ToolUIRenderer {
+    override val toolName: String = "phone_use"
+
+    override fun icon(context: ToolUIContext): ImageVector = smartphone
+
+    @Composable
+    override fun title(context: ToolUIContext): String =
+        stringResource(R.string.chat_message_tool_phone_use)
+}
+
 object CalendarQueryToolUI : ToolUIRenderer {
     override val toolName: String = "calendar_query"
 

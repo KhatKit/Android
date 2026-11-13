@@ -33,6 +33,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import heizige.kk.khatkit.app.feature.automation.ApprovalActionReceiver
 
 /**
@@ -173,6 +174,8 @@ object AutomationBus {
     /** 卡片/触发等显式运行是否正在进行：期间看板不会因长时间无更新自动结束会话。 */
     @Volatile
     private var sessionHeld = false
+    /** 多张卡片可同时运行；只有最后一张结束时才释放看板会话。 */
+    private val activeSessions = AtomicInteger(0)
 
     /** [sessionHeld] 的最近一次活动时间（[begin] 或持有期间的 [update]），用于 TTL 判定。 */
     @Volatile
@@ -224,13 +227,15 @@ object AutomationBus {
      * 释放该标记，超过 [SESSION_HOLD_TTL_MS] 无活动即视为陈旧持有。
      */
     fun begin() {
+        activeSessions.incrementAndGet()
         sessionHeld = true
         sessionHeldAt = System.currentTimeMillis()
     }
 
     /** 是否有显式运行正在有效持有会话（直接 AI 设备工具序列为 false）。 */
     fun isSessionHeld(): Boolean =
-        sessionHeld && System.currentTimeMillis() - sessionHeldAt < SESSION_HOLD_TTL_MS
+        activeSessions.get() > 0 && sessionHeld &&
+            System.currentTimeMillis() - sessionHeldAt < SESSION_HOLD_TTL_MS
 
     /** 陈旧持有的剩余时长：看板空闲判定最多再等这么久即强制结束；未持有时为 0。 */
     fun sessionHoldRemainingMs(): Long {
@@ -303,7 +308,13 @@ object AutomationBus {
             )
             approvalDeferred = deferred
             _pendingApproval.value = request
-            val posted = if (canShowOverlay(context)) {
+            // 前台 Activity 已经挂载 AutomationInAppHost，不需要悬浮窗权限或通知权限；
+            // 这是用户手动点卡片、欢迎页小组件运行卡片时的主要审批入口。
+            // 后台运行才需要悬浮窗看板或通知回退。
+            val posted = if (_appInForeground.value) {
+                showOverlay()
+                true
+            } else if (canShowOverlay(context)) {
                 // 授权必须可见：即便看板正处于临时隐藏，也强制恢复显示
                 showOverlay()
                 true
@@ -481,6 +492,11 @@ object AutomationBus {
      * 直接 AI 工具序列不调用它，由看板在空闲一个退场窗口后代为判定会话结束。
      */
     fun finish() {
+        val remaining = activeSessions.updateAndGet { (it - 1).coerceAtLeast(0) }
+        if (remaining > 0) {
+            sessionHeldAt = System.currentTimeMillis()
+            return
+        }
         sessionHeld = false
         sessionHeldAt = 0L
         // 会话结束：临时隐藏状态复位，保证完成提示可见
@@ -492,6 +508,7 @@ object AutomationBus {
 
     /** 看板服务在完成态退场后复位总线；业务侧结束一次运行请调用 [finish]。 */
     fun clear() {
+        activeSessions.set(0)
         sessionHeld = false
         sessionHeldAt = 0L
         _status.value = null

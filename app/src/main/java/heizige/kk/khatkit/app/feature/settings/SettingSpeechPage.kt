@@ -41,7 +41,7 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.delete
@@ -86,7 +86,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val selectedPage by remember { derivedStateOf { pagerState.currentPage } }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         // 两个 Pager 页各自给列表加顶边渐隐，骨架级的交界渐隐会把左右滑动的两页糊在一起
         edgeFade = false,
         title = stringResource(R.string.speech_page_title),

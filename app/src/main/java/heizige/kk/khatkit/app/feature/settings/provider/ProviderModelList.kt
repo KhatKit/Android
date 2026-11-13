@@ -51,6 +51,7 @@ import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
@@ -61,10 +62,11 @@ import androidx.compose.material3.Text
 import kotlinx.collections.immutable.toImmutableList
 import ui.feice.mochi.basic.MochiSegmentedControl
 import ui.feice.mochi.basic.MochiSegmentedDefaults
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -136,13 +138,15 @@ import heizige.kk.khatkit.app.core.ui.icons.memory
 import heizige.kk.khatkit.app.core.ui.icons.package2
 import heizige.kk.khatkit.app.core.ui.icons.share
 import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormMetrics
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.FormRowLabel
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.FormMetrics
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.FormRowLabel
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import androidx.compose.foundation.layout.ColumnScope
 
@@ -153,17 +157,26 @@ internal fun ModelList(
     onUpdateProvider: (ProviderSetting) -> Unit
 ) {
     val providerManager = rememberAppEntryPoint().providerManager()
-    val modelList by produceState(emptyList(), providerSetting) {
+    data class RemoteModels(
+        val models: List<Model> = emptyList(),
+        val loading: Boolean = false,
+        val error: Throwable? = null,
+    )
+    var refreshCount by rememberSaveable(providerSetting.id) { mutableIntStateOf(0) }
+    val remoteModels by produceState(RemoteModels(), providerSetting.id, refreshCount) {
+        value = value.copy(loading = true, error = null)
         runCatching {
-            println("loading models...")
-            value = providerManager.getProviderByType(providerSetting)
+            providerManager.getProviderByType(providerSetting)
                 .listModels(providerSetting)
                 .sortedBy { it.modelId }
                 .toList()
+        }.onSuccess {
+            value = RemoteModels(models = it)
         }.onFailure {
-            it.printStackTrace()
+            value = value.copy(loading = false, error = it)
         }
     }
+    val modelList = remoteModels.models
     val lazyListState = rememberLazyListState()
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         onUpdateProvider(providerSetting.moveMove(from.index, to.index))
@@ -178,7 +191,7 @@ internal fun ModelList(
             // 底部留出浮动底栏 + FAB 的高度，最后一项能滚到它们上面
             contentPadding = PaddingValues(
                 start = 16.dp,
-                top = 16.dp,
+                top = 64.dp,
                 end = 16.dp,
                 bottom = MochiTabScaffoldDefaults.contentBottomPadding() + MochiFabDefaults.stackHeight(smallCount = 1),
             ),
@@ -252,6 +265,38 @@ internal fun ModelList(
                 }
             }
         }
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            remoteModels.error?.let {
+                Text(
+                    text = stringResource(R.string.setting_provider_page_model_refresh_failed),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            MochiIconButton(
+                onClick = { refreshCount++ },
+                enabled = !remoteModels.loading,
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                if (remoteModels.loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = refresh,
+                        contentDescription = stringResource(R.string.setting_provider_page_refresh_models),
+                    )
+                }
+            }
+        }
         MochiFabColumn {
             AddModelButton(
                 models = modelList,
@@ -275,10 +320,10 @@ internal fun ModelList(
  * 之前这张表单是「裸标题 Text + 控件」平铺在 sheet 底色上，彼此之间只有 16dp 间距，
  * 没有任何分组边界看着很散（用户反馈）。这里改回本仓 Miuix 表单的通用形态：一张圆角
  * `surfaceContainer` 卡片装一组，卡片之间靠间距分隔、没有分割线 —— 与设置页
- * （`KedgeFormCard` / `FormMetrics`）以及 KernelSU 的分组偏好一致。
+ * （`MochiFormCard` / `FormMetrics`）以及 KernelSU 的分组偏好一致。
  *
- * 卡内边距由**这里**给、两种风格都要给：`KedgeFormCard` 只是分段容器 ——
- * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `KedgeFormRow` 时内边距
+ * 卡内边距由**这里**给、两种风格都要给：`MochiFormCard` 只是分段容器 ——
+ * `InlineCardGroup` 自己画底色 + 收角，但**不加内边距**（组内是 `MochiFormRow` 时内边距
  * 由行自己带，见 `FormItem` 的 `modifier` 注释）。本组装的是「标题 + 任意控件」，没有行
  * 组件帮忙撑内边距，所以自己补一层；MD3 下也一样（改造前 MD3 那 16dp 来自旧 `KkCard`
  * 的默认 `contentPadding`，现在容器不再提供）。
@@ -289,7 +334,7 @@ internal fun ModelFormGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    KedgeFormCard(modifier = modifier) {
+    MochiFormCard(modifier = modifier) {
         Column(
             modifier = Modifier.padding(FormMetrics.ItemPadding + 2.dp),
             verticalArrangement = Arrangement.spacedBy(FormMetrics.ItemSpacing),
@@ -429,7 +474,7 @@ private fun BasicModelCard(
     isEdit: Boolean,
     setModelId: (String) -> Unit,
 ) {
-    KedgeFormCard(modifier = Modifier.fillMaxWidth()) {
+    MochiFormCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(FormMetrics.ItemPadding + 2.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

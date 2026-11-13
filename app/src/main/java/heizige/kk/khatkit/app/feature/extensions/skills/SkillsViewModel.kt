@@ -7,8 +7,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.ByteArrayInputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.LinkedHashMap
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
@@ -18,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.BuildConfig
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.data.files.InvalidSkillDir
 import heizige.kk.khatkit.app.core.data.files.SkillManager
@@ -31,6 +31,7 @@ import kotlin.collections.iterator
 class SkillsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val skillManager: SkillManager,
+    private val downloadProvider: KhatKitToolProvider,
 ) : ViewModel() {
     private val _skills = MutableStateFlow<List<SkillMetadata>>(emptyList())
     val skills = _skills.asStateFlow()
@@ -301,7 +302,7 @@ class SkillsViewModel @Inject constructor(
         return values.indices.all { index -> (this[index].toInt() and 0xFF) == values[index] }
     }
 
-    private fun listFilesRecursively(
+    private suspend fun listFilesRecursively(
         owner: String,
         repo: String,
         branch: String,
@@ -354,20 +355,19 @@ class SkillsViewModel @Inject constructor(
         return GitHubRepoInfo(owner, repo, branch, subPath)
     }
 
-    private fun downloadBytes(url: String): ByteArray? {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        connection.connectTimeout = 10_000
-        connection.readTimeout = 30_000
-        connection.setRequestProperty("Accept", "application/vnd.github+json")
+    private suspend fun downloadBytes(url: String): ByteArray? {
+        val file = downloadProvider.downloadFile(
+            url = url,
+            name = "skill-import-${url.hashCode()}.bin",
+            headers = mapOf(
+                "Accept" to "application/vnd.github+json",
+                "User-Agent" to "KhatKit/${BuildConfig.VERSION_NAME}",
+            ),
+        ) ?: return null
         return try {
-            val code = connection.responseCode
-            // 未登录的 GitHub API 每小时仅 60 次，超限时给出明确提示而不是笼统的"读取失败"
-            if ((code == 403 || code == 429) && connection.getHeaderField("X-RateLimit-Remaining") == "0") {
-                error(context.getString(R.string.skills_page_import_error_github_rate_limit))
-            }
-            if (code == 200) connection.inputStream.use { it.readBytes() } else null
+            file.readBytes()
         } finally {
-            connection.disconnect()
+            file.delete()
         }
     }
 }

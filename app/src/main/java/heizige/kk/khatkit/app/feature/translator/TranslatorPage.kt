@@ -22,16 +22,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,7 +57,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
 import heizige.kk.khatkit.app.core.ui.icons.contentPaste
 import heizige.kk.khatkit.app.core.ui.icons.translate
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.LocalDensity
@@ -74,6 +71,7 @@ import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
 import androidx.compose.foundation.layout.navigationBarsPadding
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
@@ -93,7 +91,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
         }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.translator_page_title),
         bottomBar = {
             BottomBar(
@@ -132,7 +130,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                         disabledBorderColor = Color.Transparent
                     ),
                     maxLines = 10,
-                    textStyle = MaterialTheme.typography.headlineMedium,
+                    textStyle = MochiTheme.textStyles.headlineMedium,
                     shape = RoundedCornerShape(16.dp)
                 )
 
@@ -172,7 +170,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     text = translatedText.ifEmpty {
                         stringResource(R.string.translator_page_result_placeholder)
                     },
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MochiTheme.textStyles.headlineMedium,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp)

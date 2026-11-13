@@ -19,7 +19,7 @@ import heizige.kk.khatkit.ui.UiSheetNavigation
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.uikit.KhatKitTheme
 import heizige.kk.khatkit.uikit.KhatKitUiStyle
-import heizige.kk.khatkit.uikit.NodeTreeSheet
+import heizige.kk.khatkit.uikit.NodeTreePage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -47,7 +47,7 @@ class NodeTreePagerInteractionTest {
         val events = mutableListOf<Pair<String, Map<String, Any?>>>()
         compose.setContent {
             KhatKitTheme(style, darkTheme = true) {
-                NodeTreeSheet("Pager fixture", pages.getValue("a").root,
+                NodeTreePage("Pager fixture", pages.getValue("a").root,
                     UiSheetOptions(fullscreen = true, navigation = UiSheetNavigation(
                         listOf(UiSheetNavItem("a", "Tab A"), UiSheetNavItem("b", "Tab B")), "a")),
                     pages = pages, onAction = { event, values -> events += event to values },

@@ -127,6 +127,7 @@ WebView 未回调的重定向资源等仍需进一步隔离；不要据此执行
 | 接口 | 返回 | 说明 |
 |---|---|---|
 | `net.get(url, headers)` | string | GET；host 必须命中 `network.allow`。 |
+| `net.request(url, method, body, headers)` | table | GET/POST/PUT/DELETE/HEAD；返回 `{status, headers, body}`，headers 为小写键到字符串数组的映射（保留多个 Set-Cookie），body 最多 192 KiB。不跟随重定向，非 2xx 状态原样返回；遵守卡片域名白名单。用于解析接口，文件下载交给 download。 |
 | `net.post(url, body, headers)` | string | JSON POST。 |
 | `net.put(url, body, headers)` | string | JSON PUT。 |
 | `net.delete(url, headers)` | string | DELETE。 |
@@ -371,6 +372,11 @@ Cookie 由宿主用 Keystore 加密、**只存本机**，按 URL 的 host 隔离
 | `download.observeTasks()` | 否 | 任务流 | 下载中心任务流，宿主 UI 订阅。 |
 
 任务状态：`queued` `running` `paused` `done` `failed` `cancelled`。
+
+`task` 可包含 `url/name/headers/threads`。请求头中的平台 `User-Agent` 会保留；
+不支持 Range 的服务端回退到普通下载。支持媒体处理的宿主还接受 `hls`、
+`audio_url`、`audio_headers`，在同一个本体任务内下载 HLS 或下载后合轨，
+不支持媒体处理的宿主会将任务标记为失败。HLS 和分轨任务恢复时重新下载。
 
 宿主侧句柄对象（脚本拿不到，仅记录在此）：
 

@@ -104,6 +104,8 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        com.yunx.app.data.network.video.HeadlessWebView.install(this)
+        com.yunx.app.util.AppStrings.install(this)
         // Restore files and settings before eager singletons or workers can access them.
         try {
             val restored = runBlocking(Dispatchers.IO) {

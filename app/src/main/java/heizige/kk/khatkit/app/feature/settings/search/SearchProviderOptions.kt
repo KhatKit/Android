@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
@@ -58,8 +58,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.playArrow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.Md3SwitchFormRow
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
@@ -68,7 +68,7 @@ internal fun TavilyOptions(
     options: SearchOptions.TavilyOptions,
     onUpdateOptions: (SearchOptions.TavilyOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -83,7 +83,7 @@ internal fun TavilyOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_depth))
         }
@@ -106,7 +106,7 @@ internal fun ExaOptions(
     options: SearchOptions.ExaOptions,
     onUpdateOptions: (SearchOptions.ExaOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -127,7 +127,7 @@ internal fun ZhipuOptions(
     options: SearchOptions.ZhipuOptions,
     onUpdateOptions: (SearchOptions.ZhipuOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -148,7 +148,7 @@ internal fun DeepSeekOptions(
     options: SearchOptions.DeepSeekOptions,
     onUpdateOptions: (SearchOptions.DeepSeekOptions) -> Unit
 ) {
-    KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
+    MochiFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
         Md3TextField(
             value = options.apiKey,
             onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
@@ -163,7 +163,7 @@ internal fun DoubaoOptions(
     options: SearchOptions.DoubaoOptions,
     onUpdateOptions: (SearchOptions.DoubaoOptions) -> Unit
 ) {
-    KedgeFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
+    MochiFormRow(label = { Text(stringResource(R.string.search_detail_api_key)) }) {
         Md3TextField(
             value = options.apiKey,
             onValueChange = { onUpdateOptions(options.copy(apiKey = it)) },
@@ -172,7 +172,7 @@ internal fun DoubaoOptions(
         )
     }
 
-    KedgeFormRow(label = { Text("Mode") }) {
+    MochiFormRow(label = { Text("Mode") }) {
         val modes = DoubaoSearchMode.entries
         KkSingleChoiceSegmentedRow(
             items = modes.map { mode ->
@@ -191,7 +191,7 @@ internal fun SearXNGOptions(
     options: SearchOptions.SearXNGOptions,
     onUpdateOptions: (SearchOptions.SearXNGOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_url))
         }
@@ -206,7 +206,7 @@ internal fun SearXNGOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_engines))
         }
@@ -221,7 +221,7 @@ internal fun SearXNGOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_language))
         }
@@ -236,7 +236,7 @@ internal fun SearXNGOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_username))
         }
@@ -251,7 +251,7 @@ internal fun SearXNGOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_password))
         }
@@ -272,7 +272,7 @@ internal fun SearchLinkUpOptions(
     options: SearchOptions.LinkUpOptions,
     onUpdateOptions: (SearchOptions.LinkUpOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -287,7 +287,7 @@ internal fun SearchLinkUpOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_depth))
         }
@@ -310,7 +310,7 @@ internal fun BraveOptions(
     options: SearchOptions.BraveOptions,
     onUpdateOptions: (SearchOptions.BraveOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -331,7 +331,7 @@ internal fun SerperOptions(
     options: SearchOptions.SerperOptions,
     onUpdateOptions: (SearchOptions.SerperOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -352,7 +352,7 @@ internal fun MetasoOptions(
     options: SearchOptions.MetasoOptions,
     onUpdateOptions: (SearchOptions.MetasoOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -373,7 +373,7 @@ internal fun OllamaOptions(
     options: SearchOptions.OllamaOptions,
     onUpdateOptions: (SearchOptions.OllamaOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -394,7 +394,7 @@ internal fun PerplexityOptions(
     options: SearchOptions.PerplexityOptions,
     onUpdateOptions: (SearchOptions.PerplexityOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -409,7 +409,7 @@ internal fun PerplexityOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_max_tokens))
         }
@@ -425,7 +425,7 @@ internal fun PerplexityOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_max_tokens_per_page))
         }
@@ -447,7 +447,7 @@ internal fun FirecrawlOptions(
     options: SearchOptions.FirecrawlOptions,
     onUpdateOptions: (SearchOptions.FirecrawlOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -468,7 +468,7 @@ internal fun JinaOptions(
     options: SearchOptions.JinaOptions,
     onUpdateOptions: (SearchOptions.JinaOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -483,7 +483,7 @@ internal fun JinaOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_search_url))
         }
@@ -499,7 +499,7 @@ internal fun JinaOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_scrape_url))
         }
@@ -521,7 +521,7 @@ internal fun BochaOptions(
     options: SearchOptions.BochaOptions,
     onUpdateOptions: (SearchOptions.BochaOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -555,7 +555,7 @@ internal fun KhatKitOptions(
     options: SearchOptions.KhatKitOptions,
     onUpdateOptions: (SearchOptions.KhatKitOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -570,7 +570,7 @@ internal fun KhatKitOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_depth))
         }
@@ -593,7 +593,7 @@ internal fun TinyfishOptions(
     options: SearchOptions.TinyfishOptions,
     onUpdateOptions: (SearchOptions.TinyfishOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -614,7 +614,7 @@ internal fun GrokOptions(
     options: SearchOptions.GrokOptions,
     onUpdateOptions: (SearchOptions.GrokOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_api_key))
         }
@@ -629,7 +629,7 @@ internal fun GrokOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_model))
         }
@@ -644,7 +644,7 @@ internal fun GrokOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_custom_url))
         }
@@ -659,7 +659,7 @@ internal fun GrokOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_system_prompt))
         }
@@ -681,7 +681,7 @@ internal fun CustomJsOptions(
     options: SearchOptions.CustomJsOptions,
     onUpdateOptions: (SearchOptions.CustomJsOptions) -> Unit
 ) {
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_name))
         }
@@ -700,7 +700,7 @@ internal fun CustomJsOptions(
     val highlighter = LocalCodeHighlighter.current
     val darkMode = LocalDarkMode.current
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_search_script))
         }
@@ -723,7 +723,7 @@ internal fun CustomJsOptions(
         )
     }
 
-    KedgeFormRow(
+    MochiFormRow(
         label = {
             Text(stringResource(R.string.search_detail_scrape_script))
         },

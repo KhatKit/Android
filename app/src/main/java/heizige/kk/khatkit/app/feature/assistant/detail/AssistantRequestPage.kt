@@ -15,7 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 
@@ -25,14 +25,14 @@ fun AssistantRequestPage(id: String) {
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    // 页面外壳统一走 KedgeSettingsPageScaffold；内容是 LazyColumn，每个分组（请求头 /
+    // 页面外壳统一走 MochiSettingsPageScaffold；内容是 LazyColumn，每个分组（请求头 /
     // 请求体）一项，每项是一张 Mochi 分组卡片，留白与设置页一致。
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_tab_request),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantRequestContent(
-            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+            // 必须把 MochiSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             onUpdate = { vm.update(it) },

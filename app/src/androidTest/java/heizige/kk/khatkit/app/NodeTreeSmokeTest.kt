@@ -82,7 +82,7 @@ class NodeTreeSmokeTest {
         var submitted: Map<String, Any?>? = null
         compose.setContent {
             KhatKitTheme {
-                NodeTreeSheet("Fixture", root, heizige.kk.khatkit.ui.UiSheetOptions(), form = true,
+                NodeTreePage("Fixture", root, heizige.kk.khatkit.ui.UiSheetOptions(), form = true,
                     onAction = { _, values -> submitted = values }, onDismiss = {},
                     markdown = { s, m -> Text(s, m) }, image = { _, _, m -> Box(m) })
             }
@@ -112,7 +112,7 @@ class NodeTreeSmokeTest {
         var cancelled = false
         compose.setContent {
             KhatKitTheme {
-                NodeTreeSheet("Footer", root, heizige.kk.khatkit.ui.UiSheetOptions(), form = true,
+                NodeTreePage("Footer", root, heizige.kk.khatkit.ui.UiSheetOptions(), form = true,
                     onAction = { _, _ -> submitted = true }, onDismiss = { cancelled = true },
                     markdown = { s, m -> Text(s, m) }, image = { _, _, m -> Box(m) })
             }

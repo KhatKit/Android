@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
@@ -52,7 +51,7 @@ import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
 import heizige.kk.khatkit.app.feature.automation.data.computeTriggerLogStats
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionInfo
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotification
@@ -71,12 +70,13 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository
+import ui.feice.mochi.theme.MochiTheme
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
@@ -185,7 +185,7 @@ fun SettingTriggersPage() {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         "让 AI 在流程中负责识别、判断或生成参数。执行前仍会遵循当前自动化授权策略。",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MochiTheme.textStyles.body,
                     )
                     listOf(
                         "识别当前页面并选择下一步",
@@ -194,14 +194,14 @@ fun SettingTriggersPage() {
                     ).forEach { suggestion ->
                         KkCard(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                containerColor = MochiTheme.colorScheme.surfaceContainerLow,
                             ),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
                                 suggestion,
                                 modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MochiTheme.textStyles.body,
                             )
                         }
                     }
@@ -213,7 +213,7 @@ fun SettingTriggersPage() {
         )
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "自动化触发器",
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
@@ -417,9 +417,9 @@ fun SettingTriggersPage() {
                                     Text(
                                         "${if (entry.ok) "成功" else "失败"} · ${entry.card}",
                                         color = if (entry.ok) {
-                                            MaterialTheme.colorScheme.onSurface
+                                            MochiTheme.colorScheme.onSurface
                                         } else {
-                                            MaterialTheme.colorScheme.error
+                                            MochiTheme.colorScheme.error
                                         },
                                     )
                                 },
@@ -523,8 +523,8 @@ fun SettingTriggersPage() {
                         headlineContent = {
                             Text(
                                 text = "触发器服务是常驻前台服务，会显示一条低优先级通知；关闭总开关即可停止。",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MochiTheme.textStyles.body,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
                             )
                         },
                     )
@@ -545,7 +545,7 @@ private fun FlowOverviewCard(
         modifier = Modifier.padding(horizontal = 8.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
+            containerColor = MochiTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
         ),
     ) {
         Column(
@@ -556,24 +556,24 @@ private fun FlowOverviewCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("自动化工作流", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("自动化工作流", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
                         if (enabled) "监听事件 → 执行动作 → 记录结果" else "总开关已关闭，工作流暂不监听系统事件",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MochiTheme.textStyles.body,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
                     "${cards.count { it.events.isNotEmpty() }} 个流程",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.primary,
                 )
             }
             if (cards.isEmpty()) {
                 Text(
                     "从卡片市场安装一个工作流，或先录制一组操作。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 FlowNodeStrip(
@@ -605,8 +605,8 @@ private fun FlowOverviewCard(
                 Text(
                     "节点可在下方逐个展开编辑",
                     modifier = Modifier.align(Alignment.CenterVertically),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.labelSmall,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -622,8 +622,8 @@ private fun FlowNodeStrip(
     if (events.isEmpty()) {
         Text(
             "未配置触发节点",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.labelSmall,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
         )
         return
     }
@@ -636,7 +636,7 @@ private fun FlowNodeStrip(
             if (index > 0) {
                 // Canvas 的 lambda 是 DrawScope，不是 composable：颜色必须在
                 // 组合阶段读出来再传进去。
-                val connectorColor = MaterialTheme.colorScheme.outlineVariant
+                val connectorColor = MochiTheme.colorScheme.outlineVariant
                 Box(
                     modifier = Modifier
                         .size(width = 12.dp, height = 1.dp)
@@ -670,20 +670,20 @@ private fun FlowNodeStrip(
                         contentDescription = null,
                         modifier = Modifier.size(17.dp),
                         tint = if (active) {
-                            MaterialTheme.colorScheme.primary
+                            MochiTheme.colorScheme.primary
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MochiTheme.colorScheme.onSurfaceVariant
                         },
                     )
                 }
                 if (showLabels) {
                     Text(
                         eventTypeLabel(event.type),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MochiTheme.textStyles.labelSmall,
                         color = if (active) {
-                            MaterialTheme.colorScheme.onSurface
+                            MochiTheme.colorScheme.onSurface
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MochiTheme.colorScheme.onSurfaceVariant
                         },
                         maxLines = 1,
                     )
@@ -693,8 +693,8 @@ private fun FlowNodeStrip(
         if (events.size > 5) {
             Text(
                 "+${events.size - 5}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.labelSmall,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
         }
         Spacer(Modifier.weight(1f))

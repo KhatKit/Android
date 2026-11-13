@@ -27,7 +27,7 @@ import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import ui.feice.mochi.basic.MochiSwitch
@@ -40,12 +40,12 @@ fun AssistantLocalToolPage(id: String) {
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_tab_local_tools),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantLocalToolContent(
-            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+            // 必须把 MochiSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             onUpdate = { vm.update(it) },

@@ -1,6 +1,12 @@
 # 更新日志
 
-## 未发布（自动化 Toast 与图片选择器迁移）
+## 未发布（玻璃接线与自定义导航栏样式）
+- **玻璃属性组件全部接进设置**：顶栏返回键 / 图标按钮 / 页面内直接调用的栏按钮以前写死实心（`kkSolidBarColors()`），「材质 → 按钮样式」选了玻璃也不生效。新增 `kkBarButtonColors()`（读 `LocalKkGlassButtons`，由 `KhatKitTheme` 按 `DisplaySetting.glassButtons` provide）：开 = Mochi 默认栏配色（材质有玻璃就是玻璃），关 = 原实心配色。已换 `BackButton` / `ChatPage` 顶栏 / `ExploreMarketPage` / `ToolCataloguePage`（`khatkit-ui/uikit/mochi/MochiControls.kt`、`LocalKkEffects.kt`）。
+- **带 UI 的卡片也接受控制**：卡片自绘弹层（`ui.screen` / `ui.form` / `KhatKitBottomSheet`）的顶栏返回键 / 动作按钮改用 `kkBarButtonColors()`，卡片内容里的 `IconButton` 节点改用 Tonal 圆钮（主题有 control 玻璃就是玻璃、选实心 / 关液态玻璃时退回实心）；顶栏 / 拖柄 / 底栏那层半透明底色在「液态玻璃效果」关掉时退回不透明（`khatkit-ui/uikit/KhatKitBottomSheet.kt`、`NodeTreeRenderer.kt`）。
+- **新增「外观 → 导航栏」二级页（照 Mochi 示例 demo）**：底部导航栏标签样式三档（图标 + 文字 / 仅选中项文字 / 仅图标，走 `MochiTabBarBehavior`）、内容往下滚时收起；「栏玻璃」通透度滑条（0–100%）与「仅模糊」开关，直接喂给 `iosMaterials(glassTint, blurOnly)`。设置新增 `navBarLabelStyle` / `navBarCollapseOnScroll` / `glassTint` / `glassBlurOnly`（老安装取默认值，无需迁移）；样式经 `LocalKkNavBarStyle` 下发，app 底部导航栏与卡片 UI 的 `MochiNavigationBar` 共用（`core/ui/theme/Theme.kt`、`feature/settings/SettingThemeSubPages.kt`、`feature/ui/shell/MochiShell.kt`、`khatkit-ui/uikit/mochi/MochiSearchAndBar.kt`）。截图 / 交互已实机核对（切「仅图标」后卡片页底栏同步变图标栏）。
+- **卡片页顶栏的玻璃补上取样源**：卡片自绘弹层是全屏页，`MochiTitleBar` 原来 `backdrop = null`，栏里的返回 / 动作圆钮只能画材质 fallback 的纯色（看着像「没玻璃」）。现在 `KhatKitBottomSheet` 把页面内容录一份给顶栏（`rememberMochiBarBackdrop`，玻璃总开关关掉时是 null），`MochiTopBars` 的 `backdrop` 参数真正透传给 `MochiTitleBar`；卡片页返回键 / 顶栏图标按钮因此能像普通页一样折射栏下内容（见 `KhatKitBottomSheet.kt`、`mochi/MochiTopBars.kt`）。
+- 聊天页顶栏对角色背景图的 haze 模糊现在也受「液态玻璃效果」总开关约束（关掉后栏回到纯色），见 `ChatPage.kt`。
+
 - 修掉应用内「运行卡片」授权条挤进状态栏：`AutomationInAppHost` 的 `FullscreenPopup` 内层 `Box` 只加了 `navigationBarsPadding` + 底部留白，但外层没有 `fillMaxSize` / 对齐，默认 `TopStart` 把整条授权看板顶到屏幕最上方，压住时间/信号图标。现在外层改为 `fillMaxSize()` + `contentAlignment = BottomCenter`（`statusBarsPadding` 仅作兜底），与后台悬浮看板（`AutomationOverlayService` 的 `gravity=BOTTOM` + 底部留白）同一套定位（`app/feature/automation/AutomationInAppHost.kt`）。
 
 - 修掉「工具台」分类横向 chip 行**不能按着 chip 拖动滚动**的问题：`MochiChipGroup` 本身是 `horizontalScroll`，但内部 `MochiButton` 的手势把按下之后的整段移动都 `consume()` 掉了（原注释：外层的滚动、面板拖动、右滑返回都不会接手），于是手指按在 chip 上左右拖，滚动容器永远收不到拖动，只有点在 chip 之间的空隙才能滑。CI 的 mochi 补丁（`.github/scripts/patch-mochi.py`，第 3 条）改成：移动事件不再吞（交给外层滚动容器），并补上「拖动超过 touchSlop 就不算点击」（`!moved` 才触发 click、才消费抬起），避免滚动时误选分类。影响面是所有 MochiButton：拖动现在交给外层滚动，按下/点击语义不变。

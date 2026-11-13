@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.Md3SwitchFormRow
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.utils.rememberMochiHaptics
 

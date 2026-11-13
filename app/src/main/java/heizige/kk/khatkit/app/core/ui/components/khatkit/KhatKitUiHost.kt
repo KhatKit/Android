@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,12 +34,12 @@ import heizige.kk.khatkit.ui.SheetAction
 import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.uikit.KhatKitForm
-import heizige.kk.khatkit.uikit.NodeTreeSheet
+import heizige.kk.khatkit.uikit.NodeTreePage
 import heizige.kk.khatkit.ui.UiNode
 import androidx.compose.runtime.key
 import coil3.compose.AsyncImage
-import heizige.kk.khatkit.uikit.KhatKitSheet
-import heizige.kk.khatkit.uikit.KhatKitSheetAction
+import heizige.kk.khatkit.uikit.KhatKitPage
+import heizige.kk.khatkit.uikit.KhatKitPageAction
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.icons.checkCircle
@@ -54,14 +55,19 @@ import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.applyScriptWebOptions
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.LocalKkNavController
+import heizige.kk.khatkit.app.Screen
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 
 /** 结果卡片在宽屏下的内容最大宽度。 */
 private val SHOW_CONTENT_MAX_WIDTH = 840.dp
 
 /** 卡片网页登录 WebView 的默认高度（桌面模式下页面整体缩放到屏幕宽度）。 */
-private val WEB_SHEET_HEIGHT = 480.dp
+private val WEB_PAGE_HEIGHT = 480.dp
 
 /**
  * 卡片声明的 `icon` 名 → 应用图标。
@@ -80,10 +86,10 @@ private fun sheetIcon(name: String): ImageVector? = when (name.trim().lowercase(
     else -> null
 }
 
-private fun SheetAction.toSheetAction(): KhatKitSheetAction? {
+private fun SheetAction.toPageAction(): KhatKitPageAction? {
     val vector = sheetIcon(icon)
     if (vector == null || event.isBlank() || label.isBlank()) return null
-    return KhatKitSheetAction(event = event, label = label, imageVector = vector)
+    return KhatKitPageAction(event = event, label = label, imageVector = vector)
 }
 
 /**
@@ -92,10 +98,10 @@ private fun SheetAction.toSheetAction(): KhatKitSheetAction? {
  * 卡片执行时（可能在聊天流里），脚本线程阻塞等待；这里在 Compose 主线程
  * 渲染表单/确认/进度/结果卡片，交互后把值回传。渲染层在 :khatkit-ui。
  *
- * 弹层外观全部来自 `UiSheetOptions`（`ui.form` / `ui.show` / `ui.screen` / `ui.sheet` 的 options）：
+ * 页面外观全部来自 `UiSheetOptions`（`ui.form` / `ui.show` / `ui.screen` / `ui.sheet` 的 options）：
  * fullscreen / height / hide_topbar / hide_bottombar / dismissable / orientation。
  * orientation 生效期间把 Activity 方向锁到横屏或竖屏（`SCREEN_ORIENTATION_SENSOR_*`），
- * 弹层关闭（或请求变化）后还原 UNSPECIFIED；`auto` 用 FULL_SENSOR 跟随传感器。
+ * 页面关闭（或请求变化）后还原 UNSPECIFIED；`auto` 用 FULL_SENSOR 跟随传感器。
  */
 @Composable
 fun KhatKitUiHost() {
@@ -113,7 +119,7 @@ fun KhatKitUiHost() {
     val progress by provider.uiProgress.collectAsStateWithLifecycle()
 
     // 弹层声明的方向（orientation / 旧 landscape）：关闭或请求变化后还原用户原本的设置。
-    val orientation = when (val current = request) {
+    val orientation = when (val current = queued) {
         is UiRequest.Sheet -> current.options.effectiveOrientation
         is UiRequest.Form -> current.options.effectiveOrientation
         is UiRequest.Show -> current.options.effectiveOrientation
@@ -138,66 +144,29 @@ fun KhatKitUiHost() {
         }
     }
 
-    ui.feice.mochi.theme.MochiTheme {
-        when (val current = request) {
-            is UiRequest.Sheet -> ActionSheet(
-                title = current.title,
-                url = current.url,
-                isWeb = current.isWeb,
-                options = current.options,
-                headerActions = current.topBarActions.mapNotNull { it.toSheetAction() },
-                overflowActions = current.overflowActions.mapNotNull { it.toSheetAction() },
-                contentActions = current.contentActions,
-                onAction = { event, values -> provider.selectSheetAction(event, values) },
-                onDismiss = { provider.dismissUi() },
-            )
-            is UiRequest.Form -> if (KhatKitSchemaFormSpec.isSchemaDriven(current.items)) {
-                // §8 P0-6：宿主按 input_schema/ui_schema 生成的参数表单（脚本自弹的 ui.form 走下面分支）
-                KhatKitSchemaForm(
-                    title = current.title,
-                    items = current.items,
-                    options = current.options,
-                    onSubmit = { values -> provider.submitForm(values) },
-                    onCancel = { provider.dismissUi() },
-                    pickerHost = provider.formPickerHost,
-                )
-            } else {
-                KhatKitForm(
-                    title = current.title,
-                    items = current.items,
-                    options = current.options,
-                    onSubmit = { values -> provider.submitForm(values) },
-                    onCancel = { provider.dismissUi() },
-                    pickerHost = provider.formPickerHost,
-                )
-            }
-
-            is UiRequest.FormTree, is UiRequest.Screen, is UiRequest.ShowTree -> KhatKitTreeRequest(current, provider)
-            is UiRequest.Confirm -> PrimaryBottomSheet(
-                visible = true,
-                title = current.title,
-                imageVector = if (current.danger) warning else checkCircle,
-                confirmText = stringResource(
-                    if (current.danger) R.string.khatkit_confirm_danger else R.string.khatkit_confirm
-                ),
-                onConfirm = { provider.answerConfirm(true) },
-                onDismiss = { provider.answerConfirm(false) },
-                scrollable = true,
-            ) { dismiss ->
-                ConfirmSheetContent(
-                    message = current.message,
-                    onCancel = { dismiss() },
-                )
-            }
-
-            is UiRequest.Show -> ShowCardSheet(
-                card = current.card,
-                options = current.options,
-                onDismiss = { provider.dismissUi() },
-            )
-
-            null -> Unit
-        }
+    val nav = LocalKkNavController.current
+    LaunchedEffect(request, pageCards) {
+        val current = request?.takeIf { it.pageHostable } ?: return@LaunchedEffect
+        val name = provider.uiRequestCard(current) ?: CARD_INTERACTION_FALLBACK
+        val route = Screen.CardInteraction(name)
+        // Existing card pages own subsequent form/login/result requests too.
+        if (name !in pageCards && nav?.current != route) nav?.navigate(route)
+    }
+    val confirmation = queued as? UiRequest.Confirm
+    MochiDialog(
+        visible = confirmation != null,
+        onDismissRequest = { if (provider.uiRequest.value === confirmation) provider.answerConfirm(false) },
+        title = confirmation?.title.orEmpty(),
+        message = confirmation?.message,
+        actions = persistentListOf(
+            MochiDialogAction(stringResource(R.string.khatkit_action_cancel), role = MochiDialogActionRole.Cancel),
+            MochiDialogAction(
+                stringResource(if (confirmation?.danger == true) R.string.khatkit_confirm_danger else R.string.khatkit_confirm),
+                role = if (confirmation?.danger == true) MochiDialogActionRole.Destructive else MochiDialogActionRole.Primary,
+                onClick = { if (provider.uiRequest.value === confirmation) provider.answerConfirm(true) },
+            ),
+        ),
+    )
 
         progress?.let { (ratio, label) ->
             Popup(alignment = Alignment.BottomCenter) {
@@ -222,6 +191,38 @@ fun KhatKitUiHost() {
 
         // 媒体 / 目录选择器：与表单弹层并列挂载，独立于 ui request 生命周期
         KhatKitPickerHost(provider)
+}
+
+internal const val CARD_INTERACTION_FALLBACK = "__card_interaction"
+
+/** Render all legacy and node-tree bridge requests in the enclosing Mochi route. */
+@Composable
+internal fun KhatKitRequestPage(request: UiRequest, provider: KhatKitToolProvider) {
+    when (request) {
+        is UiRequest.Sheet -> ActionPage(
+            request.title, request.url, request.isWeb, request.options,
+            request.topBarActions.mapNotNull { it.toPageAction() },
+            request.overflowActions.mapNotNull { it.toPageAction() },
+            request.contentActions,
+            onAction = { event, values -> provider.selectSheetAction(event, values) },
+            onDismiss = { provider.dismissUi() },
+        )
+        is UiRequest.Form -> key(request) {
+            if (KhatKitSchemaFormSpec.isSchemaDriven(request.items)) {
+                KhatKitSchemaForm(title = request.title, items = request.items,
+                    onSubmit = { provider.submitForm(it) }, onCancel = { provider.dismissUi() },
+                    options = request.options,
+                    pickerHost = provider.formPickerHost)
+            } else {
+                KhatKitForm(title = request.title, items = request.items,
+                    onSubmit = { provider.submitForm(it) }, onCancel = { provider.dismissUi() },
+                    options = request.options,
+                    pickerHost = provider.formPickerHost)
+            }
+        }
+        is UiRequest.Show -> ShowCardPage(request.card, request.options) { provider.dismissUi() }
+        is UiRequest.Screen, is UiRequest.FormTree, is UiRequest.ShowTree -> KhatKitTreeRequest(request, provider)
+        is UiRequest.Confirm -> Unit
     }
 }
 
@@ -230,22 +231,22 @@ fun KhatKitUiHost() {
 internal fun KhatKitTreeRequest(request: UiRequest, provider: KhatKitToolProvider) {
     when (request) {
         is UiRequest.FormTree -> key(request) {
-            TreeSheet(request.title, request.root, request.options, provider, form = true)
+            TreePage(request.title, request.root, request.options, provider, form = true)
         }
-        // 不用 key(current)：换页/触底加载时保持同一份弹层组合，
+        // 不用 key(current)：换页/触底加载时保持同一份页面组合，
         // 滚动位置才有连续状态（滚动归零/守卫分别由 scrollKey/contentKey 控制）。
         is UiRequest.Screen -> {
-            TreeSheet(request.title, request.root, request.options, provider, pages = request.pages)
+            TreePage(request.title, request.root, request.options, provider, pages = request.pages)
         }
         is UiRequest.ShowTree -> key(request) {
-            TreeSheet(request.title, request.root, request.options, provider, readOnly = true)
+            TreePage(request.title, request.root, request.options, provider, readOnly = true)
         }
         else -> Unit
     }
 }
 
 @Composable
-private fun TreeSheet(
+internal fun TreePage(
     title: String,
     root: UiNode,
     options: UiSheetOptions,
@@ -254,7 +255,7 @@ private fun TreeSheet(
     readOnly: Boolean = false,
     pages: Map<String, heizige.kk.khatkit.ui.UiScreenPage> = emptyMap(),
 ) {
-    NodeTreeSheet(
+    NodeTreePage(
         title = title, root = root, options = options, form = form, readOnly = readOnly,
         pickerHost = provider.formPickerHost,
         pages = pages,
@@ -275,23 +276,23 @@ private fun TreeSheet(
 }
 
 /**
- * 操作 Sheet（`ui.sheet` 与卡片网页登录 `web.openLogin` 共用）。
+ * 操作页面（`ui.sheet` 与卡片网页登录 `web.openLogin` 共用）。
  *
  * - [headerActions] / [overflowActions] 由脚本在 action 里用 `icon` + `placement` 声明，
- *   渲染成 BottomSheet 最上方拖柄所在行右侧的图标按钮与溢出菜单（网页登录的「登录并保存 Cookie」走这里）；
+ *   渲染成页面顶栏右侧的图标按钮与溢出菜单（网页登录的「登录并保存 Cookie」走这里）；
  * - [contentActions] 仍是内容区底部的文字按钮，保持历史行为；
  * - [options] 里的 `desktop` / `user_agent` 决定网页渲染方式（桌面模式），
  *   宿主不内置任何 UA；点击动作时把当前 WebView URL 一起回传，顶栏保存按钮据此
  *   按当前域名存 Cookie。
  */
 @Composable
-private fun ActionSheet(
+private fun ActionPage(
     title: String,
     url: String?,
     isWeb: Boolean,
     options: UiSheetOptions,
-    headerActions: List<KhatKitSheetAction>,
-    overflowActions: List<KhatKitSheetAction>,
+    headerActions: List<KhatKitPageAction>,
+    overflowActions: List<KhatKitPageAction>,
     contentActions: List<SheetAction>,
     onAction: (String, Map<String, Any?>) -> Unit,
     onDismiss: () -> Unit,
@@ -299,11 +300,11 @@ private fun ActionSheet(
     // 顶栏图标按钮 / 溢出菜单 / 内容区按钮点击时都带上当前 WebView URL，
     // 网页登录据此按「当前域名」读取并保存 Cookie（登录后常已跳到别的域名）。
     val currentUrl = remember { mutableStateOf<String?>(null) }
-    val fire: (KhatKitSheetAction) -> Unit = { action ->
+    val fire: (KhatKitPageAction) -> Unit = { action ->
         onAction(action.event, currentUrl.value?.let { mapOf("currentUrl" to it) } ?: emptyMap())
     }
 
-    KhatKitSheet(
+    KhatKitPage(
         title = title,
         imageVector = description,
         options = options,
@@ -317,7 +318,7 @@ private fun ActionSheet(
         val webState = if (!url.isNullOrBlank()) {
             rememberWebViewState(
                 url = url,
-                // 只对网页登录 Sheet 应用脚本声明的渲染开关，宿主不内置 UA
+                // 只对网页登录页面应用脚本声明的渲染开关，宿主不内置 UA
                 settings = {
                     if (isWeb) applyScriptWebOptions(options.desktop, options.userAgent)
                 },
@@ -339,7 +340,7 @@ private fun ActionSheet(
                     state = state,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(WEB_SHEET_HEIGHT),
+                        .height(WEB_PAGE_HEIGHT),
                 )
             }
             contentActions.forEach { action ->
@@ -385,7 +386,7 @@ private fun ConfirmSheetContent(message: String, onCancel: () -> Unit) {
 }
 
 @Composable
-private fun ShowCardSheet(
+private fun ShowCardPage(
     card: Map<String, Any?>,
     options: UiSheetOptions,
     onDismiss: () -> Unit,
@@ -394,7 +395,7 @@ private fun ShowCardSheet(
         ?: stringResource(R.string.khatkit_show_result_title)
     val content = (card["markdown"] ?: card["text"] ?: card["content"])?.toString()
 
-    KhatKitSheet(
+    KhatKitPage(
         title = title,
         imageVector = description,
         options = options,

@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
-import androidx.compose.material3.MaterialTheme
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -269,12 +269,12 @@ private fun ChatWelcome(
                         modifier = Modifier.fillMaxWidth(),
                         shape = cards.indexedShape(index, state.widgets.size),
                         leadingContent = {
-                            Icon(dashboard, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(dashboard, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.onSurfaceVariant)
                         },
                         titleContent = {
                             Text(
                                 strings.widgetTitle,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MochiTheme.textStyles.titleMedium,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -284,8 +284,8 @@ private fun ChatWelcome(
                             {
                                 Text(
                                     description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MochiTheme.textStyles.body,
+                                    color = MochiTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -340,8 +340,8 @@ private fun WelcomeSection(
         Text(
             title,
             Modifier.weight(1f),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = MochiTheme.textStyles.titleMedium.copy(fontWeight = FontWeight.Medium),
+            color = MochiTheme.colorScheme.onSurface,
         )
         WelcomeRefreshButton(action, icon, loading, onClick, Modifier.size(24.dp))
     }
@@ -366,7 +366,7 @@ internal fun WelcomeRefreshButton(
                 KkProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
                 // 编辑 ↔ 完成 这类换图标走 Mochi 的形变图标，不是硬切。
-                MochiMorphIcon(icon, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 20.dp)
+                MochiMorphIcon(icon, tint = MochiTheme.colorScheme.onSurfaceVariant, size = 20.dp)
             }
         }
     }
@@ -386,17 +386,17 @@ private fun AddWidgetRow(modifier: Modifier = Modifier, onClick: () -> Unit) {
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = cards.indexedShape(0, 1),
-        leadingContent = { Icon(add, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        leadingContent = { Icon(add, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.onSurfaceVariant) },
         titleContent = {
             Text(
                 label,
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        trailingContent = { Icon(chevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        trailingContent = { Icon(chevronRight, null, Modifier.size(18.dp), tint = MochiTheme.colorScheme.onSurfaceVariant) },
     )
 }
 
@@ -468,12 +468,12 @@ private fun WelcomeIdeaRow(
         modifier = Modifier.fillMaxWidth().welcomeReveal(order),
         shape = shape,
         leadingContent = {
-            Icon(idea.icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(idea.icon, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.onSurfaceVariant)
         },
         titleContent = {
             Text(
                 idea.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -482,14 +482,14 @@ private fun WelcomeIdeaRow(
         supportingContent = {
             Text(
                 idea.subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
         trailingContent = {
-            Icon(chevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(chevronRight, null, Modifier.size(18.dp), tint = MochiTheme.colorScheme.onSurfaceVariant)
         },
     )
 }

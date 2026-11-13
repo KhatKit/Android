@@ -33,7 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.collections.immutable.persistentListOf
+import heizige.kk.khatkit.uikit.mochi.LocalKkNavBarStyle
+import heizige.kk.khatkit.uikit.mochi.NavBarLabelStyle
 import ui.feice.mochi.basic.MochiTabBar
+import ui.feice.mochi.basic.MochiTabBarDefaults
 import ui.feice.mochi.basic.MochiTabItem
 import ui.feice.mochi.navigation.MochiCompactTitleScaffold
 import ui.feice.mochi.navigation.MochiLargeTitleScaffold
@@ -80,6 +83,9 @@ class MochiNavTab(
 
 /**
  * 底部导航栏：Mochi 的 `MochiTabBar`（胶囊 / 毛玻璃条），样式全部来自 MochiTheme。
+ *
+ * 标签样式与滚动收起读设置（外观 → 导航栏）：[LocalKkNavBarStyle]，默认「图标 + 文字、滚动收起」
+ * （老行为）。样式只影响布局/行为，玻璃仍由主题材质决定，和「液态玻璃」总开关联动。
  */
 @Composable
 fun MochiNavBottomBar(
@@ -88,6 +94,12 @@ fun MochiNavBottomBar(
 ) {
     if (items.isEmpty()) return
     val selected = items.indexOfFirst { it.selected }.coerceAtLeast(0)
+    val navStyle = LocalKkNavBarStyle.current
+    val behavior = when (navStyle.labelStyle) {
+        NavBarLabelStyle.LABELS -> MochiTabBarDefaults.behavior()
+        NavBarLabelStyle.SELECTED -> MochiTabBarDefaults.iconOnlyBehavior(selectedLabelOnly = true)
+        NavBarLabelStyle.ICONS -> MochiTabBarDefaults.iconOnlyBehavior()
+    }
     val windowWidth = currentWindowDpSize().width
     if (windowWidth >= 600.dp && windowWidth < 840.dp) {
         // C1：600-840dp 用左侧导航轨代替底部 TabBar（只换形状，选中/点击语义不变）
@@ -114,19 +126,25 @@ fun MochiNavBottomBar(
                         modifier = Modifier.size(24.dp),
                         tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
-                        text = tab.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                    )
+                    // 和底部标签栏同一套标签样式：仅图标 / 仅选中项显示文字 / 都显示
+                    val showLabel = navStyle.labelStyle == NavBarLabelStyle.LABELS ||
+                        (navStyle.labelStyle == NavBarLabelStyle.SELECTED && active)
+                    if (showLabel) {
+                        Text(
+                            text = tab.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
         return
     }
-    val scrollBehavior = LocalKkNavBarScrollBehavior.current
+    // 设置里关掉「滚动收起」就不接滚动行为：底栏始终展开
+    val scrollBehavior = if (navStyle.collapseOnScroll) LocalKkNavBarScrollBehavior.current else null
     MochiTabBar(
         selectedIndex = selected,
         onSelect = { index ->
@@ -134,6 +152,8 @@ fun MochiNavBottomBar(
             items.getOrNull(index)?.onClick?.invoke()
         },
         scrollBehavior = scrollBehavior,
+        // 标签样式（图标+文字 / 仅选中项文字 / 仅图标）走 Mochi 的 behavior
+        behavior = behavior,
         // 玻璃标签栏取样的是骨架录下的正文（栏浮在正文上，透出的就是它）
         backdrop = LocalKkBarBackdrop.current,
         items = persistentListOf(

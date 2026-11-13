@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -32,7 +35,13 @@ fun BoxScope.MochiFabColumn(
     Column(
         modifier = modifier
             .align(Alignment.BottomEnd)
-            .padding(end = 16.dp, bottom = LocalMochiBottomBarInset.current + 16.dp),
+            .padding(
+                end = 16.dp,
+                bottom = maxOf(
+                    LocalMochiBottomBarInset.current,
+                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                ) + 16.dp,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(MochiFabDefaults.Spacing),
         content = content,
@@ -53,7 +62,12 @@ fun MochiFab(
         style = MochiButtonStyle.Filled,
         size = MochiFabDefaults.Size,
     ) {
-        Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(26.dp))
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(24.dp),
+            tint = ui.feice.mochi.theme.LocalContentColor.current,
+        )
     }
 }
 
@@ -71,7 +85,12 @@ fun MochiSmallFab(
         style = MochiButtonStyle.Tonal,
         size = MochiFabDefaults.SmallSize,
     ) {
-        Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(22.dp))
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(22.dp),
+            tint = ui.feice.mochi.theme.LocalContentColor.current,
+        )
     }
 }
 

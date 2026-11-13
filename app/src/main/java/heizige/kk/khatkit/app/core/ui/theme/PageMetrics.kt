@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
  * 完全取决于各骨架的 `contentWindowInsets`：
  *
  * - MD3 的 `Scaffold` 默认吃 `WindowInsets.systemBars`，底部至少有一条导航栏；
- * - Miuix 侧（`KedgeSettingsPageScaffold` → `MiuixPageScaffold`，以及
+ * - Miuix 侧（`MochiSettingsPageScaffold` → `MiuixPageScaffold`，以及
  *   `MiuixSettingsPage`）的 `contentWindowInsets` 只保留 `Horizontal`
  *   （见 `Kedge/kedge/.../adaptive/KedgeBlur.kt` 与 `MiuixSettingsPage.kt`），
  *   `innerPadding.bottom` 恰好是 `0.dp`。

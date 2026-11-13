@@ -93,6 +93,7 @@ import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
 import heizige.kk.khatkit.app.feature.chat.ChatRolePanelPage
 import heizige.kk.khatkit.app.feature.chat.CardWidgetPage
+import heizige.kk.khatkit.app.feature.chat.CardInteractionPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
 import heizige.kk.khatkit.app.feature.extensions.PromptPage
@@ -100,6 +101,7 @@ import heizige.kk.khatkit.app.feature.extensions.QuickMessagesPage
 import heizige.kk.khatkit.app.feature.extensions.PluginHostPage
 import heizige.kk.khatkit.app.feature.extensions.skills.SkillDetailPage
 import heizige.kk.khatkit.app.feature.extensions.skills.SkillsPage
+import heizige.kk.khatkit.app.feature.history.HistoryPage
 import heizige.kk.khatkit.app.feature.workspace.WorkspacePage
 import heizige.kk.khatkit.app.feature.workspace.WorkspaceDetailPage
 import heizige.kk.khatkit.app.feature.workspace.WorkspaceFileEditorPage
@@ -117,6 +119,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingPreferencesThemePage
 import heizige.kk.khatkit.app.feature.settings.SettingThemeColorsPage
 import heizige.kk.khatkit.app.feature.settings.SettingThemeListCardsPage
 import heizige.kk.khatkit.app.feature.settings.SettingThemeMaterialsPage
+import heizige.kk.khatkit.app.feature.settings.SettingThemeNavBarPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNotificationPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesGeneralPage
 import heizige.kk.khatkit.app.feature.settings.SettingPreferencesNetworkPage
@@ -134,6 +137,7 @@ import heizige.kk.khatkit.app.feature.settings.SettingProviderDetailPage
 import heizige.kk.khatkit.app.feature.settings.SettingProviderPage
 import heizige.kk.khatkit.app.feature.settings.SettingSearchDetailPage
 import heizige.kk.khatkit.app.feature.settings.SettingSearchPage
+import heizige.kk.khatkit.app.feature.settings.SettingFeatureSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingSpeechPage
 import heizige.kk.khatkit.app.feature.settings.SettingPackagePage
 import heizige.kk.khatkit.app.feature.settings.SettingTriggersPage
@@ -293,7 +297,7 @@ class RouteActivity : ComponentActivity() {
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
 
         // ── U7a-3：导航栈全量交给 Mochi；Nav3 外壳（页面用 Nav3 渲染的那套）已整体移除 ───
-        // 60 条 Screen 全部由 MochiNavHost 渲染（ScreenRoutes 的 route⇄Screen 映射，单测守互逆）。
+        // 所有 Screen 全部由 MochiNavHost 渲染（ScreenRoutes 的 route⇄Screen 映射，单测守互逆）。
         // 页面里 94 处 navController.navigate(Screen.X) 一行未改，仍走 LocalNavController，
         // 但它背后是 MochiBackedNavStack：压栈/弹栈直接落到 KkNavController（Mochi 栈）。
         // 引导页不做根：MochiNavigator 没有 replaceRoot，根固定是会话页，没走过引导页时
@@ -344,8 +348,8 @@ class RouteActivity : ComponentActivity() {
                         .semantics { testTagsAsResourceId = true }
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // ── U7a-3：60 条路由全部由 MochiNavHost 渲染，Nav3 外壳已删除 ──────────
-                    // route ⇄ Screen 由 [ScreenRoutes] 保证（单测守 60 条互逆）；未知 route 不画、不崩。
+                    // ── U7a-3：路由全部由 MochiNavHost 渲染，Nav3 外壳已删除 ──────────
+                    // route ⇄ Screen 由 [ScreenRoutes] 保证；未知 route 不画、不崩。
                     //
                     // NAV3：有页内浮层登记返回（PageBackInterceptor.hasHandlers）时，把 Mochi 的
                     // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时 predictiveBack
@@ -418,6 +422,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingThemeColors -> SettingThemeColorsPage()
                             is Screen.SettingThemeMaterials -> SettingThemeMaterialsPage()
                             is Screen.SettingThemeListCards -> SettingThemeListCardsPage()
+                            is Screen.SettingThemeNavBar -> SettingThemeNavBarPage()
                             is Screen.SettingPreferencesNotification -> SettingPreferencesNotificationPage()
                             is Screen.SettingPreferencesGeneral -> SettingPreferencesGeneralPage()
                             is Screen.SettingPermissions -> SettingPermissionsPage()
@@ -436,6 +441,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingAbout -> SettingAboutPage()
                             is Screen.AboutTerminal -> AboutTerminalPage()
                             is Screen.SettingSearch -> SettingSearchPage()
+                            is Screen.SettingFeatureSearch -> SettingFeatureSearchPage()
                             is Screen.SettingSearchDetail -> {
                                 val id = Uuid.parse(screen.serviceId)
                                 SettingSearchDetailPage(id)
@@ -448,7 +454,9 @@ class RouteActivity : ComponentActivity() {
                             is Screen.ExploreLocal -> ExploreLocalPage()
                             is Screen.ExploreCardDetail -> ExploreCardDetailPage(name = screen.name)
                             is Screen.CardRuns -> CardRunsPage()
+                            is Screen.History -> HistoryPage()
                             is Screen.CardWidget -> CardWidgetPage(screen.name, screen.title)
+                            is Screen.CardInteraction -> CardInteractionPage(screen.name)
                             is Screen.SettingDonate -> SettingDonatePage()
                             is Screen.SettingFiles -> SettingFilesPage()
                             is Screen.SettingMemory -> SettingMemoryPage()
@@ -700,6 +708,10 @@ sealed interface Screen : NavKey {
     @Serializable
     data object SettingThemeListCards : Screen
 
+    /** 主题页二级：导航栏（底部导航栏样式 + 栏玻璃通透度 / 仅模糊，照 Mochi demo）。 */
+    @Serializable
+    data object SettingThemeNavBar : Screen
+
 
     @Serializable
     data object SettingPreferencesNotification : Screen
@@ -745,6 +757,9 @@ sealed interface Screen : NavKey {
     data object SettingSearch : Screen
 
     @Serializable
+    data object SettingFeatureSearch : Screen
+
+    @Serializable
     data class SettingSearchDetail(val serviceId: String) : Screen
 
     @Serializable
@@ -774,9 +789,15 @@ sealed interface Screen : NavKey {
     @Serializable
     data object CardRuns : Screen
 
+    @Serializable
+    data object History : Screen
+
     /** 欢迎页小组件点开的卡片整页：卡片用户入口的 ui.screen / ui.form / ui.show 铺在这一页里。 */
     @Serializable
     data class CardWidget(val name: String, val title: String = "") : Screen
+
+    @Serializable
+    data class CardInteraction(val name: String) : Screen
 
     @Serializable
     data object SettingDonate : Screen

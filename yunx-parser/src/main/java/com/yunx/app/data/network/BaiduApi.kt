@@ -1,0 +1,896 @@
+/*
+ * YunX (云析) - A network drive share-link parser and high-speed downloader for Android.
+ * Copyright (C) 2026 CYQawa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.yunx.app.data.network
+
+import com.yunx.app.R
+import com.yunx.app.data.network.model.FileThumbnail
+import com.yunx.app.data.network.model.QuotaInfo
+import com.yunx.app.data.network.model.ShareFile
+import com.yunx.app.data.upload.UploadIo
+import com.yunx.app.data.upload.UploadPhase
+import com.yunx.app.data.upload.UploadSource
+import com.yunx.app.util.AppStrings
+import com.yunx.app.util.DiagnosticLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.URLEncoder
+import java.security.MessageDigest
+
+/**
+ * 百度网盘分享解析数据（xpan/share list 响应）。
+ */
+data class BaiduShareList(
+    val title: String,
+    val shareId: String,
+    val uk: String,
+    val files: List<ShareFile>
+)
+
+/**
+ * 百度转存结果：转存后的新 fs_id + 新路径（locatedownload 用路径）。
+ */
+data class BaiduTransferResult(
+    val fsId: String,
+    val path: String
+)
+
+/**
+ * 百度网盘 API 封装（OkHttp + Cookie 认证）：
+ * 登录态 BDUSS 经 Cookie 携带；分享解析链路 share/verify → xpan/share → share/transfer → filemetas。
+ * 全部基于抓包字段，错误码用 errno（0 表示成功）判定。
+ */
+class BaiduApi(
+    private val clientProvider: () -> OkHttpClient = { HttpClients.apiClient() }
+) {
+    /** 每次请求动态获取全局客户端（忽略 SSL 开关切换即时生效） */
+    private val client get() = clientProvider()
+
+    private val formMediaType = "application/x-www-form-urlencoded".toMediaType()
+
+    /** bdstoken 缓存（登录态内长期有效） */
+    @Volatile
+    private var cachedBdstoken: String? = null
+
+    // ---------- 账号 ----------
+
+    /** 获取昵称（gettemplatevariable 的 username 字段）；失败返回 null */
+    suspend fun fetchNickname(cookie: String): String? = withContext(Dispatchers.IO) {
+        val result = templateVariable(cookie, """["username"]""") ?: return@withContext null
+        result.optString("username").takeIf { it.isNotBlank() }
+    }
+
+    /** 获取 bdstoken（gettemplatevariable，带缓存） */
+    suspend fun getBdstoken(cookie: String): String? = withContext(Dispatchers.IO) {
+        cachedBdstoken?.takeIf { it.isNotBlank() }?.let { return@withContext it }
+        val result = templateVariable(cookie, """["bdstoken"]""") ?: return@withContext null
+        val token = result.optString("bdstoken").takeIf { it.isNotBlank() } ?: return@withContext null
+        cachedBdstoken = token
+        token
+    }
+
+    private suspend fun templateVariable(cookie: String, fields: String): JSONObject? =
+        withContext(Dispatchers.IO) {
+            val url = "https://pan.baidu.com/api/gettemplatevariable" +
+                "?clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1&fields=" +
+                URLEncoder.encode(fields, "UTF-8")
+            val request = Request.Builder()
+                .url(url)
+                .header("Cookie", cookie)
+                .header("User-Agent", BaiduConstants.UA_WEB)
+                .get()
+                .build()
+            runCatching {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use null
+                    val json = JSONObject(response.body?.string() ?: "{}")
+                    if (json.optInt("errno") != 0) return@use null
+                    json.optJSONObject("result")
+                }
+            }.getOrNull()
+        }
+
+    // ---------- 分享解析 ----------
+
+    /**
+     * 验证提取码：POST /share/verify，返回 randsk（URL 编码形式，直接作为 sekey 使用）。
+     * @return sekey；失败抛异常（携带服务端 errmsg）
+     */
+    suspend fun verifyShare(surl: String, pwd: String, cookie: String): String =
+        withContext(Dispatchers.IO) {
+            val body = "pwd=${urlEncode(pwd)}&vcode_str=&vcode="
+            val request = Request.Builder()
+                .url("https://pan.baidu.com/share/verify?surl=$surl")
+                .header("Cookie", cookie)
+                .header("User-Agent", BaiduConstants.UA_WEB)
+                .header("Referer", "https://pan.baidu.com/s/$surl")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .post(body.toRequestBody(formMediaType))
+                .build()
+            val json = executeJson(request)
+            checkErrno(json, AppStrings.get(R.string.e1_baidu_verify_pwd_failed))
+            json.optString("randsk").takeIf { it.isNotBlank() }
+                ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_no_share_key))
+        }
+
+    /**
+ * 列出分享文件：GET xpan/share?method=list。
+ * 修复（文档《百度网盘解析问题修复》）：
+ *  - 顶层 root=1，子目录 root=0（root=1 下百度忽略 dir → 子文件夹进不去）；
+ *  - 子目录（root=0）必须携带 BDCLND cookie（= verify 返回的 randsk），否则 errno=2；
+ *  - sekey 为空（公共分享）时省略 &sekey= 参数；
+ *  - 无 sekey 却 errno!=0 → 实为加密分享，抛"该分享需要提取码"。
+ * @param dir 分享内目录路径，根目录传 "/"（子目录传 "/folder"）
+ * @return 文件列表 + share_id/uk（转存需要）
+ */
+suspend fun listShare(surl: String, sekey: String, dir: String, cookie: String, page: Int = 1): BaiduShareList =
+    withContext(Dispatchers.IO) {
+        val isRoot = dir.isBlank() || dir == "/"
+        val root = if (isRoot) "1" else "0"
+        val sekeyPart = if (sekey.isNotBlank()) "&sekey=$sekey" else ""
+        val url = "https://pan.baidu.com/rest/2.0/xpan/share?method=list" +
+            "&shorturl=$surl&page=$page&num=100&root=$root&dir=" +
+            URLEncoder.encode(if (dir.isBlank()) "/" else dir, "UTF-8") +
+            sekeyPart
+        // 子目录(root=0)必须携带 BDCLND（= verify 的 randsk），否则 errno=2；顶层(root=1)无需
+        val authCookie = if (sekey.isNotBlank() && !cookie.contains("BDCLND="))
+            "$cookie; BDCLND=$sekey" else cookie
+        val request = Request.Builder()
+            .url(url)
+            .header("Cookie", authCookie)
+            .header("User-Agent", BaiduConstants.UA_WEB)
+            .header("Referer", "https://pan.baidu.com/s/$surl")
+            .get()
+            .build()
+        val json = executeJson(request)
+        val errno = json.optInt("errno")
+        if (errno != 0) {
+            // 无 sekey 却失败 → 多数情况是加密分享，提示用户索取提取码。
+            // 但 errno=-6 是「未登录/身份验证失败」（游客模式下常见），此时光提示提取码会让人白找密码，单独区分。
+            if (sekey.isBlank()) {
+                throw BaiduApiException(
+                    if (errno == -6) AppStrings.get(R.string.e1_baidu_need_pwd_or_login_errno, errno)
+                    else AppStrings.get(R.string.e1_baidu_need_pwd_errno, errno)
+                )
+            }
+            checkErrno(json, AppStrings.get(R.string.e1_baidu_get_share_list_failed))
+        }
+        val array = json.optJSONArray("list") ?: org.json.JSONArray()
+        val files = buildList {
+            for (i in 0 until array.length()) {
+                val item = array.optJSONObject(i) ?: continue
+                val isdir = item.optString("isdir") == "1"
+                val path = item.optString("path")
+                    add(
+                        ShareFile(
+                            // 目录用 path 作 fid（导航传参），文件用 fs_id（转存传参）
+                            fid = if (isdir) path else item.optString("fs_id"),
+                            fname = item.optString("server_filename"),
+                            fsize = item.optLong("size"),
+                            isdir = isdir,
+                            pdirFid = path,
+                            fidToken = "",
+                            modifyTime = item.optString("server_mtime")
+                        )
+                    )
+                }
+            }
+            BaiduShareList(
+                title = json.optString("title"),
+                shareId = json.optString("share_id"),
+                uk = json.optString("uk"),
+                files = files
+            )
+        }
+
+    // ---------- 个人网盘 / 转存 ----------
+
+    /** 创建目录（个人网盘根目录下），返回是否成功 */
+    suspend fun createDir(path: String, cookie: String): Boolean = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie) ?: return@withContext false
+        // 官方新建文件夹用的是 api/create?a=commit（对齐抓包）：
+        // filemanager?opera=mkdir 在纯 Cookie 认证下恒 errno=2（接口校验路径不同）。
+        // UA 用 netdisk 客户端 + Referer yun.baidu.com/disk/main + body 完整参数
+        val body = "path=${urlEncode(path)}&isdir=1&size&block_list=%5B%5D&method=post&dataType=json"
+        val request = Request.Builder()
+            .url("https://pan.baidu.com/api/create?a=commit&channel=chunlei&web=1" +
+                "&app_id=${BaiduConstants.APP_ID}&clienttype=0&bdstoken=$bdstoken")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Referer", "https://yun.baidu.com/disk/main")
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        runCatching {
+            val json = executeJson(request)
+            json.optInt("errno") == 0
+        }.getOrDefault(false)
+    }
+
+    // ---------- 上传（预上传 → 秒传/分片 → 合并） ----------
+
+    /**
+     * 上传一个文件到 [parentPath] 目录（百度按**绝对路径**而不是 fid），返回 fs_id。
+     *
+     * 流程：整文件/每 4 MiB 分片/前 256 KiB 的 MD5 一次读全 → `api/precreate`（带上一版块哈希，
+     * 命中秒传时 `return_type=2` 直接结束）→ `d.pcs.baidu.com` 取上传节点 →
+     * 逐个分片 POST `superfile2`（每片回 md5，要与本地算的一致）→ `api/create?a=commit` 合并。
+     *
+     * ★ 分片顺序由服务端 `block_list` 决定，不能按本地顺序猜；
+     * ★ 上传节点只认 `*.pcs.baidu.com`，响应里给别的域一律不用。
+     */
+    suspend fun upload(
+        io: UploadIo,
+        file: UploadSource,
+        parentPath: String,
+        cookie: String
+    ): String? = withContext(Dispatchers.IO) {
+        if (file.size <= 0L) throw IllegalStateException(AppStrings.get(R.string.e1_baidu_empty_file_unsupported))
+        val bdstoken = getBdstoken(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e1_baidu_session_token_failed))
+        io.progress(UploadPhase.PREPARING)
+        val path = parentPath.trimEnd('/') + "/" + file.name
+        val chunkSize = 4L * 1024 * 1024
+        val count = maxOf(1L, (file.size + chunkSize - 1) / chunkSize)
+        val blocks = (0 until count).map { index ->
+            io.digest(
+                "MD5",
+                index * chunkSize,
+                minOf(file.size, (index + 1) * chunkSize)
+            )
+        }
+        val blockJson = JSONArray(blocks).toString()
+        val params = "channel=chunlei&web=1&app_id=${BaiduConstants.APP_ID}&clienttype=0&bdstoken=$bdstoken"
+        val preBody = buildString {
+            append("path=").append(urlEncode(path))
+            append("&isdir=0&size=").append(file.size)
+            append("&autoinit=1&rtype=0")
+            append("&block_list=").append(urlEncode(blockJson))
+            append("&content-md5=").append(io.digest("MD5"))
+            append("&slice-md5=").append(io.digest("MD5", 0, minOf(file.size, 256L * 1024)))
+        }
+        val pre = executeJson(
+            Request.Builder()
+                .url("https://pan.baidu.com/api/precreate?$params")
+                .header("Cookie", cookie)
+                .header("User-Agent", BaiduConstants.UA_NETDISK)
+                .header("Referer", "https://pan.baidu.com/disk/main")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .post(preBody.toRequestBody(formMediaType))
+                .build()
+        )
+        checkErrno(pre, AppStrings.get(R.string.e1_upload_task_create_failed))
+        if (pre.optInt("return_type") == 2) {
+            // 秒传：服务端已有同内容文件
+            io.progress(UploadPhase.FINISHING, file.size)
+            return@withContext pre.optJSONObject("info")?.optString("fs_id")?.takeIf { it.isNotBlank() }
+        }
+        val uploadId = pre.optString("uploadid")
+        if (uploadId.isBlank()) throw IllegalStateException(AppStrings.get(R.string.e1_baidu_no_upload_task))
+        val needed = pre.optJSONArray("block_list")
+            ?: throw IllegalStateException(AppStrings.get(R.string.e1_baidu_no_upload_blocks))
+        val servers = if (needed.length() == 0) emptyList() else uploadServers(cookie, bdstoken, pre.optString("uploadsign"))
+        if (needed.length() > 0 && servers.isEmpty()) throw IllegalStateException(
+            AppStrings.get(R.string.e1_baidu_no_upload_node)
+        )
+        val uploaded = mutableSetOf<Int>()
+        for (position in 0 until needed.length()) {
+            val index = needed.optInt(position, -1)
+            if (index < 0 || index >= count) throw IllegalStateException(AppStrings.get(R.string.e1_baidu_invalid_block_index))
+            if (!uploaded.add(index)) throw IllegalStateException(AppStrings.get(R.string.e1_baidu_invalid_block_index))
+            val response = io.send(
+                url = "${servers.first()}/rest/2.0/pcs/superfile2?$params" +
+                    "&method=upload&type=tmpfile&path=${urlEncode(path)}" +
+                    "&uploadid=$uploadId&partseq=$index",
+                method = "POST",
+                start = index * chunkSize,
+                end = minOf(file.size, (index + 1) * chunkSize),
+                headers = mapOf(
+                    "Cookie" to cookie,
+                    "User-Agent" to BaiduConstants.UA_NETDISK
+                ),
+                retries = 1
+            )
+            if (!response.isSuccessful) throw IllegalStateException(
+                AppStrings.get(R.string.e1_upload_failed_http, response.code)
+            )
+            val part = runCatching { response.json() }.getOrNull()
+                ?: throw IllegalStateException(AppStrings.get(R.string.e1_baidu_block_response_error))
+            val remoteMd5 = part.optString("md5")
+            if (!remoteMd5.equals(blocks[index], ignoreCase = true)) {
+                throw IllegalStateException(AppStrings.get(R.string.e1_baidu_block_verify_failed))
+            }
+        }
+        io.progress(UploadPhase.FINISHING, file.size)
+        val commitBody = buildString {
+            append("path=").append(urlEncode(path))
+            append("&isdir=0&size=").append(file.size)
+            append("&uploadid=").append(urlEncode(uploadId))
+            append("&block_list=").append(urlEncode(blockJson))
+            append("&rtype=0")
+            append("&local_mtime=").append(System.currentTimeMillis() / 1000)
+        }
+        val committed = executeJson(
+            Request.Builder()
+                .url("https://pan.baidu.com/api/create?a=commit&$params")
+                .header("Cookie", cookie)
+                .header("User-Agent", BaiduConstants.UA_NETDISK)
+                .header("Referer", "https://yun.baidu.com/disk/main")
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .post(commitBody.toRequestBody(formMediaType))
+                .build()
+        )
+        checkErrno(committed, AppStrings.get(R.string.e1_merge_upload_failed))
+        committed.optString("fs_id").takeIf { it.isNotBlank() }
+    }
+
+    /** 取上传节点：只接受 https + `*.pcs.baidu.com`，去重后取前 3 个 */
+    private fun uploadServers(cookie: String, bdstoken: String, sign: String): List<String> {
+        val query = buildString {
+            append("https://d.pcs.baidu.com/rest/2.0/pcs/file")
+            append("?channel=chunlei&web=1&app_id=${BaiduConstants.APP_ID}")
+            append("&clienttype=0&bdstoken=$bdstoken")
+            append("&method=locateupload&upload_version=2.0")
+            if (sign.isNotBlank()) append("&uploadsign=").append(urlEncode(sign))
+        }
+        val json = runCatching {
+            executeJson(
+                Request.Builder()
+                    .url(query)
+                    .header("Cookie", cookie)
+                    .header("User-Agent", BaiduConstants.UA_NETDISK)
+                    .get()
+                    .build()
+            )
+        }.getOrNull() ?: return emptyList()
+        val servers = linkedSetOf<String>()
+        val arrays = listOf(json.optJSONArray("servers"), json.optJSONArray("bak_servers"))
+        for (array in arrays) {
+            if (array == null) continue
+            for (i in 0 until array.length()) {
+                val item = array.optJSONObject(i) ?: continue
+                val uri = runCatching { java.net.URI(item.optString("server")) }.getOrNull() ?: continue
+                val host = uri.host.orEmpty()
+                if (uri.scheme != "https" || !host.endsWith(".pcs.baidu.com")) continue
+                servers.add("https://$host")
+                if (servers.size >= 3) return servers.toList()
+            }
+        }
+        val host = json.optString("host")
+        if (servers.isEmpty() && host.endsWith(".pcs.baidu.com")) servers.add("https://$host")
+        return servers.toList()
+    }
+
+    /**
+     * 列出个人网盘目录（检查临时转存目录是否存在），返回子项 path 集合。
+     *
+     * 只是 [listCloudFiles] 的轻量包装：通道选择、分页、失效判定都只有一处实现，
+     * 免得「转存目录检查」和「列表页」跑在不同通道上、一个能读一个读不了。
+     */
+    suspend fun listDir(dir: String, cookie: String): List<String> =
+        catching { listCloudFiles(dir, cookie).map { it.fidToken } }.getOrDefault(emptyList())
+
+    /**
+     * 转存分享文件到指定目录（同步返回结果）。
+     * @return 转存后的新 fs_id + 新路径
+     */
+    suspend fun transfer(
+        shareId: String,
+        uk: String,
+        sekey: String,
+        fsId: String,
+        toDir: String,
+        cookie: String
+    ): BaiduTransferResult = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie)
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_bdstoken_failed))
+        val url = "https://pan.baidu.com/share/transfer?shareid=$shareId&from=$uk" +
+            "&channel=chunlei&sekey=$sekey&ondup=newcopy&web=1&app_id=${BaiduConstants.APP_ID}" +
+            "&bdstoken=$bdstoken&clienttype=0"
+        val body = "fsidlist=%5B%22$fsId%22%5D&path=${urlEncode(toDir)}"
+        // verify 响应会 Set-Cookie: BDCLND=<randsk>，transfer 必须携带（分享验证标识），
+        // 缺失会 errno=2；BDCLND 值即 sekey（randsk），手动补齐
+        val authCookie = if (cookie.contains("BDCLND=")) cookie else "$cookie; BDCLND=$sekey"
+        val request = Request.Builder()
+            .url(url)
+            .header("Cookie", authCookie)
+            .header("User-Agent", BaiduConstants.UA_WEB)
+            .header("Origin", "https://pan.baidu.com")
+            .header("Referer", "https://pan.baidu.com/s/")
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        val json = executeJson(request)
+        checkErrno(json, AppStrings.get(R.string.e1_copy_save_failed))
+        val extra = json.optJSONObject("extra")
+        val list = extra?.optJSONArray("list")
+        val first = list?.optJSONObject(0)
+        val fsIdNew = first?.optString("to_fs_id")?.takeIf { it.isNotBlank() }
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_transfer_no_file))
+        val pathNew = first?.optString("to")?.takeIf { it.isNotBlank() }
+            ?: "$toDir/"
+        BaiduTransferResult(fsId = fsIdNew, path = pathNew)
+    }
+
+    // ---------- 下载直链 ----------
+
+    /**
+     * 获取高速下载直链（官方 locatedownload 接口，对齐 MoePal 抓包）：
+     * POST d.pcs.baidu.com/rest/2.0/pcs/file?method=locatedownload&path=<转存后完整路径>。
+     * 响应 urls[] 按 rank 返回多个候选 CDN 直链（自带 sign/expires，无需计算）：
+     *  - rank1 常为 d2-ant.baidu.com（encrypt=1 加密通道，内容需 AES-CTR 解密，且部分网络 TLS 握手失败）
+     *  - rank2+ 为 appallNN.baidupcs.com（encrypt=0 明文通道，可直接 Range 下载）
+     * 仅需 BDUSS 登录态 + 手机 UA；psign 为写死常量，rand/devuid 复用抓包常量即可。
+     * @return 选中的 appall 明文直链；全部候选不可用时抛异常
+     */
+    suspend fun locateDownload(path: String, cookie: String): String = withContext(Dispatchers.IO) {
+        val time = System.currentTimeMillis() / 1000
+        // 抓包常量：psign 写死；rand/devuid/cuid/deviceid 有 BDUSS 登录态时可直接复用
+        val url = "https://d.pcs.baidu.com/rest/2.0/pcs/file" +
+            "?method=locatedownload" +
+            "&app_id=${BaiduConstants.APP_ID}" +
+            "&clienttype=17&ver=4.0" +
+            "&ant=1&check_blue=1&es=1&esl=1&apn_id=1_-1" +
+            "&freeisp=0&queryfree=0&use=1&dtype=1&eck=1&ehps=1" +
+            "&err_ver=1.0&network_type=WIFI&channel=0" +
+            "&path=${urlEncode(path)}" +
+            "&time=$time" +
+            "&rand=5ed606e9da222cde0474cdf70eda884b" +
+            "&devuid=0F1E9FC2E084472DA5A61C4CF4C759AF" +
+            "&cuid=0F1E9FC2E084472DA5A61C4CF4C759AF" +
+            "&deviceid=348642637967375013" +
+            "&psign=860a071f77c860e8cea06e4e54c518f3" +
+            "&version=2.2.111.34&version_app=12.24.6&vip=0"
+        val request = Request.Builder()
+            .url(url)
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .post("0".toRequestBody(formMediaType))
+            .build()
+        val json = executeJson(request)
+        checkErrno(json, AppStrings.get(R.string.e1_baidu_get_fast_link_failed))
+        // 直链候选选择：优先 encrypt=0（明文，无需解密）的 https 直链（appall01/02）；
+        // rank1 的 d2-ant 为 encrypt=1 加密通道（需 AES-CTR 解密且部分网络 TLS 握手失败），直接排除；
+        // 全部为加密通道时退回第一个 https 候选（仍有尝试价值），最后兜底第一个候选。
+        val urls = json.optJSONArray("urls")
+        val candidates = (0 until (urls?.length() ?: 0))
+            .mapNotNull { urls?.optJSONObject(it) }
+            .filter { it.optString("url").isNotBlank() }
+        val directUrl = candidates
+            .filter { it.optInt("encrypt", 1) == 0 }
+            .sortedBy { !it.optString("url").startsWith("https") }
+            .firstOrNull()?.optString("url")
+            ?: candidates.firstOrNull { it.optString("url").startsWith("https") }?.optString("url")
+            ?: candidates.firstOrNull()?.optString("url")
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_no_download_link))
+        directUrl
+    }
+
+    /**
+     * 获取下载直链：filemetas（按 fs_id 取链，个人网盘文件无 path 时使用）。
+     * 注意：该 dlink（d.pcs.baidu.com）在文件被删除后立即失效，仅限文件仍存在时下载。
+     * @return dlink；失败抛异常
+     */
+    suspend fun fileMetasDlink(fsId: String, cookie: String): String = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie)
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_bdstoken_failed))
+        val fsids = URLEncoder.encode("""["$fsId"]""", "UTF-8")
+        val url = "https://pan.baidu.com/api/filemetas?dlink=1&fsids=$fsids&bdstoken=$bdstoken" +
+            "&clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1"
+        val request = Request.Builder()
+            .url(url)
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_WEB)
+            .get()
+            .build()
+        val json = executeJson(request)
+        checkErrno(json, AppStrings.get(R.string.e1_get_download_link_failed))
+        val info = json.optJSONArray("info")
+        val dlink = info?.optJSONObject(0)?.optString("dlink")?.takeIf { it.isNotBlank() }
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_no_download_link))
+        dlink
+    }
+
+    /** 删除个人网盘文件（转存后清理），按完整路径删除 */
+    suspend fun deleteFile(path: String, cookie: String): Boolean = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie) ?: return@withContext false
+        val body = "filelist=${URLEncoder.encode("""["$path"]""", "UTF-8")}"
+        val request = Request.Builder()
+            .url("https://pan.baidu.com/api/filemanager?async=2&onnest=fail&opera=delete" +
+                "&bdstoken=$bdstoken&newVerify=1&clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        runCatching {
+            val json = executeJson(request)
+            json.optInt("errno") == 0
+        }.getOrDefault(false)
+    }
+
+    // ---------- 云盘文件管理（百度网盘功能） ----------
+
+    /**
+     * 列出个人网盘目录（自动翻页，返回该目录下全部文件）。
+     *
+     * ★ 必须准备两个通道，而且**参数与 UA 不能混用**：
+     *  - App 通道（首选）：`clienttype=1`，`channel` 要保留但值为空（网页会话也认），
+     *    `bdstoken` 用 MD5(BDUSS) 而不是网页接口返回的 token；
+     *  - 网页通道（兜底）：`channel=chunlei&clienttype=0&web=1` + 网页 UA + 站内 Referer。
+     *
+     * 之前这里把「网页参数 + App UA」拼在一起、又没带 channel：百度会按「这不是同一类客户端」
+     * 拒绝（errno=2 参数错误 / -6 未登录），而旧实现把非 0 的 errno 当成空页吞掉，
+     * 于是界面上只剩一个永远加载不出来的空目录。
+     *
+     * 返回 ShareFile（fid=fs_id，fidToken=绝对路径 path）
+     */
+    suspend fun listCloudFiles(dir: String, cookie: String): List<ShareFile> = withContext(Dispatchers.IO) {
+        // 缩略图落在 thumbnail.baidupcs.com（签名地址，不需要 Cookie），但图床按网盘 UA + Referer 防盗链
+        val thumbnailHeaders = mapOf(
+            "User-Agent" to BaiduConstants.UA_NETDISK,
+            "Referer" to "https://yun.baidu.com/"
+        )
+        val appResult = catching { fetchPersonalList(dir, cookie, thumbnailHeaders, app = true) }
+        appResult.getOrNull()?.let { return@withContext it }
+        val appError = appResult.exceptionOrNull()?.message
+        val webResult = catching { fetchPersonalList(dir, cookie, thumbnailHeaders, app = false) }
+        webResult.getOrNull()?.let { files ->
+            // App 通道失败本身不算错（网页会话/老账号会这样），但要留痕：下次百度再改协议时能看出是兜底在生效
+            DiagnosticLog.warn(DiagnosticLog.NETWORK, "baidu_list_web_fallback", "app=$appError")
+            return@withContext files
+        }
+        // 两个通道都失败：把真实原因抛出去（UI 显示 errno），不要再假装成空目录
+        val webError = webResult.exceptionOrNull()?.message
+        DiagnosticLog.warn(
+            DiagnosticLog.NETWORK,
+            "baidu_list_failed",
+            "app=$appError web=$webError"
+        )
+        throw BaiduApiException(webError ?: appError ?: AppStrings.get(R.string.e1_baidu_list_failed))
+    }
+
+    /**
+     * 按指定通道逐页拉取目录。
+     *
+     * 分页语义两边不同：App 通道用 `start/limit` 偏移，网页通道用 `page/num` 页码——
+     * 所以只能整条通道走完再决定要不要换另一条，不能从中间页切换（会漏文件）。
+     */
+    private fun fetchPersonalList(
+        dir: String,
+        cookie: String,
+        thumbnailHeaders: Map<String, String>,
+        app: Boolean
+    ): List<ShareFile> {
+        val files = mutableListOf<ShareFile>()
+        val seen = HashSet<String>()
+        for (page in 0 until LIST_MAX_PAGES) {
+            val url = listPageUrl(dir, cookie, app, page)
+            val request = Request.Builder()
+                .url(url)
+                .header("Cookie", cookie)
+                .header("User-Agent", if (app) BaiduConstants.UA_APP else BaiduConstants.UA_WEB)
+                .apply { if (!app) header("Referer", "https://pan.baidu.com/disk/main") }
+                .get()
+                .build()
+            val json = executeJson(request)
+            if (json.optInt("errno") != 0) throw BaiduApiException(listErrorMessage(json))
+            val array = json.optJSONArray("list")
+                ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_list_incomplete))
+            var fresh = 0
+            for (i in 0 until array.length()) {
+                val item = array.optJSONObject(i) ?: continue
+                val path = item.optString("path")
+                val fid = item.optString("fs_id").ifBlank { path }
+                if (fid.isBlank() || !seen.add(fid)) continue
+                fresh++
+                files.add(
+                    ShareFile(
+                        fid = item.optString("fs_id"),
+                        fname = item.optString("server_filename"),
+                        fsize = item.optLong("size"),
+                        isdir = item.optInt("isdir") == 1,
+                        pdirFid = dir,
+                        fidToken = path,
+                        modifyTime = item.optString("server_mtime"),
+                        thumbnail = thumbnailOf(item, thumbnailHeaders)
+                    )
+                )
+            }
+            // 本页未满一页 → 已是最后一页；整页都是重复项 → 服务端忽略了偏移，继续翻只会死循环
+            if (array.length() < LIST_PAGE_SIZE || fresh == 0) break
+        }
+        return files
+    }
+
+    /** 个人盘列表页 URL：App 通道 / 网页通道两套参数，混用会被判成参数错误（errno=2） */
+    private fun listPageUrl(dir: String, cookie: String, app: Boolean, page: Int): String {
+        val encodedDir = URLEncoder.encode(dir, "UTF-8")
+        return if (app) {
+            val uid = appDeviceId(cookie)
+            "https://pan.baidu.com/api/list?clienttype=1&app_id=${BaiduConstants.APP_ID}" +
+                "&version=${BaiduConstants.APP_VERSION}&channel=" +
+                "&bdstoken=${appBdstoken(cookie)}&devuid=$uid&cuid=$uid" +
+                "&apn_id=0_0&freeisp=0&queryfree=2" +
+                "&start=${page * LIST_PAGE_SIZE}&limit=$LIST_PAGE_SIZE&preset=0" +
+                "&order=time&desc=1&dir=$encodedDir"
+        } else {
+            "https://pan.baidu.com/api/list?channel=chunlei&clienttype=0" +
+                "&app_id=${BaiduConstants.APP_ID}&web=1&page=${page + 1}&num=$LIST_PAGE_SIZE" +
+                "&order=time&desc=1&dir=$encodedDir"
+        }
+    }
+
+    /** 列表失败的错误文案：errno 一定带上，服务端有 err_msg 就一起显示 */
+    private fun listErrorMessage(json: JSONObject): String {
+        val errno = json.optInt("errno")
+        // 字段为 JSON null 时 optString 会返回字符串 "null"，直接拼进提示会变成「：null」
+        val message = listOf("err_msg", "errmsg", "show_msg")
+            .firstNotNullOfOrNull { key ->
+                json.optString(key).takeIf { it.isNotBlank() && it != "null" }
+            }
+            .orEmpty()
+        return buildString {
+            if (message.isNotBlank()) {
+                append(AppStrings.get(R.string.e1_baidu_list_failed_errno_msg, errno, message))
+            } else {
+                append(AppStrings.get(R.string.e1_baidu_list_failed_errno, errno))
+            }
+            if (errno == -6) append(AppStrings.get(R.string.e1_baidu_login_expired_suffix))
+        }
+    }
+
+    /**
+     * App 通道的 CSRF：百度 App 认的是 MD5(BDUSS) 的 32 位小写十六进制，
+     * 不是 `gettemplatevariable` 返回的那个网页 token（两者在网页会话下并不通用）。
+     */
+    private fun appBdstoken(cookie: String): String =
+        md5Hex(cookieValue(cookie, "BDUSS").orEmpty())
+
+    /**
+     * App 通道的设备号：接口只要求形状像设备号（32 位大写十六进制 + "|0"）。
+     * 这里不采集任何硬件标识，用 BDUSS 派生一份稳定的「账号级设备号」：
+     * 同一账号每次一致即可，换账号/换登录态会自然不同。
+     */
+    private fun appDeviceId(cookie: String): String =
+        md5Hex("yunx|" + cookieValue(cookie, "BDUSS").orEmpty()).uppercase() + "|0"
+
+    /** 从 Cookie 串取单个键（形如 `BDUSS=...; STOKEN=...`），缺失返回 null */
+    private fun cookieValue(cookie: String, name: String): String? =
+        Regex("(?:^|;\\s*)" + Regex.escape(name) + "=([^;]+)")
+            .find(cookie)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+
+    private fun md5Hex(text: String): String =
+        MessageDigest.getInstance("MD5").digest(text.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+
+    /**
+     * 等价于 `runCatching`，但把协程取消原样抛出去。
+     *
+     * `runCatching` 会连 `CancellationException` 一起吞掉：用户退出列表页/切目录时，
+     * 这里的「通道回退」会继续发第二个请求并最终把取消伪装成业务失败。
+     */
+    private inline fun <T> catching(block: () -> T): Result<T> =
+        try {
+            Result.success(block())
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+
+    /**
+     * 百度列表项的缩略图：thumbs.url3 > url2 > url1（按清晰度降序）。
+     *
+     * ★ 逐档校验而不是取第一个非空：字段为 JSON null 时 `optString` 会给出字符串 "null"，
+     *   直接当地址用就变成「有一个永远加载不出来的缩略图」，也不会再往后找。
+     */
+    private fun thumbnailOf(item: JSONObject, headers: Map<String, String>): FileThumbnail? {
+        val thumbs = item.optJSONObject("thumbs") ?: return null
+        return FileThumbnail.of(thumbs.optString("url3"), headers)
+            ?: FileThumbnail.of(thumbs.optString("url2"), headers)
+            ?: FileThumbnail.of(thumbs.optString("url1"), headers)
+    }
+
+    /** 重命名（filemanager opera=rename，按完整路径） */
+    suspend fun renameFile(path: String, newName: String, cookie: String): Boolean = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie) ?: return@withContext false
+        val filelist = """[{"path":"$path","newname":"$newName"}]"""
+        val body = "filelist=${URLEncoder.encode(filelist, "UTF-8")}"
+        val request = Request.Builder()
+            .url("https://yun.baidu.com/api/filemanager?async=0&onnest=fail&opera=rename" +
+                "&bdstoken=$bdstoken&clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Referer", "https://yun.baidu.com/disk/main")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        runCatching {
+            val json = executeJson(request)
+            json.optInt("errno") == 0
+        }.getOrDefault(false)
+    }
+
+    /** 移动单个/多个文件（filemanager opera=move，path→dest，newname 保持原名） */
+    suspend fun moveFiles(
+        paths: List<String>,
+        dest: String,
+        cookie: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie) ?: return@withContext false
+        val items = paths.joinToString(",") { p ->
+            val name = p.substringAfterLast('/')
+            """{"path":"$p","dest":"$dest","newname":"$name"}"""
+        }
+        val body = "filelist=${URLEncoder.encode("[$items]", "UTF-8")}"
+        val request = Request.Builder()
+            .url("https://pan.baidu.com/api/filemanager?async=2&onnest=fail&opera=move" +
+                "&bdstoken=$bdstoken&clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Referer", "https://yun.baidu.com/disk/main")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        runCatching {
+            val json = executeJson(request)
+            json.optInt("errno") == 0
+        }.getOrDefault(false)
+    }
+
+    /** 批量删除（filemanager opera=delete，按完整路径） */
+    suspend fun deleteFiles(paths: List<String>, cookie: String): Boolean = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie) ?: return@withContext false
+        val body = "filelist=${URLEncoder.encode(paths.joinToString(",", "[", "]") { "\"$it\"" }, "UTF-8")}"
+        val request = Request.Builder()
+            .url("https://pan.baidu.com/api/filemanager?async=2&onnest=fail&opera=delete" +
+                "&bdstoken=$bdstoken&newVerify=1&clienttype=0&app_id=${BaiduConstants.APP_ID}&web=1")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .header("Referer", "https://yun.baidu.com/disk/main")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        runCatching {
+            val json = executeJson(request)
+            json.optInt("errno") == 0
+        }.getOrDefault(false)
+    }
+
+    /** 百度创建分享结果
+     *
+     *  @param expiredType 服务端返回的有效期（0永久/1一天/7七天/30三十天）；响应未返回该字段时为 null，
+     *    由调用方回退到用户所选值（别用 0 兜底——0 是「永久有效」，会把创建失败静默显示成永久）。
+     */
+    data class BaiduShareResult(
+        val link: String,
+        val pwd: String,
+        val shareId: String,
+        val expiredType: Int?
+    )
+
+    /** 创建分享（share/set，按 fs_id 列表 + 有效期 period + 4 位提取码）
+     *
+     *  @param period 百度 API 的有效期**字面值**：0=永久、1=一天、7=七天、30=三十天。
+     *    ⚠️ 不是 UI 中性码（1/2/3/4），调用方必须先用
+     *    [com.yunx.app.data.network.model.ShareExpire.baiduPeriod] 转换（Agent.md §3.20）。
+     */
+    suspend fun createShare(
+        fsIds: List<String>,
+        period: Int,
+        pwd: String,
+        cookie: String
+    ): BaiduShareResult = withContext(Dispatchers.IO) {
+        val bdstoken = getBdstoken(cookie)
+            ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_bdstoken_failed))
+        val fidList = fsIds.joinToString(",", "[", "]")
+        val body = "fid_list=${URLEncoder.encode(fidList, "UTF-8")}" +
+            "&schannel=4&channel_list=%5B%5D&period=$period&pwd=${urlEncode(pwd)}"
+        val request = Request.Builder()
+            .url("https://pan.baidu.com/share/set?channel=chunlei&web=1" +
+                "&app_id=${BaiduConstants.APP_ID}&bdstoken=$bdstoken&clienttype=0")
+            .header("Cookie", cookie)
+            .header("User-Agent", BaiduConstants.UA_NETDISK)
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .header("Referer", "https://yun.baidu.com/disk/main")
+            .post(body.toRequestBody(formMediaType))
+            .build()
+        val json = executeJson(request)
+        checkErrno(json, AppStrings.get(R.string.e1_create_share_failed))
+        val link = json.optString("shorturl").ifBlank { json.optString("link") }
+            .takeIf { it.isNotBlank() } ?: throw BaiduApiException(AppStrings.get(R.string.e1_baidu_no_share_link))
+        BaiduShareResult(
+            link = link,
+            pwd = pwd,
+            shareId = json.optString("shareid"),
+            // 用 opt + Number 转换：字段缺失 / 显式 null / 非数字一律回 null，
+            // 交给调用方回退到用户所选值（optInt 会把它们变成 0，而 0 是「永久有效」，会显示成假的有效期）
+            expiredType = (json.opt("expiredType") as? Number)?.toInt()
+        )
+    }
+
+    // ---------- 网盘空间详情 ----------
+
+    /** 网盘空间详情（GET yun.baidu.com/api/quota：total / used） */
+    suspend fun getQuota(cookie: String): QuotaInfo? = withContext(Dispatchers.IO) {
+        val url = "https://yun.baidu.com/api/quota?clienttype=0&app_id=${BaiduConstants.APP_ID}" +
+            "&web=1&channel=chunlei&version=${System.currentTimeMillis()}"
+        runCatching {
+            val request = Request.Builder()
+                .url(url)
+                .header("Cookie", cookie)
+                .header("User-Agent", BaiduConstants.UA_NETDISK)
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Referer", "https://yun.baidu.com/disk/main")
+                .get()
+                .build()
+            val response = client.newCall(request).execute()
+            val body = response.use { it.body?.string() ?: return@runCatching null }
+            val json = JSONObject(body)
+            if (json.optInt("errno") != 0) return@runCatching null
+            QuotaInfo(
+                used = json.optLong("used"),
+                total = json.optLong("total")
+            )
+        }.getOrNull()
+    }
+
+    // ---------- 公共 ----------
+
+    private fun executeJson(request: Request): JSONObject {
+        val response = client.newCall(request).execute()
+        val status = response.code
+        val body = response.use {
+            it.body?.string() ?: throw BaiduApiException(AppStrings.get(R.string.e1_response_empty))
+        }
+        // 带上 HTTP 状态码：百度鉴权失败时可能直接回 HTML 登录页，只报「解析失败」会查不出是哪一类
+        return runCatching { JSONObject(body) }.getOrElse {
+            throw BaiduApiException(AppStrings.get(R.string.e1_response_parse_failed_http, status))
+        }
+    }
+
+    private fun checkErrno(json: JSONObject, fallback: String) {
+        val errno = json.optInt("errno")
+        if (errno != 0) {
+            // 常见：errno=-12 提取码错误 / 403 分享已失效 / 31066 文件不存在
+            val msg = json.optString("err_msg").ifBlank { json.optString("show_msg") }.ifBlank { fallback }
+            throw BaiduApiException(AppStrings.get(R.string.e1_with_errno, msg, errno))
+        }
+    }
+
+    private fun urlEncode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    private companion object {
+        /** 单页 100 条（接口上限）；两个通道的页码语义不同，但页大小可以共用一个值 */
+        const val LIST_PAGE_SIZE = 100
+
+        /** 翻页硬上限：防止服务端忽略偏移导致死循环 */
+        const val LIST_MAX_PAGES = 100
+    }
+}

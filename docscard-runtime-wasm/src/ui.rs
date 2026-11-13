@@ -26,13 +26,13 @@ pub const MAX_NODES: usize = 512;
 const LEAVES: &[&str] = &[
     "Spacer", "Divider", "Text", "Icon", "Markdown", "Image", "Badge", "ProgressBar", "TextField",
     "NumberField", "Slider", "Switch", "Checkbox", "Select", "RadioGroup", "FilePicker",
-    "DirPicker", "CounterButton", "Button", "IconButton",
+    "DirPicker", "CounterButton", "Stepper", "Selector", "Button", "IconButton", "ListRow",
 ];
 
 /// 表单字段组件（必须有唯一 id）。
 const FIELDS: &[&str] = &[
     "TextField", "NumberField", "Slider", "Switch", "Checkbox", "Select", "RadioGroup",
-    "FilePicker", "DirPicker", "CounterButton",
+    "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector",
 ];
 
 /// 属性值类型（与 Kotlin UiNodeParser 的 schema 字符串一一对应）。
@@ -72,6 +72,21 @@ fn specific_props(kind: &str) -> Option<&'static [(&'static str, PropKind)]> {
         "Divider" => &[],
         "Card" => &[("title", PropKind::Str), ("modifier", PropKind::Modifier)],
         "Section" => &[("title", PropKind::Str), ("modifier", PropKind::Modifier)],
+        // 设置页那种「iOS inset grouped」的一整组行。
+        "Group" => &[("modifier", PropKind::Modifier)],
+        // 分组里的一行（设置项）：前导图标 + 标题 + 行尾值 + 可选对勾/箭头。
+        "ListRow" => &[
+            ("label", PropKind::Str),
+            ("value", PropKind::Str),
+            ("icon", PropKind::Icon),
+            ("action", PropKind::Str),
+            ("chevron", PropKind::Bool),
+            ("selected", PropKind::Bool),
+            ("disabled", PropKind::Bool),
+            ("caption", PropKind::Str),
+            ("tone", PropKind::Enum(&["primary", "warning", "danger"])),
+            ("modifier", PropKind::Modifier),
+        ],
         "Text" => &[
             ("text", PropKind::Str),
             ("style", PropKind::Enum(&["title", "subtitle", "body", "label", "code"])),
@@ -80,6 +95,8 @@ fn specific_props(kind: &str) -> Option<&'static [(&'static str, PropKind)]> {
             ("color", PropKind::Color),
             ("size", PropKind::Number),
             ("weight", PropKind::Enum(&["normal", "medium", "semibold", "bold"])),
+            // Mochi 内容变化里的数字计数器：数字位是滚动轮，值变了滚过去。
+            ("counter", PropKind::Bool),
             ("modifier", PropKind::Modifier),
         ],
         "Icon" => &[
@@ -127,6 +144,7 @@ fn specific_props(kind: &str) -> Option<&'static [(&'static str, PropKind)]> {
             ("revision", PropKind::Number),
             ("disabled", PropKind::Bool),
             ("tone", PropKind::Enum(&["primary", "default"])),
+            ("icon", PropKind::Icon),
             ("modifier", PropKind::Modifier),
         ],
         "Button" => &[
@@ -147,6 +165,24 @@ fn specific_props(kind: &str) -> Option<&'static [(&'static str, PropKind)]> {
             ("contentDescription", PropKind::Str),
             ("modifier", PropKind::Modifier),
         ],
+        // Mochi 步进器：id/value 由字段表追加，value 必须落在 min..max。
+        "Stepper" => &[
+            ("action", PropKind::Str),
+            ("min", PropKind::Number),
+            ("max", PropKind::Number),
+            ("step", PropKind::Number),
+            ("showValue", PropKind::Bool),
+            ("disabled", PropKind::Bool),
+            ("revision", PropKind::Number),
+            ("modifier", PropKind::Modifier),
+        ],
+        // Mochi 分段选择器：id/value 由字段表追加，选项为字符串数组。
+        "Selector" => &[
+            ("action", PropKind::Str),
+            ("options", PropKind::Strings),
+            ("disabled", PropKind::Bool),
+            ("modifier", PropKind::Modifier),
+        ],
         _ => return None,
     };
     Some(table)
@@ -158,7 +194,7 @@ pub fn components() -> Vec<&'static str> {
         "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section", "Text", "Icon",
         "Markdown", "Image", "Badge", "ProgressBar", "TextField", "NumberField", "Slider",
         "Switch", "Checkbox", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton",
-        "Button", "IconButton",
+        "Stepper", "Selector", "Button", "IconButton", "Group", "ListRow",
     ]
     .into_iter()
     .filter(|kind| specific_props(kind).is_some())
@@ -175,7 +211,7 @@ fn is_field(kind: &str) -> bool {
 
 fn field_value_kind(kind: &str) -> PropKind {
     match kind {
-        "NumberField" | "Slider" | "CounterButton" => PropKind::Number,
+        "NumberField" | "Slider" | "CounterButton" | "Stepper" => PropKind::Number,
         "Switch" | "Checkbox" => PropKind::Bool,
         "FilePicker" => PropKind::Paths,
         _ => PropKind::Str,
@@ -411,6 +447,23 @@ fn normalize_node(
     Ok(Value::Object(result))
 }
 
+/// `ui.screen` 的分页树（`options.pages[*].tree`）同样是节点树：先校验+规范化，
+/// 否则呈现方（Kotlin `UiNodeParser` / CLI 呈现方）会按宿主内部格式解析扁平写法而失败。
+/// 每页各自独立计数（单页 <=512 节点、深度 <=32），互不影响。
+pub fn normalize_screen_pages(options: &mut Value) -> Result<(), String> {
+    let Value::Object(options) = options else { return Ok(()) };
+    let Some(Value::Object(pages)) = options.get_mut("pages") else { return Ok(()) };
+    for (id, page) in pages.iter_mut() {
+        let Some(page) = page.as_object_mut() else {
+            return Err(fail(&format!("pages.{id}"), "expected object"));
+        };
+        if let Some(tree) = page.get_mut("tree") {
+            *tree = normalize_tree(tree)?;
+        }
+    }
+    Ok(())
+}
+
 /// 一次 UI 交互请求（已校验/规范化）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct UiRequest {
@@ -561,6 +614,13 @@ impl<P: UiPresenter> CardHost for UiRenderHost<P> {
                     Err(message) => return Ok(Self::reject(message)),
                 }
                 ui_request.options = args.get(2).cloned();
+                if method == "ui.screen" {
+                    if let Some(options) = ui_request.options.as_mut() {
+                        if let Err(message) = normalize_screen_pages(options) {
+                            return Ok(Self::reject(message));
+                        }
+                    }
+                }
                 true
             }
             "ui.show" => {
@@ -884,6 +944,56 @@ mod ui_tests {
         let reply = host.host_call("ui:render", &request.to_string()).unwrap();
         let value: Value = serde_json::from_str(&reply).expect("reply is json");
         assert!(value.get("__error").is_some(), "invalid tree -> __error");
+        assert!(host.requests().is_empty(), "invalid request must not be recorded");
+    }
+
+    #[test]
+    fn screen_pages_trees_are_normalized_and_validated() {
+        // 分页树的扁平写法（kind + 平铺 props）要转成宿主内部 __ui 形状，
+        // 否则 Kotlin 的 UiScreenPage 解析会抛 "ui.__ui: expected component name"。
+        let mut host = UiRenderHost::new(ScriptedUiPresenter::new(vec![Value::Null]));
+        let request = serde_json::json!({
+            "method": "ui.screen",
+            "args": [
+                "Tibo 今天重置了吗",
+                {"kind": "Column", "spacing": 12.0, "children": [{"kind": "Text", "text": "今日", "style": "body"}]},
+                {
+                    "bottom_nav": {"selected": "dashboard", "items": [
+                        {"id": "dashboard", "label": "今日"},
+                        {"id": "challenge", "label": "挑战"},
+                    ]},
+                    "pages": {
+                        "dashboard": {"tree": {"kind": "Column", "spacing": 12.0, "children": [{"kind": "Text", "text": "今日", "style": "body"}]}},
+                        "challenge": {"tree": {"kind": "Column", "spacing": 12.0, "children": [{"kind": "Text", "text": "挑战", "style": "body"}]}}
+                    }
+                }
+            ]
+        });
+        assert_eq!(host.host_call("ui:render", &request.to_string()).unwrap(), "null");
+        let recorded = host.requests();
+        let options = recorded[0].options.as_ref().expect("options kept");
+        let pages = options.get("pages").and_then(Value::as_object).expect("pages kept");
+        let tree = pages["challenge"].get("tree").expect("challenge page tree");
+        assert_eq!(tree.get("__ui").and_then(Value::as_str), Some("Column"));
+        assert!(tree.get("kind").is_none(), "flat form must be rewritten");
+        assert!(tree["children"][0].get("__ui").is_some(), "nodes are normalized too");
+    }
+
+    #[test]
+    fn screen_page_with_invalid_tree_is_rejected() {
+        let mut host = UiRenderHost::new(NullUiPresenter);
+        let request = serde_json::json!({
+            "method": "ui.screen",
+            "args": [
+                "标题",
+                {"kind": "Column", "children": []},
+                {"bottom_nav": {"items": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}]},
+                 "pages": {"a": {"tree": {"kind": "NotAComponent"}}, "b": {"tree": {"kind": "Column"}}}}
+            ]
+        });
+        let reply = host.host_call("ui:render", &request.to_string()).unwrap();
+        let value: Value = serde_json::from_str(&reply).expect("reply is json");
+        assert!(value.get("__error").is_some(), "invalid page tree -> __error");
         assert!(host.requests().is_empty(), "invalid request must not be recorded");
     }
 

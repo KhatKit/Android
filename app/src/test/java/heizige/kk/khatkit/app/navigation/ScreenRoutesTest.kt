@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * [ScreenRoutes] 的护栏：
- * - 67 个 [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
+ * - 73 个 [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
  *   这里再从「名字集合 == routeNames」和「逐个可逆」两头兜住）；
  * - `routeOf` / `screenOf` 互为逆运算，route 字符串本身稳定（重复编码不漂）。
  */
@@ -40,6 +40,7 @@ class ScreenRoutesTest {
         Screen.SettingThemeColors,
         Screen.SettingThemeMaterials,
         Screen.SettingThemeListCards,
+        Screen.SettingThemeNavBar,
         Screen.SettingPreferencesNotification,
         Screen.SettingPreferencesGeneral,
         Screen.SettingPreferencesUI,
@@ -53,6 +54,7 @@ class ScreenRoutesTest {
         Screen.SettingModels,
         Screen.SettingAbout,
         Screen.SettingSearch,
+        Screen.SettingFeatureSearch,
         Screen.SettingSearchDetail(serviceId = "s-1"),
         Screen.SettingSpeech,
         Screen.SettingMcp,
@@ -62,7 +64,9 @@ class ScreenRoutesTest {
         Screen.ExploreLocal,
         Screen.ExploreCardDetail(name = "moon-card"),
         Screen.CardRuns,
+        Screen.History,
         Screen.CardWidget(name = "daily_note", title = "Daily & note/1"),
+        Screen.CardInteraction(name = "daily_note"),
         Screen.SettingDonate,
         Screen.SettingFiles,
         Screen.SettingMemory,
@@ -90,7 +94,7 @@ class ScreenRoutesTest {
 
     @Test
     fun everyScreenHasARouteAndRoundTrips() {
-        assertEquals("Screen 子类代表实例数量", 69, samples.size)
+        assertEquals("Screen 子类代表实例数量", 73, samples.size)
         for (screen in samples) {
             val route = ScreenRoutes.routeOf(screen)
             assertEquals("route 解析回原型: $route", screen, ScreenRoutes.screenOf(route))
@@ -103,7 +107,7 @@ class ScreenRoutesTest {
         val routes = samples.map { ScreenRoutes.routeOf(it) }
         assertEquals("route 两两不同", routes.size, routes.toSet().size)
         assertEquals("名字集合与 routeNames 一致", ScreenRoutes.routeNames, routes.map { it.substringBefore('?') }.toSet())
-        assertEquals("routeNames 条数", 69, ScreenRoutes.routeNames.size)
+        assertEquals("routeNames 条数", 73, ScreenRoutes.routeNames.size)
     }
 
     @Test

@@ -4,11 +4,10 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import heizige.kk.khatkit.app.core.di.appEntryPoint
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -303,18 +302,15 @@ class FilesManager(
 
             image.startsWith("http") -> {
                 runCatching {
-                    val url = URL(image)
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.connect()
-
-                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                        val bitmap = BitmapFactory.decodeStream(connection.inputStream)
-                        activityContext.exportImage(activity, bitmap)
-                    } else {
-                        Log.e(
-                            TAG,
-                            "saveMessageImage: Failed to download image from $image, response code: ${connection.responseCode}"
-                        )
+                    val file = appEntryPoint(activityContext).khatKitToolProvider()
+                        .downloadFile(image, "message-image-${image.hashCode()}.bin")
+                        ?: error("图片下载失败")
+                    try {
+                        BitmapFactory.decodeFile(file.absolutePath)?.let {
+                            activityContext.exportImage(activity, it)
+                        } ?: error("图片解析失败")
+                    } finally {
+                        file.delete()
                     }
                 }.getOrNull()
             }

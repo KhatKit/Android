@@ -2,11 +2,9 @@ package heizige.kk.khatkit.app.core.data.ssh
 
 import android.content.Context
 import heizige.kk.khatkit.app.BuildConfig
+import heizige.kk.khatkit.app.core.di.appEntryPoint
 import heizige.kk.khatkit.hub.HubClient
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -27,18 +25,14 @@ object SshPluginHub {
             val base = hubBaseUrl.trim().trimEnd('/')
             require(base.isNotEmpty()) { "Hub 地址未配置，先在设置里填写" }
             require(itemId.isNotBlank()) { "插件条目 id 为空" }
-            val url = URL(base + "/api/items/" + itemId + "/download")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 15_000
-            conn.readTimeout = 120_000
-            val tmp = File(context.cacheDir, "ssh_plugin_" + System.currentTimeMillis() + ".zip")
+            val tmp = appEntryPoint(context).khatKitToolProvider().downloadFile(
+                "$base/api/items/$itemId/download",
+                "ssh_plugin_$itemId.zip",
+            ) ?: error("插件下载失败")
             try {
-                conn.inputStream.use { input -> tmp.outputStream().use { output -> input.copyTo(output) } }
-                val sha = conn.getHeaderField("X-Content-SHA256")
-                SshPluginInstaller.install(context, tmp, sha, itemId).getOrThrow()
+                SshPluginInstaller.install(context, tmp, null, itemId).getOrThrow()
             } finally {
                 tmp.delete()
-                runCatching { conn.disconnect() }
             }
         }
     }

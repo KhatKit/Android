@@ -56,7 +56,7 @@ import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.hub.CardIndexEntry
 import ui.feice.mochi.basic.MochiActivityIndicator
-import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
+import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiButton
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -136,13 +136,13 @@ internal fun ToolCataloguePage() {
                         enabled = !state.loading,
                         navId = "tools.refresh",
                         contentKey = "refresh",
-                        colors = kkSolidBarColors(),
+                        colors = kkBarButtonColors(),
                     ) { MochiIonicon("refresh", contentDescription = "刷新工具目录") }
                     MochiBarIconButton(
                         onClick = { grid = !grid },
                         navId = "tools.layout",
                         contentKey = if (grid) "list" else "grid",
-                        colors = kkSolidBarColors(),
+                        colors = kkBarButtonColors(),
                     ) {
                         MochiIonicon(if (grid) "list" else "grid", contentDescription = if (grid) "切换为列表" else "切换为网格")
                     }

@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -23,20 +25,36 @@ class KhatKitDownloadService : Service() {
     override fun onCreate() {
         super.onCreate()
         ensureChannel(this)
+        instance = this
+        // A small download can finish before onStartCommand. Promote immediately
+        // and let the service itself stop after satisfying Android's FGS contract.
+        startForeground(NOTIFICATION_ID, buildNotification(this))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification(this))
-        return START_STICKY
+        if (DownloadStatus.activeCount == 0) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelfResult(startId)
+        }
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onDestroy() {
+        if (instance === this) instance = null
+        super.onDestroy()
+    }
+
     companion object {
         private const val CHANNEL_ID = "khatkit_downloads"
         private const val NOTIFICATION_ID = 0x4B4D
+        private val main = Handler(Looper.getMainLooper())
+        @Volatile private var instance: KhatKitDownloadService? = null
 
         fun start(context: Context) {
+            if (instance != null) return
             runCatching {
                 ContextCompat.startForegroundService(
                     context,
@@ -46,9 +64,15 @@ class KhatKitDownloadService : Service() {
         }
 
         fun stop(context: Context) {
-            runCatching {
-                context.stopService(Intent(context, KhatKitDownloadService::class.java))
-                NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+            main.post {
+                if (DownloadStatus.activeCount == 0) {
+                    // Do not cancel an outstanding startForegroundService before
+                    // the service has had a chance to call startForeground.
+                    instance?.let {
+                        it.stopForeground(STOP_FOREGROUND_REMOVE)
+                        it.stopSelf()
+                    }
+                }
             }
         }
 

@@ -376,24 +376,9 @@ private fun UIMessage.appendMessage(delta: UIMessage): UIMessage {
             is UIMessagePart.Image -> acc + deltaPart
 
             is UIMessagePart.Reasoning -> {
-                if (deltaPart.reasoning.isEmpty() && deltaPart.metadata == null) {
-                    acc
-                } else {
-                    val lastPart = acc.lastOrNull()
-                    if (lastPart is UIMessagePart.Reasoning &&
-                        lastPart.reasoningType == deltaPart.reasoningType
-                    ) {
-                        acc.dropLast(1) + UIMessagePart.Reasoning(
-                            reasoning = lastPart.reasoning + deltaPart.reasoning,
-                            createdAt = lastPart.createdAt,
-                            finishedAt = null,
-                            metadata = deltaPart.metadata ?: lastPart.metadata,
-                            reasoningType = lastPart.reasoningType,
-                        )
-                    } else {
-                        acc + deltaPart
-                    }
-                }
+                // 每个 Claude thinking block 的 signature 只属于该 block，
+                // 不能把相邻完整块合并后再回传。
+                if (deltaPart.reasoning.isEmpty() && deltaPart.metadata == null) acc else acc + deltaPart
             }
 
             is UIMessagePart.Tool -> {

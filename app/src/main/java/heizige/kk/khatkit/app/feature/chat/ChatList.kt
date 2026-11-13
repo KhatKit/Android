@@ -43,7 +43,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.compose.runtime.Composable
@@ -52,6 +51,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -75,15 +75,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.provider.Model
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.zIndex
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
@@ -577,8 +580,8 @@ private fun ChatListNormal(
                         ) {
                             Text(
                                 text = processingStatus ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MochiTheme.textStyles.body,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -712,9 +715,9 @@ private fun ChatListNormal(
                 }
             }
 
-            val scrollbarTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            val scrollbarThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            val scrollbarDotColor = MaterialTheme.colorScheme.primary
+            val scrollbarTrackColor = MochiTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            val scrollbarThumbColor = MochiTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            val scrollbarDotColor = MochiTheme.colorScheme.primary
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -880,12 +883,21 @@ private fun ChatListPreview(
 ) {
     val groupConfig = conversation.groupConfig
     // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找
-    val filteredMessages = remember(conversation.messageNodes, searchQuery) {
-        if (searchQuery.isBlank()) {
-            conversation.messageNodes.mapIndexed { index, node -> index to node }
-        } else {
-            conversation.messageNodes.mapIndexed { index, node -> index to node }
-                .filter { (_, node) -> node.currentMessage.toText().contains(searchQuery, ignoreCase = true) }
+    // 对话地图可能包含数千条消息；文本提取和过滤放到后台，避免每个流式 chunk 阻塞滚动和搜索输入。
+    val filteredMessages by produceState(
+        initialValue = emptyList<Pair<Int, MessageNode>>(),
+        key1 = conversation.messageNodes,
+        key2 = searchQuery,
+    ) {
+        value = withContext(Dispatchers.Default) {
+            if (searchQuery.isBlank()) {
+                conversation.messageNodes.mapIndexed { index, node -> index to node }
+            } else {
+                conversation.messageNodes.mapIndexed { index, node -> index to node }
+                    .filter { (_, node) ->
+                        node.currentMessage.toText().contains(searchQuery, ignoreCase = true)
+                    }
+            }
         }
     }
 
@@ -931,11 +943,11 @@ private fun ChatListPreview(
                     speaker?.let { who ->
                         Text(
                             text = who.badge?.let { "${who.displayName} · $it" } ?: who.displayName,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MochiTheme.textStyles.labelSmall,
                             color = if (who.isError) {
-                                MaterialTheme.colorScheme.error
+                                MochiTheme.colorScheme.error
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MochiTheme.colorScheme.onSurfaceVariant
                             },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -943,8 +955,7 @@ private fun ChatListPreview(
                         )
                     }
                     KkSurface(
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                        color = if (isUser) MochiTheme.colorScheme.primaryContainer else MochiTheme.colorScheme.secondaryContainer,
                     ) {
                         Row(
                             modifier = Modifier
@@ -955,7 +966,7 @@ private fun ChatListPreview(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
+                            val highlightColor = MochiTheme.colorScheme.tertiaryContainer
                             val highlightedText = remember(searchQuery, message) {
                                 val fullText = message.toText().trim().ifBlank { "[...]" }
                                 val messageText = extractMatchingSnippet(
@@ -970,7 +981,7 @@ private fun ChatListPreview(
                             }
                             Text(
                                 text = highlightedText,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MochiTheme.textStyles.body,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -1011,7 +1022,7 @@ private fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MochiTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardDoubleArrowUp,
@@ -1032,7 +1043,7 @@ private fun BoxScope.MessageJumper(
                 },
                 shape = CircleShape,
                 tonalElevation = 4.dp,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MochiTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardArrowUp,
@@ -1048,7 +1059,7 @@ private fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
+                color = MochiTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f)
             ) {
                 Icon(
                     imageVector = keyboardArrowDown,
@@ -1064,7 +1075,7 @@ private fun BoxScope.MessageJumper(
                     }
                 },
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
+                color = MochiTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
             ) {
                 Icon(
                     imageVector = keyboardDoubleArrowDown,

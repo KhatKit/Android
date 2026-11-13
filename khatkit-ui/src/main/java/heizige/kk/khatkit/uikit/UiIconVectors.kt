@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.RocketLaunch
@@ -82,6 +83,7 @@ object UiIconVectors {
         "error" to Icons.Filled.Error,
         "event" to Icons.Filled.Event,
         "expand_more" to Icons.Filled.ExpandMore,
+        "folded_hands" to foldedHands,
         "favorite" to Icons.Filled.Favorite,
         "favorite_border" to Icons.Filled.FavoriteBorder,
         "history" to Icons.Filled.History,
@@ -97,6 +99,7 @@ object UiIconVectors {
         "people" to Icons.Filled.People,
         "person" to Icons.Filled.Person,
         "psychology" to Icons.Filled.Psychology,
+        "public" to Icons.Filled.Public,
         "refresh" to Icons.Filled.Refresh,
         "remove" to Icons.Filled.Remove,
         "rocket_launch" to Icons.Filled.RocketLaunch,
@@ -115,6 +118,9 @@ object UiIconVectors {
         "verified" to Icons.Filled.Verified,
         "visibility" to Icons.Filled.Visibility,
         "warning" to Icons.Filled.Warning,
+        // Material Symbols Rounded 补齐（见 UiIconsSymbols.kt，规格 24dp/opsz24/wght400/FILL0/GRAD0）
+        "casino" to casinoIcon,
+        "emoji_events" to emojiEventsIcon,
     )
 
     fun vector(name: String): ImageVector? = vectors[name]

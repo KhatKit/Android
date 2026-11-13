@@ -19,6 +19,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
+import heizige.kk.khatkit.bridge.DownloadBridge
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +58,7 @@ class HubClient(
     private val baseUrl: String,
     engine: HttpClientEngine = CIO.create(),
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val downloadBridgeProvider: (() -> DownloadBridge?)? = null,
 ) {
     private val client = HttpClient(engine) {
         expectSuccess = false
@@ -191,6 +193,19 @@ class HubClient(
 
     private suspend fun download(url: String, target: File, expectedHash: String): File =
         withContext(Dispatchers.IO) {
+            downloadBridgeProvider?.invoke()?.let { bridge ->
+                val handle = bridge.enqueue(
+                    mapOf("url" to url, "name" to target.name),
+                )
+                check(handle.await(3600) == "done") { "下载失败：$url" }
+                val downloaded = handle.file()?.let(::File)
+                    ?: error("下载完成但未找到文件：$url")
+                require(downloaded.length() <= 8L * 1024 * 1024) { "CARD_DOWNLOAD_TOO_LARGE" }
+                downloaded.copyTo(target, overwrite = true)
+                downloaded.delete()
+                verifyHash(target, expectedHash)
+                return@withContext target
+            }
             try {
                 val response = client.get(url)
                 if (!response.status.isSuccess()) {
@@ -211,18 +226,22 @@ class HubClient(
                         digest.update(buffer, 0, size)
                     }
                 }
-                val actual = digest.digest().joinToString("") { "%02x".format(it) }
-                if (expectedHash.isNotBlank()) {
-                    require(actual.equals(expectedHash, ignoreCase = true)) {
-                        "卡片包 hash 不匹配：期望 $expectedHash，实际 $actual"
-                    }
-                }
+                verifyHash(target, expectedHash, digest.digest())
                 target
             } catch (error: Throwable) {
                 target.delete()
                 throw error
             }
         }
+
+    private fun verifyHash(target: File, expectedHash: String, digest: ByteArray? = null) {
+        if (expectedHash.isBlank()) return
+        val actual = (digest ?: MessageDigest.getInstance("SHA-256").digest(target.readBytes()))
+            .joinToString("") { "%02x".format(it) }
+        require(actual.equals(expectedHash, ignoreCase = true)) {
+            "下载文件 hash 不匹配：期望 $expectedHash，实际 $actual"
+        }
+    }
 
     private fun sha256(bytes: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(bytes)

@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,7 +62,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     var pendingRerun by remember { mutableStateOf<CardRunEntity?>(null) }
     var pendingText by remember { mutableStateOf<CardArtifactEntity?>(null) }
-    KedgeSettingsPageScaffold(title = stringResource(R.string.card_runs_title)) { padding ->
+    MochiSettingsPageScaffold(title = stringResource(R.string.card_runs_title)) { padding ->
         if (runs.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),

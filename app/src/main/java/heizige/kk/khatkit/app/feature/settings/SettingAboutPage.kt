@@ -40,7 +40,7 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
 import heizige.kk.khatkit.app.core.ui.components.easteregg.rememberEmojiBurstState
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.code
 import heizige.kk.khatkit.app.core.ui.icons.download
@@ -71,7 +71,7 @@ import ui.feice.mochi.theme.MochiTheme
 /**
  * 关于页。
  *
- * 脚手架与其余 49 个设置子页一致：KedgeSettingsPageScaffold（Mochi 紧凑标题栏 + 分组页底色）
+ * 脚手架与其余 49 个设置子页一致：MochiSettingsPageScaffold（Mochi 紧凑标题栏 + 分组页底色）
  * + LazyColumn + CardGroup。上一版是手写的 Scaffold + MochiSmallTopBar + verticalScroll，
  * 于是只有这一页：顶栏不是 MochiTitleBar（返回按钮少一层栏按钮底）、正文用 26dp 间距和 16dp 边距
  * （别的页是 16dp 间距、8+8 边距，卡片离屏幕 16dp）、滚动手感没有滚动边缘渐隐 —— 现在全部对齐。
@@ -136,7 +136,7 @@ fun SettingAboutPage() {
         }
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.about_page_title),
         scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
     ) { innerPadding ->

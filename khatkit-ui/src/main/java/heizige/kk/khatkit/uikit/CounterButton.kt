@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +27,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
+import ui.feice.mochi.effect.content.MochiCounterText
+import ui.feice.mochi.theme.LocalContentColor as MochiLocalContentColor
 import heizige.kk.khatkit.ui.UiNode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -146,7 +150,8 @@ internal fun CounterButton(
         Row(
             modifier = Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(20.dp))
-                .padding(12.dp),
+                // 左右和卡片正文同边距：单独成卡时按钮和上面卡片里的按钮左对齐。
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -163,28 +168,38 @@ internal fun CounterButton(
                 colors = colors,
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
             ) {
-                Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))
+                val icon = (node.props["icon"] as? String)?.let { UiIconVectors.vector(it) }
+                if (icon != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 6.dp).size(16.dp),
+                            tint = MochiLocalContentColor.current,
+                        )
+                        Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))
+                    }
+                } else {
+                    Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))
+                }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val formatted = remember(state.optimisticCount) {
-                    state.optimisticCount?.let { NumberFormat.getIntegerInstance().format(it) } ?: "—"
-                }
-                Row {
-                    formatted.forEachIndexed { index, digit ->
-                        key(index) {
-                            AnimatedContent(
-                                targetState = digit,
-                                transitionSpec = {
-                                    (slideInVertically(tween(160)) { it } + fadeIn(tween(160)))
-                                        .togetherWith(slideOutVertically(tween(160)) { -it } + fadeOut(tween(160)))
-                                },
-                                label = "counter digit",
-                            ) {
-                                Text(it.toString(), fontSize = 27.sp, fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface)
-                            }
-                        }
-                    }
+                // 数字走 Mochi 的计数器：点一下 pending 先 +1 立刻滚起来，
+                // 脚本回传权威 count / 新 revision 后再落定；失败时数字滚回去。
+                val optimistic = state.optimisticCount
+                if (optimistic != null) {
+                    MochiCounterText(
+                        value = optimistic,
+                        style = TextStyle(
+                            fontSize = 27.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        format = { NumberFormat.getIntegerInstance().format(it) },
+                    )
+                } else {
+                    Text("—", fontSize = 27.sp, fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {

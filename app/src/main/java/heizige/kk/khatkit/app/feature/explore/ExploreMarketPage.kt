@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -48,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
@@ -125,10 +127,10 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
-import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
+import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import ui.feice.mochi.basic.MochiActivityIndicator
@@ -141,6 +143,7 @@ import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListCard
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.navigation.MochiTitleBar
@@ -710,10 +713,8 @@ fun ExploreMarketPage() {
             }
 
             // 一级页只铺 preview 张，全量列表按需进二级页（卡片市场）。
-            //
-            // 单列：此前是「1 张全宽主推 + 两栏窄卡」的 1 + N 网格，一屏里两套卡面尺寸，
-            // 视线要在大小卡之间来回换。现在整区一行一张、全宽到底。
-            // 主推位由上面的轮播承担，这里不再需要一张放大的卡。
+            // 卡片区与工具台保持一致：两列、统一高度、卡片内直接给出安装动作，
+            // 用户可以先扫标题和描述，再决定进入详情还是直接安装。
             //
             // 不再有「外部脚本卡片」这类分区标题：内容类型由每行前置图标自报
             // （卡片 extension / 技能 school / MCP dns / 合集包 package2 / 模型 memory /
@@ -727,9 +728,15 @@ fun ExploreMarketPage() {
                         modifier = swapIn(sectionPad),
                         header = stringResource(R.string.explore_market_chip_cards),
                     ) {
-                        preview.forEach { entry ->
-                            key(entry.name) {
-                                CompactCard(
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            maxItemsInEachRow = 2,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            preview.forEach { entry ->
+                                MarketGridCard(
+                                    modifier = Modifier.fillMaxWidth(0.48f),
                                     entry = entry,
                                     installedVersion = installed[entry.name],
                                     triggers = triggers[entry.name] ?: entry.triggers,
@@ -1040,7 +1047,7 @@ fun ExploreMarketPage() {
                         ) {
                             MochiBarIconButton(
                                 onClick = { navController.navigate(Screen.ExploreLocal) },
-                                colors = kkSolidBarColors(),
+                                colors = kkBarButtonColors(),
                             ) {
                                 Icon(
                                     imageVector = folderManaged,
@@ -1404,6 +1411,104 @@ private fun cardsList(
     }
 }
 
+/** 探索市场首屏卡片：沿用工具台的 MochiListCard 信息层级，详情点击与安装动作分开。 */
+@Composable
+private fun MarketGridCard(
+    entry: CardIndexEntry,
+    installedVersion: String?,
+    triggers: List<String>,
+    hubInfo: HubCardMarketInfo?,
+    busy: Boolean,
+    onClick: () -> Unit,
+    onInstall: () -> Unit,
+    onUpdate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val installState = installedVersion?.let { cardInstallState(it, entry.version) }
+    val meta = cardMetaLine(entry, triggers, hubInfo, stateLabel = null)
+    MochiListCard(
+        modifier = modifier
+            .heightIn(min = 178.dp)
+            .mochiPressDeform()
+            .clickable(interaction, indication = null, onClick = onClick),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                RowIcon(extension)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "v${installedVersion ?: entry.version}",
+                    style = MochiTheme.textStyles.labelSmall.tabular(),
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = entry.name,
+                style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = entry.summary.ifBlank { entry.description }.ifBlank { entry.author },
+                style = MochiTheme.textStyles.footnote,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Text(
+                text = meta,
+                style = MochiTheme.textStyles.labelSmall.tabular(),
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (busy) {
+                    MochiActivityIndicator(Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("处理中", style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.primary)
+                } else {
+                    Text(
+                        text = when (installState) {
+                            CardInstallState.INSTALLED -> "已安装"
+                            CardInstallState.UPDATE -> "有更新"
+                            else -> "未安装"
+                        },
+                        style = MochiTheme.textStyles.footnote,
+                        color = if (installState == CardInstallState.INSTALLED) {
+                            MochiTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MochiTheme.colorScheme.primary
+                        },
+                    )
+                    Spacer(Modifier.weight(1f))
+                    MochiButton(
+                        onClick = if (installState == CardInstallState.UPDATE) onUpdate else onInstall,
+                        style = if (installState == CardInstallState.INSTALLED) MochiButtonStyle.Tonal else MochiButtonStyle.Filled,
+                        enabled = installState != CardInstallState.INSTALLED,
+                        minHeight = 32.dp,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = when (installState) {
+                                CardInstallState.UPDATE -> "更新"
+                                CardInstallState.INSTALLED -> "已安装"
+                                else -> "安装"
+                            },
+                            style = MochiTheme.textStyles.labelMedium,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** 数字类信息（版本号、票数、体积、哈希）统一走等宽数字，避免上下行对不齐。 */
 internal fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
 
@@ -1502,7 +1607,14 @@ private fun LazyItemScope.swapIn(base: Modifier): Modifier = base.animateItem()
 /** 骨架灰条：Mochi 骨架（扫光由组件给），内容只用来撑尺寸。 */
 @Composable
 private fun SkeletonBar(modifier: Modifier, shape: Shape = MochiTheme.shapes.full) {
-    MochiSkeleton(loading = true, shape = shape) { Box(modifier) }
+    MochiSkeleton(loading = true, shape = shape) {
+        Box(
+            modifier = modifier.background(
+                MochiTheme.colorScheme.surfaceContainerHigh,
+                shape,
+            ),
+        )
+    }
 }
 
 /**
@@ -2036,7 +2148,7 @@ private fun FeaturedCard(
     // 同一张卡在网格里是哪个颜色、哪个轮廓，进了轮播还是它，不需要第二套视觉身份。
     val identityIndex = abs(entry.name.hashCode()) % roleAvatarPalette.size
     val identity = roleAvatarColor(entry.name)
-    val poster = posterBase(identity, MochiTheme.colorScheme.primary)
+    val poster = posterBase(identity, MochiTheme.colorScheme)
     val posterFill = posterGradient(poster)
     val badgeShape = extensionShapes[identityIndex].toShape()
     // 右上角那一块用同一张表里错开半个周期的形，避免和徽标撞成同一个轮廓。
@@ -2169,18 +2281,25 @@ private fun PosterActionPill(
 }
 
 /**
- * 身份色 → 海报底色。
+ * 身份色 → Mochi 海报底色。
  *
- * 不再直接把身份色乘 0.58：莫兰迪身份色（角色头像那套低饱和色）压暗后是脏紫 / 脏棕，
- * 十几张卡排在一起像褪色的旧海报。改成——先把身份色和主题主色混一半（色相还在、
- * 但整体收进主题的色域），再把亮度封顶到 0.34：白字对比度稳定在 6:1 以上，
- * 浅色 / 深色主题、开不开动态取色都成立。
+ * 颜色先从 Mochi 的语义色板取一个主题基底，再用卡片身份色只做轻量的色相区分。
+ * 这样动态取色、深浅主题和不同卡片都能保持在同一套 Mochi 视觉范围内。
  */
-internal fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Color {
+internal fun posterBase(identity: Color, colors: ui.feice.mochi.theme.MochiColorScheme): Color {
+    val themeBases = listOf(
+        colors.primary,
+        colors.secondary,
+        colors.tertiary,
+        colors.primaryContainer,
+        colors.tertiaryContainer,
+    )
+    val themeBase = themeBases[abs(identity.hashCode()) % themeBases.size]
+    val mix = 0.28f
     val mixed = Color(
-        red = identity.red * (1f - mix) + primary.red * mix,
-        green = identity.green * (1f - mix) + primary.green * mix,
-        blue = identity.blue * (1f - mix) + primary.blue * mix,
+        red = identity.red * mix + themeBase.red * (1f - mix),
+        green = identity.green * mix + themeBase.green * (1f - mix),
+        blue = identity.blue * mix + themeBase.blue * (1f - mix),
         alpha = 1f,
     )
     // 直接乘系数只会把莫兰迪色压成灰；改在 HSV 里定死明度、给饱和度一个下限：
@@ -2193,7 +2312,7 @@ internal fun posterBase(identity: Color, primary: Color, mix: Float = 0.22f): Co
         hsv,
     )
     hsv[1] = hsv[1].coerceAtLeast(0.42f)
-    hsv[2] = 0.52f
+    hsv[2] = if (colors.surface.luminance() > 0.5f) 0.48f else 0.62f
     return Color(android.graphics.Color.HSVToColor(hsv))
 }
 
@@ -2330,7 +2449,7 @@ private fun scaledDownloadCount(downloads: Long, scale: Int, locale: Locale): St
 private fun HubCardMarketInfo.downloadsText(): String? =
     downloads.takeIf { it > 0L }?.let { downloadsLabel(it) }
 
-/** 卡片元信息压成一行文本，取代一排小胶囊（原来 2 栏窄卡里胶囊墙会挤成三行）。 */
+/** 卡片元信息压成一行文本，供首屏网格卡和二级列表共用。 */
 @Composable
 private fun cardMetaLine(
     entry: CardIndexEntry,
@@ -2355,8 +2474,8 @@ private fun cardMetaLine(
 }
 
 /**
- * 卡片列表单元：一行 [MochiListRow] —— 行首图标（[extension]）+ 名称 + 摘要 / 元信息两行
- * + 行尾安装状态。一级页与二级页都把它放进 Mochi 分组卡片里，行本身不带底色和圆角。
+ * 二级卡片市场的列表单元：一行 [MochiListRow] —— 行首图标（[extension]）+ 名称 + 摘要 / 元信息两行
+ * + 行尾安装状态。首屏使用上面的 [MarketGridCard] 两列卡片。
  */
 @Composable
 private fun CompactCard(
@@ -2422,7 +2541,7 @@ private fun DetailSheetHeader(title: String, onClose: () -> Unit) {
     MochiSheetHeader(
         title = title,
         actions = {
-            MochiBarIconButton(onClick = onClose, colors = kkSolidBarColors()) {
+            MochiBarIconButton(onClick = onClose, colors = kkBarButtonColors()) {
                 Icon(
                     imageVector = close,
                     contentDescription = stringResource(R.string.explore_market_cancel),
@@ -2742,7 +2861,7 @@ fun ExploreLocalPage() {
     }
 
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.explore_market_local_page_title),
     ) { innerPadding ->
         // 每组一个 MochiListSection：有现成文案的组带分区标题，其余只靠分区间距分块；

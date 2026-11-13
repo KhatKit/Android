@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.Text
+import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.navigation.MochiTitleBar
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
@@ -89,10 +90,11 @@ fun MochiSmallTopBar(
     titleAlpha: Float = 1f,
     barColorAlpha: Float? = null,
     scrollBehavior: Any? = null,
-    backdrop: Any? = null,
+    /** 栏按钮玻璃的取样来源；null = 按材质 fallback 画纯色（旧调用点不传，行为不变）。 */
+    backdrop: MochiBackdrop? = null,
 ) {
     // TOP1：顶栏换成 Mochi 真组件 MochiTitleBar（自带滚动边缘渐隐/玻璃取样/共享返回按钮），
-    // 不再自建 Row+Text。barColorAlpha / scrollBehavior / backdrop 为旧调用点参数，收而不用。
+    // 不再自建 Row+Text。barColorAlpha / scrollBehavior 为旧调用点参数，收而不用。
     MochiTitleBar(
         title = title,
         modifier = modifier,
@@ -100,6 +102,7 @@ fun MochiSmallTopBar(
         actions = actions,
         background = MochiDefaults.groupedBackground(),
         titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+        backdrop = backdrop,
     )
 }
 
@@ -115,10 +118,11 @@ fun MochiLargeTopAppBar(
     titleAlpha: Float = 1f,
     scrollBehavior: Any? = null,
     translucentTopBar: Boolean = true,
-    backdrop: Any? = null,
+    /** 栏按钮玻璃的取样来源（卡片弹层页面自己录）；null = 纯色。 */
+    backdrop: MochiBackdrop? = null,
 ) {
     // TOP1：大标题栏也走 Mochi 真组件；折叠交给 MochiTitleBar 的 titleProgress（调用点可继续传 titleAlpha）。
-    // 旧参数 scrollBehavior / translucentTopBar / backdrop 收而不用；titleContent 自定义标题槽保留原实现。
+    // 旧参数 scrollBehavior / translucentTopBar 收而不用；titleContent 自定义标题槽保留原实现。
     if (titleContent != null) {
         MochiBarFrame(
             modifier = modifier,
@@ -137,6 +141,7 @@ fun MochiLargeTopAppBar(
             actions = actions,
             background = MochiDefaults.groupedBackground(),
             titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+            backdrop = backdrop,
         )
     }
 }

@@ -8,7 +8,6 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
-import androidx.compose.material3.Button
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.mediapicker.R
+import ui.feice.mochi.basic.MochiButton
 
 @Composable
 internal fun ManageExternalStorageWarning(
@@ -68,13 +67,7 @@ internal fun ManageExternalStorageWarning(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Button(
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-            ),
-            onClick = onRequestManagePermission,
-        ) {
+        MochiButton(onClick = onRequestManagePermission) {
             Text(stringResource(R.string.media_picker_request))
         }
     }

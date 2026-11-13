@@ -7,9 +7,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import java.io.BufferedInputStream
 import java.io.File
-import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
 /** 可下载的 sherpa-onnx 本地识别模型。 */
 data class SherpaModelPreset(
@@ -107,20 +104,13 @@ class SherpaModelManager(private val context: Context) {
         engineDir.deleteRecursively()
     }
 
-    suspend fun downloadEngine(onProgress: (Float) -> Unit): File = withContext(Dispatchers.IO) {
-        val tmp = File(rootDir, "sherpa-engine.aar.part")
-        tmp.delete()
-        rootDir.mkdirs()
-        downloadFile(SherpaModels.ENGINE_URL, tmp, onProgress)
-        onProgress(1f)
-
+    suspend fun installEngineArchive(archive: File): File = withContext(Dispatchers.IO) {
         val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull {
             it in setOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         } ?: "arm64-v8a"
-
         engineDir.mkdirs()
         var extracted = false
-        java.util.zip.ZipInputStream(BufferedInputStream(tmp.inputStream())).use { zip ->
+        java.util.zip.ZipInputStream(BufferedInputStream(archive.inputStream())).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
                 if (entry.name == "jni/$abi/libsherpa-onnx-jni.so") {
@@ -130,27 +120,16 @@ class SherpaModelManager(private val context: Context) {
                 entry = zip.nextEntry
             }
         }
-        tmp.delete()
         require(extracted) { "引擎包中未找到 $abi 原生库" }
         engineLib.setExecutable(true)
         engineLib
     }
 
-    suspend fun download(
-        preset: SherpaModelPreset,
-        onProgress: (Float) -> Unit,
-    ): File = withContext(Dispatchers.IO) {
+    suspend fun installModelArchive(preset: SherpaModelPreset, archive: File): File = withContext(Dispatchers.IO) {
         val target = modelDir(preset.id)
-        val tmp = File(rootDir, "${preset.id}.tar.bz2.part")
         target.deleteRecursively()
-        tmp.delete()
-        rootDir.mkdirs()
-
-        downloadFile(preset.url, tmp, onProgress)
-        onProgress(1f)
-
         target.mkdirs()
-        BZip2CompressorInputStream(BufferedInputStream(tmp.inputStream())).use { bz ->
+        BZip2CompressorInputStream(BufferedInputStream(archive.inputStream())).use { bz ->
             TarArchiveInputStream(bz).use { tar ->
                 var entry = tar.nextEntry
                 while (entry != null) {
@@ -165,34 +144,7 @@ class SherpaModelManager(private val context: Context) {
                 }
             }
         }
-        tmp.delete()
         target
     }
 
-    private fun downloadFile(url: String, target: File, onProgress: (Float) -> Unit) {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15_000
-            readTimeout = 60_000
-            instanceFollowRedirects = true
-        }
-        connection.connect()
-        try {
-            val total = connection.contentLengthLong
-            connection.inputStream.use { input ->
-                FileOutputStream(target).use { output ->
-                    val buffer = ByteArray(256 * 1024)
-                    var written = 0L
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        output.write(buffer, 0, read)
-                        written += read
-                        if (total > 0) onProgress((written.toFloat() / total).coerceIn(0f, 1f))
-                    }
-                }
-            }
-        } finally {
-            connection.disconnect()
-        }
-    }
 }

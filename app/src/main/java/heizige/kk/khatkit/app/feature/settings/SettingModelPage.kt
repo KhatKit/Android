@@ -46,6 +46,9 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.SliderSetting
+import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -189,6 +192,36 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
                 providers = settings.providers,
                 onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
             )
+        }
+        item {
+            CardGroup(title = { Text(stringResource(R.string.setting_model_page_auto_compress_title)) }) {
+                settingItem(
+                    SwitchSetting(
+                        titleRes = R.string.setting_model_page_auto_compress_title,
+                        descriptionRes = R.string.setting_model_page_auto_compress_desc,
+                        checked = settings.enableAutoCompress,
+                        onCheckedChange = {
+                            vm.updateSettings(settings.copy(enableAutoCompress = it))
+                        },
+                    )
+                )
+                settingItem(
+                    SliderSetting(
+                        titleRes = R.string.setting_model_page_auto_compress_threshold,
+                        descriptionRes = R.string.setting_model_page_auto_compress_threshold_desc,
+                        value = settings.autoCompressThreshold,
+                        valueRange = 0.5f..0.95f,
+                        steps = 8,
+                        enabled = settings.enableAutoCompress,
+                        onValueChange = {
+                            vm.updateSettings(
+                                settings.copy(autoCompressThreshold = it.coerceIn(0.5f..0.95f))
+                            )
+                        },
+                        valueLabel = { "${(it * 100).toInt()}%" },
+                    )
+                )
+            }
         }
     }
 }

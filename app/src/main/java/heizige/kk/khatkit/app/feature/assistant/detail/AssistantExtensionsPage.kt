@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabPageScaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -48,9 +48,9 @@ fun AssistantExtensionsPage(id: String) {
     val gotoExtensions = stringResource(R.string.assistant_extensions_page_goto_extensions)
     val gotoPrompts = stringResource(R.string.assistant_extensions_page_goto_prompts)
 
-    // Tab 页统一骨架：顶栏 + KedgeTabRow；每个标签页是一个 LazyColumn，
+    // Tab 页统一骨架：顶栏 + MochiTabRow；每个标签页是一个 LazyColumn，
     // 列表是一张 Mochi 分组卡片（行尾开关，点整行也切换），下面单独一组放跳转操作。
-    KedgeTabPageScaffold(
+    MochiTabPageScaffold(
         title = stringResource(R.string.assistant_extensions_page_title),
         titles = listOf(
             stringResource(R.string.assistant_extensions_page_tab_quick_messages),

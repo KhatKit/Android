@@ -221,7 +221,9 @@ class BridgeRegistry(
                     is CardBindable -> s.bindCard(manifest.name)
                     else -> s
                 }
-                else -> dynamicBridges[name]
+                else -> dynamicBridges[name]?.let { bridge ->
+                    if (bridge is CardBindable) bridge.bindCard(manifest.name) else bridge
+                }
             } ?: return false
             engine.define(name, scopedBridge(context, name, impl))
         }

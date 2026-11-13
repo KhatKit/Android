@@ -61,7 +61,7 @@ import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -89,7 +89,7 @@ private val themeJson = Json {
 
 /**
  * 主题偏好页，布局照 Mochi demo 的主题标签页：
- * - 顶栏走设置页统一的 KedgeSettingsPageScaffold（紧凑标题，左上返回与「设置 / 界面」同一枚），
+ * - 顶栏走设置页统一的 MochiSettingsPageScaffold（紧凑标题，左上返回与「设置 / 界面」同一枚），
  *   正文是懒加载列表
  * - 每个分组一张 iOS 26 分组卡片（CardGroup）：卡片外小标题、卡片内行、卡片下说明
  * - 行是 Mochi 列表行（52dp 行高、16dp 内边距、分隔线自文字起点画到卡片右边），
@@ -116,7 +116,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
         vm.updateSettings(settings.copy(themeId = themeId, dynamicColor = false))
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_preferences_theme),
         largeTitle = false,
     ) { innerPadding ->
@@ -146,6 +146,12 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                     onClick = { navController.navigate(Screen.SettingThemeMaterials) },
                     headlineContent = { Text("材质") },
                     supportingContent = { Text("玻璃、按钮样式、模糊") },
+                )
+                item(
+                    chevron = true,
+                    onClick = { navController.navigate(Screen.SettingThemeNavBar) },
+                    headlineContent = { Text("导航栏") },
+                    supportingContent = { Text("底部导航栏样式、栏玻璃通透度") },
                 )
                 item(
                     chevron = true,

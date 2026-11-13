@@ -35,7 +35,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -102,9 +102,9 @@ import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormRow
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.Md3SwitchFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormDivider
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.Md3SwitchFormRow
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
@@ -121,7 +121,7 @@ internal fun McpCommonOptionsConfigure(
             .imePadding(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 启用/禁用开关。标题只由行自己画一次 —— 之前这里套 KedgeFormRow 又在 content
+        // 启用/禁用开关。标题只由行自己画一次 —— 之前这里套 MochiFormRow 又在 content
         // 里写了个 Text(启用)，屏幕上「启用」出现两遍；开关也是 MD3 的 OptionSwitch。
         Md3SwitchFormRow(
             checked = config.commonOptions.enable,
@@ -143,10 +143,10 @@ internal fun McpCommonOptionsConfigure(
             },
         )
 
-        KedgeFormDivider()
+        MochiFormDivider()
 
         // 名称输入框
-        KedgeFormRow(
+        MochiFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_name))
             }
@@ -178,10 +178,10 @@ internal fun McpCommonOptionsConfigure(
             )
         }
 
-        KedgeFormDivider()
+        MochiFormDivider()
 
         // 传输类型选择
-        KedgeFormRow(
+        MochiFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_transport_type))
             }
@@ -231,10 +231,10 @@ internal fun McpCommonOptionsConfigure(
             )
         }
 
-        KedgeFormDivider()
+        MochiFormDivider()
 
         // 服务器地址配置
-        KedgeFormRow(
+        MochiFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_server_url))
             },
@@ -274,10 +274,10 @@ internal fun McpCommonOptionsConfigure(
             )
         }
 
-        KedgeFormDivider()
+        MochiFormDivider()
 
         // 请求头配置
-        KedgeFormRow(
+        MochiFormRow(
             label = {
                 Text(stringResource(R.string.setting_mcp_page_custom_headers))
             },

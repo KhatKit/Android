@@ -14,10 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +43,7 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun ErrorCardsDisplay(
@@ -54,6 +52,7 @@ fun ErrorCardsDisplay(
     onClearAllErrors: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = MochiTheme.colorScheme
     AnimatedVisibility(
         visible = errors.isNotEmpty(),
         modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -68,8 +67,8 @@ fun ErrorCardsDisplay(
             if (errors.size > 1) {
                 KkSurface(
                     onClick = onClearAllErrors,
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                    shape = MochiTheme.shapes.small,
+                    color = colors.errorContainer.copy(alpha = 0.8f),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -80,12 +79,12 @@ fun ErrorCardsDisplay(
                             imageVector = delete,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            tint = colors.onErrorContainer,
                         )
                         Text(
                             text = stringResource(R.string.chat_page_clear_all_errors),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MochiTheme.textStyles.labelSmall,
+                            color = colors.onErrorContainer,
                         )
                     }
                 }
@@ -112,7 +111,8 @@ fun ErrorCard(
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val checkFastModelSettings = stringResource(R.string.chat_page_check_fast_model_settings)
-    val linkColor = MaterialTheme.colorScheme.primary
+    val colors = MochiTheme.colorScheme
+    val linkColor = colors.primary
 
     // 5 秒后自动消失
     LaunchedEffect(error.id) {
@@ -122,8 +122,8 @@ fun ErrorCard(
 
     KkSurface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MochiTheme.shapes.medium,
+        color = colors.errorContainer,
         shadowElevation = 4.dp,
     ) {
         Row(
@@ -140,16 +140,16 @@ fun ErrorCard(
                 if (error.title != null) {
                     Text(
                         text = error.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MochiTheme.textStyles.body,
+                        color = colors.onErrorContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Text(
                     text = error.error.message ?: "Unknown error",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                    style = MochiTheme.textStyles.body,
+                    color = colors.onErrorContainer.copy(alpha = 0.8f),
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (error.solution == ChatErrorSolution.CheckFastModelSettings) {
@@ -172,7 +172,7 @@ fun ErrorCard(
                                 append(checkFastModelSettings)
                             }
                         },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MochiTheme.textStyles.body,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -189,24 +189,22 @@ fun ErrorCard(
                     }
                 },
                 modifier = Modifier.size(32.dp),
-                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = contentCopy,
                     contentDescription = "Copy error message",
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = colors.onErrorContainer,
                     modifier = Modifier.size(18.dp),
                 )
             }
             MochiIconButton(
                 onClick = onDismiss,
                 modifier = Modifier.size(32.dp),
-                shapes = IconButtonDefaults.shapes(),
             ) {
                 Icon(
                     imageVector = close,
                     contentDescription = stringResource(R.string.chat_page_dismiss_error),
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    tint = colors.onErrorContainer,
                     modifier = Modifier.size(18.dp),
                 )
             }

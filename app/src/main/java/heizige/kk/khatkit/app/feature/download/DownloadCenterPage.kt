@@ -1,34 +1,21 @@
 package heizige.kk.khatkit.app.feature.download
 
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
 import heizige.kk.khatkit.app.core.ui.icons.delete
 import heizige.kk.khatkit.app.core.ui.icons.download
 import heizige.kk.khatkit.app.core.ui.icons.pause
@@ -36,14 +23,17 @@ import heizige.kk.khatkit.app.core.ui.icons.playArrow
 import heizige.kk.khatkit.app.core.ui.icons.stopCircle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import ui.feice.mochi.basic.MochiIconButton as NativeMochiIconButton
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
 
 /** 全局下载中心：KhatKit bridge 下载（含脚本创建）与更新包下载都汇总到这里。 */
 @Composable
 fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "下载中心",
     ) { innerPadding ->
         if (tasks.isEmpty()) {
@@ -76,17 +66,19 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(ordered, key = { it.id }) { task ->
-                    DownloadTaskRow(
-                        task = task,
-                        onPause = { vm.pause(task.id) },
-                        onResume = { vm.resume(task.id) },
-                        onCancel = { vm.cancel(task.id) },
-                        onRemove = { vm.remove(task.id) },
-                    )
+                item {
+                    MochiListSection(header = "下载任务") {
+                        ordered.forEach { task ->
+                            DownloadTaskRow(
+                                task = task,
+                                onPause = { vm.pause(task.id) },
+                                onResume = { vm.resume(task.id) },
+                                onCancel = { vm.cancel(task.id) },
+                                onRemove = { vm.remove(task.id) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -101,118 +93,54 @@ private fun DownloadTaskRow(
     onCancel: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    KkCard(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = download,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                ) {
-                    Text(
-                        text = task.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = buildString {
-                            append(stateText(task.state))
-                            val total = task.total
-                            if (total > 0) {
-                                append(" · ")
-                                append(formatBytes(task.bytes))
-                                append(" / ")
-                                append(formatBytes(total))
-                            } else if (task.bytes > 0) {
-                                append(" · ")
-                                append(formatBytes(task.bytes))
-                            }
-                            if (task.isActive && task.speedBps > 0) {
-                                append(" · ")
-                                append(formatBytes(task.speedBps))
-                                append("/s")
-                            }
-                            task.error?.let {
-                                append(" · ")
-                                append(it)
-                            }
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (task.state == "failed") {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
+    MochiListRow(
+        title = task.name,
+        subtitle = buildString {
+            append(stateText(task.state))
+            if (task.total > 0) append("  ${(task.progress * 100).toInt()}%")
+            val total = task.total
+            if (total > 0) {
+                append("  ")
+                append(formatBytes(task.bytes))
+                append(" / ")
+                append(formatBytes(total))
+            } else if (task.bytes > 0) {
+                append("  ")
+                append(formatBytes(task.bytes))
+            }
+            if (task.isActive && task.speedBps > 0) {
+                append("  ")
+                append(formatBytes(task.speedBps))
+                append("/s")
+            }
+            task.error?.let {
+                append("  ")
+                append(it)
+            }
+            task.file?.let {
+                append("  ")
+                append(it)
+            }
+        },
+        leading = {
+            Icon(download, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        },
+        trailing = {
+            Row {
                 when {
                     task.isActive -> {
-                        MochiIconButton(onClick = onPause, shapes = IconButtonDefaults.shapes()) {
-                            Icon(pause, contentDescription = "暂停", modifier = Modifier.size(20.dp))
-                        }
-                        MochiIconButton(onClick = onCancel, shapes = IconButtonDefaults.shapes()) {
-                            Icon(stopCircle, contentDescription = "取消", modifier = Modifier.size(20.dp))
-                        }
+                        NativeMochiIconButton(onClick = onPause) { Icon(pause, "暂停") }
+                        NativeMochiIconButton(onClick = onCancel) { Icon(stopCircle, "取消") }
                     }
-
                     task.state == "paused" || task.state == "failed" -> {
-                        MochiIconButton(onClick = onResume, shapes = IconButtonDefaults.shapes()) {
-                            Icon(playArrow, contentDescription = "继续", modifier = Modifier.size(20.dp))
-                        }
-                        MochiIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
-                            Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
-                        }
+                        NativeMochiIconButton(onClick = onResume) { Icon(playArrow, "继续") }
+                        NativeMochiIconButton(onClick = onRemove) { Icon(delete, "删除") }
                     }
-
-                    else -> {
-                        MochiIconButton(onClick = onRemove, shapes = IconButtonDefaults.shapes()) {
-                            Icon(delete, contentDescription = "删除", modifier = Modifier.size(20.dp))
-                        }
-                    }
+                    else -> NativeMochiIconButton(onClick = onRemove) { Icon(delete, "删除") }
                 }
             }
-
-            if (task.isActive || task.state == "paused") {
-                if (task.total > 0) {
-                    KkProgressIndicator(type = KkProgressIndicatorType.Linear,
-                        progress = { task.progress },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
-                }
-            }
-
-            task.file?.let { path ->
-                Text(
-                    text = path,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
+        },
+    )
 }
 
 private fun stateText(state: String): String = when (state) {

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +71,6 @@ import kotlinx.coroutines.launch
 import ui.feice.mochi.anim.MochiSprings
 import ui.feice.mochi.effect.content.MochiCounterText
 import ui.feice.mochi.effect.content.mochiBounce
-import ui.feice.mochi.shape.MochiSuperellipse
 import ui.feice.mochi.theme.MochiTheme
 
 /**
@@ -98,6 +98,9 @@ internal class AboutEggState {
 
     /** 正在扩散的冲击波，画完自己从列表里摘掉。 */
     val waves = mutableStateListOf<Animatable<Float, androidx.compose.animation.core.AnimationVector1D>>()
+
+    /** 点击时图标从圆角方形过渡为圆形。 */
+    val circleMorph = Animatable(0f)
 
     /** 图标自己那层的坐标：粒子按它定位，换布局不会跑偏。 */
     var iconCoords: LayoutCoordinates? = null
@@ -170,6 +173,11 @@ internal fun AboutHero(
         val combo = state.tap()
         val reachedGoal = combo == AboutEggState.ComboGoal
         if (motion) {
+            scope.launch {
+                state.circleMorph.snapTo(0f)
+                state.circleMorph.animateTo(1f, tween(180, easing = LinearOutSlowInEasing))
+                state.circleMorph.animateTo(0f, tween(360, easing = LinearOutSlowInEasing))
+            }
             launchWave(state, scope)
             scope.launch {
                 delay(90)
@@ -323,7 +331,7 @@ internal fun AboutHero(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .size(AboutIconSize)
-                        .clip(MochiSuperellipse(5f))
+                        .clip(RoundedCornerShape(percent = 12 + (state.circleMorph.value * 38f).toInt()))
                         .onGloballyPositioned { coordinates -> state.iconCoords = coordinates }
                         .kkPressState(interaction, pressedScale = 0.94f)
                         .mochiBounce(state.tick, depth = 0.12f)

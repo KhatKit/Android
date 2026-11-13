@@ -5,11 +5,9 @@ import ui.feice.mochi.basic.MochiChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -21,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
+import ui.feice.mochi.basic.MochiProgressBar
+import ui.feice.mochi.basic.MochiProgressRing
 
 /**
  * U4c：把最后一批 Kedge 专有组件换成 material3 骨架的本地壳。
@@ -41,18 +41,14 @@ fun KkProgressIndicator(
     strokeWidth: Dp? = null,
 ) {
     when (type) {
-        KkProgressIndicatorType.Circular -> CircularProgressIndicator(
-            progress = { progress ?: 0f },
+        KkProgressIndicatorType.Circular -> MochiProgressRing(
+            progress = progress,
             modifier = modifier,
-            color = color ?: androidx.compose.material3.MaterialTheme.colorScheme.primary,
-            trackColor = trackColor ?: androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
-            strokeWidth = strokeWidth ?: Dp.Unspecified.let { 4.dp },
+            strokeWidth = strokeWidth ?: 4.dp,
         )
-        KkProgressIndicatorType.Linear -> LinearProgressIndicator(
-            progress = { progress ?: 0f },
+        KkProgressIndicatorType.Linear -> MochiProgressBar(
+            progress = progress ?: 0f,
             modifier = modifier,
-            color = color ?: androidx.compose.material3.MaterialTheme.colorScheme.primary,
-            trackColor = trackColor ?: androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
         )
     }
 }
@@ -110,11 +106,10 @@ fun KkFloatingActionButton(
     contentColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
-    FloatingActionButton(
+    MochiIconButton(
         onClick = onClick,
         modifier = modifier,
-        containerColor = containerColor ?: androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
-        contentColor = contentColor ?: androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
+        variant = MochiIconButtonVariant.Filled,
         content = content,
     )
 }

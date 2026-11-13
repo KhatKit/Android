@@ -1,5 +1,10 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -31,8 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import ui.feice.mochi.basic.Text
+import ui.feice.mochi.basic.MochiActivityIndicator
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 
 /**
  * P4c：Kedge 列表行 / 弹层 / 菜单 / 反馈族的 Mochi 版。
@@ -304,11 +313,8 @@ fun MochiTextTooltipBox(
     }
 }
 
-/**
- * 下拉刷新：Mochi 侧先做语义占位（内容和刷新回调都透传），真实拉伸效果由
- * ProvideMochiOverscroll（P3a 已接根）提供；MochiRefresh 的 suspend onRefresh
- * 在 P6 接入后替换本实现。
- */
+/** Mochi 风格的下拉刷新容器，保留 Material3 的手势状态但替换默认指示器。 */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MochiPullToRefreshBox(
     isRefreshing: Boolean,
@@ -316,7 +322,44 @@ fun MochiPullToRefreshBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(modifier = modifier.fillMaxSize()) { content() }
+    val state = rememberPullToRefreshState()
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        state = state,
+        modifier = modifier.fillMaxSize(),
+        indicator = {
+            MochiRefreshIndicator(
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        },
+        content = { content() },
+    )
+}
+
+@Composable
+private fun MochiRefreshIndicator(
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = isRefreshing,
+        modifier = modifier.padding(top = 10.dp),
+        enter = androidx.compose.animation.fadeIn(),
+        exit = androidx.compose.animation.fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    MochiTheme.colorScheme.surfaceContainerHighest,
+                    MochiTheme.shapes.full,
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            MochiActivityIndicator(size = 20.dp)
+        }
+    }
 }
 
 // ---- Snackbar / Toast 族 ----
@@ -354,27 +397,42 @@ fun rememberMochiSnackbarHostState(): MochiSnackbarHostState = remember { MochiS
 
 @Composable
 fun MochiSnackbarHost(state: MochiSnackbarHostState, modifier: Modifier = Modifier) {
-    val message = state.message ?: return
-    Row(
-        modifier = modifier
-            .padding(16.dp)
-            .background(MochiTheme.colorScheme.inverseSurface, MochiTheme.shapes.full)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    val message = state.message
+    AnimatedVisibility(
+        visible = message != null,
+        modifier = modifier,
+        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
     ) {
-        Text(text = message, color = MochiTheme.colorScheme.inverseOnSurface, style = MochiTheme.textStyles.body)
-        state.actionLabel?.let { label ->
-            Text(
-                text = label,
-                color = MochiTheme.colorScheme.primary,
-                style = MochiTheme.textStyles.body,
+        message?.let { currentMessage ->
+            Row(
                 modifier = Modifier
-                    .padding(start = 12.dp)
-                    .clickable {
-                        state.actionTaken = true
-                        state.message = null
-                    },
-            )
+                    .padding(16.dp)
+                    .background(MochiTheme.colorScheme.inverseSurface, MochiTheme.shapes.full)
+                    .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = currentMessage,
+                    color = MochiTheme.colorScheme.inverseOnSurface,
+                    style = MochiTheme.textStyles.body,
+                )
+                state.actionLabel?.let { label ->
+                    Text(
+                        text = label,
+                        color = MochiTheme.colorScheme.inversePrimary,
+                        style = MochiTheme.textStyles.labelMedium,
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .background(MochiTheme.colorScheme.inverseOnSurface.copy(alpha = 0.08f), MochiTheme.shapes.full)
+                            .clickable {
+                                state.actionTaken = true
+                                state.message = null
+                            }
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                    )
+                }
+            }
         }
     }
 }

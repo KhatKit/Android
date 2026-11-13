@@ -56,6 +56,7 @@ import heizige.kk.khatkit.app.core.data.model.RoleTemplates
 import heizige.kk.khatkit.app.core.data.model.Tag
 import heizige.kk.khatkit.app.core.data.sync.s3.S3Config
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
+import heizige.kk.khatkit.uikit.mochi.NavBarLabelStyle
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.toMutableStateFlow
@@ -143,6 +144,8 @@ class SettingsRepository @Inject constructor(
         val OCR_PROMPT = stringPreferencesKey("ocr_prompt")
         val COMPRESS_MODEL = stringPreferencesKey("compress_model")
         val COMPRESS_PROMPT = stringPreferencesKey("compress_prompt")
+        val ENABLE_AUTO_COMPRESS = booleanPreferencesKey("enable_auto_compress")
+        val AUTO_COMPRESS_THRESHOLD = floatPreferencesKey("auto_compress_threshold")
 
         // 提供商
         val PROVIDERS = stringPreferencesKey("providers")
@@ -230,6 +233,8 @@ class SettingsRepository @Inject constructor(
                 preferences[OCR_PROMPT] = settings.ocrPrompt
                 preferences[COMPRESS_MODEL] = settings.compressModelId.toString()
                 preferences[COMPRESS_PROMPT] = settings.compressPrompt
+                preferences[ENABLE_AUTO_COMPRESS] = settings.enableAutoCompress
+                preferences[AUTO_COMPRESS_THRESHOLD] = settings.autoCompressThreshold
 
                 preferences[PROVIDERS] = JsonInstant.encodeToString(settings.providers)
 
@@ -304,6 +309,9 @@ class SettingsRepository @Inject constructor(
                 ocrPrompt = preferences[OCR_PROMPT] ?: DEFAULT_OCR_PROMPT,
                 compressModelId = preferences[COMPRESS_MODEL]?.let { Uuid.parse(it) } ?: DEFAULT_AUTO_MODEL_ID,
                 compressPrompt = preferences[COMPRESS_PROMPT] ?: DEFAULT_COMPRESS_PROMPT,
+                enableAutoCompress = preferences[ENABLE_AUTO_COMPRESS] != false,
+                autoCompressThreshold = (preferences[AUTO_COMPRESS_THRESHOLD] ?: 0.8f)
+                    .coerceIn(AUTO_COMPRESS_THRESHOLD_RANGE),
                 assistantId = preferences[SELECT_ASSISTANT]?.let { Uuid.parse(it) }
                     ?: DEFAULT_ASSISTANT_ID,
                 assistantTags = preferences[ASSISTANT_TAGS]?.let {
@@ -629,6 +637,8 @@ data class Settings(
     val ocrPrompt: String = DEFAULT_OCR_PROMPT,
     val compressModelId: Uuid = Uuid.random(),
     val compressPrompt: String = DEFAULT_COMPRESS_PROMPT,
+    val enableAutoCompress: Boolean = true,
+    val autoCompressThreshold: Float = 0.8f,
     val assistantId: Uuid = DEFAULT_ASSISTANT_ID,
     val providers: List<ProviderSetting> = DEFAULT_PROVIDERS,
     val assistants: List<Assistant> = DEFAULT_ASSISTANTS,
@@ -661,6 +671,8 @@ data class Settings(
         fun dummy() = Settings(init = true)
     }
 }
+
+val AUTO_COMPRESS_THRESHOLD_RANGE = 0.5f..0.95f
 
 @Serializable
 data class FeatureFlags(
@@ -768,6 +780,24 @@ data class DisplaySetting(
      * 只在 [effectsEnabled] 开着时有意义（总开关关了一律实心）。新增字段，老安装取默认 true。
      */
     val glassButtons: Boolean = true,
+    /**
+     * 底部导航栏标签样式（外观 → 导航栏 → 导航栏样式）：图标+文字 / 仅选中项显示文字 / 仅图标。
+     * 新增字段，老安装的 JSON 里没有这个 key ⇒ 反序列化取默认 [NavBarLabelStyle.LABELS]（老行为）。
+     */
+    val navBarLabelStyle: NavBarLabelStyle = NavBarLabelStyle.LABELS,
+    /** 内容往下滚时底部导航栏收起成只剩当前图标的小胶囊（Mochi 的 iOS 26 行为，默认开）。 */
+    val navBarCollapseOnScroll: Boolean = true,
+    /**
+     * 栏玻璃通透度 0..1（0 最透明、0.5 iOS 默认、1 色调最重），对应 Mochi 的 `iosMaterials(glassTint = …)`。
+     * 只作用于「透」档玻璃（栏、栏里的按钮、警告框、玻璃样式按钮）；菜单 / 面板是固定的「实」档，不跟它变。
+     * 新增字段，老安装取默认 0.5（= iOS 默认）。
+     */
+    val glassTint: Float = 0.5f,
+    /**
+     * 仅模糊：保留背景模糊、面色和内容对比度，去掉折射 / 色散 / 边光 / 按压玻璃泡等光学效果，
+     * 对应 Mochi 的 `iosMaterials(blurOnly = true)` / `MochiGlass.asBlurOnly()`。新增字段，默认关。
+     */
+    val glassBlurOnly: Boolean = false,
 )
 
 @Serializable

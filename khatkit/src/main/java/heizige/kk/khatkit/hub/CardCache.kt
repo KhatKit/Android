@@ -37,6 +37,9 @@ data class LoadedCard(
  */
 class CardCache(private val rootDir: File) {
     private val locks = ConcurrentHashMap<String, Mutex>()
+    /** Installed card packages are immutable between updates; reuse parsed scripts between runs. */
+    private val loadedCache = ConcurrentHashMap<String, LoadedCard>()
+    private val widgetCache = ConcurrentHashMap<String, LoadedCard>()
     private val orderLock = Any()
 
     fun cardDir(name: String, version: String): File {
@@ -58,6 +61,7 @@ class CardCache(private val rootDir: File) {
     ): File = withContext(Dispatchers.IO) {
         locks.getOrPut(entry.name) { Mutex() }.withLock {
         val dir = cardDir(entry.name, entry.version)
+        if (force) invalidate(entry.name)
         if (!force && File(dir, "card.json").exists()) {
             load(dir)
             return@withLock dir
@@ -106,6 +110,7 @@ class CardCache(private val rootDir: File) {
         val cardRoot = cardDir(name, "1").parentFile!!
         locks.getOrPut(name) { Mutex() }.withLock {
         val removed = if (cardRoot.exists()) cardRoot.deleteRecursively() else false
+        invalidate(name)
         // 记录表里也要摘掉这个名字，否则重装会继承旧位置、记录表也会无限长。
         if (removed) synchronized(orderLock) { writeOrder(readOrder().filterNot { it == name }) }
         removed
@@ -181,6 +186,8 @@ class CardCache(private val rootDir: File) {
 
     /** 读取本地 card.json + 脚本，交给引擎执行。 */
     fun load(dir: File): LoadedCard {
+        val key = dir.canonicalPath
+        loadedCache[key]?.let { return it }
         val manifestFile = File(dir, "card.json")
         require(manifestFile.exists()) { "card.json 不存在：$dir" }
         val parsed = CardParser.parse(manifestFile.readText()).getOrThrow()
@@ -215,7 +222,12 @@ class CardCache(private val rootDir: File) {
             require(abiText != null && manifest.abiVersion == 1) { "WASM_MANIFEST_MISSING" }
             require(wasm.size >= 8 && wasm.take(8) == listOf<Byte>(0, 97, 115, 109, 1, 0, 0, 0)) { "WASM_INVALID" }
         }
-        return LoadedCard(manifest, dir, scriptText, kind, wasm, abiText)
+        return LoadedCard(manifest, dir, scriptText, kind, wasm, abiText).also {
+            // Staging directories are transient and must never be retained after install.
+            if (key.startsWith(File(rootDir, "cards").canonicalPath + File.separator)) {
+                loadedCache[key] = it
+            }
+        }
     }
 
     /** 读 manifest.json 的 runtime 字段；不存在或解析失败时按 Lua 卡处理。 */
@@ -229,6 +241,8 @@ class CardCache(private val rootDir: File) {
     }
 
     fun loadWidget(card: LoadedCard): LoadedCard {
+        val key = card.dir.canonicalPath
+        widgetCache[key]?.let { return it }
         val widget = requireNotNull(card.manifest.widget) { "WIDGET_UNAVAILABLE" }
         require(!card.manifest.isCommand && "ui" in card.manifest.requiredBridges) { "WIDGET_ENGINE" }
         fun script(path: String?): File? = path?.let {
@@ -244,7 +258,9 @@ class CardCache(private val rootDir: File) {
             val bridges = widget.bridges ?: card.manifest.requiredBridges.toList()
             require("ui" in bridges && card.manifest.requiredBridges.containsAll(bridges)) { "WIDGET_BRIDGES" }
             val manifest = card.manifest.copy(requires = card.manifest.requires.copy(bridges = bridges))
-            return card.copy(manifest = manifest, widgetExecution = true, bridgeSubset = bridges.toSet())
+            return card.copy(manifest = manifest, widgetExecution = true, bridgeSubset = bridges.toSet()).also {
+                widgetCache[key] = it
+            }
         }
         val lua = script(widget.entry.lua)
         val js = script(widget.entry.js)
@@ -256,7 +272,15 @@ class CardCache(private val rootDir: File) {
             bridges = bridges,
             dependencies = card.manifest.requires.dependencies.filter { it.name in bridges },
         ))
-        return card.copy(manifest = manifest, scriptText = file.readText(), engineKind = kind)
+        return card.copy(manifest = manifest, scriptText = file.readText(), engineKind = kind).also {
+            widgetCache[key] = it
+        }
+    }
+
+    private fun invalidate(name: String) {
+        val prefix = File(rootDir, "cards/$name").canonicalPath + File.separator
+        loadedCache.keys.removeIf { it.startsWith(prefix) }
+        widgetCache.keys.removeIf { it.startsWith(prefix) }
     }
 
     private fun unzip(zip: File, destDir: File) {

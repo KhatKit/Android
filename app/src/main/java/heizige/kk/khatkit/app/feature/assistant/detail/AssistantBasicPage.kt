@@ -47,7 +47,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.SliderValueEditor
 import heizige.kk.khatkit.app.core.ui.components.ui.SliderValueInputDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShape
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShapeNames
@@ -89,12 +89,12 @@ fun AssistantBasicPage(id: String) {
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_tab_basic),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantBasicContent(
-            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+            // 必须把 MochiSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             providers = providers,

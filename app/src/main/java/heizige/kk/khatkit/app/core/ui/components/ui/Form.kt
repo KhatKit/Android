@@ -13,13 +13,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeRowSupport
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiRowSupport
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 
 /**
  * 表单行：左侧标题 + 描述，行内输入框 / 开关放 [tail]。
  *
- * **设置表单行（`FormItem` / `KedgeFormRow` / `Md3SwitchFormRow` 这一系）唯一的行渲染
+ * **设置表单行（`FormItem` / `MochiFormRow` / `Md3SwitchFormRow` 这一系）唯一的行渲染
  * 路径**——本组件只做槽位映射，布局全部交给 [MochiOptionItem]（它自己按
  * 旧双风格开关 分流：MD3 走 Khromia `OptionItem`，Miuix 走 `KkCard` 行）。这里不再
  * 手写行布局：以前 Form.kt 与 `miuix/KedgeForm.kt` 各有一份自绘行，同一件事两套实现，
@@ -31,14 +31,14 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
  * 槽位映射：
  * - [label] → `titleContent`（字阶见 [RowTitleStyle]）
  * - [description] + [content] → `supportingContent`（描述在上，行内内容在下，
- *   顺序由 [KedgeRowSupport] 统一决定；描述的字阶见 [RowSupportingStyle]）
+ *   顺序由 [MochiRowSupport] 统一决定；描述的字阶见 [RowSupportingStyle]）
  * - [tail] → `trailingContent`
  *
  * [onClick] 传 `null` 表示不可点的信息行；`MochiOptionItem` 会同时关掉整行点击与
  * 按压回弹，所以「纯信息行看着像能点」的问题不会再出现。
  *
  * ⚠️ [modifier] 是**行内容的内边距**，不是卡片外框的尺寸约束。调用点长期写
- * 「`KedgeFormRow` + `modifier = padding(8.dp)`」，那个 8dp 的语义一直是
+ * 「`MochiFormRow` + `modifier = padding(8.dp)`」，那个 8dp 的语义一直是
  * 「组卡片里的内容再往里缩一圈」（改前的 MD3 `FormItem` 就是把它套在卡片**内部**的
  * Row 上）。所以它只落在 [label] / [content] / [tail] 这几个槽位上，卡片外框永远是
  * 满宽：原样交给 `MochiOptionItem` 会把卡片本身一起缩窄，行卡片就比同页
@@ -71,7 +71,7 @@ fun FormItem(
         supportingContent = if (description != null) {
             {
                 SlotContent(modifier) {
-                    KedgeRowSupport(
+                    MochiRowSupport(
                         // 字阶只包 description，不包 content：调用点塞进来的输入框
                         // 不该继承辅助文字的字号（改造前的 FormItem 也是这个边界）。
                         description = { RowSupportingStyle { description() } },

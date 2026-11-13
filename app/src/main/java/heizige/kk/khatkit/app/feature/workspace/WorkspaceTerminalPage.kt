@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
@@ -71,6 +70,7 @@ import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalReadiness
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTab
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTabsState
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalViewClient
+import ui.feice.mochi.theme.MochiTheme
 
 
 
@@ -175,7 +175,7 @@ private fun WorkspaceTerminalContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MochiTheme.colorScheme.surface),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 BackButton()
@@ -189,7 +189,7 @@ private fun WorkspaceTerminalContent(
                             modifier = Modifier.fillMaxWidth(),
                             edgePadding = 0.dp,
                             minTabWidth = 160.dp,
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            containerColor = MochiTheme.colorScheme.surface,
                         ) {
                             state.tabs.forEach { tab ->
                                 val tabDescription = stringResource(
@@ -233,7 +233,7 @@ private fun WorkspaceTerminalContent(
                                             } else {
                                                 TextOverflow.Ellipsis
                                             },
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            style = MochiTheme.textStyles.body,
                                         )
                                         val closeDescription = stringResource(
                                             R.string.workspace_terminal_close_tab,
@@ -294,8 +294,8 @@ private fun WorkspaceTerminalContent(
                             }
                             else -> stringResource(R.string.workspace_terminal_no_tabs)
                         },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        style = MochiTheme.textStyles.body,
+                        color = MochiTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     )
                 }
             }
@@ -371,8 +371,8 @@ private fun WorkspaceTerminalTabContent(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 )
             }
         }
@@ -397,7 +397,7 @@ private fun TerminalExtraKeysBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MochiTheme.colorScheme.surface)
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -430,19 +430,19 @@ private fun TerminalExtraKey(
         modifier = Modifier
             .background(
                 color = if (selected) {
-                    MaterialTheme.colorScheme.primary
+                    MochiTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    MochiTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                 },
                 shape = RoundedCornerShape(6.dp),
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        style = MaterialTheme.typography.bodyMedium,
+        style = MochiTheme.textStyles.body,
         color = if (selected) {
-            MaterialTheme.colorScheme.onPrimary
+            MochiTheme.colorScheme.onPrimary
         } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            MochiTheme.colorScheme.onSurface.copy(alpha = 0.9f)
         },
     )
 }

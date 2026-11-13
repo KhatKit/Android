@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiTabBar
+import ui.feice.mochi.basic.MochiTabBarDefaults
 import ui.feice.mochi.basic.MochiTabItem
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.theme.MochiTheme
@@ -143,9 +144,25 @@ fun <T> MochiNavigationBar(
     navigationItems: List<MochiNavigationItem<T>>,
     modifier: Modifier = Modifier,
     onReselect: ((T) -> Unit)? = null,
+    floating: Boolean = false,
+    /** 去掉底栏自己的玻璃/纯色底板：只留图标与选中块，适合浮在页面内容上的卡片整页。 */
+    transparentBackground: Boolean = false,
+    /**
+     * 底栏底色直接用页面底色（[MochiTheme.colorScheme.surface]），也不画投影：
+     * 浮在内容上但看不出独立底板、不会出现一块"黑底"，内容也不会从图标下面穿过去。
+     */
+    pageBackground: Boolean = false,
 ) {
     if (navigationItems.isEmpty()) return
     val selectedIndex = navigationItems.indexOfFirst { it.key == selectedItem }.coerceAtLeast(0)
+    // 标签样式跟设置「外观 → 导航栏」走：app 的底部导航栏、带 UI 的卡片（KhatKitPage
+    // 里渲染的自绘弹层）共用同一份 KkNavBarStyle，卡片 UI 也接受设置里的控制。
+    val labelStyle = LocalKkNavBarStyle.current.labelStyle
+    val behavior = when (labelStyle) {
+        NavBarLabelStyle.LABELS -> MochiTabBarDefaults.behavior()
+        NavBarLabelStyle.SELECTED -> MochiTabBarDefaults.iconOnlyBehavior(selectedLabelOnly = true)
+        NavBarLabelStyle.ICONS -> MochiTabBarDefaults.iconOnlyBehavior()
+    }
     MochiTabBar(
         selectedIndex = selectedIndex,
         onSelect = { index ->
@@ -163,6 +180,30 @@ fun <T> MochiNavigationBar(
                 )
             }.toTypedArray(),
         ),
-        modifier = modifier,
+        behavior = behavior,
+        colors = when {
+            transparentBackground -> {
+                // 透明胶囊连投影一起透明：MochiTabBar 是先垫一层投影再画容器，
+                // 容器透明时投影会透出来，变成一整块暗色圆角方块（即"黑色背景"）。
+                MochiTabBarDefaults.colors(
+                    container = Color.Transparent,
+                    shadow = Color.Transparent,
+                )
+            }
+            pageBackground -> {
+                // 和页面同一个底色：看不出底板，也不会因为投影/容器色不同变成一块黑。
+                MochiTabBarDefaults.colors(
+                    container = MochiTheme.colorScheme.surface,
+                    shadow = Color.Transparent,
+                )
+            }
+            else -> MochiTabBarDefaults.colors()
+        },
+        material = if (transparentBackground || pageBackground) null else MochiTheme.materials.bar,
+        modifier = if (floating) {
+            modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+        } else {
+            modifier
+        },
     )
 }

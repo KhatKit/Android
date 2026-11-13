@@ -32,7 +32,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -102,7 +102,7 @@ import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.icons.visibility
 import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
 import heizige.kk.khatkit.app.feature.settings.mcp.McpCommonOptionsConfigure
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
 
 /**
  * @param header 表单顶部的可选提示条（市场条目配置入口用它显示「需要配置」与脱敏预填摘要）。
@@ -138,10 +138,10 @@ internal fun McpServerConfigModal(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 之前是 MD3 SecondaryTabRow，Miuix 下会漏出 MD3 页签。
-                // KedgeTabRow 在 Miuix 分支走原生 TabRow / WithContour，
+                // MochiTabRow 在 Miuix 分支走原生 TabRow / WithContour，
                 // MD3Exp 分支保持 SecondaryTabRow，行为不变。
                 header?.invoke()
-                KedgeTabRow(
+                MochiTabRow(
                     titles = listOf(
                         stringResource(R.string.setting_mcp_page_basic_settings),
                         stringResource(R.string.setting_mcp_page_tools),

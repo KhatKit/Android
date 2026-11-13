@@ -1,0 +1,1067 @@
+/*
+ * YunX (云析) - A network drive share-link parser and high-speed downloader for Android.
+ * Copyright (C) 2026 CYQawa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.yunx.app.data.network
+
+import android.util.Base64
+import com.yunx.app.R
+import com.yunx.app.data.network.model.DownloadLink
+import com.yunx.app.data.network.model.FileThumbnail
+import com.yunx.app.data.network.model.QuotaInfo
+import com.yunx.app.data.network.model.ShareExpire
+import com.yunx.app.data.network.model.ShareFile
+import com.yunx.app.data.network.model.ShareInfo
+import com.yunx.app.data.upload.UploadIo
+import com.yunx.app.data.upload.UploadPhase
+import com.yunx.app.data.upload.UploadSource
+import com.yunx.app.util.AppStrings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.URLEncoder
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+import java.io.ByteArrayInputStream
+import java.util.zip.GZIPInputStream
+
+/**
+ * 139 网盘 API 封装（OkHttp）。
+ * 登录态：cookie（含账号信息，authorization 可选）。
+ * 分享解析（§15，7.13+）：share-kd-njs.yun.139.com
+ *   - 列目录 getOutLinkInfoV6（pCaID:"root"/父coID，passwd 提取码）
+ *   - 下载 dlFromOutLinkV3（coIDLst.item:`coID` → data.redrUrl OBS 直链，900s）
+ *   - 个人云盘口令通过 XML 端点换成官方分享链接，再复用上面的加密 JSON 链路
+ * 普通分享 JSON 接口使用 16 字节密钥 PVGDwmcvfs1uV3d1；口令 XML 接口使用 App release 的
+ * 24 字节密钥 2olBaQGYnEKoStYomsd1n7ax。两者都是 base64(IV(16B) ‖ AES_CBC(key, IV, 明文))，
+ * 不能串用。mcloud-sign 按「明文 body」计算（§4），加密只是传输包装；mcloud-skey 可省略。
+ */
+class C139Api(
+    private val clientProvider: () -> OkHttpClient = { HttpClients.apiClient() },
+    /** 设备信息由系统 API 生成；未注入 Context 的测试路径使用无隐私占位值。 */
+    private val deviceInfoProvider: () -> C139DeviceInfo = { C139DeviceInfo.fallback() }
+) {
+    /** 每次请求动态获取全局客户端（忽略 SSL 开关切换即时生效） */
+    private val client get() = clientProvider()
+
+    private val jsonMediaType = "application/json;charset=UTF-8".toMediaType()
+
+    private val shareAesKey: SecretKeySpec =
+        SecretKeySpec(C139Constants.SHARE_AES_KEY.toByteArray(Charsets.UTF_8), "AES")
+
+    /** 口令 XML 接口使用 App release 的 24 字节密钥（AES-192），不能复用上面的 16 字节 key。 */
+    private val shareCodeAesKey: SecretKeySpec =
+        SecretKeySpec(C139Constants.SHARE_CODE_AES_KEY.toByteArray(Charsets.UTF_8), "AES")
+
+    // ---------- mcloud-sign 签名（§4） ----------
+
+    private fun md5(s: String): String {
+        val digest = MessageDigest.getInstance("MD5")
+        return digest.digest(s.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    }
+
+    /** §4.1：encodeURIComponent（+→%20，并还原 ! ' ( ) *） */
+    private fun encodeURIComponent(s: String): String =
+        URLEncoder.encode(s, "UTF-8")
+            .replace("+", "%20")
+            .replace("%21", "!")
+            .replace("%27", "'")
+            .replace("%28", "(")
+            .replace("%29", ")")
+            .replace("%2A", "*")
+
+    /**
+     * §4.2 calSign：
+     * body' 单字符 ASCII 升序 → base64 → md5(base64) + md5(ts:rand) → md5 → upper。
+     * 注意：签名必须基于与实际发送一致的「明文 JSON」字符串（字段顺序、无空格）。
+     */
+    fun calSign(bodyJson: String, ts: String, rand: String): String {
+        val encoded = encodeURIComponent(bodyJson)
+        val sorted = encoded.toCharArray().sorted().joinToString("")
+        val b64 = Base64.encodeToString(sorted.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+        val res = md5(b64) + md5("$ts:$rand")
+        return md5(res).uppercase()
+    }
+
+    /** 生成 mcloud-sign 头值：<ts>,<rand>,<sign>；ts 格式 YYYY-MM-DD HH:MM:SS，rand 16 位字母数字 */
+    fun signHeader(bodyJson: String): String {
+        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val rand = buildString {
+            val pool = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            repeat(16) { append(pool.random()) }
+        }
+        return "$ts,$rand,${calSign(bodyJson, ts, rand)}"
+    }
+
+    /**
+     * 从 authorization（"Basic base64(pc:账号:authToken)"）解码账号。
+     * §3.2 最终态：Authorization = base64("pc:<account>:<authToken>")。
+     */
+    fun accountFromAuthorization(authorization: String): String? = runCatching {
+        val b64 = authorization.removePrefix("Basic").trim()
+        val decoded = String(Base64.decode(b64, Base64.DEFAULT), Charsets.UTF_8)
+        decoded.split(":").getOrNull(1)?.takeIf { it.isNotBlank() }
+    }.getOrNull()
+
+    // ---------- §14 分享接口 AES-CBC 加解密（固定密钥 + IV 前置） ----------
+
+    /** 明文 JSON → 加密 base64（IV(16B) 前置） */
+    private fun encryptBody(plaintext: String, key: SecretKeySpec = shareAesKey): String {
+        val iv = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, IvParameterSpec(iv))
+        val ct = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
+        return Base64.encodeToString(iv + ct, Base64.NO_WRAP)
+    }
+
+    /** 加密 base64 → 明文 JSON；解密后若为 gzip（首 2 字节 0x1f 0x8b）先解压（alist YunCrypto 同款） */
+    private fun decryptBody(b64: String, key: SecretKeySpec = shareAesKey): String {
+        val raw = Base64.decode(b64, Base64.NO_WRAP)
+        val iv = raw.copyOfRange(0, 16)
+        val ct = raw.copyOfRange(16, raw.size)
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(Cipher.DECRYPT_MODE, key, IvParameterSpec(iv))
+        var d = cipher.doFinal(ct)  // PKCS5Padding 自动去填充
+        // alist YunCrypto 同款：解密后若为 gzip 则解压（首 2 字节 0x1f 0x8b）
+        if (d.size > 2 && d[0] == 0x1f.toByte() && d[1] == 0x8b.toByte()) {
+            d = GZIPInputStream(ByteArrayInputStream(d)).use { it.readBytes() }
+        }
+        return String(d, Charsets.UTF_8)
+    }
+
+    // ---------- 分享解析（§15，7.13+ 加密） ----------
+
+    /**
+     * 个人云盘口令 → 真实分享链接。
+     *
+     * 第一段必须把用户提供的提取码一起发给服务端；缺密码时受保护分享会直接报 9188。
+     * 两段请求都使用 App release 的 AES-192-CBC 加密，并尽量携带已登录 139 账号的
+     * Authorization/account 上下文。拿到服务端回吐的提取码后，再查询官方分享地址。
+     */
+    suspend fun resolveKouling(
+        command: C139Kouling,
+        cookie: String = "",
+        authorization: String? = null
+    ): C139ResolvedKouling = withContext(Dispatchers.IO) {
+        val effectiveAuthorization =
+            authorization?.takeIf { it.isNotBlank() } ?: C139Constants.extractAuthorization(cookie)
+        val account = C139Constants.extractAccountFull(cookie)
+            ?: effectiveAuthorization?.let(::accountFromAuthorization).orEmpty()
+        val infoXml = postShareCodeXml(
+            C139Constants.SHARE_CODE_INFO_URL,
+            buildC139KoulingInfoRequest(command, account, command.password),
+            effectiveAuthorization
+        )
+        val info = parseC139KoulingInfo(infoXml)
+        val password = command.password.ifBlank { info.password }
+        val generalXml = postShareCodeXml(
+            C139Constants.SHARE_CODE_GENERAL_URL,
+            buildC139KoulingGeneralRequest(command, account, password),
+            effectiveAuthorization
+        )
+        val general = parseC139KoulingGeneral(generalXml)
+        general.copy(
+            title = general.title.ifBlank { info.title },
+            password = password
+        )
+    }
+
+    /**
+     * 口令 XML 接口专用 POST：请求和响应均按 AES-192-CBC 处理。
+     *
+     * 为什么不复用 [sharePostAnonymous] / [sharePostEncrypted]：
+     * - 普通分享 JSON 接口使用 16 字节 [C139Constants.SHARE_AES_KEY]；口令 XML 接口必须使用
+     *   App release 的 24 字节 [C139Constants.SHARE_CODE_AES_KEY]，混用会得到 `01000019` 解密错误。
+     * - `hcy-cool-flag: 1` 让网关按密文处理请求，`type-factory: 0` 与 App 渠道头参与选择密钥和路由；
+     *   缺少这些头时，同一密文请求可能直接返回 HTTP 500。
+     * - 请求体是加密后的 XML，不是 JSON；Content-Type 必须保持 `text/xml`，否则服务端无法识别协议。
+     * - 正常情况下响应也是同密钥加密的 Base64；少数网关配置会直接透传明文 XML，因此解密失败后
+     *   仅在响应确实以 `<` 开头时回退明文，不能把任意错误响应当作 XML 继续解析。
+     * - [authorization] 只在已登录时附加。公开分享可以匿名查询，但与分享者账号绑定的口令仍需要
+     *   正确的 `Authorization` / `account` 上下文；该上下文由调用方从 139 账号仓库传入。
+     *
+     * @param url 固定的 139 口令 HTTPS 端点
+     * @param body 明文 XML；第一段查询的 `passwd` / `isPasswd` 必须由调用方提前填好
+     * @param authorization 可选的 `Basic ...` 登录态，空白时不附加该请求头
+     * @return 解密后的 UTF-8 XML；空响应、HTTP 失败或无法解密时抛异常
+     */
+    private fun postShareCodeXml(url: String, body: String, authorization: String?): String {
+        val mediaType = "text/xml; charset=UTF-8".toMediaType()
+        val deviceInfo = deviceInfoProvider()
+        val builder = Request.Builder()
+            .url(url)
+            .header("hcy-cool-flag", "1")
+            .header("type-factory", "0")
+            .header("Accept-Charset", "UTF-8")
+            .header("Accept-Language", "zh-CN")
+            .header("x-DeviceInfo", deviceInfo.appDeviceInfo())
+            .header("x-yun-client-info", deviceInfo.appDeviceInfo())
+            .header("x-yun-app-channel", C139Constants.SHARE_CODE_APP_CHANNEL)
+            .header("x-huawei-channelSrc", C139Constants.SHARE_CODE_APP_CHANNEL)
+            .header("x-MM-Source", C139Constants.SHARE_CODE_MM_SOURCE)
+            .header("x-SvcType", "1")
+            .header("x-NetType", "1")
+            .header("x-yun-user-agent", deviceInfo.appUserAgent())
+            .header("User-Agent", C139Constants.SHARE_MOBILE_UA)
+            .header("Origin", "https://yun.139.com")
+            .header("Referer", "https://yun.139.com/")
+        if (!authorization.isNullOrBlank()) builder.header("Authorization", authorization)
+        val request = builder
+            .post(encryptBody(body, shareCodeAesKey).toRequestBody(mediaType))
+            .build()
+        val response = client.newCall(request).execute()
+        val responseText = response.use {
+            it.body?.string() ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_kouling_response_empty))
+        }
+        if (!response.isSuccessful) {
+            throw IllegalStateException(AppStrings.get(R.string.e2_c139_kouling_failed_code, response.code))
+        }
+        return runCatching { decryptBody(responseText, shareCodeAesKey) }
+            .getOrElse {
+                // 兼容网关未触发加密而直接透传 XML 的情况。
+                if (responseText.trimStart().startsWith("<")) responseText
+                else throw IllegalStateException(AppStrings.get(R.string.e2_c139_kouling_decrypt_failed), it)
+            }
+    }
+
+    /**
+     * 分享标题：getOutLinkGeneral（匿名，§2.3）→ data.getOutLinkGeneralResp.outLinkGeneral[].lkName；
+     * 失败返回 null。
+     */
+    suspend fun getOutLinkTitle(linkId: String): String? = withContext(Dispatchers.IO) {
+        val req = JSONObject()
+            .put("linkID", linkId)
+            .put("isPasswd", 1)
+            .put("account", "")
+        val plain = JSONObject().put("getOutLinkGeneralReq", req).toString()
+        val respJson = sharePostAnonymous(C139Constants.SHARE_GENERAL_URL, plain)
+        val resultCode = respJson.optString("resultCode")
+        if (resultCode.isNotBlank() && resultCode != "0") return@withContext null
+        if (!respJson.optBoolean("success", true)) return@withContext null
+        val data = respJson.optJSONObject("data")
+            ?.optJSONObject("getOutLinkGeneralResp") ?: return@withContext null
+        val array = data.optJSONArray("outLinkGeneral") ?: return@withContext null
+        if (array.length() == 0) return@withContext null
+        array.optJSONObject(0)?.optString("lkName")?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * 分享明文提取码：getOutLinkGeneral（匿名）→ outLinkGeneral[].passwd。
+     * 139 会在该接口明文回吐提取码（官方 Web 同样自动填），用于自动填入、避免下载因缺密码报 9188。
+     */
+    suspend fun getOutLinkPassword(linkId: String): String? = withContext(Dispatchers.IO) {
+        val req = JSONObject()
+            .put("linkID", linkId)
+            .put("isPasswd", 1)
+            .put("account", "")
+        val plain = JSONObject().put("getOutLinkGeneralReq", req).toString()
+        val respJson = sharePostAnonymous(C139Constants.SHARE_GENERAL_URL, plain)
+        val resultCode = respJson.optString("resultCode")
+        if (resultCode.isNotBlank() && resultCode != "0") return@withContext null
+        if (!respJson.optBoolean("success", true)) return@withContext null
+        val data = respJson.optJSONObject("data")
+            ?.optJSONObject("getOutLinkGeneralResp") ?: return@withContext null
+        val array = data.optJSONArray("outLinkGeneral") ?: return@withContext null
+        if (array.length() == 0) return@withContext null
+        array.optJSONObject(0)?.optString("passwd")?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * 分享列目录：getOutLinkInfoV6 —— 官方为「匿名」调用（§9530修复文档 §2/§3）：
+     * 不带 authorization、不带 mcloud-sign、不带 mcloud-* 头；body account 固定空串；
+     * 带完整字段（caSrt/coSrt/srtDr/bNum/eNum），否则 9530；passwd 填错返回 9188。
+     * ⚠️ 139 把【子文件夹】放在 caLst、【文件】放在 coLst（coType==2 也可能是文件夹）。
+     *    原实现只读了 coLst，导致「顶层是文件夹 / 顶层只挂子文件夹」的分享显示为空。
+     *    现同时解析 caLst + coLst 并合并返回（文件夹在前）。
+     * @param pcaId 根目录传 "root"（不能为空，§16.2），子目录传父级 caID（或 coType==2 的 coID）
+     * @param passwd 提取码（无则空串）
+     * @return 文件夹（caLst）+ 文件/嵌套文件夹（coLst）合并列表；空目录返回 emptyList
+     */
+    suspend fun getShareFiles(
+        linkId: String,
+        pcaId: String,
+        passwd: String,
+        begin: Int = 1,
+        end: Int = 200
+    ): List<ShareFile> = withContext(Dispatchers.IO) {
+        val req = JSONObject()
+            .put("account", "")            // 列表端点 account 必须为空串，且本调用不带鉴权头（§3）
+            .put("linkID", linkId)
+            .put("passwd", passwd)
+            .put("caSrt", 1)               // 排序：目录按创建时间
+            .put("coSrt", 1)               // 排序：文件按创建时间
+            .put("srtDr", 0)               // 排序方向：降序
+            .put("bNum", begin)            // 分页起始
+            .put("pCaID", pcaId)
+            .put("eNum", end)              // 分页结束
+        val plain = JSONObject().put("getOutLinkInfoReq", req).toString()
+        val respJson = sharePostAnonymous(C139Constants.SHARE_LIST_URL, plain)
+        val resultCode = respJson.optString("resultCode")
+        if (resultCode.isNotBlank() && resultCode != "0") {
+            throw IllegalStateException(respJson.optString("desc").ifBlank { AppStrings.get(R.string.e2_get_file_list_failed_code, resultCode) })
+        }
+        if (!respJson.optBoolean("success", true)) {
+            throw IllegalStateException(respJson.optString("desc").ifBlank { AppStrings.get(R.string.e2_get_file_list_failed) })
+        }
+        val data = respJson.optJSONObject("data") ?: return@withContext emptyList()
+        val result = mutableListOf<ShareFile>()
+
+        // 1) 子文件夹列表 caLst（之前被完全忽略 → 根因：含子文件夹的分享显示为空）
+        data.optJSONArray("caLst")?.let { ca ->
+            for (i in 0 until ca.length()) {
+                val item = ca.optJSONObject(i) ?: continue
+                result.add(
+                    ShareFile(
+                        fid = item.optString("caID"),
+                        fname = item.optString("caName"),
+                        fsize = 0,
+                        isdir = true,
+                        pdirFid = pcaId,
+                        fidToken = "",
+                        modifyTime = item.optString("udTime").ifBlank { item.optString("ctTime") }
+                    )
+                )
+            }
+        }
+
+        // 2) 文件列表 coLst（含 coType==2 的文件夹）
+        data.optJSONArray("coLst")?.let { co ->
+            for (i in 0 until co.length()) {
+                val item = co.optJSONObject(i) ?: continue
+                result.add(
+                    ShareFile(
+                        fid = item.optString("coID"),
+                        fname = item.optString("coName"),
+                        fsize = item.optLong("coSize"),
+                        isdir = item.optBoolean("isdir", item.optInt("coType", 1) == 2),
+                        pdirFid = pcaId,
+                        fidToken = "",
+                        modifyTime = item.optString("udTime").ifBlank { item.optString("ctTime") }
+                    )
+                )
+            }
+        }
+        result   // 空目录返回 emptyList，UI 显示「此目录为空」（保持原语义）
+    }
+
+    /**
+     * 分享下载：dlFromOutLinkV3 → data.redrUrl（OBS S3 签名直链，900s 有效）。
+     * @param coId Step1 列目录得到的 coID
+     */
+    suspend fun getShareDownloadLink(
+        coId: String,
+        linkId: String,
+        account: String,
+        authorization: String?
+    ): DownloadLink? = withContext(Dispatchers.IO) {
+        val reqV3 = JSONObject()
+            .put("account", account)
+            .put("linkID", linkId)
+            .put("coIDLst", JSONObject().put("item", JSONArray().put(coId)))
+            .put(
+                "commonAccountInfo",
+                JSONObject().put("account", account).put("accountType", 1)
+            )
+        val plain = JSONObject().put("dlFromOutLinkReqV3", reqV3).toString()
+        val respJson = sharePostEncrypted(C139Constants.SHARE_LINK_URL, plain, authorization)
+        val resultCode = respJson.optString("resultCode")
+        if (resultCode.isNotBlank() && resultCode != "0") {
+            throw IllegalStateException(respJson.optString("desc").ifBlank { AppStrings.get(R.string.e2_get_download_link_failed_code, resultCode) })
+        }
+        if (!respJson.optBoolean("success", true)) {
+            throw IllegalStateException(respJson.optString("desc").ifBlank { AppStrings.get(R.string.e2_get_download_link_failed) })
+        }
+        val data = respJson.optJSONObject("data") ?: return@withContext null
+        val url = data.optString("redrUrl")
+        if (url.isBlank()) return@withContext null
+        DownloadLink(
+            fid = coId,
+            filename = data.optString("fileName").ifEmpty { data.optString("coName").ifEmpty { coId } },
+            downloadUrl = url,
+            size = data.optLong("coSize", data.optLong("size"))
+        )
+    }
+
+    // ---------- 个人网盘管理（§1 明文 JSON + Authorization + mcloud-sign，无 Cookie） ----------
+
+    /** 异步任务状态（移动/删除轮询） */
+    data class C139TaskStatus(
+        val status: String,
+        val progress: Int,
+        val results: List<Pair<String, String>>
+    )
+
+    /** 转存结果（分享导入） */
+    data class C139TransferResult(
+        val done: Boolean,
+        val mapping: Map<String, String>
+    )
+
+    /** 缩略图请求头：139 的图床同样校验 PC UA 与官方 Referer，缺一个就 403 */
+    private fun thumbnailHeaders(): Map<String, String> = mapOf(
+        "User-Agent" to C139Constants.PC_UA,
+        "Referer" to "https://yun.139.com/"
+    )
+
+    /**
+     * 139 列表项的缩略图：优先 `thumbnailUrls[]` 里 style=Large 的那张，其次任意一张，
+     * 最后回退 big/mid/thumbnailURL 三个平铺字段（老接口只在这三个字段里给图）。
+     *
+     * ★ 逐档校验 https：字段为 JSON null 时 `optString` 给出的是字符串 "null"，
+     *   先挑「非空」再校验会让大图字段被 null 占位、反而丢掉后面本可用的地址。
+     */
+    private fun thumbnailOf(item: JSONObject, headers: Map<String, String>): FileThumbnail? {
+        val urls = item.optJSONArray("thumbnailUrls")
+        if (urls != null) {
+            var first: FileThumbnail? = null
+            var large: FileThumbnail? = null
+            for (i in 0 until urls.length()) {
+                val entry = urls.optJSONObject(i) ?: continue
+                val thumbnail = FileThumbnail.of(entry.optString("url"), headers) ?: continue
+                if (first == null) first = thumbnail
+                if (large == null && entry.optString("style").equals("large", ignoreCase = true)) {
+                    large = thumbnail
+                }
+            }
+            (large ?: first)?.let { return it }
+        }
+        return FileThumbnail.of(item.optString("bigthumbnailURL"), headers)
+            ?: FileThumbnail.of(item.optString("midthumbnailURL"), headers)
+            ?: FileThumbnail.of(item.optString("thumbnailURL"), headers)
+    }
+
+    /** 单页列目录（含翻页游标）；返回 (文件列表, 下一页游标 or null=末页) */
+    private suspend fun fetchCloudPage(
+        parentFileId: String,
+        cookie: String,
+        pageCursor: String?
+    ): Pair<List<ShareFile>, String?>? = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        // ⚠️ pageCursor 必须是真正的 JSON null；若误传字符串 "null"，服务端会当作无效游标忽略
+        //    并回吐第一页，导致翻页原地打转（抓包表现为重复发同一个请求直到封顶）
+        val cursorValue: Any =
+            pageCursor?.takeIf { it.isNotBlank() && it != "null" } ?: JSONObject.NULL
+        val req = JSONObject()
+            .put("pageInfo", JSONObject().put("pageSize", 100).put("pageCursor", cursorValue))
+            .put("orderBy", "updated_at")
+            .put("orderDirection", "DESC")
+            .put("parentFileId", parentFileId)
+            .put("imageThumbnailStyleList", JSONArray().put("Small").put("Large"))
+        val resp = cloudPost(C139Constants.FILE_LIST_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_get_file_list_failed))
+        val data = resp.optJSONObject("data") ?: return@withContext null
+        val thumbHeaders = thumbnailHeaders()
+        val files = buildList {
+            data.optJSONArray("items")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val item = arr.optJSONObject(i) ?: continue
+                    add(
+                        ShareFile(
+                            fid = item.optString("fileId"),
+                            fname = item.optString("name"),
+                            fsize = item.optLong("size"),
+                            isdir = item.optString("type") == "folder",
+                            pdirFid = parentFileId,
+                            fidToken = item.optString("fileId"),
+                            modifyTime = item.optString("updatedAt"),
+                            thumbnail = thumbnailOf(item, thumbHeaders)
+                        )
+                    )
+                }
+            }
+        }
+        // ⚠️ Android org.json 陷阱：响应中 "nextPageCursor": null 时，optString 返回的是
+        //    字符串 "null"（JSONObject.NULL.toString()）而非空串，isNotBlank 判定为「还有下一页」，
+        //    于是带着 "null" 游标反复请求首页 → 200 次重复请求、列表加载极慢。
+        //    必须先用 isNull() 判断真 JSON null，并额外过滤字符串 "null"。
+        val next = if (data.isNull("nextPageCursor")) {
+            null
+        } else {
+            data.optString("nextPageCursor").takeIf { it.isNotBlank() && it != "null" }
+        }
+        Pair(files, next)
+    }
+
+    /** 列目录（自动翻页，返回该目录下全部文件）；pageCursor 为起始游标（一般传 null=从头） */
+    suspend fun listCloudFiles(
+        parentFileId: String,
+        cookie: String,
+        pageCursor: String? = null
+    ): List<ShareFile> {
+        val all = mutableListOf<ShareFile>()
+        val seen = HashSet<String>()
+        var cursor = pageCursor
+        repeat(200) {            // 封顶 200 页，防异常死循环
+            val (files, next) = fetchCloudPage(parentFileId, cookie, cursor) ?: return all
+            // 139 按 updated_at 排序翻页，大量文件时间相同时游标可能重复返回边界项，
+            // 按 fid 去重，避免同一 fid 重复导致 LazyColumn key 冲突崩溃
+            for (f in files) {
+                if (f.fid.isNotBlank() && seen.add(f.fid)) all.add(f)
+            }
+            // 末页：nextPageCursor 为 JSON null
+            if (next == null) return all
+            // 游标未推进（服务端异常回吐同一游标）→ 立即终止，避免重复请求同一页
+            if (next == cursor) return all
+            cursor = next
+        }
+        return all
+    }
+
+    /** 仅列文件夹（移动到…目标选择） */
+    suspend fun listFolders(parentFileId: String, cookie: String): List<ShareFile> = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject()
+            .put("pageInfo", JSONObject().put("pageSize", 100).put("pageCursor", JSONObject.NULL))
+            .put("orderBy", "updated_at")
+            .put("orderDirection", "DESC")
+            .put("parentFileId", parentFileId)
+            .put("imageThumbnailStyleList", JSONArray().put("Small").put("Large"))
+            .put("type", "folder")
+        val resp = cloudPost(C139Constants.FILE_LIST_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_get_folder_list_failed))
+        val data = resp.optJSONObject("data") ?: return@withContext emptyList()
+        buildList {
+            data.optJSONArray("items")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val item = arr.optJSONObject(i) ?: continue
+                    add(
+                        ShareFile(
+                            fid = item.optString("fileId"),
+                            fname = item.optString("name"),
+                            fsize = 0,
+                            isdir = true,
+                            pdirFid = parentFileId,
+                            fidToken = item.optString("fileId"),
+                            modifyTime = item.optString("updatedAt")
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 新建文件夹（个人盘）：`POST /hcy/file/create`（文档 §3.13，靠 `type='folder'` 与上传预创建共用端点）。
+     * `fileRenameMode='force_rename'`：重名由服务端自动改名（文档只列了这个取值，具体后缀格式未写）。
+     *
+     * @param parentFileId 父目录 fileId；本项目的根目录沿用列目录/移动的约定传 `"/"`
+     * @return 新文件夹的 fileId
+     */
+    suspend fun createDir(parentFileId: String, name: String, cookie: String): String =
+        withContext(Dispatchers.IO) {
+            val authorization = C139Constants.extractAuthorization(cookie)
+                ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+            val req = JSONObject()
+                .put("parentFileId", parentFileId)
+                .put("name", name)
+                .put("description", "")
+                .put("type", "folder")
+                .put("fileRenameMode", "force_rename")
+            val resp = cloudPost(C139Constants.FILE_CREATE_URL, req.toString(), authorization)
+            checkCloud(resp, AppStrings.get(R.string.e2_create_folder_failed))
+            resp.optJSONObject("data")?.optString("fileId")?.takeIf { it.isNotBlank() }
+                ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_no_folder_id))
+        }
+
+    // ---------- 上传 ----------
+
+    /**
+     * 上传一个文件到 [parentFileId] 目录，返回新文件的 fileId。
+     *
+     * 流程：`/hcy/file/create` 建任务（带整文件 SHA256，服务端已存在同内容文件时直接秒传）→
+     * 对服务端签发的每个 uploadUrl 发一次 PUT（100 MiB 分片；单文件超过 30 GB 时用 512 MiB）→
+     * `/hcy/file/complete` 合并。
+     *
+     * ★ 分片 PUT 打到对象存储，**不能带 Authorization / 网关渠道头**：地址本身已签名，
+     *   多带账号凭证反而会被拒；但 Origin/Referer 是必需的。
+     */
+    suspend fun upload(
+        io: UploadIo,
+        file: UploadSource,
+        parentFileId: String,
+        cookie: String
+    ): String = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        io.progress(UploadPhase.PREPARING)
+        val hash = io.digest("SHA-256")
+        val partSize = if (file.size > 30L * 1024 * 1024 * 1024) {
+            512L * 1024 * 1024
+        } else {
+            100L * 1024 * 1024
+        }
+        val count = maxOf(1L, (file.size + partSize - 1) / partSize)
+        val parts = (0 until count).map { index ->
+            JSONObject()
+                .put("partNumber", (index + 1).toInt())
+                .put("partSize", minOf(file.size - index * partSize, partSize))
+                .put("parallelHashCtx", JSONObject().put("partOffset", index * partSize))
+        }
+        val createBody = JSONObject()
+            .put("contentHash", hash)
+            .put("contentHashAlgorithm", "SHA256")
+            .put("contentType", "application/octet-stream")
+            .put("parallelUpload", false)
+            .put("partInfos", JSONArray().apply { parts.take(100).forEach { put(it) } })
+            .put("size", file.size)
+            .put("parentFileId", parentFileId)
+            .put("name", file.name)
+            .put("type", "file")
+            .put("fileRenameMode", "auto_rename")
+        val created = cloudPost(C139Constants.FILE_UPLOAD_CREATE_URL, createBody.toString(), authorization)
+        checkCloud(created, AppStrings.get(R.string.e2_create_upload_task_failed))
+        val created1 = created.optJSONObject("data")
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_no_upload_task))
+        if (created1.optBoolean("exist")) {
+            throw IllegalStateException(AppStrings.get(R.string.e2_c139_same_name_exists))
+        }
+        val fileId = created1.optString("fileId").takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_upload_task_not_created))
+        if (created1.optBoolean("rapidUpload")) {
+            io.progress(UploadPhase.FINISHING, file.size)
+            return@withContext fileId
+        }
+        val uploadId = created1.optString("uploadId").takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_no_upload_id))
+        var batch = created1
+        var first = 0L
+        while (first < count) {
+            if (first > 0L) {
+                val body = JSONObject()
+                    .put("fileId", fileId)
+                    .put("uploadId", uploadId)
+                    .put(
+                        "partInfos",
+                        JSONArray().apply {
+                            parts.drop(first.toInt()).take(100).forEach { put(it) }
+                        }
+                    )
+                val resp = cloudPost(C139Constants.FILE_UPLOAD_URL_URL, body.toString(), authorization)
+                checkCloud(resp, AppStrings.get(R.string.e2_get_upload_url_failed))
+                batch = resp.optJSONObject("data")
+                    ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_no_upload_url))
+            }
+            val addresses = batch.optJSONArray("partInfos")
+                ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_incomplete_parts))
+            if (addresses.length() != minOf(100L, count - first).toInt()) {
+                throw IllegalStateException(AppStrings.get(R.string.e2_c139_incomplete_parts))
+            }
+            for (i in 0 until addresses.length()) {
+                val part = addresses.optJSONObject(i) ?: continue
+                val index = part.optInt("partNumber") - 1
+                if (index.toLong() != first + i) {
+                    throw IllegalStateException(AppStrings.get(R.string.e2_c139_invalid_part_index))
+                }
+                val url = part.optString("uploadUrl")
+                if (url.isBlank()) throw IllegalStateException(AppStrings.get(R.string.e2_c139_no_upload_url))
+                val start = index * partSize
+                val response = io.send(
+                    url = url,
+                    method = "PUT",
+                    start = start,
+                    end = minOf(file.size, start + partSize),
+                    headers = mapOf(
+                        "Content-Type" to "application/octet-stream",
+                        "Origin" to "https://yun.139.com",
+                        "Referer" to "https://yun.139.com/"
+                    ),
+                    retries = 1
+                )
+                if (!response.isSuccessful) {
+                    throw IllegalStateException(AppStrings.get(R.string.e2_upload_failed_http, response.code))
+                }
+            }
+            first += addresses.length()
+        }
+        io.progress(UploadPhase.FINISHING, file.size)
+        val completeBody = JSONObject()
+            .put("contentHash", hash)
+            .put("contentHashAlgorithm", "SHA256")
+            .put("fileId", fileId)
+            .put("uploadId", uploadId)
+        val completed = cloudPost(C139Constants.FILE_UPLOAD_COMPLETE_URL, completeBody.toString(), authorization)
+        checkCloud(completed, AppStrings.get(R.string.e2_merge_upload_failed))
+        fileId
+    }
+
+    /** 重命名 */
+    suspend fun renameFile(fileId: String, newName: String, cookie: String): Boolean = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject()
+            .put("fileId", fileId)
+            .put("name", newName)
+            .put("description", "")
+        val resp = cloudPost(C139Constants.FILE_UPDATE_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_rename_failed))
+        true
+    }
+
+    /** 移动（异步），返回 taskId */
+    suspend fun moveFiles(fileIds: List<String>, toParentFileId: String, cookie: String): String? = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject()
+            .put("fileIds", JSONArray().apply { fileIds.forEach { put(it) } })
+            .put("toParentFileId", toParentFileId)
+        val resp = cloudPost(C139Constants.BATCH_MOVE_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_move_failed))
+        resp.optJSONObject("data")?.optString("taskId")?.takeIf { it.isNotBlank() }
+    }
+
+    /** 删除（异步，移入回收站），返回 taskId */
+    suspend fun deleteFiles(fileIds: List<String>, cookie: String): String? = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject().put("fileIds", JSONArray().apply { fileIds.forEach { put(it) } })
+        val resp = cloudPost(C139Constants.BATCH_TRASH_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_delete_failed))
+        resp.optJSONObject("data")?.optString("taskId")?.takeIf { it.isNotBlank() }
+    }
+
+    /** 异步任务轮询（移动/删除），返回状态 */
+    suspend fun getTask(taskId: String, cookie: String): C139TaskStatus = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject().put("taskId", taskId)
+        val resp = cloudPost(C139Constants.TASK_GET_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_query_task_failed))
+        val data = resp.optJSONObject("data") ?: return@withContext C139TaskStatus("", 0, emptyList())
+        val taskInfo = data.optJSONObject("taskInfo")
+        val status = taskInfo?.optString("status") ?: ""
+        val progress = taskInfo?.optInt("progress") ?: 0
+        val results = buildList {
+            data.optJSONArray("batchFileResults")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val item = arr.optJSONObject(i) ?: continue
+                    add(item.optString("fileId") to item.optString("errCode"))
+                }
+            }
+        }
+        C139TaskStatus(status, progress, results)
+    }
+
+    /** 下载直链（OBS 预签名，900s 有效） */
+    suspend fun getDownloadUrl(fileId: String, cookie: String): DownloadLink? = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val req = JSONObject().put("fileId", fileId)
+        val resp = cloudPost(C139Constants.DOWNLOAD_URL, req.toString(), authorization)
+        checkCloud(resp, AppStrings.get(R.string.e2_get_download_link_failed))
+        val data = resp.optJSONObject("data") ?: return@withContext null
+        val url = data.optString("url")
+        if (url.isBlank()) return@withContext null
+        DownloadLink(
+            fid = fileId,
+            // getDownloadUrl 响应不含 name（§4.6 仅 url/expiration/size）；文件名由调用方用列表 name 填充
+            filename = data.optString("name"),
+            downloadUrl = url,
+            size = data.optLong("size")
+        )
+    }
+
+    /** 创建分享（getOutLink，需 Cookie + mcloud-skey；提取码系统自动生成）
+     *
+     *  @param period 有效期**天数**：null=永久（不传 period 字段）、1/7/30=天数。
+     *    ⚠️ 这里不是 UI 中性码（1/2/3/4），调用方必须先用 [com.yunx.app.data.network.model.ShareExpire.daysOrNull]
+     *    转换——否则「永久」会变成 1 天、「7 天」会变成 3 天（Agent.md §3.20）。
+     */
+    suspend fun createShare(
+        coIDLst: List<String>,
+        caIDLst: List<String>,
+        period: Int?,
+        dedicatedName: String,
+        cookie: String
+    ): ShareInfo = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_missing_authorization))
+        val account = accountFromAuthorization(authorization)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_c139_account_parse_failed))
+        val getOutLinkReq = JSONObject()
+            .put("subLinkType", 0)
+            .put("encrypt", 1)
+            .put("coIDLst", JSONArray().apply { coIDLst.forEach { put(it) } })
+            .put("caIDLst", JSONArray().apply { caIDLst.forEach { put(it) } })
+            .put("pubType", 1)
+            .put("dedicatedName", dedicatedName)
+            .put("periodUnit", 1)
+            .apply { if (period != null) put("period", period) }
+            .put("viewerLst", JSONArray())
+            .put("extInfo", JSONObject().put("isWatermark", 0).put("shareChannel", "3001"))
+            .put("commonAccountInfo", JSONObject().put("account", account).put("accountType", 1))
+        val plain = JSONObject().put("getOutLinkReq", getOutLinkReq).toString()
+        val resp = cloudPost(C139Constants.OUTLINK_CREATE_URL, plain, authorization, cookie, needSkey = true)
+        // 分享接口成功码为 "0"
+        if (!resp.optBoolean("success", true) || resp.optString("code") != "0") {
+            throw IllegalStateException(resp.optString("message").ifBlank { AppStrings.get(R.string.e2_create_share_failed) })
+        }
+        val set = resp.optJSONObject("data")
+            ?.optJSONObject("getOutLinkRes")
+            ?.optJSONArray("getOutLinkResSet")
+            ?.optJSONObject(0)
+            ?: throw IllegalStateException(AppStrings.get(R.string.e2_create_share_no_link))
+        val linkUrl = set.optString("linkUrl")
+        if (linkUrl.isBlank()) throw IllegalStateException(AppStrings.get(R.string.e2_create_share_no_link))
+        ShareInfo(
+            shareUrl = linkUrl,
+            passcode = set.optString("passwd"),
+            pwdId = set.optString("linkID"),
+            title = dedicatedName,
+            // 139 响应不返回有效期，只能按请求时用的天数回填中性码；未知取值显示「未知」而不是猜「永久」
+            expiredType = when (period) {
+                null -> ShareExpire.FOREVER
+                1 -> ShareExpire.ONE_DAY
+                7 -> ShareExpire.SEVEN_DAYS
+                30 -> ShareExpire.THIRTY_DAYS
+                else -> ShareExpire.UNKNOWN
+            }
+        )
+    }
+
+    // ---------- 网盘空间详情 ----------
+
+    /** 网盘空间详情（POST user-njs.yun.139.com/user/disk/quota/detail：diskSize/freeDiskSize，单位 MB；需 Cookie+mcloud-skey） */
+    suspend fun getQuota(cookie: String): QuotaInfo? = withContext(Dispatchers.IO) {
+        val authorization = C139Constants.extractAuthorization(cookie)
+            ?: return@withContext null
+        val account = accountFromAuthorization(authorization) ?: return@withContext null
+        runCatching {
+            val req = JSONObject()
+                .put("userDomainId", "")
+                .put("commonAccountInfo", JSONObject().put("account", account).put("accountType", 1))
+            val resp = cloudPost(
+                "https://user-njs.yun.139.com/user/disk/quota/detail",
+                req.toString(), authorization, cookie, needSkey = true
+            )
+            checkCloud(resp, AppStrings.get(R.string.e2_get_quota_failed))
+            val data = resp.optJSONObject("data") ?: return@runCatching null
+            val total = data.optLong("diskSize") * 1024L * 1024L
+            val used = data.optLong("freeDiskSize").let { free ->
+                // quotaList[0] = 个人云（我的文件）已用（MB）
+                data.optJSONArray("quotaList")?.optJSONObject(0)?.optLong("usedSize")?.times(1024L * 1024L)
+                    ?: (total - free * 1024L * 1024L)
+            }
+            QuotaInfo(used = used, total = total)
+        }.getOrNull()
+    }
+
+    // ---------- 转存（分享导入，share host AES 加密） ----------
+
+    /** 创建转存任务，返回 taskID（含 sk* 前缀） */
+    suspend fun createTransferTask(
+        coIDLst: List<String>,
+        catalogIDLst: List<String>,
+        toFolderId: String,
+        linkID: String,
+        account: String,
+        authorization: String?
+    ): String? = withContext(Dispatchers.IO) {
+        val taskInfo = JSONObject()
+            .put("contentInfoList", JSONArray().apply { coIDLst.forEach { put("/$it") } })
+            .put("catalogInfoList", JSONArray().apply { catalogIDLst.forEach { put(it) } })
+            .put("newCatalogID", toFolderId)
+            .put("linkID", linkID)
+            .put("newCatalogName", "手机图片")
+            .put("needPassword", true)
+        val req = JSONObject()
+            .put("createOuterLinkBatchOprTaskReq", JSONObject()
+                .put("msisdn", account)
+                .put("ownerAccount", "")
+                .put("taskType", 1)
+                .put("taskInfo", taskInfo)
+                .put("linkID", linkID)
+                .put("needPassword", true))
+            .put("commonAccountInfo", JSONObject().put("account", account).put("accountType", 1))
+        val resp = sharePostEncrypted(C139Constants.TRANSFER_CREATE_URL, req.toString(), authorization)
+        val code = resp.optString("resultCode").ifBlank { resp.optString("code") }
+        if (code.isNotBlank() && code != "0") {
+            throw IllegalStateException(resp.optString("desc").ifBlank { AppStrings.get(R.string.e2_c139_transfer_create_failed, code) })
+        }
+        resp.optJSONObject("data")?.optString("taskID")?.takeIf { it.isNotBlank() }
+    }
+
+    /** 查询转存结果 */
+    suspend fun queryTransferTask(taskID: String, account: String, authorization: String?): C139TransferResult =
+        withContext(Dispatchers.IO) {
+            val req = JSONObject().put(
+                "queryBatchOprTaskDetailReq",
+                JSONObject()
+                    .put("taskID", taskID)
+                    .put("msisdn", account)
+                    .put("commonAccountInfo", JSONObject().put("account", account).put("accountType", 1))
+            )
+            val resp = sharePostEncrypted(C139Constants.TRANSFER_QUERY_URL, req.toString(), authorization)
+            val code = resp.optString("resultCode").ifBlank { resp.optString("code") }
+            if (code.isNotBlank() && code != "0") {
+                throw IllegalStateException(resp.optString("desc").ifBlank { AppStrings.get(R.string.e2_c139_transfer_query_failed, code) })
+            }
+            val data = resp.optJSONObject("data") ?: return@withContext C139TransferResult(false, emptyMap())
+            val task = data.optJSONObject("batchOprTask")
+            val done = (task?.optInt("progress") ?: 0) >= 100 && (task?.optInt("taskStatus") ?: 0) == 2
+            val mapping = buildMap {
+                data.optJSONObject("contentList")?.optJSONArray("idRspInfo")?.let { arr ->
+                    for (i in 0 until arr.length()) {
+                        val item = arr.optJSONObject(i) ?: continue
+                        if (item.optString("reason") == "0000") {
+                            put(item.optString("srcId"), item.optString("rstId"))
+                        }
+                    }
+                }
+            }
+            C139TransferResult(done, mapping)
+        }
+
+    /**
+     * 个人网盘管理专用 POST（§1：明文 JSON，Authorization + mcloud-sign 按明文算；
+     * 不需要 hcy-cool-flag，不需要加密；可选 Cookie + mcloud-skey（创建分享 getOutLink 必需））。
+     * ⚠️ 修复（《139网盘管理认证失败修复》）：APISIX 网关鉴权层强制要求全套 x-yun-* / mcloud-* 渠道头，
+     *    仅有 Authorization+mcloud-sign 会返回 HTTP 404 + code:"04000005" 认证失败。
+     */
+    private fun cloudPost(
+        url: String,
+        plainBody: String,
+        authorization: String,
+        cookie: String? = null,
+        needSkey: Boolean = false
+    ): JSONObject {
+        val builder = Request.Builder()
+            .url(url)
+            // —— 鉴权 ——
+            .header("Authorization", authorization)
+            .header("mcloud-sign", signHeader(plainBody))
+            // —— 渠道/上下文头（缺失 → 04000005 认证失败；值来自成功抓包写死）——
+            .header("x-yun-channel-source", C139Constants.YUN_CHANNEL_SOURCE)
+            .header("x-yun-app-channel", C139Constants.YUN_CHANNEL_SOURCE)
+            .header("x-huawei-channelSrc", C139Constants.YUN_CHANNEL_SOURCE)
+            .header("mcloud-version", C139Constants.MCLOUD_VERSION)
+            .header("mcloud-client", C139Constants.MCLOUD_CLIENT)
+            .header("mcloud-channel", C139Constants.MCLOUD_CHANNEL)
+            .header("mcloud-route", "001")
+            .header("x-yun-module-type", C139Constants.YUN_MODULE_TYPE)
+            .header("x-yun-api-version", "v1")
+            .header("x-yun-svc-type", "1")
+            .header("x-SvcType", "1")
+            .header("caller", "web")
+            .header("x-inner-ntwk", "2")
+            .header("CMS-DEVICE", "default")
+            .header("x-m4c-src", C139Constants.M4C_SRC)
+            .header("x-m4c-caller", C139Constants.M4C_CALLER)
+            .header("X-Deviceinfo", C139Constants.X_DEVICEINFO)
+            .header("x-yun-client-info", C139Constants.X_CLIENT_INFO)
+            .header("INNER-HCY-ROUTER-HTTPS", "1")
+            .header("Sec-Fetch-Site", "same-site")
+            .header("Sec-Fetch-Mode", "cors")
+            .header("Sec-Fetch-Dest", "empty")
+            .header("X-Requested-With", "mark.via")
+            // —— 基础头 ——
+            .header("Content-Type", "application/json;charset=UTF-8")
+            .header("User-Agent", C139Constants.PC_UA)
+            .header("Origin", "https://yun.139.com")
+            .header("Referer", "https://yun.139.com/")
+            .header("Accept", "application/json, text/plain, */*")
+        if (cookie != null) {
+            builder.header("Cookie", cookie)
+            if (needSkey) {
+                val skey = cookie.split(";").map { it.trim() }
+                    .firstOrNull { it.startsWith("skey=") }?.substringAfter('=')
+                if (!skey.isNullOrBlank()) builder.header("mcloud-skey", skey)
+            }
+        }
+        val request = builder.post(plainBody.toRequestBody(jsonMediaType)).build()
+        val response = client.newCall(request).execute()
+        val body = response.use { it.body?.string() ?: throw IllegalStateException(AppStrings.get(R.string.e2_request_empty_response)) }
+        return JSONObject(body)   // 管理接口明文响应
+    }
+
+    /** 管理接口成功判定：success==true 且 code ∈ {"0000","0"} */
+    private fun checkCloud(json: JSONObject, fallback: String) {
+        val code = json.optString("code")
+        if (json.optBoolean("success", true) && (code == "0000" || code == "0")) return
+        val msg = json.optString("message").ifBlank { fallback }
+        throw IllegalStateException(AppStrings.get(R.string.e2_error_with_code, msg, code))
+    }
+
+    // ---------- 请求构造与响应解析 ----------
+
+    /**
+     * 匿名 POST（列表端点 getOutLinkInfoV6 专用，§9530修复文档 §3/§5 + hcy-cool-flag 修复）：
+     * 不带 Authorization、不带 mcloud-sign、不带 mcloud-* 头；body 仍加密；
+     * 必须带 hcy-cool-flag: 1（139 网关选择解密方案的开关，缺它业务层拿不到明文 → 9530）；
+     * 响应解密（兼容明文透传）。
+     */
+    private fun sharePostAnonymous(url: String, plainBody: String): JSONObject {
+        val encrypted = encryptBody(plainBody)
+        val request = Request.Builder()
+            .url(url)
+            .header("hcy-cool-flag", "1")
+            .header("x-deviceinfo", C139Constants.SHARE_X_DEVICEINFO)
+            .header("x-huawei-channelsrc", C139Constants.SHARE_X_HUAWEI_CHANNELSRC)
+            .header("x-mm-source", C139Constants.SHARE_X_MM_SOURCE)
+            .header("Content-Type", "application/json;charset=UTF-8")
+            .header("User-Agent", C139Constants.SHARE_MOBILE_UA)
+            .header("Origin", "https://yun.139.com")
+            .header("Referer", "https://yun.139.com/")
+            .header("Accept", "application/json, text/plain, */*")
+            .post(encrypted.toRequestBody(jsonMediaType))
+            .build()
+        val response = client.newCall(request).execute()
+        val body = response.use { it.body?.string() ?: throw IllegalStateException(AppStrings.get(R.string.e2_request_empty_response)) }
+        // 响应体应为加密 base64（§14）；网关透传明文时兜底
+        return runCatching { JSONObject(decryptBody(body)) }.getOrElse { JSONObject(body) }
+    }
+
+    /**
+     * 分享专用 POST（§14/§15 + hcy-cool-flag 修复）：body 加密发送，mcloud-sign 按明文算，
+     * 必须带 hcy-cool-flag: 1（网关解密开关，缺它业务层拿不到明文 → 9530），响应解密（兼容明文透传）。
+     */
+    private fun sharePostEncrypted(url: String, plainBody: String, authorization: String?): JSONObject {
+        val encrypted = encryptBody(plainBody)
+        val request = Request.Builder()
+            .url(url)
+            .apply { if (!authorization.isNullOrBlank()) header("Authorization", authorization) }
+            .header("hcy-cool-flag", "1")
+            .header("x-deviceinfo", C139Constants.SHARE_X_DEVICEINFO)
+            .header("x-huawei-channelsrc", C139Constants.SHARE_X_HUAWEI_CHANNELSRC)
+            .header("x-mm-source", C139Constants.SHARE_X_MM_SOURCE)
+            .header("mcloud-sign", signHeader(plainBody))
+            .header("Content-Type", "application/json;charset=UTF-8")
+            .header("User-Agent", C139Constants.SHARE_MOBILE_UA)
+            .header("Origin", "https://yun.139.com")
+            .header("Referer", "https://yun.139.com/")
+            .header("Accept", "application/json, text/plain, */*")
+            .post(encrypted.toRequestBody(jsonMediaType))
+            .build()
+        val response = client.newCall(request).execute()
+        val body = response.use { it.body?.string() ?: throw IllegalStateException(AppStrings.get(R.string.e2_request_empty_response)) }
+        // 响应体应为加密 base64（§14）；网关透传明文时兜底
+        return runCatching { JSONObject(decryptBody(body)) }.getOrElse { JSONObject(body) }
+    }
+
+}

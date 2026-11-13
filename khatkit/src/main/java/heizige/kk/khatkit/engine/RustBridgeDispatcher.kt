@@ -74,6 +74,7 @@ class RustBridgeDispatcher(private val bridges: Map<String, Any>) {
             val result = ReflectiveInvoker.invoke(target, method, parseArgs(argsJson))
             JsonValues.encode(result)
         } catch (e: Throwable) {
+            android.util.Log.e("KhatKitUI", "dispatch $bridge.$method failed: ${e.message}", e)
             JsonValues.encode(mapOf("__error" to (e.message ?: "dispatch error")))
         }
     }

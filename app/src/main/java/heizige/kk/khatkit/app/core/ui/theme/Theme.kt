@@ -29,7 +29,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
+import heizige.kk.khatkit.uikit.mochi.KkNavBarStyle
 import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
+import heizige.kk.khatkit.uikit.mochi.LocalKkGlassButtons
+import heizige.kk.khatkit.uikit.mochi.LocalKkNavBarStyle
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchExpressiveEnabled
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchScale
 
@@ -174,15 +177,33 @@ fun KhatKitTheme(
     //  正文按钮是否玻璃由按钮样式决定，这里不碰，也不在页面里写外观分支。
     val effectsEnabled = settings.displaySetting.effectsEnabled
     val glassButtons = settings.displaySetting.glassButtons
-    val mochiMaterials = remember(effectsEnabled, glassButtons, darkTheme) {
+    // 「外观 → 导航栏」页的自定义项：玻璃通透度 / 仅模糊 / 底部导航栏标签样式 / 滚动收起。
+    // 玻璃材质在根部统一组装，页面与组件都只读主题，不写外观分支。
+    val glassTint = settings.displaySetting.glassTint
+    val glassBlurOnly = settings.displaySetting.glassBlurOnly
+    val mochiMaterials = remember(effectsEnabled, glassButtons, darkTheme, glassTint, glassBlurOnly) {
         if (effectsEnabled) {
-            val ios = iosMaterials(isDark = darkTheme, themeAccent = true)
+            val ios = iosMaterials(
+                isDark = darkTheme,
+                glassTint = glassTint,
+                themeAccent = true,
+                blurOnly = glassBlurOnly,
+            )
             // 按钮选实心：按钮的玻璃（control）是从 bar 回退来的，把 bar 一起拿掉；
             // 警告框原本也跟 bar（「透」档），显式留住，菜单 / 面板本来就是单独的「实」档不受影响
             if (glassButtons) ios else ios.copy(bar = null, alert = ios.bar, clear = null)
         } else {
             MochiMaterials()
         }
+    }
+    val navBarStyle = remember(
+        settings.displaySetting.navBarLabelStyle,
+        settings.displaySetting.navBarCollapseOnScroll,
+    ) {
+        KkNavBarStyle(
+            labelStyle = settings.displaySetting.navBarLabelStyle,
+            collapseOnScroll = settings.displaySetting.navBarCollapseOnScroll,
+        )
     }
 
     // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
@@ -202,6 +223,10 @@ fun KhatKitTheme(
             LocalDarkMode provides darkTheme,
             // FX1 总开关：Kk 层按压形变 / 触觉 / 高光都读它（见 uikit/mochi/LocalKkEffects.kt）
             LocalKkEffectsEnabled provides effectsEnabled,
+            // 设置里「按钮样式」：栏按钮（返回键 / 顶栏图标按钮）玻璃 or 实心，读它
+            LocalKkGlassButtons provides glassButtons,
+            // 设置里「导航栏样式」：底部导航栏标签样式 / 滚动收起
+            LocalKkNavBarStyle provides navBarStyle,
             LocalExtendColors provides extendColors,
             // U8：Miuix 已删，回弹一律走 Mochi 的工厂（根 ProvideMochiOverscroll 提供），不再有置空分支。
             LocalOverscrollFactory provides overscrollFactory,

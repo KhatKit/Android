@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,12 +37,13 @@ import heizige.kk.khatkit.app.feature.workflow.WorkflowLegacy
 import heizige.kk.khatkit.app.feature.workflow.WorkflowSamples
 import heizige.kk.khatkit.app.feature.workflow.encode
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowDefinition
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowNode
 import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun CreateWorkflowPage(workflowId: String? = null) {
@@ -83,7 +83,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
         WorkflowPreset("sub_flow", "流程", "子流程", mapOf("workflow" to "")),
     )
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "创建工作流",
         navigationIcon = { BackButton() },
         actions = {
@@ -125,7 +125,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                Text("流程节点", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("流程节点", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             itemsIndexed(nodes, key = { index, node -> "${node.title}-$index" }) { index, node ->
                 WorkflowNodeCard(
@@ -147,7 +147,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 )
             }
             item {
-                Text("添加模块", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("添加模块", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
             }
             item {
                 MochiTextButton(
@@ -162,7 +162,7 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             presets.groupBy { it.category }.forEach { (category, actions) ->
                 item(key = category) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(category, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(category, style = MochiTheme.textStyles.body, color = MochiTheme.colorScheme.primary)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -197,8 +197,8 @@ fun CreateWorkflowPage(workflowId: String? = null) {
             item {
                 Text(
                     "规范形态是可视化 JSON，执行时编译成现有 FlowSpec。触发器只引用已有的 18 种事件。",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.labelSmall,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
             item {
@@ -235,14 +235,14 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                 item {
                     Text(
                         "运行 ${execution.status}",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MochiTheme.textStyles.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
                 itemsIndexed(execution.steps, key = { index, step -> "${step.nodeId}-$index" }) { index, step ->
                     KkCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        colors = CardDefaults.cardColors(containerColor = MochiTheme.colorScheme.surfaceContainerLow),
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             MochiTextButton(onClick = {
@@ -251,8 +251,8 @@ fun CreateWorkflowPage(workflowId: String? = null) {
                                 Text("${index + 1}. ${step.nodeId} · ${step.kind} · ${step.status}")
                             }
                             if (expandedStep == index) {
-                                Text("输入 ${step.input}", style = MaterialTheme.typography.labelSmall)
-                                Text("输出 ${step.output}", style = MaterialTheme.typography.labelSmall)
+                                Text("输入 ${step.input}", style = MochiTheme.textStyles.labelSmall)
+                                Text("输出 ${step.output}", style = MochiTheme.textStyles.labelSmall)
                             }
                         }
                     }
@@ -295,7 +295,7 @@ private fun WorkflowNodeCard(
 ) {
     KkCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = MochiTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -305,14 +305,14 @@ private fun WorkflowNodeCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("${index + 1}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text("${index + 1}", style = MochiTheme.textStyles.titleMedium, color = MochiTheme.colorScheme.primary)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 12.dp),
                 ) {
-                    Text(node.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("${node.category} · ${node.detail}", style = MaterialTheme.typography.labelSmall)
+                    Text(node.title, style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("${node.category} · ${node.detail}", style = MochiTheme.textStyles.labelSmall)
                 }
                 KkSwitch(checked = node.enabled, onCheckedChange = { onChange(node.copy(enabled = it)) })
             }

@@ -17,9 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageLargeTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -54,8 +53,9 @@ import java.util.Locale
 import heizige.kk.khatkit.app.core.ui.icons.bugReport
 import heizige.kk.khatkit.app.core.ui.icons.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormDivider
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormDivider
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun LogPage() {
@@ -63,7 +63,7 @@ fun LogPage() {
     var requestLoggingEnabled by remember { mutableStateOf(Logging.isRequestLoggingEnabled()) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "Logs",
         scrollBehavior = scrollBehavior,
         actions = {
@@ -153,15 +153,15 @@ private fun RequestLoggingSwitchCard(
         titleContent = {
             Text(
                 text = stringResource(R.string.log_page_record_requests),
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         },
         supportingContent = {
             Text(
                 text = stringResource(R.string.log_page_record_requests_desc),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant
             )
         },
         trailingContent = {
@@ -193,20 +193,20 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
             ) {
                 Text(
                     text = log.method,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MochiTheme.textStyles.body,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MochiTheme.colorScheme.primary
                 )
                 Text(
                     text = dateFormat.format(Date(log.timestamp)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MochiTheme.textStyles.labelSmall,
+                    color = MochiTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
                 text = log.url,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MochiTheme.textStyles.body,
                 fontFamily = JetbrainsMono,
                 maxLines = 2
             )
@@ -217,19 +217,19 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
                 log.responseCode?.let { code ->
                     Text(
                         text = "Status: $code",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MochiTheme.textStyles.labelSmall,
                         color = if (code in 200..299) {
-                            MaterialTheme.colorScheme.primary
+                            MochiTheme.colorScheme.primary
                         } else {
-                            MaterialTheme.colorScheme.error
+                            MochiTheme.colorScheme.error
                         }
                     )
                 }
                 log.durationMs?.let { duration ->
                     Text(
                         text = "${duration}ms",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MochiTheme.textStyles.labelSmall,
+                        color = MochiTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -237,8 +237,8 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
             log.error?.let { error ->
                 Text(
                     text = "Error: $error",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error
+                    style = MochiTheme.textStyles.labelSmall,
+                    color = MochiTheme.colorScheme.error
                 )
             }
         }
@@ -290,10 +290,10 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             if (log.requestHeaders.isNotEmpty()) {
                 item {
-                    KedgeFormDivider()
+                    MochiFormDivider()
                     Text(
                         text = "Request Headers",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MochiTheme.textStyles.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -307,14 +307,14 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             log.requestBody?.let { body ->
                 item {
-                    KedgeFormDivider()
+                    MochiFormDivider()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
                             text = "Request Body",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MochiTheme.textStyles.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -363,10 +363,10 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
 
             if (log.responseHeaders.isNotEmpty()) {
                 item {
-                    KedgeFormDivider()
+                    MochiFormDivider()
                     Text(
                         text = "Response Headers",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MochiTheme.textStyles.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -386,12 +386,12 @@ private fun DetailSection(label: String, value: String) {
     Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MochiTheme.textStyles.labelSmall,
+            color = MochiTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MochiTheme.textStyles.body,
             fontFamily = JetbrainsMono
         )
     }
@@ -402,12 +402,12 @@ private fun HeaderItem(key: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 2.dp)) {
         Text(
             text = key,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
+            style = MochiTheme.textStyles.labelSmall,
+            color = MochiTheme.colorScheme.primary
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MochiTheme.textStyles.body,
             fontFamily = JetbrainsMono
         )
     }
@@ -429,19 +429,19 @@ private fun TextLogCard(log: LogEntry.TextLog) {
                 ) {
                     Text(
                         text = log.tag,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MochiTheme.textStyles.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MochiTheme.colorScheme.primary
                     )
                     Text(
                         text = dateFormat.format(Date(log.timestamp)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MochiTheme.textStyles.labelSmall,
+                        color = MochiTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
                     text = log.message,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MochiTheme.textStyles.body,
                     fontFamily = JetbrainsMono
                 )
             }

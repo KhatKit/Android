@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,7 +44,7 @@ import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
@@ -60,6 +59,7 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import ui.feice.mochi.theme.MochiTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -103,7 +103,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
 
     // 角色不存在时给**可见提示**，不静默回退到「当前角色」（那样面板显示的角色和顶栏不一致）。
     if (role == null) {
-        KedgeSettingsPageScaffold(
+        MochiSettingsPageScaffold(
             title = stringResource(R.string.chat_role_panel_title),
             scrollBehavior = scrollBehavior,
         ) { innerPadding ->
@@ -175,7 +175,7 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
     // 「新建聊天」时角色已被删除（设置里没了）：不静默失败，落一条可见提示。
     var roleGoneHint by remember { mutableStateOf(false) }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = roleName,
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
@@ -278,8 +278,8 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 item {
                     Text(
                         text = stringResource(R.string.chat_role_panel_role_missing),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        style = MochiTheme.textStyles.body,
+                        color = MochiTheme.colorScheme.error,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
                     )
                 }
@@ -342,8 +342,8 @@ private fun RolePanelSectionTitle(text: String) {
     ) {
         Text(
             text = text,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.54f),
-            style = MaterialTheme.typography.titleMedium.copy(
+            color = MochiTheme.colorScheme.primary.copy(alpha = 0.54f),
+            style = MochiTheme.textStyles.titleMedium.copy(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = 20.sp,
@@ -380,22 +380,22 @@ private fun RolePanelHeader(
         )
         Text(
             text = roleName,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MochiTheme.textStyles.headlineMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = modelName,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MochiTheme.textStyles.body,
+            color = MochiTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         if (systemPrompt.isNotBlank()) {
             Text(
                 text = systemPrompt.take(120) + if (systemPrompt.length > 120) "..." else "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

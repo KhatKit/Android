@@ -110,7 +110,7 @@ internal fun workspaceRootfsReady(context: Context, root: String): Boolean {
     return linuxDir.isDirectory && File(linuxDir, "bin/sh").isFile
 }
 
-internal class WorkspaceTerminalSessionClient(
+class WorkspaceTerminalSessionClient(
     private val context: Context,
     private val onTitleUpdated: (String?) -> Unit,
     private val onFinished: () -> Unit,
@@ -189,7 +189,7 @@ internal class WorkspaceTerminalSessionClient(
     }
 }
 
-internal class WorkspaceTerminalViewClient(
+class WorkspaceTerminalViewClient(
     private val context: Context,
 ) : TerminalViewClient {
     var terminalView: TerminalView? = null

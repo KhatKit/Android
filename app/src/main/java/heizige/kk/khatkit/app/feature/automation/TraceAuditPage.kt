@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import java.io.File
 import heizige.kk.khatkit.app.feature.automation.data.TraceBrowseState
 import heizige.kk.khatkit.app.feature.automation.data.TraceStepView
@@ -43,7 +43,7 @@ fun TraceAuditPage() {
     var cursor by remember(selectedId) { mutableStateOf(TraceBrowseState(0, views.size)) }
     val current = views.getOrNull(cursor.index)
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "轨迹审计",
         navigationIcon = { BackButton() },
     ) { padding ->

@@ -24,6 +24,7 @@ dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.ui)
     api(libs.androidx.material3)
+    implementation(libs.mochi.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.activity.compose)

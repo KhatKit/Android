@@ -12,11 +12,13 @@ object UiIcons {
         "account_circle", "add", "analytics", "arrow_back", "arrow_downward", "arrow_forward",
         "arrow_upward", "bolt", "block", "calendar_month", "cancel", "celebration", "check",
         "check_circle", "close", "delete", "edit", "email", "error", "event", "expand_more",
-        "favorite", "favorite_border", "history", "hourglass_top", "info", "insights", "link",
+        "favorite", "favorite_border", "folded_hands", "history", "hourglass_top", "info", "insights", "link",
         "lock", "more_vert", "notifications", "open_in_new", "paid", "people", "person",
-        "psychology", "refresh", "remove", "rocket_launch", "schedule", "search", "settings",
+        "psychology", "public", "refresh", "remove", "rocket_launch", "schedule", "search", "settings",
         "share", "star", "star_border", "sync", "thumb_down", "thumb_up", "timer", "trending_down",
         "trending_up", "verified", "visibility", "warning",
+        // Material Symbols Rounded 补齐（khatkit-ui 的 UiIconsSymbols.kt 提供矢量）
+        "casino", "emoji_events",
     )
 
     fun isValid(name: String): Boolean = name in names

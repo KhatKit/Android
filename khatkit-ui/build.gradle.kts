@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("rikkahub.android.library.compose")
+    // 导航栏样式枚举（NavBarLabelStyle）要进 Settings 的 @Serializable JSON
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -37,6 +39,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
 }

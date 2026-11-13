@@ -79,7 +79,7 @@ fun KhatKitForm(
         onDispose { pickerHost?.detach() }
     }
 
-    KhatKitSheet(
+    KhatKitPage(
         title = title,
         imageVector = Icons.Filled.Edit,
         options = options,

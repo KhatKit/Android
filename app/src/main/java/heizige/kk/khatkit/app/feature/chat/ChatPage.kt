@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
-import heizige.kk.khatkit.uikit.mochi.kkSolidBarColors
+import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -55,7 +55,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
@@ -145,7 +144,9 @@ import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.extension
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.mochiSheetBackdrop
 import heizige.kk.khatkit.app.core.ui.icons.menu
 import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 
@@ -408,7 +409,9 @@ internal fun ChatScaffold(
 
     KkSurface(
         color = androidx.compose.material3.MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .mochiSheetBackdrop(filesSheet)
     ) {
         // 用 MochiPageScaffold：Miuix 下自动建立 backdrop 并只包住内容槽，
         // 顶栏作为兄弟节点采样（KernelSU MainActivity.kt:306 同构）。
@@ -730,12 +733,11 @@ private fun ChatFilesPickerSheet(
         onDismiss()
     }
 
-    PrimaryBottomSheet(
+    MochiSheet(
         state = sheetState,
-        title = stringResource(R.string.more_options),
-        imageVector = extension,
         onDismiss = { dismissAll() },
-    ) { _ ->
+    ) {
+        MochiSheetHeader(title = stringResource(R.string.more_options))
         FilesPicker(
             conversation = conversation,
             state = inputState,
@@ -896,9 +898,14 @@ private fun TopBar(
     val roleModelName = topBarModel?.displayName.orEmpty()
 
     // 角色有自定义底色（背景图 / 流光）时栏不画底色，把底色让给正文那张背景；开模糊时叠一层 haze。
+    // 和「液态玻璃效果」总开关联动：总开关关掉时栏一律纯色，不再对背景图做 haze 模糊。
     val roleHasCustomBackground = role.background != null
     val barModifier =
-        if (roleHasCustomBackground && settings.displaySetting.enableBlurEffect) {
+        if (
+            roleHasCustomBackground &&
+            settings.displaySetting.enableBlurEffect &&
+            settings.displaySetting.effectsEnabled
+        ) {
             Modifier.hazeBlur(
                 input = HazeInput.Sources(hazeState),
                 style = HazeBlurStyle.Material3 { blurRadius(20.dp) },
@@ -908,8 +915,8 @@ private fun TopBar(
         }
     val cs = MochiTheme.colorScheme
     // 栏按钮配色照 Mochi 实例（demo 的聊天页/目录页）：白胶囊（浅色）/ 深胶囊（深色）+ 深色图标。
-    // 纯色而不是玻璃，见 uikit 的 kkSolidBarColors：本页的栏取样源在透明底色/背景图上取样出来的面色发灰。
-    val solidBarColors = kkSolidBarColors()
+    // 按设置里的按钮样式：玻璃或实心，见 uikit 的 kkBarButtonColors。
+    val barColors = kkBarButtonColors()
     val edgeProgress = MochiScrollEdgeDefaults.progress(listState)
 
     Box(barModifier.fillMaxWidth()) {
@@ -982,7 +989,7 @@ private fun TopBar(
                 if (!bigScreen || p > 0.001f) {
                     MochiBarIconButton(
                         onClick = { if (p >= 0.5f) onCollapseSearch() else sidebarState.open() },
-                        colors = solidBarColors,
+                        colors = barColors,
                         modifier = if (bigScreen) Modifier.graphicsLayer { alpha = searchProgress.value } else Modifier,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -1015,7 +1022,7 @@ private fun TopBar(
                 // 和设置页顶栏同一套图标按钮（MochiIconButton + shapes），不再单独用栏里的圆钮
                 MochiBarIconButton(
                     onClick = onClickMenu,
-                    colors = solidBarColors,
+                    colors = barColors,
                 ) {
                     // 搜索 ↔ 清除：没在搜 → 放大镜；在搜且有字 → ×；在搜还没字 → 空
                     val searching = searchProgress.value >= 0.5f

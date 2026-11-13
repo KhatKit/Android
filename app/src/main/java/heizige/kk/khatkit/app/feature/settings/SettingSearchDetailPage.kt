@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
@@ -46,7 +46,7 @@ import heizige.kk.khatkit.highlight.LocalCodeHighlighter
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.HighlightCodeVisualTransformation
 import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeFormCard
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormCard
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
@@ -104,7 +104,7 @@ fun SettingSearchDetailPage(
         vm.updateSettings(settings.copy(searchServices = newServices))
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = options.displayName,
         scrollBehavior = scrollBehavior,
         actions = {
@@ -153,9 +153,9 @@ fun SettingSearchDetailPage(
  * 「服务参数」分组卡片：标题 + 参数表单 + 能力说明，一整组分段卡片。
  *
  * 改造前是 `KkCard { Column(padding 16) { 标题; SearchOptionsEditor; 说明 } }`：
- * 外壳手搓一张卡，里面的参数行（`KedgeFormRow` → `FormItem` → `MochiOptionItem`）在组外
+ * 外壳手搓一张卡，里面的参数行（`MochiFormRow` → `FormItem` → `MochiOptionItem`）在组外
  * 各画一张四角全圆的卡 —— 卡里套卡，Miuix 下尤其明显（外壳是 MD3 的 `KkCard`，
- * 行是 Miuix 的 `KkCard` 行）。现在外壳交给 `KedgeFormCard`（`InlineCardGroup`）：
+ * 行是 Miuix 的 `KkCard` 行）。现在外壳交给 `MochiFormCard`（`InlineCardGroup`）：
  * 底色与圆角由组统一出，组内行只留内侧小圆角，首项上边、末项下边由整组裁切给出，
  * 两种风格一致，`SearchOptionsEditor` 一行不用改。
  */
@@ -165,7 +165,7 @@ internal fun SearchConfigCard(
     modifier: Modifier = Modifier,
     onUpdate: (SearchOptions) -> Unit
 ) {
-    KedgeFormCard(modifier = modifier) {
+    MochiFormCard(modifier = modifier) {
         // 标题块是组内「不带底色的子项」，卡片底由 InlineCardGroup 那层透出来；
         // 内边距由调用点补（组容器不加内边距，行组件自带的 16dp 是行的）。
         Column(

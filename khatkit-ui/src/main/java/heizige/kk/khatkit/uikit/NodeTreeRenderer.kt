@@ -8,8 +8,11 @@ import ui.feice.mochi.theme.LocalContentColor as MochiLocalContentColor
 import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -31,19 +34,34 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.list.MochiListDefaults
+import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
+import ui.feice.mochi.basic.MochiStepper
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.effect.content.MochiCounterText
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.ui.UiScreenPage
 
 @Composable
-fun NodeTreeSheet(
+fun NodeTreePage(
     title: String,
     root: UiNode,
     options: UiSheetOptions,
@@ -57,7 +75,7 @@ fun NodeTreeSheet(
     image: @Composable (String, String?, Modifier) -> Unit,
 ) {
     if (pages.isNotEmpty() && !form && !readOnly) {
-        PagedNodeTreeSheet(title, pages, options, pickerHost, onAction, onDismiss, markdown, image)
+        PagedNodeTreePage(title, pages, options, pickerHost, onAction, onDismiss, markdown, image)
         return
     }
     val values = remember(root) { mutableStateMapOf<String, Any?>().apply { putAll(root.initialValues()) } }
@@ -74,11 +92,28 @@ fun NodeTreeSheet(
     val hasSubmit = root.walk().any { it.type == "Button" && it.props["action"] == "submit" }
     // A screen's top-level blocks are independent lazy items; fields still live in
     // values above, so recycling an off-screen block never loses form input.
-    val lazy = options.usesLargeSheet && root.lazyScreenRoot()
+    val lazy = root.lazyScreenRoot()
     val pageKey = options.navigation?.selected ?: title
     val lazyState = key(pageKey) { rememberLazyListState() }
     val counterHost = rememberCounterButtonHost()
-    KhatKitSheet(
+    // 顶栏小标题折叠：卡片页顶部的 page_title 还在视野里时栏里不显示标题，
+    // 内容往上滚过一段后标题才渐现（和 codex_resets 等分页卡片一致）。
+    // 非懒加载路径由 KhatKitPage 内部的 ScrollState 驱动，懒加载路径用列表状态。
+    val density = LocalDensity.current
+    val collapsePx = with(density) { 72.dp.toPx() }
+    val titleProgress: (() -> Float)? = if (!options.usesLargeSheet || !lazy) {
+        null
+    } else {
+        {
+            val raw = if (lazyState.firstVisibleItemIndex > 0) {
+                collapsePx
+            } else {
+                lazyState.firstVisibleItemScrollOffset.toFloat()
+            }
+            (raw / collapsePx).coerceIn(0f, 1f)
+        }
+    }
+    KhatKitPage(
         title = title,
         imageVector = Icons.Default.Edit,
         options = options,
@@ -88,11 +123,12 @@ fun NodeTreeSheet(
         onDismiss = onDismiss,
         // 导航条不是提交：不跑字段校验，直接把条目 event 交回脚本。
         onNavigate = { event -> onAction(event, root.collect(values)) },
-        // 换屏后同一张弹层还在组合里：用「当前导航项」当 key，换页归零、同页刷新/求重置保留滚动位置。
+        // 换屏后同一张页面还在组合里：用「当前导航项」当 key，换页归零、同页刷新/求重置保留滚动位置。
         scrollKey = options.navigation?.selected ?: root,
         // 内容更新后复位触底加载守卫。
         contentKey = root,
         lazyListState = if (lazy) lazyState else null,
+        titleProgress = titleProgress,
     ) {
         NodeTreeContent(root, values, errors, pickerHost, readOnly, submit, markdown, image,
             if (lazy) lazyState else null, form && !hasSubmit, onDismiss, counterHost)
@@ -117,7 +153,17 @@ internal fun NodeTreeContent(
     cancelButton: Boolean = false,
     onDismiss: () -> Unit = {},
     counterHost: CounterButtonHost? = null,
+    /** 下拉刷新共用同一根越界弹簧：懒加载列表要显式挂上，才能和刷新状态联动。 */
+    overscroll: androidx.compose.foundation.OverscrollEffect? = null,
+    /** 刷新中让内容往下让出的高度（[ui.feice.mochi.basic.mochiRefreshHold]）。 */
+    refreshHold: Modifier = Modifier,
+    /** 列表顶部的不可滚动内容（卡片大标题等），只在懒加载列表路径用。 */
+    header: (@Composable () -> Unit)? = null,
+    /** 折叠顶栏让出的高度：列表顶部留白（懒加载路径）。 */
+    contentTopInset: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
+    // 底栏浮在内容上时不占布局：滚动内容末尾留出栏高，最后一项仍能滚到栏上方。
+    val bottomInset = LocalKhatKitContentBottomInset.current
     CompositionLocalProvider(LocalCounterButtonHost provides counterHost) {
         if (lazyState != null) {
             val alignment = when (root.props["hAlign"]) {
@@ -127,11 +173,20 @@ internal fun NodeTreeContent(
             }
             LazyColumn(
                 state = lazyState,
-                modifier = root.nodeModifier(Modifier.fillMaxWidth()).fillMaxHeight(),
-                contentPadding = PaddingValues(16.dp),
+                // fillMaxHeight 优先于节点自带的 modifier 尺寸：卡片把整页写死高度时，
+                // LazyColumn 的视口会撑到内容高度，整页就再也滚不动。
+                modifier = root.nodeModifier(Modifier.fillMaxWidth()).fillMaxHeight().then(refreshHold),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = contentTopInset + if (header != null) 0.dp else 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp + bottomInset,
+                ),
                 verticalArrangement = Arrangement.spacedBy((root.props["spacing"] as? Number)?.toFloat()?.dp ?: 0.dp),
                 horizontalAlignment = alignment,
+                overscrollEffect = overscroll,
             ) {
+                header?.let { title -> item(key = "__khatkit_header") { title() } }
                 itemsIndexed(root.children,
                     key = { index, node -> node.props["key"]?.let { "node:$it" } ?: "index:$index" },
                     contentType = { _, node -> node.type },
@@ -150,7 +205,11 @@ internal fun NodeTreeContent(
                 }
             }
         } else {
-            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + bottomInset),
+            ) {
                 root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
                 if (cancelButton) {
                     MochiTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
@@ -197,6 +256,25 @@ private fun weight(value: String): FontWeight? = when (value) {
     "semibold" -> FontWeight.SemiBold
     "bold" -> FontWeight.Bold
     else -> null
+}
+
+/**
+ * 计数器数字的变化方向：按数字部分的绝对值比上次大（+1，往上滚）还是小（−1，往下滚）。
+ * 第一次出现、或文字里没有数字时是 0（不滚）。
+ */
+@Composable
+private fun rememberCounterDirection(current: String): Int {
+    val last = remember { mutableStateOf(current) }
+    val direction = remember(current) {
+        val from = last.value.filter { it.isDigit() }.toLongOrNull()
+        val to = current.filter { it.isDigit() }.toLongOrNull()
+        last.value = current
+        when {
+            from == null || to == null -> 0
+            else -> to.compareTo(from)
+        }
+    }
+    return direction
 }
 
 private fun UiNode.ops() = UiNodeParser.modifierOps(props["modifier"])
@@ -279,17 +357,75 @@ fun UiNode.Render(
                 MochiOptionItem(onClick = null, modifier = m, titleContent = content)
             } else Box(m) { content() }
         }
+        // 设置页的一张分组卡片：组内行贴在一起，行间由分隔线分开（Mochi inset grouped）。
+        "Group" -> KkGroupedColumn(
+            modifier = m,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+            containerColor = MochiListDefaults.colors().container,
+        ) {
+            children.forEach { it.Render(values, errors, pickerHost, readOnly, onAction, markdown, image) }
+        }
+        // 设置项行：前导图标 + 标题（/说明）+ 行尾值 + 对勾或箭头。
+        "ListRow" -> {
+            val disabled = props["disabled"] == true || readOnly
+            val tone = text("tone")
+            val labelColor = when (tone) {
+                "danger" -> style.color("error")
+                "warning" -> style.color("warning")
+                "primary" -> style.color("primary")
+                else -> style.color("default")
+            }
+            val leading = text("icon")
+            MochiOptionItem(
+                onClick = if (disabled) null else ({ onAction(text("action")) }),
+                modifier = m,
+                leadingContent = if (leading.isBlank()) null else ({
+                    Icon(
+                        imageVector = UiIconVectors.vector(leading) ?: Icons.Filled.Edit,
+                        contentDescription = null,
+                        // KhatKit 设置页的行：前导图标用正文色（不是弱化色），只有显式 tone 才着色。
+                        tint = labelColor,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }),
+                titleContent = { Text(text("label"), style = style.textStyle("body"), color = labelColor) },
+                supportingContent = text("caption").takeIf { it.isNotEmpty() }?.let {
+                    ({ Text(text("caption"), style = style.textStyle("label"), color = style.color("muted")) })
+                },
+                trailingContent = text("value").takeIf { it.isNotEmpty() }?.let {
+                    ({ Text(text("value"), style = style.textStyle("body"), color = style.color("muted")) })
+                },
+                chevron = props["chevron"] == true,
+                selected = props["selected"] == true,
+            )
+        }
         "Spacer" -> Spacer(m.width(number("width").dp).height(number("height").dp))
         "Divider" -> MochiHorizontalDivider(modifier = m, color = style.color("muted"))
         "Text" -> {
             val base = style.textStyle(text("style", "body"))
-            Text(
-                text("text"), modifier = m,
-                color = nodeColor(text("color")) ?: style.color(text("tone", "default")),
-                style = base.copy(fontSize = (props["size"] as? Number)?.toFloat()?.sp ?: base.fontSize),
-                fontWeight = weight(text("weight"))
-                    ?: if (props["bold"] == true) FontWeight.Bold else null,
-            )
+            val color = nodeColor(text("color")) ?: style.color(text("tone", "default"))
+            val scale = base.copy(fontSize = (props["size"] as? Number)?.toFloat()?.sp ?: base.fontSize)
+            if (props["counter"] == true) {
+                // Mochi 的计数器数字：每一位是 0–9 滚轮，值变了滚过去（和设置页/角标同一套效果）。
+                MochiCounterText(
+                    text = text("text"),
+                    direction = rememberCounterDirection(text("text")),
+                    modifier = m,
+                    color = color,
+                    style = scale.copy(
+                        fontWeight = weight(text("weight"))
+                            ?: if (props["bold"] == true) FontWeight.Bold else base.fontWeight,
+                    ),
+                )
+            } else {
+                Text(
+                    text("text"), modifier = m,
+                    color = color,
+                    style = scale,
+                    fontWeight = weight(text("weight"))
+                        ?: if (props["bold"] == true) FontWeight.Bold else null,
+                )
+            }
         }
         "Icon" -> {
             val vector = UiIconVectors.vector(text("name"))
@@ -314,6 +450,8 @@ fun UiNode.Render(
             KkProgressIndicator(progress = number("ratio"), type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
         }
         "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
+        "Stepper" -> StepperControl(this, values, readOnly, onAction, m)
+        "Selector" -> SelectorControl(this, values, readOnly, onAction, m)
         "Button" -> {
             val primary = text("tone") == "primary"
             val buttonStyle = if (primary) MochiRealButtonStyle.Filled else MochiRealButtonStyle.Tonal
@@ -344,10 +482,14 @@ fun UiNode.Render(
                 }
             }
         }
+        // 卡片里的圆形图标按钮也接进设置「外观 → 材质 → 按钮样式」（玻璃 / 实心）：
+        // Tonal 变体在主题有 control 玻璃时画玻璃，选了实心（材质没玻璃）时退回实心 Tonal 圆钮，
+        // 和 app 设置页、栏里的圆钮同一套；液态玻璃总开关关掉时同样变实心。
         "IconButton" -> MochiIconButton(
             onClick = { onAction(text("action")) },
             enabled = !readOnly && props["disabled"] != true,
             modifier = m,
+            variant = MochiIconButtonVariant.Tonal,
             shapes = IconButtonDefaults.shapes(),
         ) {
             val vector = UiIconVectors.vector(text("icon"))
@@ -389,6 +531,126 @@ fun UiNode.Render(
             }
         }
     }
+}
+
+/**
+ * 节点树里的 Mochi 步进器（iOS UIStepper 样式）。
+ *
+ * 交互模型：+/- 先本地累加（立即显示），停顿 [STEPPER_SEND_DELAY_MS] 后把「净增量」
+ * 作为一批写进 values[id] 并回传 action；卡片按批次提交（和 CounterButton 的
+ * 180ms 合并语义一致）。revision 变化（脚本重新出屏）时重置本地增量。
+ */
+private const val STEPPER_SEND_DELAY_MS = 300L
+
+@Composable
+private fun StepperControl(
+    node: UiNode,
+    values: MutableMap<String, Any?>,
+    readOnly: Boolean,
+    onAction: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val id = node.props["id"] as String
+    val action = node.props["action"] as String
+    val baseline = (node.props["value"] as? Number)?.toInt() ?: 0
+    val min = (node.props["min"] as? Number)?.toInt() ?: 0
+    val max = (node.props["max"] as? Number)?.toInt() ?: Int.MAX_VALUE
+    val step = ((node.props["step"] as? Number)?.toInt() ?: 1).coerceAtLeast(1)
+    val showValue = node.props["showValue"] as? Boolean ?: true
+    val revision = (node.props["revision"] as? Number)?.toLong() ?: 0L
+    val disabled = readOnly || node.props["disabled"] == true
+    var pending by remember(id) { mutableIntStateOf(0) }
+    var sent by remember(id) { mutableIntStateOf(0) }
+    var sendJob by remember(id) { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(revision) {
+        sendJob?.cancel()
+        sendJob = null
+        pending = 0
+        sent = 0
+    }
+    fun scheduleSend() {
+        sendJob?.cancel()
+        sendJob = scope.launch {
+            delay(STEPPER_SEND_DELAY_MS)
+            val batch = pending
+            if (batch > 0) {
+                sent += batch
+                pending = 0
+                values[id] = batch
+                onAction(action)
+                values[id] = 0
+            } else {
+                pending = 0
+            }
+        }
+    }
+    val display = baseline + sent + pending
+    MochiStepper(
+        value = display,
+        onValueChange = { next ->
+            if (!disabled) {
+                pending = next - baseline - sent
+                scheduleSend()
+            }
+        },
+        modifier = modifier,
+        enabled = !disabled,
+        range = min..max,
+        step = step,
+        showValue = showValue,
+        format = { value -> java.text.NumberFormat.getIntegerInstance().format(value) },
+    )
+}
+
+/**
+ * 节点树里的 Mochi 分段选择器（iOS 26 风格，选中块滑动/拖尾动画由 MochiSegmentedControl 负责）。
+ *
+ * 点选后把选项文案写进 values[id] 再回传 action，脚本按文案映射业务值；
+ * 这样选择器与其他字段一样走「收集 values → 一次回传」的现有链路。
+ */
+@Composable
+private fun SelectorControl(
+    node: UiNode,
+    values: MutableMap<String, Any?>,
+    readOnly: Boolean,
+    onAction: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val id = node.props["id"] as String
+    val action = node.props["action"] as String
+    val options = (node.props["options"] as? List<*>)?.map { it.toString() }.orEmpty()
+    if (options.isEmpty()) return
+    val selectedValue = (node.props["value"] as String) ?: options.first()
+    val index = options.indexOf(selectedValue).coerceAtLeast(0)
+    val disabled = readOnly || node.props["disabled"] == true
+    // 点选当下先本地切段，选中块立即走 Mochi 的滑动/拖尾动画；脚本回传后以 props 为准。
+    var shown by remember(node) { mutableIntStateOf(index) }
+    // 快速连点只发最后一次：每次 ui.screen 全量重渲染很耗卡片 fuel，攒 320ms 再提交。
+    var sendJob by remember(id) { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    fun submitSelected() {
+        sendJob?.cancel()
+        sendJob = scope.launch {
+            kotlinx.coroutines.delay(320)
+            onAction(action)
+        }
+    }
+    // 交互完全交给 Mochi：它自己带点选、按住拖选和 haptics，pointerInput 会消费横向拖动。
+    // 外层翻页是 pager 的横向滚动（嵌套滚动），所以在这里横拖不会翻页，空白处横拖才切页。
+    MochiSegmentedControl(
+        selectedIndex = shown,
+        onSelect = { picked ->
+            if (!disabled && picked != shown) {
+                shown = picked
+                values[id] = options[picked]
+                submitSelected()
+            }
+        },
+        items = persistentListOf(*options.toTypedArray()),
+        modifier = modifier.fillMaxWidth(),
+        enabled = !disabled,
+    )
 }
 
 private fun AlignmentBased(h: Alignment.Horizontal, v: Alignment.Vertical): Alignment =

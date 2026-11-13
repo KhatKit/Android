@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
@@ -81,6 +82,15 @@ fun Modifier.fadingEdge(
 }
 
 /**
+ * 当前组合已经在一张「卡片页导航栈」的窗口里。
+ *
+ * 卡片页（全屏 `ui.screen`）叠层时，页面栈只创建**一个**内容容器，每一层页面用这个 local 告诉
+ * [KkFullscreenPopup]「别再开新窗口，直接画进当前窗口」——页面才能真正叠在一起、
+ * 一起做推入/退出动画，而不是每层各创建一个窗口。
+ */
+val LocalKkInsidePageStack = staticCompositionLocalOf { false }
+
+/**
  * U4f1：替代 Khromia 的 `FullscreenPopup`。material3 Dialog + usePlatformDefaultWidth=false。
  * passThroughTouches 无法在 Dialog 上表达（Dialog 窗口总是吃触摸），保留参数仅为调用点零改动。
  */
@@ -91,6 +101,13 @@ fun KkFullscreenPopup(
     @Suppress("UNUSED_PARAMETER") passThroughTouches: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    if (LocalKkInsidePageStack.current) {
+        // 叠页面：窗口由卡片页导航栈开，这里只画内容。
+        ProvideMochiOverscroll {
+            Box(modifier = modifier.fillMaxSize()) { content() }
+        }
+        return
+    }
     Dialog(
         onDismissRequest = { onDismiss?.invoke() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),

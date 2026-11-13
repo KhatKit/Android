@@ -23,7 +23,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
@@ -53,6 +52,7 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.trigger.TriggerCard
+import ui.feice.mochi.theme.MochiTheme
 
 /**
  * 单卡片事件编辑面板（Khromia PrimaryBottomSheet）：
@@ -140,7 +140,7 @@ internal fun TriggerCardEditorSheet(
             // ------------------------------------------------------------------ 重试配置
             KkCard(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    containerColor = MochiTheme.colorScheme.surfaceContainerHigh,
                 ),
             ) {
                 Column(
@@ -149,7 +149,7 @@ internal fun TriggerCardEditorSheet(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("失败重试", style = MaterialTheme.typography.titleMedium)
+                    Text("失败重试", style = MochiTheme.textStyles.titleMedium)
                     ChipSelector(
                         label = "最多重试",
                         options = listOf("0" to "0", "1" to "1", "2" to "2", "3" to "3"),
@@ -174,14 +174,14 @@ internal fun TriggerCardEditorSheet(
             // ------------------------------------------------------------------ 事件列表
             Text(
                 text = "事件（${events.size}）",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MochiTheme.textStyles.titleMedium,
+                color = MochiTheme.colorScheme.primary,
             )
             if (events.isEmpty()) {
                 Text(
                     text = "暂无事件，点击下方「添加事件」；清空后该卡片不会自动触发。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
             events.forEachIndexed { index, event ->
@@ -226,8 +226,8 @@ internal fun TriggerCardEditorSheet(
             errorText?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.error,
                 )
             }
 
@@ -276,19 +276,19 @@ private fun EventCard(
         titleContent = {
             Text(
                 text = eventTypeLabel(event.type) + if (enabled) "" else "（已停用）",
-                style = MaterialTheme.typography.titleMedium,
+                style = MochiTheme.textStyles.titleMedium,
                 color = if (enabled) {
-                    MaterialTheme.colorScheme.onSurface
+                    MochiTheme.colorScheme.onSurface
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    MochiTheme.colorScheme.onSurfaceVariant
                 },
             )
         },
         supportingContent = {
             Text(
                 text = eventSummary(event),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
         },
         trailingContent = {
@@ -304,7 +304,7 @@ private fun EventCard(
                     imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },
@@ -370,8 +370,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "提示：多选星期请在卡片市场用 JSON 编辑；此处支持单选或每天。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
                 ChipSelector(
                     label = "日历（按中国节假日过滤）",
@@ -387,8 +387,8 @@ private fun EventFields(
                 Text(
                     text = "「休息日」= 周末与法定假日，「节假日」仅法定放假日；" +
                         "数据来自内置 holidays_cn.json，可按格式自行覆盖编辑。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -430,8 +430,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "用户在状态栏点击该通知时触发，需通知监听权限；3 秒内多次点击只触发一次。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -455,8 +455,8 @@ private fun EventFields(
                 Text(
                     text = "启发式：点击带「直接回复」输入框的通知后，监听同应用 10 秒内的下一条通知；" +
                         "无法读取你实际发送的内容，文本可能为空，部分应用不会触发。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -477,8 +477,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "该应用离开前台约 2 秒后触发（回到前台则取消）。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -490,8 +490,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "仅在触发服务运行期间监听系统安装广播；应用更新（覆盖安装）不算安装。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -503,8 +503,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "仅在触发服务运行期间监听系统卸载广播；应用更新（覆盖安装）不算卸载。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -517,8 +517,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "保存后出现在启动器长按图标的快捷方式列表里，点击即运行卡片。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -531,8 +531,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "每个磁贴占用一个槽位（最多 3 个）。保存后点击下方按钮，在系统快捷设置里添加。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
                 val context = LocalContext.current
                 MochiTextButton(
@@ -663,8 +663,8 @@ private fun EventFields(
                 )
                 Text(
                     text = "位置轮询约 60s 一次，需定位权限；首次定位只记录基线不触发。",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MochiTheme.textStyles.body,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -679,7 +679,7 @@ private fun ChipSelector(
     onSelect: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
+        Text(label, style = MochiTheme.textStyles.labelMedium)
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

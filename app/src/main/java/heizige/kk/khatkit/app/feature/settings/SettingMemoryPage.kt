@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.util.plus
 import javax.inject.Inject
@@ -48,7 +48,7 @@ fun SettingMemoryPage() {
     // stringResource 不能进 CardGroup 的收集期（那是普通 lambda，不是 @Composable），先取出来。
     val defaultAssistantName = stringResource(R.string.assistant_page_default_assistant)
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_memory),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->

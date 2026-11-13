@@ -26,6 +26,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.SolidColor
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
 import heizige.kk.khatkit.app.core.ui.icons.close
+import heizige.kk.khatkit.app.core.ui.icons.chat
 import heizige.kk.khatkit.app.core.ui.icons.download
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
@@ -57,7 +58,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.KkEditDialog
 import heizige.kk.khatkit.uikit.mochi.KkEditField
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import ui.feice.mochi.navigation.MochiSidebarState
 import androidx.compose.material3.BottomAppBar
@@ -327,6 +327,15 @@ fun ChatDrawerContent(
                                     leading = { DrawerRowIcon(download) },
                                     modifier = Modifier.testTag("drawer_download_center"),
                                 )
+                                MochiSidebarItem(
+                                    title = stringResource(R.string.history_page_title),
+                                    onClick = {
+                                        sidebarState?.close()
+                                        navController.navigate(Screen.History)
+                                    },
+                                    leading = { DrawerRowIcon(chat) },
+                                    modifier = Modifier.testTag("drawer_history"),
+                                )
                             }
                         },
                     )
@@ -413,16 +422,16 @@ fun ChatDrawerContent(
                                 assistant.chatModelId ?: settings.chatModelId
                             ),
                             backgroundColor = if (isCurrentAssistant) {
-                                MaterialTheme.colorScheme.surfaceVariant
+                                MochiTheme.colorScheme.surfaceVariant
                             } else {
-                                MaterialTheme.colorScheme.surface
+                                MochiTheme.colorScheme.surface
                             },
                             supportingContent = if (isCurrentAssistant) {
                                 {
                                     Text(
                                         text = stringResource(R.string.assistant_page_current_assistant),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = MochiTheme.textStyles.body,
+                                        color = MochiTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             } else {
@@ -517,10 +526,10 @@ private fun DrawerMessageSearchList(
     onOpenHit: (MessageSearchResult) -> Unit,
     onOpenConversation: (Conversation) -> Unit,
 ) {
-    val highlight = MaterialTheme.colorScheme.tertiaryContainer
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val bodyStyle = MaterialTheme.typography.bodyMedium
-    val footnote = MaterialTheme.typography.labelSmall
+    val highlight = MochiTheme.colorScheme.tertiaryContainer
+    val muted = MochiTheme.colorScheme.onSurfaceVariant
+    val bodyStyle = MochiTheme.textStyles.body
+    val footnote = MochiTheme.textStyles.labelSmall
     val grouped = remember(state.hits) { state.hits.groupBy { it.conversationId } }
     val pending = state.searching || state.keyword != keyword
     val hasAny = grouped.isNotEmpty() || state.titleFallback.isNotEmpty()
@@ -604,7 +613,7 @@ private fun DrawerMessageSearchList(
                                 ) {
                                     Text(
                                         text = head.title.ifBlank { "未命名会话" },
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = MochiTheme.textStyles.titleMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f),
@@ -691,7 +700,7 @@ private fun DrawerSearchHitRow(
     highlight: Color,
     onClick: () -> Unit,
 ) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val muted = MochiTheme.colorScheme.onSurfaceVariant
     val snippet = remember(hit.snippet, highlight) { highlightedSnippet(hit.snippet, highlight) }
     val time = remember(hit.updateAt) { drawerSearchTimeLabel(hit.updateAt) }
     KkSurface(
@@ -711,21 +720,21 @@ private fun DrawerSearchHitRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = hit.title.ifBlank { "未命名会话" },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MochiTheme.textStyles.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = time,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MochiTheme.textStyles.labelSmall,
                         color = muted,
                         maxLines = 1,
                     )
                 }
                 Text(
                     text = snippet,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MochiTheme.textStyles.body,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -733,14 +742,14 @@ private fun DrawerSearchHitRow(
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
                         text = snippet,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MochiTheme.textStyles.body,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = time,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MochiTheme.textStyles.labelSmall,
                         color = muted,
                         maxLines = 1,
                         modifier = Modifier.padding(start = 8.dp),

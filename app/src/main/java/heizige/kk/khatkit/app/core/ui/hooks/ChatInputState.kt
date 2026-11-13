@@ -31,7 +31,13 @@ class ChatInputState {
     }
 
     fun appendText(content: String) {
-        textContent.setTextAndPlaceCursorAtEnd(textContent.text.toString() + content)
+        val current = textContent.text.toString()
+        val separator = if (current.isNotBlank() && !current.endsWith('\n')) "\n" else ""
+        textContent.setTextAndPlaceCursorAtEnd(current + separator + content)
+    }
+
+    fun replaceText(content: String) {
+        textContent.setTextAndPlaceCursorAtEnd(content)
     }
 
     fun setContents(contents: List<UIMessagePart>) {

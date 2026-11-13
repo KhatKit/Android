@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryDocument
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.icons.arrowBack
@@ -138,7 +138,7 @@ internal fun RoleMemoryPanel(
         open("MEMORY.md")
     }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "记忆",
         scrollBehavior = scrollBehavior,
         navigationIcon = {

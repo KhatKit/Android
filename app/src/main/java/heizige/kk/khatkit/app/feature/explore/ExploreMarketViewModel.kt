@@ -163,15 +163,12 @@ class ExploreMarketViewModel @Inject constructor(
                 runCatching {
                     val base = provider.hubBaseUrl.trim().trimEnd('/')
                     require(base.isNotEmpty()) { "Hub 未配置" }
-                    val url = java.net.URL(base + "/api/items/" + entry.slug + "/download")
-                    val conn = url.openConnection() as java.net.HttpURLConnection
-                    conn.connectTimeout = 15_000
-                    conn.readTimeout = 60_000
-                    val tmp = java.io.File(appContext.cacheDir, "ocr_plugin_" + System.currentTimeMillis() + ".zip")
+                    val tmp = provider.downloadFile(
+                        "$base/api/items/${entry.slug}/download",
+                        "ocr_plugin_${entry.slug}.zip",
+                    ) ?: error("下载失败")
                     try {
-                        conn.inputStream.use { input -> tmp.outputStream().use { output -> input.copyTo(output) } }
-                        val sha = conn.getHeaderField("X-Content-SHA256")
-                        OcrPluginInstaller.install(appContext, tmp, sha, entry.slug).getOrThrow()
+                        OcrPluginInstaller.install(appContext, tmp, null, entry.slug).getOrThrow()
                     } finally {
                         tmp.delete()
                     }

@@ -299,6 +299,9 @@ class KhatKitToolProvider(
     @Volatile
     private var indexFetchedAt: Long = 0L
     private val indexMutex = Mutex()
+    private val catalogueRefreshMutex = Mutex()
+    @Volatile
+    private var catalogueRefreshAt: Long = 0L
     private val activeUserCards = ConcurrentHashMap.newKeySet<String>()
 
     override val uiRequest = uiHost.request
@@ -449,6 +452,17 @@ class KhatKitToolProvider(
         }
     }
 
+    /** 宿主侧文件下载也必须走同一个下载中心；调用方负责处理已完成的临时文件。 */
+    suspend fun downloadFile(
+        url: String,
+        name: String,
+        headers: Map<String, String> = emptyMap(),
+    ): File? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val bridge = executor().bridges.downloadBridge() ?: return@withContext null
+        val handle = bridge.enqueue(mapOf("url" to url, "name" to name, "headers" to headers))
+        if (handle.await(3600) == "done") handle.file()?.let(::File) else null
+    }
+
     private suspend fun executor(): CardExecutor {
         executor?.let { return it }
         return initMutex.withLock {
@@ -474,7 +488,9 @@ class KhatKitToolProvider(
                 embeddingEngine = CardEmbeddingEngine(providerManager, { settingsRepository.settingsFlow.value }),
                 schedule = scheduleImpl,
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
+                mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
             ).also {
+                it.bridges.registerDynamic("yunx", heizige.kk.khatkit.app.feature.yunx.YunxCardBridge(appContext))
                 executor = it
                 bindDownloadCenter(it)
             }
@@ -489,14 +505,34 @@ class KhatKitToolProvider(
     private val _cardCatalogueRevision = MutableStateFlow(0L)
     val cardCatalogueRevision = _cardCatalogueRevision.asStateFlow()
 
-    suspend fun chatCards(): List<LoadedCard> = withContext(Dispatchers.IO) {
-        // Welcome widgets execute the installed package directly, so they must follow
-        // the same remote-version check as AI tools instead of staying on stale Lua.
-        runCatching {
-            val remote = HubFilters.byCapability(remoteCards(), capabilities())
-            syncInstalledCardUpdates(remote)
-        }.onFailure { Log.w(TAG, "欢迎页工具版本检查失败，继续使用本地缓存", it) }
-        loadInstalledCards()
+    suspend fun chatCards(): List<LoadedCard> {
+        // Return the local catalogue immediately. The previous implementation waited for
+        // the Hub index (up to 3 seconds) before the welcome page could render anything.
+        val installed = withContext(Dispatchers.IO) { loadInstalledCards() }
+        scheduleCatalogueRefresh()
+        return installed
+    }
+
+    /** Refresh remote versions off the UI path; a changed package triggers one catalogue reload. */
+    private fun scheduleCatalogueRefresh() {
+        scope.launch(Dispatchers.IO) {
+            if (!catalogueRefreshMutex.tryLock()) return@launch
+            try {
+                val now = System.currentTimeMillis()
+                if (now - catalogueRefreshAt < INDEX_TTL_MS) return@launch
+                catalogueRefreshAt = now
+                val before = cache.installedVersions()
+                runCatching {
+                    val remote = HubFilters.byCapability(remoteCards(), capabilities())
+                    syncInstalledCardUpdates(remote)
+                }.onFailure { Log.w(TAG, "欢迎页工具版本检查失败，继续使用本地缓存", it) }
+                if (before != cache.installedVersions()) {
+                    _cardCatalogueRevision.update { it + 1 }
+                }
+            } finally {
+                catalogueRefreshMutex.unlock()
+            }
+        }
     }
 
     fun widgetEnabled(card: LoadedCard): Boolean =
@@ -2521,7 +2557,10 @@ class KhatKitToolProvider(
 
     private fun hub(): HubClient =
         hubClient ?: synchronized(this) {
-            hubClient ?: HubClient(hubBaseUrl).also { hubClient = it }
+            hubClient ?: HubClient(
+                baseUrl = hubBaseUrl,
+                downloadBridgeProvider = { executor?.bridges?.downloadBridge() },
+            ).also { hubClient = it }
         }
 
     /**

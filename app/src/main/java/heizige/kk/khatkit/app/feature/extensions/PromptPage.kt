@@ -43,10 +43,8 @@ import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVertica
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
@@ -116,6 +114,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiSmallFab
 import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
+import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
@@ -233,13 +232,13 @@ private fun ModeInjectionTab(
                     ) {
                         Text(
                             text = stringResource(R.string.prompt_page_mode_injection_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.prompt_page_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -351,7 +350,7 @@ private fun ModeInjectionCard(
             titleContent = {
                 Text(
                     text = injection.name.ifEmpty { stringResource(R.string.prompt_page_unnamed) },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MochiTheme.textStyles.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -452,7 +451,7 @@ private fun ModeInjectionEditSheet(
 
                 Text(
                     stringResource(R.string.prompt_page_injection_position),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MochiTheme.textStyles.titleMedium
                 )
                 InjectionPositionSelector(
                     position = injection.position,
@@ -476,7 +475,7 @@ private fun ModeInjectionEditSheet(
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
                             stringResource(R.string.prompt_page_injection_role),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MochiTheme.textStyles.titleMedium
                         )
                         InjectionRoleSelector(
                             role = injection.role,
@@ -620,13 +619,13 @@ private fun LorebookTab(
                     ) {
                         Text(
                             text = stringResource(R.string.prompt_page_lorebook_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = stringResource(R.string.prompt_page_empty_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -738,7 +737,7 @@ private fun LorebookCard(
             titleContent = {
                 Text(
                     text = book.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_lorebook) },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MochiTheme.textStyles.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -748,8 +747,8 @@ private fun LorebookCard(
                     if (book.description.isNotEmpty()) {
                         Text(
                             text = book.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.body,
+                            color = MochiTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -864,7 +863,7 @@ private fun LorebookEditSheet(
                 ) {
                     Text(
                         stringResource(R.string.prompt_page_entries_format, book.entries.size),
-                        style = MaterialTheme.typography.titleMedium
+                        style = MochiTheme.textStyles.titleMedium
                     )
                     MochiIconButton(onClick = {
                         entryEditState.open(PromptInjection.RegexInjection())
@@ -919,13 +918,13 @@ private fun RegexInjectionEntryCard(
             ) {
                 Text(
                     text = entry.name.ifEmpty { stringResource(R.string.prompt_page_unnamed_entry) },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MochiTheme.textStyles.body
                 )
                 if (entry.keywords.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.prompt_page_keywords_format, entry.keywords.joinToString(", ")),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MochiTheme.textStyles.body,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -998,7 +997,7 @@ private fun RegexInjectionEditDialog(
 
                 Text(
                     stringResource(R.string.prompt_page_injection_position),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MochiTheme.textStyles.titleMedium
                 )
                 InjectionPositionSelector(
                     position = entry.position,
@@ -1019,7 +1018,7 @@ private fun RegexInjectionEditDialog(
                 }
 
                 // 关键词
-                Text(stringResource(R.string.prompt_page_keywords_label), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.prompt_page_keywords_label), style = MochiTheme.textStyles.titleMedium)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -1103,7 +1102,7 @@ private fun RegexInjectionEditDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
                             stringResource(R.string.prompt_page_injection_role),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MochiTheme.textStyles.titleMedium
                         )
                         InjectionRoleSelector(
                             role = entry.role,

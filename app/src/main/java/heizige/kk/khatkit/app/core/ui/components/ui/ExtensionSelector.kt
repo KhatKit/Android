@@ -26,7 +26,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModeInjectionsContent
 import heizige.kk.khatkit.app.core.ui.components.ai.QuickMessagesContent
 import heizige.kk.khatkit.app.core.ui.components.ai.SkillsContent
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
 
 @Composable
 fun ExtensionSelector(
@@ -75,7 +75,7 @@ fun ExtensionSelector(
     Column(
         modifier = modifier
     ) {
-        KedgeTabRow(
+        MochiTabRow(
             titles = tabTitles,
             selectedTabIndex = pagerState.currentPage,
             onTabSelected = { index ->

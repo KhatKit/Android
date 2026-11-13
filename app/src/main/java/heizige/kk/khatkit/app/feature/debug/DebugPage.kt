@@ -29,7 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.app.core.ui.components.ui.KedgePageTopBar
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,7 +61,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeTabPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 @Composable
@@ -75,7 +75,7 @@ fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     // 删 tab 时同步删 titles 项并把后续页索引前移，保持 pager 数与 titles 一致。
     val state = rememberPagerState { 3 }
     // Tab 页统一骨架：MD3 下保持 SecondaryTabRow，Miuix 下换原生 TabRow。
-    KedgeTabPageScaffold(
+    MochiTabPageScaffold(
         title = "Debug Mode",
         titles = listOf("Main", "Colors", "Recovery"),
         selectedTabIndex = state.currentPage,

@@ -45,7 +45,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.BuildConfig
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.refresh
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
@@ -70,7 +70,7 @@ fun AboutTerminalPage() {
     val navController = LocalNavController.current
     var replay by remember { mutableIntStateOf(0) }
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "终端",
         actions = {
             MochiIconButton(

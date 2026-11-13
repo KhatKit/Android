@@ -5,12 +5,7 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Button
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Badge
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -50,9 +45,7 @@ import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.rounded.BrokenImage
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,6 +65,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ui.feice.mochi.basic.MochiButton
+import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiIconButton
 
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
@@ -135,27 +131,11 @@ internal fun MediaPickerGridWithOverlays(
             enter = slideInVertically { it * 2 },
             exit = slideOutVertically { it * 2 },
         ) {
-            val containerColor by animateColorAsState(
-                targetValue = if (canPick) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant,
-                label = "pickFabContainer",
-            )
-            val contentColor by animateColorAsState(
-                targetValue = if (canPick) MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                label = "pickFabContent",
-            )
             Column(horizontalAlignment = Alignment.End) {
-                // 取消选择：40dp 小 FAB（MD3Exp 下原本是 SmallFloatingActionButton，
-                // Miuix 没有小 FAB，用 KedgeFloatingActionButton + size 压到同尺寸）
+                // 取消选择：使用 Mochi 图标按钮，避免在选择器里混用 Material FAB。
                 AnimatedVisibility(visible = canPick) {
-                    FloatingActionButton(
+                    MochiIconButton(
                         onClick = { selectedMedia.clear() },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .padding(bottom = 8.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Deselect,
@@ -163,35 +143,19 @@ internal fun MediaPickerGridWithOverlays(
                         )
                     }
                 }
-                BadgedBox(
-                    badge = {
-                        BoxAnimatedVisibility(
-                            visible = selectedMedia.isNotEmpty() && allowMultiple,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                        ) {
-                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                Text(text = selectedMedia.size.toString(), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    },
+                MochiButton(
+                    onClick = { if (canPick) onPicked() },
+                    enabled = canPick,
+                    style = MochiButtonStyle.Filled,
+                    modifier = Modifier.semantics { contentDescription = pickLabel },
                 ) {
-                    // 确认按钮：56dp 标准 FAB（上游 EnhancedFloatingActionButtonType.Primary），
-                    // 不是 40dp 的 Small —— 里面还要塞图标 + 文案
-                    FloatingActionButton(
-                        onClick = { if (canPick) onPicked() },
-                        containerColor = containerColor,
-                        contentColor = contentColor,
-                        modifier = Modifier.semantics { contentDescription = pickLabel },
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        ) {
-                            Icon(imageVector = Icons.Filled.Verified, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(pickLabel)
-                        }
+                        Icon(imageVector = Icons.Filled.Verified, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (allowMultiple && selectedMedia.isNotEmpty()) "$pickLabel (${selectedMedia.size})" else pickLabel)
                     }
                 }
             }
@@ -285,7 +249,7 @@ internal fun MediaPickerGridWithOverlays(
                     modifier = Modifier.padding(horizontal = 24.dp),
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(R.string.media_picker_try_again)) }
+                MochiButton(onClick = onRetry) { Text(stringResource(R.string.media_picker_try_again)) }
                 Spacer(Modifier.weight(1f))
             }
         }
@@ -320,7 +284,7 @@ internal fun MediaPickerGridWithOverlays(
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text(stringResource(R.string.media_picker_search_here)) },
                             leadingIcon = {
-                                IconButton(
+                                MochiIconButton(
                                     onClick = {
                                         searchKeyword = ""
                                         onKeywordChange("")
@@ -341,7 +305,7 @@ internal fun MediaPickerGridWithOverlays(
                                     enter = fadeIn() + scaleIn(),
                                     exit = fadeOut() + scaleOut(),
                                 ) {
-                                    IconButton(
+                                    MochiIconButton(
                                         onClick = {
                                             searchKeyword = ""
                                             onKeywordChange("")
@@ -388,24 +352,16 @@ internal fun MediaSearchAndFilterButtons(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        IconButton(
+        MochiIconButton(
             onClick = onSearch,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            ),
-            modifier = Modifier.size(width = 38.dp, height = 48.dp),
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = stringResource(R.string.media_picker_search),
             )
         }
-        IconButton(
+        MochiIconButton(
             onClick = onFilter,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-            modifier = Modifier.size(width = 38.dp, height = 48.dp),
         ) {
             Icon(
                 imageVector = Icons.Outlined.FilterAlt,

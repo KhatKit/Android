@@ -58,6 +58,14 @@ fn normalize_request(method: &str, request_json: &str) -> Result<(String, String
             }
         }
     }
+    // ui.screen 的分页树在 options.pages[*].tree 里，同样要过白名单/深度/节点数校验，
+    // 并转成宿主内部 `__ui` 形状；否则 Kotlin 的 UiScreenPage 解析会失败（分页树空、整屏打不开）。
+    if method == "ui.screen" {
+        if let Some(options) = args.get_mut(2) {
+            docscard_runtime_wasm::normalize_screen_pages(options)
+                .map_err(HostError::InvalidRequest)?;
+        }
+    }
     Ok((method.to_string(), Value::Array(args).to_string()))
 }
 

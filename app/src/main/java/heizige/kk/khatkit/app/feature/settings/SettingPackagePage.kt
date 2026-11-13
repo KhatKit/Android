@@ -30,7 +30,7 @@ import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.hub.HubAccountStatus
@@ -83,7 +83,7 @@ fun SettingPackagePage(
     val current = status
     val activated = current?.activated == true
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = "套餐激活",
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->

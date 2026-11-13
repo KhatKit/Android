@@ -35,6 +35,15 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // 本地 m2 可能有自发布依赖（如 kmp-terminal-emulator），必须放在镜像前面，
+        // 避免镜像只返回 POM、缺少 Android AAR 时阻断后续仓库解析。
+        maven {
+            url = uri(System.getProperty("user.home") + "/.m2/repository")
+            metadataSources {
+                mavenPom()
+                artifact()
+            }
+        }
         // androidx 的 alpha/beta 构件阿里云镜像经常只同步 .pom 不带 .aar，
         // Gradle 命中残缺响应后不会再回退到下一个仓库，直接走官方源更稳。
         google {
@@ -49,9 +58,6 @@ dependencyResolutionManagement {
             maven("https://maven.aliyun.com/repository/google")
             maven("https://maven.aliyun.com/repository/gradle-plugin")
         }
-        // 本地 m2 可能有自发布依赖（如 mochi 0.3.0-khatkit），放最前面：JitPack 等远端仓库
-        // 对未知坐标会返回 401，Gradle 会直接失败而不会继续走到 mavenLocal
-        mavenLocal()
         google()
         mavenCentral()
         maven("https://jitpack.io")
@@ -61,9 +67,11 @@ dependencyResolutionManagement {
 rootProject.name = "KhatKit"
 include(":app")
 include(":khatkit")
+include(":yunx-parser")
 // OCR1：ML Kit OCR 拆成独立插件模块，app 不依赖它（不进基础包）
 include(":plugins:ocr-mlkit")
 include(":plugins:ssh")
+include(":plugins:terminal")
 include(":khatkit-ui")
 include(":card-validator")
 include(":highlight")

@@ -170,6 +170,24 @@ fun kkSolidBarColors(): ui.feice.mochi.basic.MochiButtonColors =
     ui.feice.mochi.basic.MochiButtonDefaults.barColors()
         .let { it.copy(container = it.container.copy(alpha = 0.995f)) }
 
+/**
+ * 栏按钮配色：由设置里「按钮样式」（[LocalKkGlassButtons]）决定。
+ *
+ * - 玻璃：直接用 Mochi 默认栏按钮配色（`MochiButtonDefaults.barColors()`）。材质里没有 control
+ *   玻璃（液态玻璃总开关关掉）时，库自己会退回实心，所以这里不用再判断 effectsEnabled。
+ * - 实心：用 [kkSolidBarColors] 的老配色（不透明度 0.995，绕开玻璃取样时的闪色）。
+ *
+ * 全 app 的栏按钮（返回键、顶栏图标按钮、页面内直接调的 MochiBarIconButton）都该走这里，
+ * 不要再各自传 [kkSolidBarColors] 把玻璃写死。
+ */
+@Composable
+fun kkBarButtonColors(): ui.feice.mochi.basic.MochiButtonColors =
+    if (LocalKkGlassButtons.current) {
+        ui.feice.mochi.basic.MochiButtonDefaults.barColors()
+    } else {
+        kkSolidBarColors()
+    }
+
 @Composable
 fun MochiIconButton(
     onClick: () -> Unit,
@@ -187,7 +205,7 @@ fun MochiIconButton(
             onClick = onClick,
             modifier = modifier,
             enabled = enabled,
-            colors = kkSolidBarColors(),
+            colors = kkBarButtonColors(),
             content = content,
         )
         return

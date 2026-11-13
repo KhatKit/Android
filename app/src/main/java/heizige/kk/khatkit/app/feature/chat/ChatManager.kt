@@ -39,6 +39,7 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelAbility
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.TextGenerationParams
+import heizige.kk.khatkit.ai.registry.ModelRegistry
 import heizige.kk.khatkit.ai.ui.ToolApprovalState
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -899,41 +900,9 @@ class ChatManager(
                 null
             }
 
-            val tools = try {
-                chatToolFactory.createTools(
-                    settings = settings,
-                    assistant = assistant,
-                    model = model,
-                    workspaceCwd = conversation.workspaceCwd,
-                    conversationId = conversationId,
-                    // C1-M：群聊时记忆工具绑定本轮发言角色的群空间
-                    // `group:<conv>:role:<role>`，不回退到助手/全局空间。
-                    groupMemory = step?.let { GroupMemoryScope(conversationId.toString(), it.role.id) },
-                )
-            } catch (error: InvalidMcpServerNamesException) {
-                sessionManager.get(conversationId)?.messageQueue?.pause()
-                addError(
-                    error = IllegalStateException(
-                        context.getString(
-                            R.string.error_mcp_invalid_server_name,
-                            error.names.joinToString(", "),
-                        )
-                    ),
-                    conversationId = conversationId,
-                )
-                return
-            }.let { created ->
-                // 工具的 systemPrompt 拿到的是「本视角可见消息」而不是完整历史：契约禁止
-                // UI 层隐藏但仍发送，而 GenerationLoop 的 tool.systemPrompt(model, messages)
-                // 用的是未过滤的形参，所以过滤必须由这里（生成管线的调用点）注入。
-                if (step != null && groupConfig != null) {
-                    viewerScopedTools(created, groupConfig, step)
-                } else {
-                    created
-                }
-            }
-
-            // 记忆检索：query 只取 viewer 可见的消息，检索结果再按 roleId 收紧一次。
+            // Tool construction and memory retrieval are independent IO-heavy stages. Start them
+            // together so card/MCP/skill discovery does not add a full extra round-trip before
+            // the first model request.
             val memoryScope = when {
                 step != null -> GroupChat.memorySpaceId(conversationId.toString(), step.role.id)
                 assistant.useGlobalMemory -> MemoryRepository.GLOBAL_MEMORY_ID
@@ -945,21 +914,67 @@ class ChatManager(
                     .filter { it.role == MessageRole.USER }
                     .joinToString("\n") { it.toText() }
                     .takeLast(4_000)
-            val memories = if (roleMemoryRepository != null) emptyList() else memoryRepository.searchMemories(
-                assistantId = memoryScope,
-                query = memoryQuery,
-                limit = 8,
-            ).let { found ->
-                if (step != null && viewerMessages != null) {
-                    GroupTurnCoordinator.memoriesForViewer(
-                        viewerRoleId = step.role.id,
-                        viewerMessageIds = viewerMessages.mapTo(mutableSetOf()) { it.id.toString() },
-                        memories = found,
+            val toolsAndMemories = coroutineScope {
+                val toolsDeferred = async(Dispatchers.IO) {
+                    runCatching {
+                        chatToolFactory.createTools(
+                            settings = settings,
+                            assistant = assistant,
+                            model = model,
+                            workspaceCwd = conversation.workspaceCwd,
+                            conversationId = conversationId,
+                            // C1-M：群聊时记忆工具绑定本轮发言角色的群空间
+                            // `group:<conv>:role:<role>`，不回退到助手/全局空间。
+                            groupMemory = step?.let { GroupMemoryScope(conversationId.toString(), it.role.id) },
+                        )
+                    }
+                }
+                val memoriesDeferred = async(Dispatchers.IO) {
+                    if (roleMemoryRepository != null) emptyList()
+                    else memoryRepository.searchMemories(
+                        assistantId = memoryScope,
+                        query = memoryQuery,
+                        limit = 8,
+                    ).let { found ->
+                        if (step != null && viewerMessages != null) {
+                            GroupTurnCoordinator.memoriesForViewer(
+                                viewerRoleId = step.role.id,
+                                viewerMessageIds = viewerMessages.mapTo(mutableSetOf()) { it.id.toString() },
+                                memories = found,
+                            )
+                        } else {
+                            found
+                        }
+                    }
+                }
+                toolsDeferred.await() to memoriesDeferred.await()
+            }
+            val createdTools = toolsAndMemories.first.getOrElse { error ->
+                if (error is InvalidMcpServerNamesException) {
+                    sessionManager.get(conversationId)?.messageQueue?.pause()
+                    addError(
+                        error = IllegalStateException(
+                            context.getString(
+                                R.string.error_mcp_invalid_server_name,
+                                error.names.joinToString(", "),
+                            )
+                        ),
+                        conversationId = conversationId,
                     )
+                    return
+                }
+                throw error
+            }.let { created ->
+                // 工具的 systemPrompt 拿到的是「本视角可见消息」而不是完整历史：契约禁止
+                // UI 层隐藏但仍发送，而 GenerationLoop 的 tool.systemPrompt(model, messages)
+                // 用的是未过滤的形参，所以过滤必须由这里（生成管线的调用点）注入。
+                if (step != null && groupConfig != null) {
+                    viewerScopedTools(created, groupConfig, step)
                 } else {
-                    found
+                    created
                 }
             }
+            val memories = toolsAndMemories.second
 
             // start generating
             val session = sessionManager.getOrCreate(conversationId)
@@ -998,7 +1013,14 @@ class ChatManager(
                     add(workspaceReminderTransformer)
                 },
                 outputTransformers = outputTransformers,
-                tools = tools,
+                tools = createdTools,
+                onAutoCompress = if (step == null) {
+                    { currentMessages ->
+                        autoCompressMessagesIfNeeded(conversationId, currentMessages, model)
+                    }
+                } else {
+                    null
+                },
             ).onCompletion { completionCause ->
                 // 可能被取消了，或者意外结束，兜底更新
                 val updatedConversation = session.finishGeneration { conversation ->
@@ -1066,7 +1088,9 @@ class ChatManager(
         }.onSuccess {
             val step = groupStep
             if (step == null) {
-                val finalConversation = getConversationFlow(conversationId).value
+                var finalConversation = getConversationFlow(conversationId).value
+                autoCompressIfNeeded(conversationId, finalConversation, model)
+                finalConversation = getConversationFlow(conversationId).value
                 sessionManager.launchWithSession(conversationId) {
                     generateTitle(conversationId, finalConversation)
                 }
@@ -1126,6 +1150,72 @@ class ChatManager(
                 generateTitle(conversationId, finalConversation)
             }
         }
+    }
+
+    /**
+     * 单聊回复完成后，根据本次请求的实际上下文占用自动压缩历史。
+     *
+     * 压缩模型与聊天模型分离；自动压缩失败只记录错误，不暂停消息队列，也不影响已经完成的回复。
+     * 群聊由轮次协调器管理，避免把某个角色的上下文误压成整个群聊的摘要。
+     */
+    private suspend fun autoCompressIfNeeded(
+        conversationId: Uuid,
+        conversation: Conversation,
+        chatModel: Model,
+    ) {
+        val settings = settingsStore.settingsFlow.value
+        if (!settings.enableAutoCompress) return
+        val latestAssistant = conversation.currentMessages.asReversed()
+            .firstOrNull { it.role == MessageRole.ASSISTANT }
+            ?: return
+        val contextTokens = latestAssistant.contextTokens() ?: return
+        val contextLength = ModelRegistry.MODEL_CONTEXT_LENGTH
+            .getData(chatModel.modelId)
+            ?.takeIf { it > 0 }
+            ?: return
+        if (contextTokens < contextLength * settings.autoCompressThreshold) return
+        // 至少留出当前回复和最近几轮，避免压缩后马上丢失刚刚的交互上下文。
+        val keepRecentMessages = 16
+        if (conversation.currentMessages.size <= keepRecentMessages + 1) return
+
+        val targetTokens = (contextLength * 0.2f).toInt().coerceAtLeast(2_000)
+        val session = sessionManager.getOrCreate(conversationId)
+        session.processingStatus.value = context.getString(R.string.chat_page_compressing)
+        try {
+            compressConversation(
+                conversationId = conversationId,
+                conversation = conversation,
+                additionalPrompt = "",
+                targetTokens = targetTokens,
+                keepRecentMessages = keepRecentMessages,
+            ).onFailure { error ->
+                if (error !is CancellationException) {
+                    Logging.log(TAG, "auto compression failed: ${error.message}")
+                    addError(
+                        error = error,
+                        conversationId = conversationId,
+                        title = context.getString(R.string.error_title_compress_conversation),
+                    )
+                }
+            }
+        } finally {
+            session.processingStatus.value = null
+        }
+    }
+
+    private suspend fun autoCompressMessagesIfNeeded(
+        conversationId: Uuid,
+        messages: List<UIMessage>,
+        chatModel: Model,
+    ): List<UIMessage> {
+        val beforeConversation = getConversationFlow(conversationId).value
+        val before = beforeConversation.currentMessages
+        // GenerationLoop 的工具结果刚刚发出，使用回调携带的消息构造候选状态，
+        // 避免 collector 尚未把这一帧写回 session 时漏掉最新 usage。
+        val candidate = beforeConversation.updateCurrentMessages(messages)
+        autoCompressIfNeeded(conversationId, candidate, chatModel)
+        val after = getConversationFlow(conversationId).value.currentMessages
+        return if (after != before) after else messages
     }
 
     private suspend fun recordCompletedRoleTurn(
@@ -2423,11 +2513,10 @@ class ChatManager(
                 session.cancelJobs()
             }
         }
-        if (jobs.isEmpty()) {
-            cancelActiveGroupRun(conversationId)
-            return
-        }
         jobs.forEach { it.join() }
+        // 等待用户回答时，生成 Job 已经自然结束，但会话里仍保留 pending
+        // 工具。立即发送也会走这里；必须把这类提问收尾，否则调度器会一直
+        // 把会话视为当前回合未结束，队首消息永远不会派发。
         finishInterruptedPendingTools(conversationId)
         cancelActiveGroupRun(conversationId)
     }

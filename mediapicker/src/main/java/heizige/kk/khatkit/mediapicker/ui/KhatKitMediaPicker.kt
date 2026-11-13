@@ -8,11 +8,7 @@
 
 package heizige.kk.khatkit.mediapicker.ui
 
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ButtonDefaults
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -32,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +58,9 @@ import heizige.kk.khatkit.mediapicker.ui.components.drawBottomHairline
 import heizige.kk.khatkit.mediapicker.ui.components.MediaFilterSheet
 import heizige.kk.khatkit.mediapicker.ui.components.MediaImagePager
 import heizige.kk.khatkit.mediapicker.ui.components.MediaPickerGridWithOverlays
+import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.basic.MochiButton
+import ui.feice.mochi.navigation.MochiTitleBar
 
 /**
  * 全屏媒体选择器。
@@ -99,7 +97,7 @@ fun KhatKitMediaPicker(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            dismissOnBackPress = false,
+            dismissOnBackPress = true,
             usePlatformDefaultWidth = false,
         ),
     ) {
@@ -184,22 +182,14 @@ internal fun MediaPickerRootContent(
                     .background(barSurfaceColor())
                     .drawBottomHairline(if (hasAlbums || isRefreshing) 1.dp else 0.dp),
             ) {
-                TopAppBar(
-                    // U4e：material3 TopAppBar 的 title 收 composable 槽。
-                    title = {
-                        Text(
-                            title ?: stringResource(
-                                if (allowMultiple) R.string.media_picker_pick_multiple
-                                else R.string.media_picker_pick_single
-                            )
-                        )
-                    },
+                MochiTitleBar(
+                    title = title ?: stringResource(
+                        if (allowMultiple) R.string.media_picker_pick_multiple
+                        else R.string.media_picker_pick_single
+                    ),
                     navigationIcon = {
-                        IconButton(
+                        MochiBarIconButton(
                             onClick = onDismiss,
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = Color.Transparent,
-                            ),
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -207,13 +197,6 @@ internal fun MediaPickerRootContent(
                             )
                         }
                     },
-                    // 底色交给外层 Column（MD3Exp 下透明；Kedge 的 MD3 分支默认就是
-                    // MD3 顶栏底色，所以这里给 colors 覆盖成透明），
-                    // inset 由 Kedge 顶栏自己处理（MD3 走 TopAppBar 默认，
-                    // Miuix 走 Miuix 顶栏的 systemBars）。
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                    ),
                 )
                 if (hasPermission) {
                     MediaAlbumRow(
@@ -307,7 +290,7 @@ private fun PermissionRationale(
                 .padding(16.dp),
         )
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onRequestPermission) {
+        MochiButton(onClick = onRequestPermission) {
             Text(stringResource(R.string.media_picker_request))
         }
     }

@@ -4,9 +4,12 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -92,12 +95,14 @@ class GenerationLoop(
         conversationModeInjectionIds: Set<Uuid> = emptySet(),
         conversationLorebookIds: Set<Uuid> = emptySet(),
         workspaceCwd: String? = null,
+        onAutoCompress: (suspend (List<UIMessage>) -> List<UIMessage>)? = null,
     ): Flow<GenerationChunk> = flow {
         val provider = model.findProvider(settings.providers) ?: error("Provider not found")
         val providerImpl = providerManager.getProviderByType(provider)
         val failoverChain = ProviderFailover.buildChain(settings, provider, model)
 
         var messages: List<UIMessage> = messages
+        var autoCompressedAssistantId: Uuid? = null
 
         for (stepIndex in 0 until maxSteps) {
             Log.i(TAG, "streamText: start step #$stepIndex (${model.id})")
@@ -266,92 +271,93 @@ class GenerationLoop(
                 toolsToProcess = messages.last().getTools().filter { it.canResumeExecution }
             }
 
-            // Handle tools (execute approved tools, handle denied tools)
-            val executedTools = arrayListOf<UIMessagePart.Tool>()
-            toolsToProcess.forEach { tool ->
-                when (tool.approvalState) {
-                    is ToolApprovalState.Denied -> {
-                        // Tool was denied by user
-                        val reason = (tool.approvalState as ToolApprovalState.Denied).reason
-                        executedTools += tool.copy(
-                            output = listOf(
-                                UIMessagePart.Text(
-                                    json.encodeToString(
-                                        buildJsonObject {
-                                            put(
-                                                "error",
-                                                JsonPrimitive("Tool execution denied by user. Reason: ${reason.ifBlank { "No reason provided" }}")
+            // Handle tools concurrently. A card call may wait on network/UI for a long time;
+            // keeping the batch parallel prevents one cloud card from serializing the others.
+            // `awaitAll` preserves input order, so message/tool-call correlation remains stable.
+            val executedTools = coroutineScope {
+                toolsToProcess.map { tool ->
+                    async(Dispatchers.Default) {
+                        when (tool.approvalState) {
+                            is ToolApprovalState.Denied -> {
+                                // Tool was denied by user.
+                                val reason = (tool.approvalState as ToolApprovalState.Denied).reason
+                                tool.copy(
+                                    output = listOf(
+                                        UIMessagePart.Text(
+                                            json.encodeToString(
+                                                buildJsonObject {
+                                                    put(
+                                                        "error",
+                                                        JsonPrimitive("Tool execution denied by user. Reason: ${reason.ifBlank { "No reason provided" }}")
+                                                    )
+                                                }
                                             )
-                                        }
-                                    )
-                                )
-                            )
-                        )
-                    }
-
-                    is ToolApprovalState.Answered -> {
-                        // Tool was answered by user (e.g., ask_user tool)
-                        val answer = (tool.approvalState as ToolApprovalState.Answered).answer
-                        executedTools += tool.copy(
-                            output = listOf(
-                                UIMessagePart.Text(answer)
-                            )
-                        )
-                    }
-
-                    is ToolApprovalState.Pending -> {
-                        // Should not reach here, but just in case
-                    }
-
-                    else -> {
-                        // Auto or Approved - execute the tool
-                        // P1-1（上游 8bb488e3a）：只给真正运行的工具计时，界面才能在执行中实时显示耗时
-                        val toolStartedAt = Clock.System.now()
-                        runCatching {
-                            val toolDef = tools.find { toolDef -> toolDef.name == tool.toolName }
-                                ?: error("Tool ${tool.toolName} not found")
-                            val args = runCatching {
-                                json.parseToJsonElement(tool.input.ifBlank { "{}" })
-                            }.getOrElse {
-                                error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
-                            }
-                            Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
-                            val hookedArgs = heizige.kk.khatkit.app.core.data.ai.toolpkg.ToolPkgHooks.prepareToolArgs(
-                                enabled = settings.featureFlags.pluginHooksEnabled,
-                                toolName = tool.toolName,
-                                args = args,
-                            )
-                            val result = toolDef.execute(hookedArgs)
-                            val hasShellAccess = tools.any { it.name == "workspace_shell" }
-                            executedTools += tool.copy(
-                                output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess),
-                                startedAt = toolStartedAt,
-                                finishedAt = Clock.System.now(),
-                            )
-                        }.onFailure {
-                            // 取消必须向上传播，否则停止生成会被误报为工具执行错误
-                            if (it is CancellationException) throw it
-                            it.printStackTrace()
-                            executedTools += tool.copy(
-                                output = listOf(
-                                    UIMessagePart.Text(
-                                        json.encodeToString(
-                                            buildJsonObject {
-                                                put(
-                                                    "error",
-                                                    JsonPrimitive(buildString {
-                                                        append("[${it.javaClass.name}] ${it.message}")
-                                                        append("\n${it.stackTraceToString()}")
-                                                    })
-                                                )
-                                            }
                                         )
                                     )
                                 )
-                            )
+                            }
+
+                            is ToolApprovalState.Answered -> {
+                                // Tool was answered by user (e.g., ask_user tool).
+                                val answer = (tool.approvalState as ToolApprovalState.Answered).answer
+                                tool.copy(output = listOf(UIMessagePart.Text(answer)))
+                            }
+
+                            is ToolApprovalState.Pending -> {
+                                // Should not reach here, but just in case
+                                null
+                            }
+
+                            else -> {
+                                // Auto or Approved - execute the tool.
+                                val toolStartedAt = Clock.System.now()
+                                runCatching {
+                                    val toolDef = tools.find { toolDef -> toolDef.name == tool.toolName }
+                                        ?: error("Tool ${tool.toolName} not found")
+                                    val args = runCatching {
+                                        json.parseToJsonElement(tool.input.ifBlank { "{}" })
+                                    }.getOrElse {
+                                        error("Invalid tool arguments JSON for ${tool.toolName}: ${it.message}")
+                                    }
+                                    Log.i(TAG, "generateText: executing tool ${toolDef.name} with args: $args")
+                                    val hookedArgs = heizige.kk.khatkit.app.core.data.ai.toolpkg.ToolPkgHooks.prepareToolArgs(
+                                        enabled = settings.featureFlags.pluginHooksEnabled,
+                                        toolName = tool.toolName,
+                                        args = args,
+                                    )
+                                    val result = toolDef.execute(hookedArgs)
+                                    val hasShellAccess = tools.any { it.name == "workspace_shell" }
+                                    tool.copy(
+                                        output = maybeTruncateToolOutput(tool.toolCallId, result, hasShellAccess),
+                                        startedAt = toolStartedAt,
+                                        finishedAt = Clock.System.now(),
+                                    )
+                                }.getOrElse {
+                                    // 取消必须向上传播，否则停止生成会被误报为工具执行错误
+                                    if (it is CancellationException) throw it
+                                    it.printStackTrace()
+                                    tool.copy(
+                                        output = listOf(
+                                            UIMessagePart.Text(
+                                                json.encodeToString(
+                                                    buildJsonObject {
+                                                        put(
+                                                            "error",
+                                                            JsonPrimitive(buildString {
+                                                                append("[${it.javaClass.name}] ${it.message}")
+                                                                append("\n${it.stackTraceToString()}")
+                                                            })
+                                                        )
+                                                    }
+                                                )
+                                            )
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
-                }
+                }.awaitAll().filterNotNull()
             }
 
             if (executedTools.isEmpty()) {
@@ -378,6 +384,33 @@ class GenerationLoop(
                     )
                 )
             )
+
+            // 工具执行后通常会继续下一次模型请求；如果这一轮已经达到上下文阈值，
+            // 先让上层压缩并替换本地消息，再进入下一步，避免把超长历史继续发送出去。
+            val latestAssistant = messages.lastOrNull()
+            if (
+                onAutoCompress != null &&
+                latestAssistant?.role == MessageRole.ASSISTANT &&
+                latestAssistant.id != autoCompressedAssistantId &&
+                latestAssistant.contextTokens() != null
+            ) {
+                val compressed = onAutoCompress(messages)
+                if (compressed != messages) {
+                    messages = compressed
+                    autoCompressedAssistantId = latestAssistant.id
+                    emit(
+                        GenerationChunk.Messages(
+                            messages.transforms(
+                                transformers = outputTransformers,
+                                context = context,
+                                model = model,
+                                assistant = assistant,
+                                settings = settings,
+                            )
+                        )
+                    )
+                }
+            }
         }
 
     }.flowOn(Dispatchers.IO)

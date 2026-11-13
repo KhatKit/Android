@@ -54,7 +54,7 @@ import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
 import heizige.kk.khatkit.app.core.ui.components.ui.TextArea
-import heizige.kk.khatkit.app.core.ui.components.ui.miuix.KedgeSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.icons.dragHandle
 import heizige.kk.khatkit.app.core.ui.icons.sync
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
@@ -102,12 +102,12 @@ fun AssistantPromptPage(id: String) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    KedgeSettingsPageScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.assistant_page_tab_prompt),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         AssistantPromptContent(
-            // 必须把 KedgeSettingsPageScaffold 给的 innerPadding 透传下去。
+            // 必须把 MochiSettingsPageScaffold 给的 innerPadding 透传下去。
             innerPadding = innerPadding,
             assistant = assistant,
             settings = settings,

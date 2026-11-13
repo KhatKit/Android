@@ -57,6 +57,7 @@ object BridgeFactory {
         embeddingEngine: EmbeddingEngine? = null,
         schedule: ScheduleBridge? = null,
         browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
+        mediaDownloadHandler: MediaDownloadHandler? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -87,6 +88,7 @@ object BridgeFactory {
                 rootDir = File(root, "downloads"),
                 http = http,
                 maxConcurrent = policy.maxConcurrent,
+                mediaDownloadHandler = mediaDownloadHandler,
             ),
             storeProvider = { request ->
                 FileStoreBridge(

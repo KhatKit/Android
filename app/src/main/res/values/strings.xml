@@ -1027,6 +1027,10 @@
   <string name="setting_model_page_fast_model">Fast Model</string>
   <string name="setting_model_page_fast_model_desc">Used for titles, suggestions and background tasks</string>
   <string name="setting_model_page_compress_model_desc">Shortens long conversation history</string>
+  <string name="setting_model_page_auto_compress_title">Automatically compress long conversations</string>
+  <string name="setting_model_page_auto_compress_desc">Compress history when the chat model context reaches 80%</string>
+  <string name="setting_model_page_auto_compress_threshold">Compression threshold</string>
+  <string name="setting_model_page_auto_compress_threshold_desc">Start compression when this percentage of the context window is used</string>
   <string name="setting_model_page_compress_prompt_vars">Variables: {content}, {target_tokens}, {additional_context}</string>
   <string name="setting_model_page_ocr_model">OCR Model</string>
   <string name="setting_model_page_ocr_model_desc">Reads text from images</string>
@@ -1170,6 +1174,8 @@
   <string name="setting_provider_page_add">Add</string>
   <string name="setting_provider_page_add_model">Add Model</string>
   <string name="setting_provider_page_add_models_hint">Tap the button below to add models</string>
+  <string name="setting_provider_page_refresh_models">Refresh available models</string>
+  <string name="setting_provider_page_model_refresh_failed">Refresh failed</string>
   <string name="setting_provider_page_add_new_model">Add New Model</string>
   <string name="setting_provider_page_add_provider">Add Provider</string>
   <string name="setting_provider_page_add_provider_override">Add Custom Config</string>
@@ -1498,6 +1504,7 @@
   <string name="assistant_page_local_tools_screen_time_desc">Let the AI read your app screen usage time</string>
   <string name="assistant_page_local_tools_screen_time_permission_required">Please grant the Usage access permission in settings to use screen time</string>
   <string name="chat_message_tool_screen_time">Read screen time</string>
+  <string name="chat_message_tool_phone_use">Phone Use</string>
   <string name="tool_ui_screen_time_total">Total screen time</string>
   <string name="assistant_page_local_tools_calendar_title">Calendar</string>
   <string name="assistant_page_local_tools_calendar_desc">Let the AI query and create calendar events</string>

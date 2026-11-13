@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginLoader
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginStore
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
+import ui.feice.mochi.theme.MochiTheme
 
 /**
  * 插件 UI 宿主：按 pluginId 分发到插件自己的页面。
@@ -35,16 +37,29 @@ fun PluginHostPage(pluginId: String) {
     val navController = LocalNavController.current
     var loaded by remember(pluginId) { mutableStateOf(false) }
     var record by remember(pluginId) { mutableStateOf<SshPluginRecord?>(null) }
+    var terminalInstalled by remember(pluginId) { mutableStateOf(false) }
 
     LaunchedEffect(pluginId) {
         val installed = runCatching { SshPluginStore(context).read() }.getOrNull()
         SshPluginLoader.updateRecord(installed)
         record = installed
+        terminalInstalled = TerminalPluginLoader.isLoadable(context, TerminalPluginStore(context).read())
         loaded = true
     }
 
     when {
-        !loaded -> MochiSettingsPageScaffold(title = SshPluginInfo.DISPLAY_NAME) { }
+        !loaded -> MochiSettingsPageScaffold(
+            title = if (pluginId == TerminalPluginInfo.ID) {
+                TerminalPluginInfo.DISPLAY_NAME
+            } else {
+                SshPluginInfo.DISPLAY_NAME
+            },
+        ) { }
+        pluginId == TerminalPluginInfo.ID && terminalInstalled -> TerminalPluginPage()
+        pluginId == TerminalPluginInfo.ID -> PluginUnavailablePage(
+            title = TerminalPluginInfo.DISPLAY_NAME,
+            reason = "这个插件还没有安装，先去「设置 → 扩展」里点安装",
+        )
         pluginId != SshPluginInfo.ID -> PluginUnavailablePage(
             title = "插件",
             reason = "插件不存在，可能已从当前版本移除",
@@ -78,8 +93,8 @@ private fun PluginUnavailablePage(title: String, reason: String) {
         ) {
             Text(
                 text = reason,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

@@ -56,6 +56,9 @@ internal class ClaudeStreamDecoder : StreamChunkDecoder {
                     "thinking" -> contentBlock["signature"]?.jsonPrimitive?.contentOrNull?.let {
                         ClaudeReasoningMetadata(signature = it).toMetadata()
                     }
+                    "redacted_thinking" -> contentBlock["data"]?.jsonPrimitive?.contentOrNull?.let {
+                        ClaudeReasoningMetadata(redactedData = it).toMetadata()
+                    }
                     else -> null
                 }
                 blocks[index] = ClaudeStreamBlock(kind, blockId, metadata)
@@ -120,8 +123,14 @@ internal class ClaudeStreamDecoder : StreamChunkDecoder {
                         block.metadata,
                     ))
                     "signature_delta" -> {
+                        // 签名可能分成多个 delta 到达，需要拼接同一块已收到的签名。
                         val metadata = delta["signature"]?.jsonPrimitive?.contentOrNull?.let {
-                            ClaudeReasoningMetadata(signature = it).toMetadata()
+                            val received = block.metadata
+                                ?.get("signature")
+                                ?.jsonPrimitive
+                                ?.contentOrNull
+                                .orEmpty()
+                            ClaudeReasoningMetadata(signature = received + it).toMetadata()
                         }
                         blocks[index] = block.copy(metadata = metadata ?: block.metadata)
                         add(StreamChunk.ReasoningDelta(block.id, "", metadata))
