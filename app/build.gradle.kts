@@ -13,6 +13,15 @@ plugins {
     alias(libs.plugins.baselineprofile)
 }
 
+val ciVersionCode = providers.gradleProperty("VERSION_CODE").orNull
+    ?.toIntOrNull()
+    ?.takeIf { it > 0 }
+    ?: 190
+val ciVersionName = providers.gradleProperty("VERSION_NAME").orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: "2.5.5"
+
 android {
     namespace = "heizige.kk.khatkit.app"
     compileSdk {
@@ -25,8 +34,8 @@ android {
         applicationId = "heizige.kk.khatkit"
         minSdk = 26
         targetSdk = 37
-        versionCode = 190
-        versionName = "2.5.5"
+        versionCode = ciVersionCode
+        versionName = ciVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

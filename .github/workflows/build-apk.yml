@@ -21,6 +21,16 @@ on:
           - both
           - debug
           - release
+      versionCode:
+        description: 'Android versionCode（必须高于当前线上版本）'
+        required: true
+        default: '191'
+        type: string
+      versionName:
+        description: '展示给用户的版本名'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: build-apk-${{ github.ref }}
@@ -63,7 +73,10 @@ jobs:
       - name: Build debug APK
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
+          ./gradlew :app:assembleDebug \
+            -PVERSION_CODE="${{ inputs.versionCode }}" \
+            -PVERSION_NAME="${{ inputs.versionName }}" \
+            --stacktrace
 
       - name: List APKs
         if: always()
@@ -132,7 +145,10 @@ jobs:
       - name: Build release APK
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --stacktrace
+          ./gradlew :app:assembleRelease \
+            -PVERSION_CODE="${{ inputs.versionCode }}" \
+            -PVERSION_NAME="${{ inputs.versionName }}" \
+            --stacktrace
 
       - name: List APKs
         if: always()
