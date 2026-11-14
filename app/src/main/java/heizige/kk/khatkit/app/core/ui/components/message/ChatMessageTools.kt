@@ -6,7 +6,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.PaddingValues
 import ui.feice.mochi.basic.MochiButton as MochiRealButton
 import ui.feice.mochi.basic.MochiButtonStyle as MochiRealButtonStyle
@@ -472,12 +471,14 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        MochiTextButton(
+                        MochiIconButton(
                             onClick = { onToolAnswer(tool.toolCallId, answerPayload(skip = true)) },
+                            variant = MochiIconButtonVariant.Tonal,
                         ) {
-                            Text(
-                                text = stringResource(R.string.chat_message_tool_skip),
-                                style = MochiTheme.textStyles.body,
+                            Icon(
+                                imageVector = close,
+                                contentDescription = stringResource(R.string.chat_message_tool_skip),
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                         MochiRealButton(
