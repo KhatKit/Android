@@ -51,3 +51,16 @@ keyPassword=khatkit
   新密钥版本会失败，需要用户卸载重装一次；更稳妥的做法是把更新通道里已发布的包一并换成
   同一把密钥签名的版本再放量。
 - 之后所有版本都必须继续用这把密钥签名，否则自更新链会断。
+
+## CI 签名预检（2026-11-14 起）
+
+`build-apk.yml` / `daily-build.yml` 不再直接信 `SIGNING_CONFIG`：统一调用
+`.github/scripts/prepare-signing.sh`，顺序为
+
+1. 用 `SIGNING_CONFIG` 的 `storePassword` 试 keystore；
+2. 失败则用本文档记录的 `khatkit` 再试（secrets 与文档漂移时自愈）；
+3. 仍失败 → 打印 `::warning::` 并退化到一次性临时密钥（保证 CI 能产出可安装包）。
+
+脚本会打印 keystore 的 SHA-256 指纹并与本文档的期望指纹比对：
+不匹配时输出 warning——说明 `KEY_BASE64` 里不是当前正式密钥，**更新通道会断**，
+需要在仓库 Settings → Secrets 里更新 `KEY_BASE64`（以及 `SIGNING_CONFIG` 的密码）。

@@ -82,14 +82,11 @@ jobs:
           chmod +x gradlew
           ./gradlew publishToMavenLocal -PVERSION_NAME="$MOCHI_VERSION" --stacktrace
           find ~/.m2/repository/io/github/feice11 -name '*.aar' -printf '%p %s bytes\n'
-      - name: Prepare build files
-        run: |
-          # 解码base64编码的keystore文件
-          echo "${{ secrets.KEY_BASE64 }}" | base64 -d > app/app.key
-
-          # 写入签名配置到local.properties
-          echo "${{ secrets.SIGNING_CONFIG }}" > local.properties
-
+      - name: Prepare signing files
+        env:
+          KEY_BASE64: ${{ secrets.KEY_BASE64 }}
+          SIGNING_CONFIG: ${{ secrets.SIGNING_CONFIG }}
+        run: bash .github/scripts/prepare-signing.sh
       - name: Gradle Build
         run: |
           chmod +x gradlew

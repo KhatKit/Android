@@ -155,21 +155,7 @@ jobs:
         env:
           KEY_BASE64: ${{ secrets.KEY_BASE64 }}
           SIGNING_CONFIG: ${{ secrets.SIGNING_CONFIG }}
-        run: |
-          if [ -n "$KEY_BASE64" ] && [ -n "$SIGNING_CONFIG" ]; then
-            echo "$KEY_BASE64" | base64 -d > app/app.key
-            printf '%s\n' "$SIGNING_CONFIG" > local.properties
-            echo "using repository signing key"
-          else
-            keytool -genkeypair -v \
-              -keystore "$GITHUB_WORKSPACE/app/ci-release.jks" \
-              -storepass android -keypass android \
-              -alias khatkit-ci -keyalg RSA -keysize 2048 -validity 36500 \
-              -dname "CN=KhatKit CI, OU=CI, O=KhatKit, L=CI, S=CI, C=CN"
-            printf 'storeFile=%s/app/ci-release.jks\nstorePassword=android\nkeyAlias=khatkit-ci\nkeyPassword=android\n' "$GITHUB_WORKSPACE" > local.properties
-            echo "WARNING: KEY_BASE64/SIGNING_CONFIG secrets not configured, fell back to a throwaway key"
-          fi
-
+        run: bash .github/scripts/prepare-signing.sh
       - name: Build release APK
         run: |
           chmod +x gradlew
