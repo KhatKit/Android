@@ -1,6 +1,11 @@
 # 更新日志
 
-## 未发布（玻璃接线与自定义导航栏样式）
+## 2.5.6（2026-11-14）
+- **卡片 UI DSL 新增 `ChipRow` / `Dropdown`**：给卡片补上「一行可点选 chips」（单选 / 多选、图标、折行或横滚）与「当前值 + ⌄ 展开菜单」两个节点，渲染分别走 `MochiChip` / `MochiDropdown`；运行时 `NodeTree.kt` 与卡片侧 `ui_kit.lua` 双份校验同步，已有卡片的 `Select` / `RadioGroup` 外观不变（`docs/card-dsl-chip-and-dropdown.md`）。
+- **工具台卡片设计规范落地**：新增 `docs/card-design-spec.md`（Mochi 版式：hero 大卡 + iOS inset grouped 分组 + 表单/结果分层），配套 Rust 侧 `docscard-runtime-wasm/src/ui.rs` 与 `libkhatkit_core.so` 同步重编。
+- **设置搜索直达二级项**：新增叶子索引 `SettingLeafIndex`（索引表 + 焦点定位 `SettingFocus`），搜索页可直接跳到二级设置页并高亮目标项，配 `SettingLeafIndexTest` / `SettingSearchFilterTest`。
+- **工具台与聊天细节**：工具台分类改分组展示、chip 行支持按着 chip 拖动滚动；媒体 / 文件选择器跟随系统目录结构并恢复多选与玻璃控件；聊天流式文本加上浮动画，新增 Agent 加载指示器与`FormatListNumbered` 图标。
+- 其余卡片弹层 / 导航栏 / 玻璃接线改动见下。
 - **玻璃属性组件全部接进设置**：顶栏返回键 / 图标按钮 / 页面内直接调用的栏按钮以前写死实心（`kkSolidBarColors()`），「材质 → 按钮样式」选了玻璃也不生效。新增 `kkBarButtonColors()`（读 `LocalKkGlassButtons`，由 `KhatKitTheme` 按 `DisplaySetting.glassButtons` provide）：开 = Mochi 默认栏配色（材质有玻璃就是玻璃），关 = 原实心配色。已换 `BackButton` / `ChatPage` 顶栏 / `ExploreMarketPage` / `ToolCataloguePage`（`khatkit-ui/uikit/mochi/MochiControls.kt`、`LocalKkEffects.kt`）。
 - **带 UI 的卡片也接受控制**：卡片自绘弹层（`ui.screen` / `ui.form` / `KhatKitBottomSheet`）的顶栏返回键 / 动作按钮改用 `kkBarButtonColors()`，卡片内容里的 `IconButton` 节点改用 Tonal 圆钮（主题有 control 玻璃就是玻璃、选实心 / 关液态玻璃时退回实心）；顶栏 / 拖柄 / 底栏那层半透明底色在「液态玻璃效果」关掉时退回不透明（`khatkit-ui/uikit/KhatKitBottomSheet.kt`、`NodeTreeRenderer.kt`）。
 - **新增「外观 → 导航栏」二级页（照 Mochi 示例 demo）**：底部导航栏标签样式三档（图标 + 文字 / 仅选中项文字 / 仅图标，走 `MochiTabBarBehavior`）、内容往下滚时收起；「栏玻璃」通透度滑条（0–100%）与「仅模糊」开关，直接喂给 `iosMaterials(glassTint, blurOnly)`。设置新增 `navBarLabelStyle` / `navBarCollapseOnScroll` / `glassTint` / `glassBlurOnly`（老安装取默认值，无需迁移）；样式经 `LocalKkNavBarStyle` 下发，app 底部导航栏与卡片 UI 的 `MochiNavigationBar` 共用（`core/ui/theme/Theme.kt`、`feature/settings/SettingThemeSubPages.kt`、`feature/ui/shell/MochiShell.kt`、`khatkit-ui/uikit/mochi/MochiSearchAndBar.kt`）。截图 / 交互已实机核对（切「仅图标」后卡片页底栏同步变图标栏）。
