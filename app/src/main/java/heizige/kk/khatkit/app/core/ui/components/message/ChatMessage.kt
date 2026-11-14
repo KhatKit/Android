@@ -525,6 +525,8 @@ private fun MessagePartsBlock(
                                                 visual = true,
                                             ),
                                             onClickCitation = handleClickCitation,
+                                            // 生成中：新冒出来的字符从底部升起（见 KkGrowRiseText）
+                                            animateStreamingTail = loading,
                                         )
                                     }
                                 }
@@ -537,6 +539,7 @@ private fun MessagePartsBlock(
                                     ),
                                     onClickCitation = handleClickCitation,
                                     modifier = Modifier.kkAnimateContentSize(),
+                                    animateStreamingTail = loading,
                                 )
                             }
                         }

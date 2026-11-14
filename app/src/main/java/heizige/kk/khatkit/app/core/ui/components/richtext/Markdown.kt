@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.richtext
 
+import heizige.kk.khatkit.uikit.mochi.KkGrowRiseText
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.ClipData
 import android.content.Intent
@@ -46,9 +47,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -236,12 +239,20 @@ private fun parseMarkdown(content: String): MarkdownParseResult {
     return MarkdownParseResult(preprocessed, astTree, astTree.containsHtml())
 }
 
+/**
+ * 只给「正在流式输出、且是最后一个段落」的正文打开逐字进场（见 [KkGrowRiseText]）。
+ * 默认 false：历史消息、代码块、列表都不走这条渲染路径。
+ */
+internal val LocalMarkdownRiseTail = staticCompositionLocalOf { false }
+
 @Composable
 fun MarkdownBlock(
     content: String,
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
-    onClickCitation: (String) -> Unit = {}
+    onClickCitation: (String) -> Unit = {},
+    /** 消息还在生成时传 true：最后一个段落里新长出来的字符从底部升起。 */
+    animateStreamingTail: Boolean = false,
 ) {
     // 单独成行的本机图片路径 → Markdown 图片语法，模型回复里的结果图直接渲染
     val renderedContent = remember(content) { expandLocalImagePathLines(content) }
@@ -271,10 +282,22 @@ fun MarkdownBlock(
             Column(
                 modifier = modifier.padding(horizontal = 4.dp)
             ) {
-                data.astTree.children.fastForEach { child ->
-                    MarkdownNode(
-                        node = child, content = data.preprocessed, onClickCitation = onClickCitation
-                    )
+                val children = data.astTree.children
+                // 只有结尾那个段落会边生成边变长；其余节点保持原来的渲染路径
+                val riseIndex = if (
+                    animateStreamingTail &&
+                    children.lastOrNull()?.type == MarkdownElementTypes.PARAGRAPH
+                ) {
+                    children.lastIndex
+                } else {
+                    -1
+                }
+                children.forEachIndexed { index, child ->
+                    CompositionLocalProvider(LocalMarkdownRiseTail provides (index == riseIndex)) {
+                        MarkdownNode(
+                            node = child, content = data.preprocessed, onClickCitation = onClickCitation
+                        )
+                    }
                 }
             }
         }
@@ -826,16 +849,28 @@ private fun Paragraph(
                 }
             }
         }
-        Text(
-            text = annotatedString,
-            modifier = Modifier,
-            inlineContent = inlineContents,
-            softWrap = true,
-            overflow = TextOverflow.Visible,
-            style = LocalTextStyle.current.copy(
-                lineHeight = if (hasInlineMath && enableLatexRendering) TextUnit.Unspecified else LocalTextStyle.current.lineHeight
-            )
+        val riseTail = LocalMarkdownRiseTail.current
+        val paragraphStyle = LocalTextStyle.current.copy(
+            lineHeight = if (hasInlineMath && enableLatexRendering) TextUnit.Unspecified else LocalTextStyle.current.lineHeight
         )
+        // 流式输出里最后一段纯文本：新字符从底部升起；带行内样式（粗体/链接/引用）就退回普通 Text
+        if (riseTail && !hasInlineMath && inlineContents.isEmpty() && annotatedString.spanStyles.isEmpty()) {
+            KkGrowRiseText(
+                text = annotatedString.text,
+                style = paragraphStyle,
+                color = LocalContentColor.current,
+                modifier = Modifier,
+            )
+        } else {
+            Text(
+                text = annotatedString,
+                modifier = Modifier,
+                inlineContent = inlineContents,
+                softWrap = true,
+                overflow = TextOverflow.Visible,
+                style = paragraphStyle
+            )
+        }
     }
 }
 
