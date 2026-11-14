@@ -38,6 +38,7 @@ import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
 import heizige.kk.khatkit.app.feature.chat.ChatManager
 import heizige.kk.khatkit.app.feature.automation.TriggerController
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.workspace.WorkspaceManager
 import heizige.kk.khatkit.app.core.util.AppAnalytics
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.NoOpAnalytics
@@ -142,7 +143,8 @@ object AppHiltModule {
     fun provideWorkspaceTerminalSessionManager(
         @ApplicationContext context: Context,
         appScope: AppScope,
-    ): WorkspaceTerminalSessionManager = WorkspaceTerminalSessionManager(context, appScope)
+        workspaceManager: WorkspaceManager,
+    ): WorkspaceTerminalSessionManager = WorkspaceTerminalSessionManager(context, appScope, workspaceManager)
 
     // 生成通知与业务解耦：ChatManager 只发事件，通知由这里消费
     @Provides

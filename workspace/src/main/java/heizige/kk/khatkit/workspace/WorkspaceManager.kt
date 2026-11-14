@@ -5,6 +5,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 class WorkspaceManager(
     private val baseDir: File,
@@ -13,12 +14,32 @@ class WorkspaceManager(
     private val bindMounts: List<WorkspaceBindMount> = emptyList(),
 ) {
     private val fileSystem = WorkspaceFileSystem(config)
+    private val externalFilesDirs = ConcurrentHashMap<String, File>()
 
     // 按 target 长度降序, 保证 /a/b 优先于 /a 匹配
     private val sortedBindMounts = bindMounts.sortedByDescending { it.target.trimEnd('/').length }
 
     init {
         baseDir.mkdirs()
+    }
+
+    /**
+     * 将工作区的文件区绑定到设备上的真实目录。
+     *
+     * rootfs 和临时目录仍保存在应用私有目录，只有 `/workspace` 文件区切换到这里。
+     * 空路径会解除绑定，兼容旧的应用私有工作区。
+     */
+    fun bindWorkspaceDirectory(root: String, directoryPath: String) {
+        val path = directoryPath.trim()
+        if (path.isEmpty()) {
+            externalFilesDirs.remove(root)
+        } else {
+            externalFilesDirs[root] = File(path).canonicalFile
+        }
+    }
+
+    fun unbindWorkspaceDirectory(root: String) {
+        externalFilesDirs.remove(root)
     }
 
     fun ensureWorkspace(root: String): File {
@@ -34,7 +55,8 @@ class WorkspaceManager(
         return File(baseDir, root)
     }
 
-    fun filesDir(root: String): File = File(workspaceDir(root), FILES_DIR)
+    fun filesDir(root: String): File =
+        externalFilesDirs[root] ?: File(workspaceDir(root), FILES_DIR)
 
     fun linuxDir(root: String): File = File(workspaceDir(root), LINUX_DIR)
 
@@ -42,7 +64,11 @@ class WorkspaceManager(
 
     fun hasRootfs(root: String): Boolean = File(linuxDir(root), "bin/sh").isFile
 
-    fun deleteWorkspace(root: String): Boolean = workspaceDir(root).deleteRecursively()
+    fun deleteWorkspace(root: String): Boolean {
+        val deleted = workspaceDir(root).deleteRecursively()
+        externalFilesDirs.remove(root)
+        return deleted
+    }
 
     fun listFiles(
         root: String,

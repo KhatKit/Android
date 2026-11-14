@@ -17,19 +17,21 @@ import com.termux.view.TerminalViewClient
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.workspace.RootfsPatchOptions
 import heizige.kk.khatkit.workspace.RootfsPatcher
+import heizige.kk.khatkit.workspace.WorkspaceManager
 import java.io.File
 
 internal fun createWorkspaceTerminalSession(
     context: Context,
+    workspaceManager: WorkspaceManager,
     root: String,
     client: TerminalSessionClient,
     shellCompatibilityMode: Boolean,
 ): TerminalSession {
     val appContext = context.applicationContext
-    val workspaceDir = File(File(appContext.filesDir, "workspaces"), root)
-    val filesDir = File(workspaceDir, "files")
-    val linuxDir = File(workspaceDir, "linux")
-    val tempDir = File(workspaceDir, "tmp")
+    workspaceManager.ensureWorkspace(root)
+    val filesDir = workspaceManager.filesDir(root)
+    val linuxDir = workspaceManager.linuxDir(root)
+    val tempDir = workspaceManager.tempDir(root)
     val skillsDir = File(appContext.filesDir, FileFolders.SKILLS).apply { mkdirs() }
     val builtinSkillsDir = File(appContext.filesDir, FileFolders.BUILTIN_SKILLS).apply { mkdirs() }
     val nativeLibraryDir = File(appContext.applicationInfo.nativeLibraryDir)
@@ -92,12 +94,14 @@ internal fun createWorkspaceTerminalSession(
     }
 }
 
-internal fun prepareWorkspaceTerminalSession(context: Context, root: String) {
+internal fun prepareWorkspaceTerminalSession(
+    context: Context,
+    workspaceManager: WorkspaceManager,
+    root: String,
+) {
     val appContext = context.applicationContext
-    val workspaceDir = File(File(appContext.filesDir, "workspaces"), root)
-    val linuxDir = File(workspaceDir, "linux")
-    File(workspaceDir, "files").mkdirs()
-    File(workspaceDir, "tmp").mkdirs()
+    workspaceManager.ensureWorkspace(root)
+    val linuxDir = workspaceManager.linuxDir(root)
     File(appContext.filesDir, FileFolders.SKILLS).mkdirs()
     RootfsPatcher().patch(
         linuxDir,
@@ -105,8 +109,8 @@ internal fun prepareWorkspaceTerminalSession(context: Context, root: String) {
     )
 }
 
-internal fun workspaceRootfsReady(context: Context, root: String): Boolean {
-    val linuxDir = File(File(File(context.applicationContext.filesDir, "workspaces"), root), "linux")
+internal fun workspaceRootfsReady(workspaceManager: WorkspaceManager, root: String): Boolean {
+    val linuxDir = workspaceManager.linuxDir(root)
     return linuxDir.isDirectory && File(linuxDir, "bin/sh").isFile
 }
 

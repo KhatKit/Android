@@ -67,7 +67,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         CardArtifactEntity::class,
         UsageRecordEntity::class,
     ],
-    version = 37,
+    version = 38,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
@@ -99,6 +99,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.FavoriteEntity
         // C1-P 31→32 同理不用 AutoMigration（同样的 DROP TABLE 触发器问题，另加
         // message_node 的外键指向 ConversationEntity）：显式 Migration_31_32，
         // `ALTER TABLE ConversationEntity ADD COLUMN group_cards`。
+        AutoMigration(from = 37, to = 38),
     ]
 )
 @TypeConverters(TokenUsageConverter::class, StringListConverter::class)

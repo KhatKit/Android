@@ -479,6 +479,7 @@
   <string name="chat_message_tool_search_results_count">%1$d results</string>
   <string name="chat_message_tool_search_web">Search web: %1$s</string>
   <string name="chat_message_tool_submit">Submit</string>
+  <string name="chat_message_tool_answer_hint">Type an answer</string>
   <string name="chat_page_cancel">Cancel</string>
   <string name="chat_page_check_fast_model_settings">Check fast model settings</string>
   <string name="chat_page_clear_all_errors">Clear all</string>
@@ -1454,6 +1455,7 @@
   <string name="extensions_page_workspace_desc">Manage local working directories accessible by Agent</string>
   <string name="workspace_select">Select Workspace</string>
   <string name="workspace_no_binding">No binding</string>
+  <string name="workspace_choose_directory">Choose Device Folder</string>
   <string name="workspace_manage">Manage Workspaces</string>
   <string name="workspace_detail">Workspace Details</string>
   <string name="workspace_terminal">Workspace Terminal</string>

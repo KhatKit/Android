@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.basic.MochiDropdown
@@ -37,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,6 +59,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
+import heizige.kk.khatkit.app.core.ui.components.khatkit.TreeUriPaths
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -63,6 +67,7 @@ import androidx.compose.foundation.layout.navigationBars
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
 import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import ui.feice.mochi.theme.MochiTheme
+import java.io.File
 
 @Composable
 fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
@@ -70,8 +75,17 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
     val workspaces by vm.workspaces.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    var selectedDirectory by rememberSaveable { mutableStateOf<String?>(null) }
     var editTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
     var deleteTarget by remember { mutableStateOf<WorkspaceEntity?>(null) }
+    val context = LocalContext.current
+    val directoryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        val path = uri?.let { TreeUriPaths.fromTreeUri(context, it) } ?: return@rememberLauncherForActivityResult
+        selectedDirectory = path
+        showAddDialog = true
+    }
 
     MochiSettingsPageScaffold(
         title = stringResource(R.string.workspace_page_title),
@@ -80,7 +94,7 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
             MochiFab(
                 icon = add,
                 contentDescription = stringResource(R.string.workspace_page_create),
-                onClick = { showAddDialog = true },
+                onClick = { directoryLauncher.launch(null) },
                 modifier = Modifier.navigationBarsPadding().padding(16.dp),
             )
         },
@@ -125,14 +139,20 @@ fun WorkspacePage(vm: WorkspaceViewModel = hiltViewModel()) {
     }
 
     if (showAddDialog) {
+        val directory = selectedDirectory
         EditWorkspaceDialog(
             title = stringResource(R.string.workspace_page_create),
-            initialName = "",
+            initialName = directory?.let(::File)?.name.orEmpty(),
             existingNames = workspaces.map { it.name.trim() }.toSet(),
-            onDismiss = { showAddDialog = false },
-            onConfirm = { name ->
-                vm.create(name)
+            directoryPath = directory,
+            onDismiss = {
                 showAddDialog = false
+                selectedDirectory = null
+            },
+            onConfirm = { name ->
+                vm.create(name, directory.orEmpty())
+                showAddDialog = false
+                selectedDirectory = null
             },
         )
     }
@@ -266,10 +286,11 @@ private fun WorkspaceItem(
 }
 
 @Composable
-private fun EditWorkspaceDialog(
+internal fun EditWorkspaceDialog(
     title: String,
     initialName: String,
     existingNames: Set<String>,
+    directoryPath: String? = null,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -281,18 +302,29 @@ private fun EditWorkspaceDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Md3OutlinedTextFieldWithSlots(
-                value = name,
-                onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.workspace_page_name)) },
-                singleLine = true,
-                isError = isDuplicate,
-                supportingText = {
-                    if (isDuplicate) Text(stringResource(R.string.workspace_page_name_duplicate))
-                },
-                shape = RoundedCornerShape(16.dp)
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Md3OutlinedTextFieldWithSlots(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.workspace_page_name)) },
+                    singleLine = true,
+                    isError = isDuplicate,
+                    supportingText = {
+                        if (isDuplicate) Text(stringResource(R.string.workspace_page_name_duplicate))
+                    },
+                    shape = RoundedCornerShape(16.dp)
+                )
+                directoryPath?.takeIf { it.isNotBlank() }?.let { path ->
+                    Text(
+                        text = path,
+                        style = MochiTheme.textStyles.footnote,
+                        color = MochiTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         },
         confirmButton = {
             MochiTextButton(

@@ -101,6 +101,26 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun externalDirectoryIsUsedAsWorkspaceFilesWithoutBeingDeleted() {
+        val baseDir = Files.createTempDirectory("workspace-manager-test").toFile()
+        val externalDirectory = Files.createTempDirectory("device-folder-test").toFile()
+        val manager = WorkspaceManager(baseDir)
+        val root = "test-workspace"
+
+        manager.bindWorkspaceDirectory(root, externalDirectory.absolutePath)
+        manager.ensureWorkspace(root)
+        manager.writeText(root, "notes.txt", "device folder")
+
+        assertEquals(externalDirectory.canonicalFile, manager.filesDir(root).canonicalFile)
+        assertEquals("device folder", File(externalDirectory, "notes.txt").readText())
+
+        manager.deleteWorkspace(root)
+
+        assertTrue(externalDirectory.isDirectory)
+        assertEquals("device folder", File(externalDirectory, "notes.txt").readText())
+    }
+
+    @Test
     fun commandReceivesStdin() {
         val baseDir = Files.createTempDirectory("workspace-stdin-test").toFile()
         val manager = WorkspaceManager(baseDir)

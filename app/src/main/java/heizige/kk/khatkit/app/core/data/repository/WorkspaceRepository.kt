@@ -5,6 +5,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
@@ -19,6 +20,7 @@ import heizige.kk.khatkit.workspace.WorkspaceManager
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.uuid.Uuid
@@ -29,16 +31,20 @@ class WorkspaceRepository(
     private val rootfsInstaller: RootfsInstaller,
     private val settingsStore: SettingsRepository,
 ) {
-    fun listFlow(): Flow<List<WorkspaceEntity>> = dao.listFlow()
+    fun listFlow(): Flow<List<WorkspaceEntity>> = dao.listFlow().onEach { workspaces ->
+        workspaces.forEach(::bindWorkspaceDirectory)
+    }
 
     suspend fun checkIntegrity() = withContext(Dispatchers.IO) {
         val workspaces = dao.getAll()
         for (workspace in workspaces) {
+            bindWorkspaceDirectory(workspace)
             val dir = manager.workspaceDir(workspace.root)
-            if (!dir.exists()) {
+            val filesDir = manager.filesDir(workspace.root)
+            if (!dir.exists() || !filesDir.exists()) {
                 // 目录缺失时不删除记录(例如恢复备份后工作区文件未随数据库一起恢复),
                 // 仅标记为 BROKEN 以保留记录与助手绑定, 避免误删用户工作区
-                Log.w(TAG, "Workspace directory missing, marking as broken: id=${workspace.id}, root=${workspace.root}")
+                Log.w(TAG, "Workspace directory missing, marking as broken: id=${workspace.id}, root=${workspace.root}, files=${filesDir.absolutePath}")
                 if (workspace.shellStatus != WorkspaceShellStatus.BROKEN.name) {
                     updateShellState(workspace.id, WorkspaceShellStatus.BROKEN.name)
                 }
@@ -54,23 +60,44 @@ class WorkspaceRepository(
         }
     }
 
-    suspend fun getById(id: String): WorkspaceEntity? = dao.getById(id)
+    suspend fun getById(id: String): WorkspaceEntity? =
+        dao.getById(id)?.also(::bindWorkspaceDirectory)
 
-    suspend fun create(name: String): WorkspaceEntity {
+    suspend fun create(name: String, directoryPath: String = ""): WorkspaceEntity {
         val id = Uuid.random().toString()
         val now = System.currentTimeMillis()
         val finalName = name.trim().ifBlank { "Workspace" }
+        val selectedDirectory = directoryPath.trim().takeIf { it.isNotEmpty() }?.let { path ->
+            File(path).canonicalFile.also { directory ->
+                require(directory.isDirectory) { "Workspace directory does not exist: $path" }
+                require(directory.canRead() && directory.canWrite()) {
+                    "Workspace directory is not readable or writable: $path"
+                }
+            }
+        }
         require(!isNameTaken(finalName, excludeId = null)) {
             "Workspace name already exists: $finalName"
+        }
+        require(
+            selectedDirectory == null ||
+                dao.getAll().none { existing ->
+                    existing.directoryPath.isNotBlank() &&
+                        runCatching { File(existing.directoryPath).canonicalPath }
+                            .getOrNull() == selectedDirectory.canonicalPath
+                },
+        ) {
+            "Workspace directory already exists"
         }
         val workspace = WorkspaceEntity(
             id = id,
             name = finalName,
             root = id,
+            directoryPath = selectedDirectory?.path.orEmpty(),
             createdAt = now,
             updatedAt = now,
             lastAccessAt = null,
         )
+        bindWorkspaceDirectory(workspace)
         manager.ensureWorkspace(workspace.root)
         dao.upsert(workspace)
         return workspace
@@ -311,8 +338,13 @@ class WorkspaceRepository(
         withContext(Dispatchers.IO) {
             manager.deleteWorkspace(workspace.root)
         }
+        manager.unbindWorkspaceDirectory(workspace.root)
         cleanupAssistantReferences(id)
         return true
+    }
+
+    private fun bindWorkspaceDirectory(workspace: WorkspaceEntity) {
+        manager.bindWorkspaceDirectory(workspace.root, workspace.directoryPath)
     }
 
     private suspend fun cleanupAssistantReferences(workspaceId: String) {

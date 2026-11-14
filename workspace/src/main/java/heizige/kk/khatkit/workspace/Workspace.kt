@@ -4,6 +4,7 @@ data class Workspace(
     val id: String,
     val name: String,
     val root: String,
+    val directoryPath: String = "",
     val shellStatus: WorkspaceShellStatus = WorkspaceShellStatus.DISABLED,
     val createdAt: Long,
     val updatedAt: Long,

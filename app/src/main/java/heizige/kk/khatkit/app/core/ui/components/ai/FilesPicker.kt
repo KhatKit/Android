@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.foundation.background
@@ -25,6 +27,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,11 +36,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
@@ -50,11 +56,14 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.ui.components.ui.ExtensionSelector
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
+import heizige.kk.khatkit.app.core.ui.components.khatkit.TreeUriPaths
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
+import heizige.kk.khatkit.app.feature.workspace.EditWorkspaceDialog
+import java.io.File
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
@@ -129,7 +138,8 @@ internal fun FilesPicker(
     }
 
     // 工具行按条件增减；先把要出现的行排好，再按序号给首末行圆角。
-    val showWorkspace = workspaces.isNotEmpty()
+    // 即使还没有工作区，也保留入口，用户可以直接从设备选择文件夹。
+    val showWorkspace = true
     val showCwd = boundWorkspace != null && boundWorkspace.shellStatus == WorkspaceShellStatus.READY.name
     val showMcp = settings.mcpServers.isNotEmpty()
     val tools = buildList<@Composable (Shape) -> Unit> {
@@ -139,6 +149,7 @@ internal fun FilesPicker(
                 assistant = assistant,
                 conversation = conversation,
                 workspaces = workspaces,
+                workspaceRepository = workspaceRepository,
                 boundWorkspace = boundWorkspace,
                 onUpdateAssistant = onUpdateAssistant,
                 onUpdateConversation = onUpdateConversation,
@@ -327,6 +338,7 @@ private fun WorkspacePickerListItem(
     assistant: Assistant,
     conversation: Conversation,
     workspaces: List<WorkspaceEntity>,
+    workspaceRepository: WorkspaceRepository,
     boundWorkspace: WorkspaceEntity?,
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateConversation: (Conversation) -> Unit,
@@ -335,6 +347,28 @@ private fun WorkspacePickerListItem(
     onNavigateToManage: () -> Unit,
 ) {
     var showSheet by remember { mutableStateOf(false) }
+    var pendingDirectory by rememberSaveable { mutableStateOf<String?>(null) }
+    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val directoryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        val path = uri?.let { TreeUriPaths.fromTreeUri(context, it) } ?: return@rememberLauncherForActivityResult
+        pendingDirectory = path
+        showCreateDialog = true
+    }
+
+    fun selectWorkspace(workspaceId: String?) {
+        val newId = workspaceId?.let { Uuid.parse(it) }
+        if (newId != assistant.workspaceId) {
+            onUpdateAssistant(assistant.copy(workspaceId = newId))
+            if (conversation.workspaceCwd != null) {
+                onUpdateConversation(conversation.copy(workspaceCwd = null))
+            }
+        }
+        showSheet = false
+    }
 
     MochiOptionItem(
         onClick = { showSheet = true },
@@ -372,15 +406,10 @@ private fun WorkspacePickerListItem(
             sheetState = workspaceSheet,
             assistant = assistant,
             workspaces = workspaces,
-            onSelect = { workspaceId ->
-                val newId = workspaceId?.let { Uuid.parse(it) }
-                if (newId != assistant.workspaceId) {
-                    onUpdateAssistant(assistant.copy(workspaceId = newId))
-                    if (conversation.workspaceCwd != null) {
-                        onUpdateConversation(conversation.copy(workspaceCwd = null))
-                    }
-                }
+            onSelect = ::selectWorkspace,
+            onChooseDirectory = {
                 showSheet = false
+                directoryLauncher.launch(null)
             },
             onManage = {
                 showSheet = false
@@ -388,6 +417,31 @@ private fun WorkspacePickerListItem(
             },
             onDismiss = { showSheet = false },
         )
+
+    pendingDirectory?.let { directory ->
+        if (showCreateDialog) {
+            EditWorkspaceDialog(
+                title = stringResource(R.string.workspace_page_create),
+                initialName = File(directory).name,
+                existingNames = workspaces.map { it.name.trim() }.toSet(),
+                directoryPath = directory,
+                onDismiss = {
+                    showCreateDialog = false
+                    pendingDirectory = null
+                },
+                onConfirm = { name ->
+                    scope.launch {
+                        runCatching { workspaceRepository.create(name, directory) }
+                            .onSuccess { workspace ->
+                                showCreateDialog = false
+                                pendingDirectory = null
+                                selectWorkspace(workspace.id)
+                            }
+                    }
+                },
+            )
+        }
+    }
 }
 
 @Composable

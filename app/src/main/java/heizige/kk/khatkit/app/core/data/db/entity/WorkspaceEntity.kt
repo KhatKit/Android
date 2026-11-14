@@ -22,6 +22,9 @@ data class WorkspaceEntity(
     val name: String,
     @ColumnInfo("root")
     val root: String,
+    /** 设备上的工作区目录；为空时使用旧的应用私有 files 目录。 */
+    @ColumnInfo("directory_path", defaultValue = "")
+    val directoryPath: String = "",
     @ColumnInfo("shell_status")
     val shellStatus: String = WorkspaceShellStatus.DISABLED.name,
     @ColumnInfo("created_at")
@@ -44,6 +47,7 @@ data class WorkspaceEntity(
         id = id,
         name = name,
         root = root,
+        directoryPath = directoryPath,
         shellStatus = runCatching { WorkspaceShellStatus.valueOf(shellStatus) }
             .getOrDefault(WorkspaceShellStatus.DISABLED),
         createdAt = createdAt,

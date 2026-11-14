@@ -97,6 +97,7 @@ class WorkspaceDocumentsProvider : DocumentsProvider() {
         if (parent.isRoot) {
             // 顶层：列出所有 workspace
             for (ws in allWorkspaces()) {
+                manager().bindWorkspaceDirectory(ws.root, ws.directoryPath)
                 val dir = manager().filesDir(ws.root).also { it.mkdirs() }
                 addFileRow(cursor, ws.root, dir)
             }
@@ -276,12 +277,14 @@ class WorkspaceDocumentsProvider : DocumentsProvider() {
 
     /** 将 workspace files 目录下的文件解析为相对路径（root 自身返回空串） */
     private fun relPathOf(root: String, file: File): String {
+        bindWorkspaceDirectory(root)
         val base = manager().filesDir(root).canonicalFile
         return file.canonicalFile.relativeTo(base).path.replace(File.separatorChar, '/')
     }
 
     /** 解析 documentId 指向的实际文件，并校验路径不逃逸 workspace files 目录 */
     private fun resolveFile(root: String, relPath: String): File {
+        bindWorkspaceDirectory(root)
         val base = manager().filesDir(root).canonicalFile
         base.mkdirs()
         val normalized = relPath.trim().trimStart('/')
@@ -292,6 +295,12 @@ class WorkspaceDocumentsProvider : DocumentsProvider() {
             "Path escapes workspace root: $relPath"
         }
         return target
+    }
+
+    private fun bindWorkspaceDirectory(root: String) {
+        allWorkspaces().firstOrNull { it.root == root }?.let { workspace ->
+            manager().bindWorkspaceDirectory(workspace.root, workspace.directoryPath)
+        }
     }
 
     private fun parseDocId(documentId: String): DocId {

@@ -159,9 +159,8 @@ fun ExpandableOptionItem(
         leadingContent = leadingContent,
         titleContent = { androidx.compose.material3.Text(title) },
         supportingContent = subtitle?.let { { androidx.compose.material3.Text(it) } },
-    ) {
-        content()
-    }
+        content = content,
+    )
 }
 
 /** 旧 Khromia SquareColorPicker：一行预设色块（点选回传该色）。 */

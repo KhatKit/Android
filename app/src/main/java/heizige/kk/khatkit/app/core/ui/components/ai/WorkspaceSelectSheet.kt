@@ -28,6 +28,7 @@ import heizige.kk.khatkit.app.feature.workspace.toShellStatusLabel
 import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
 import heizige.kk.khatkit.app.core.ui.icons.doneAll
+import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.basic.MochiSheet
@@ -40,6 +41,7 @@ internal fun WorkspaceSelectSheet(
     assistant: Assistant,
     workspaces: List<WorkspaceEntity>,
     onSelect: (String?) -> Unit,
+    onChooseDirectory: () -> Unit,
     onManage: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -82,6 +84,26 @@ internal fun WorkspaceSelectSheet(
             }
 
             MochiHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            MochiListItem(
+                leadingContent = {
+                    Icon(folder, contentDescription = null)
+                },
+                headlineContent = {
+                    Text(stringResource(R.string.workspace_choose_directory))
+                },
+                trailingContent = {
+                    Icon(
+                        imageVector = arrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable(onClick = onChooseDirectory),
+            )
 
             // 管理工作区
             MochiListItem(

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.app.AppScope
+import heizige.kk.khatkit.workspace.WorkspaceManager
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong
 class WorkspaceTerminalSessionManager internal constructor(
     context: Context,
     private val appScope: AppScope,
+    private val workspaceManager: WorkspaceManager,
 ) {
     private val appContext = context.applicationContext
     private val workspaceStates = MutableStateFlow<Map<String, WorkspaceTerminalTabsState>>(emptyMap())
@@ -124,10 +126,10 @@ class WorkspaceTerminalSessionManager internal constructor(
         } else {
             try {
                 withContext(Dispatchers.IO) {
-                    if (!workspaceRootfsReady(appContext, root)) {
+                    if (!workspaceRootfsReady(workspaceManager, root)) {
                         false
                     } else {
-                        prepareWorkspaceTerminalSession(appContext, root)
+                        prepareWorkspaceTerminalSession(appContext, workspaceManager, root)
                         true
                     }
                 }
@@ -159,6 +161,7 @@ class WorkspaceTerminalSessionManager internal constructor(
         val session = runCatching {
             createWorkspaceTerminalSession(
                 context = appContext,
+                workspaceManager = workspaceManager,
                 root = root,
                 client = client,
                 shellCompatibilityMode = shellCompatibilityMode,
