@@ -30,3 +30,28 @@ for sym in RustBridgeDispatcher wasmAllowed interruptReason; do
 done
 [ "$missing" -eq 0 ] || exit 1
 echo "card runtime JNI symbols OK"
+
+# ---- R8 映射校验（有 mapping.txt 时）----
+# 卡片脚本按方法名反射调用 bridge，实际注入的是 Scoped*Bridge 包装器；
+# 这些类和方法在 release 里必须保持原名，否则卡片全挂（RustBridgeDispatcher 同理）。
+MAPPING="app/build/outputs/mapping/release/mapping.txt"
+if [ -f "$MAPPING" ]; then
+  echo "checking $MAPPING"
+  awk '
+    /^heizige\.kk\.khatkit\.(bridge\.Scoped[A-Za-z]*Bridge|engine\.RustBridgeDispatcher) -> / {
+      cls=$1; target=$3; sub(/:$/, "", target)
+      if (cls != target) { printf "::error::R8 改名了反射目标类：%s -> %s\n", cls, target; bad=1 }
+    }
+    END { exit bad }
+  ' "$MAPPING" || missing=1
+  for m in show screen form confirm dispatch interruptReason wasmAllowed; do
+    if ! grep -qE " -> $m$" "$MAPPING"; then
+      echo "::error::R8 mapping 里没有保留反射调用的方法名：$m（检查 khatkit/consumer-rules.pro）"
+      missing=1
+    fi
+  done
+  [ "$missing" -eq 0 ] || exit 1
+else
+  echo "::warning::未找到 $MAPPING，跳过 R8 映射校验（仍已校验 dex 符号）"
+fi
+echo "card runtime reflection symbols OK"
