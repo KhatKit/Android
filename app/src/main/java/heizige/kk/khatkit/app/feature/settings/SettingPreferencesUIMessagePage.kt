@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -78,7 +79,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showAssistantBubble,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showAssistantBubble = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_assistant_bubble_title),
                     )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_bubble_opacity_title) },
@@ -89,6 +91,7 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                         steps = 8,
                         displayScale = 100f,
                         suffix = "%",
+                        anchor = settingAnchor(R.string.setting_display_page_bubble_opacity_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -96,7 +99,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showModelName,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showModelName = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_model_name_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -104,7 +108,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showDateTimeInMessage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showDateTimeInMessage = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_datetime_in_message_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -112,7 +117,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showTokenUsage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showTokenUsage = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_token_usage_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -120,7 +126,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showThinkingContent,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showThinkingContent = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_thinking_content_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -128,7 +135,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.autoCloseThinking,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoCloseThinking = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_auto_collapse_thinking_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -136,7 +144,8 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.enableLatexRendering,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLatexRendering = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_enable_latex_rendering_title),
                     )
                 }
             }

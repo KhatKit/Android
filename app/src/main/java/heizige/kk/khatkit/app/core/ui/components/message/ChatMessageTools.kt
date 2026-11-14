@@ -2,8 +2,6 @@ package heizige.kk.khatkit.app.core.ui.components.message
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,6 +27,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
+import heizige.kk.khatkit.app.core.ui.components.ui.LocalChainTitleHighlight
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
@@ -96,7 +95,7 @@ fun ChainOfThoughtScope.ChatMessageServerToolStep(tool: UIMessagePart.ServerTool
             Text(
                 text = stringResource(R.string.chat_message_tool_call_generic, tool.toolName),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                color = if (LocalChainTitleHighlight.current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -190,7 +189,7 @@ fun ChainOfThoughtScope.ChatMessageToolStep(
                 Text(
                     text = renderer.title(context),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = if (LocalChainTitleHighlight.current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.shimmer(isLoading = loading).weight(1f, fill = false),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -365,6 +364,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
     ControlledOptionItemStep(
         expanded = expanded,
         onExpandedChange = { expanded = it },
+        wrapContent = true,
         icon = {
             if (loading) {
                 DotLoading(size = 10.dp)
@@ -372,7 +372,7 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                 Icon(
                     imageVector = questionAnswer,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = LocalContentColor.current.copy(alpha = 0.7f)
                 )
             }
@@ -384,39 +384,45 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                     questions.size
                 ),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                color = if (LocalChainTitleHighlight.current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.shimmer(isLoading = loading),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         },
         content = {
+            // Mochi 表单形态：问题当分组标题，选项走 MochiChip，输入走 MochiTextField，
+            // 提交是通栏 Filled 胶囊按钮（和设置页/示例 demo 的表单一致）
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp),
+                // 边距统一由 ChainOfThought 的展开内容容器给，这里不再自己加
                 modifier = Modifier.fillMaxWidth()
             ) {
                 questions.forEach { q ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             text = q.question,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MochiTheme.textStyles.navTitle,
+                            color = MochiTheme.colorScheme.onSurface,
                         )
 
                         if (isPending && onToolAnswer != null) {
                             if (q.options.isNotEmpty()) {
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                MochiChipGroup(
+                                    wrap = true,
+                                    contentPadding = PaddingValues(0.dp),
+                                    spacing = 8.dp,
                                 ) {
                                     q.options.forEach { option ->
                                         val selectedOptions = multiAnswers[q.id] ?: emptySet()
-                                        KkRichFilterChip(
+                                        MochiChip(
+                                            label = option,
                                             selected = if (q.selectionType == "multi") {
                                                 option in selectedOptions
                                             } else {
                                                 answers[q.id] == option
                                             },
+                                            showCheck = q.selectionType == "multi",
                                             onClick = {
                                                 if (q.selectionType == "multi") {
                                                     multiAnswers[q.id] = if (option in selectedOptions) {
@@ -428,24 +434,23 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                                     answers[q.id] = option
                                                 }
                                             },
-                                            label = { Text(text = option, style = MaterialTheme.typography.labelSmall) },
                                         )
                                     }
                                 }
                             }
 
-                            Md3OutlinedTextField(
+                            // 选项之外还能补一句自由输入（和芯片同时生效）
+                            MochiTextField(
                                 value = answers[q.id] ?: "",
                                 onValueChange = { answers[q.id] = it },
                                 modifier = Modifier.fillMaxWidth(),
-                                textStyle = MaterialTheme.typography.bodyMedium,
+                                placeholder = stringResource(R.string.chat_message_tool_answer_hint),
                                 singleLine = false,
-                                minLines = 1,
                                 maxLines = 3,
-                                shape = RoundedCornerShape(16.dp)
+                                clearButton = false,
                             )
                         } else if (isAnswered) {
-                            // Show the user's answer
+                            // 已答：按 Mochi 的「值」处理，次要色、和问题同一基线组
                             val answeredState = tool.approvalState as ToolApprovalState.Answered
                             val answerJson = runCatching {
                                 JsonInstant.parseToJsonElement(answeredState.answer)

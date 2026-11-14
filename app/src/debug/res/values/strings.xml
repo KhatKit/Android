@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 调试包用独立名称：桌面上 release 和 debug 都叫 KhatKit 时无法区分 -->
+    <string name="app_name">KhatKit Dev</string>
+</resources>

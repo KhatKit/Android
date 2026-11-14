@@ -131,6 +131,13 @@ object UiIconVectors {
         // Material Symbols Rounded 补齐（见 UiIconsSymbols.kt，规格 24dp/opsz24/wght400/FILL0/GRAD0）
         "casino" to casinoIcon,
         "emoji_events" to emojiEventsIcon,
+        // Material Symbols Outlined（见 UiIconsSymbolsOutlined.kt，规格 24dp/opsz24/wght400/FILL0/GRAD0）
+        "text_fields" to text_fieldsIcon,
+        "subject" to subjectIcon,
+        "notes" to notesIcon,
+        "translate" to translateIcon,
+        "format_list_numbered" to format_list_numberedIcon,
+        "data_object" to data_objectIcon,
         // 云盘解析卡片所需（material-icons-core/extended）
         "add_circle" to Icons.Filled.AddCircle,
         "chevron_left" to Icons.Filled.ChevronLeft,

@@ -60,7 +60,10 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
 class UiNodeException(message: String) : IllegalArgumentException(message)
 
 object UiNodeParser {
-    val fields = setOf("TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector")
+    val fields = setOf(
+        "TextField", "NumberField", "Switch", "Checkbox", "Slider", "Select", "RadioGroup",
+        "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector", "ChipRow", "Dropdown",
+    )
     private val containers = setOf("Column", "Row", "Box", "Card", "Section", "Group")
     private fun schema(vararg entries: Pair<String, String>) = entries.toMap()
     private val schemas = mapOf(
@@ -129,6 +132,18 @@ object UiNodeParser {
             "action" to "string", "options" to "strings", "disabled" to "boolean",
             "modifier" to "modifier",
         ),
+        // Mochi 芯片行：单选（value = 字符串）或多选（value = 字符串数组）。
+        // icons 与 options 等长（空串表示该项无图标）；wrap 默认折行，false 时横向滚动。
+        "ChipRow" to schema(
+            "action" to "string", "options" to "strings", "icons" to "strings",
+            "multiple" to "boolean", "wrap" to "boolean", "disabled" to "boolean",
+            "modifier" to "modifier",
+        ),
+        // Mochi 下拉选择：按钮槽显示 label + 当前值，点开是菜单，原地回填 values[id]。
+        "Dropdown" to schema(
+            "action" to "string", "options" to "strings", "icon" to "icon",
+            "disabled" to "boolean", "modifier" to "modifier",
+        ),
     ).mapValues { (name, props) ->
         val keyed = props + schema("key" to "string")
         if (name !in fields) keyed else keyed + schema(
@@ -137,6 +152,8 @@ object UiNodeParser {
                 "NumberField", "Slider", "CounterButton", "Stepper" -> "number"
                 "Switch", "Checkbox" -> "boolean"
                 "FilePicker" -> "paths"
+                // 单选给字符串，多选给字符串数组。
+                "ChipRow" -> "string_or_strings"
                 else -> "string"
             },
         )
@@ -194,6 +211,34 @@ object UiNodeParser {
             if (name == "Stepper" && (copy["action"] as? String).isNullOrBlank()) {
                 fail("$name.action", "required")
             }
+            if (name == "ChipRow") {
+                val options = (copy["options"] as? List<*>)?.map { it.toString() }.orEmpty()
+                if (options.size !in 2..24) fail("$name.options", "expected 2..24 items")
+                val icons = (copy["icons"] as? List<*>)?.map { it.toString() }.orEmpty()
+                if (icons.isNotEmpty() && icons.size != options.size) {
+                    fail("$name.icons", "expected same length as options")
+                }
+                icons.filter { it.isNotBlank() }.forEach {
+                    if (!UiIcons.isValid(it)) fail("$name.icons", "unknown icon $it")
+                }
+                val multiple = copy["multiple"] == true
+                val value = copy["value"]
+                if (multiple && value !is List<*>) fail("$name.value", "expected array when multiple")
+                if (!multiple && value != null && value !is String) fail("$name.value", "expected string")
+                (value as? List<*>)?.forEach {
+                    if (it !is String || it !in options) fail("$name.value", "must be one of options")
+                }
+                (value as? String)?.let {
+                    if (it !in options) fail("$name.value", "must be one of options")
+                }
+            }
+            if (name == "Dropdown") {
+                val options = (copy["options"] as? List<*>)?.map { it.toString() }.orEmpty()
+                if (options.size !in 2..50) fail("$name.options", "expected 2..50 items")
+                (copy["value"] as? String)?.let {
+                    if (it !in options) fail("$name.value", "must be one of options")
+                }
+            }
             if (name == "Selector") {
                 if ((copy["action"] as? String).isNullOrBlank()) fail("$name.action", "required")
                 val options = copy["options"] as? List<*>
@@ -243,6 +288,7 @@ object UiNodeParser {
             "number" -> v is Number && v.toDouble().isFinite()
             "boolean" -> v is Boolean
             "strings" -> array(v, where).all { it is String }
+            "string_or_strings" -> v is String || array(v, where).all { it is String }
             "paths" -> v is String || array(v, where).all { it is String }
             "modifier" -> { if (v == null) fail(where, "expected Modifier"); modifierOps(v, where); true }
             "color" -> v is String && UiColors.isValid(v)

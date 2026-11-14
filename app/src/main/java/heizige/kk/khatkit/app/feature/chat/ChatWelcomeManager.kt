@@ -30,6 +30,9 @@ internal data class WelcomeWidget(
 internal data class ChatWelcomeState(
     val widgets: List<WelcomeWidget> = emptyList(),
     val toolSize: WidgetCells = WidgetSizeLimits.ALL_TOOLS.default,
+    val terminalAvailable: Boolean = false,
+    val terminalEnabled: Boolean = false,
+    val terminalSize: WidgetCells = WidgetSizeLimits.TERMINAL.default,
     /** AI 生成的开场提示（标题 + 说明）；空表示还没拿到（UI 退回内置静态提示）。 */
     val ideas: List<WelcomeIdeas.Idea> = emptyList(),
     val ideasLoading: Boolean = false,
@@ -61,6 +64,7 @@ internal class ChatWelcomeManager(
     suspend fun prepare(localeTags: List<String>, catalogueRevision: Long) {
         if (locales != localeTags || revision != catalogueRevision) {
             val cards = provider.chatCards()
+            val terminalAvailable = provider.terminalPluginAvailable()
             // 语言变了：人设没变，但提示要按新语言重写，所以旧的一批必须丢掉并允许再请求一次。
             val languageChanged = locales != localeTags
             val previous = if (!languageChanged) _state.value.widgets.associateBy { it.card.manifest.name } else emptyMap()
@@ -81,6 +85,11 @@ internal class ChatWelcomeManager(
                 }.sortedBy { order[it.card.manifest.name] ?: Int.MAX_VALUE },
                 toolSize = provider.widgetSize(ALL_TOOLS_WIDGET)?.let { WidgetSizeLimits.ALL_TOOLS.clamp(WidgetCells(it.first, it.second)) }
                     ?: WidgetSizeLimits.ALL_TOOLS.default,
+                terminalAvailable = terminalAvailable,
+                terminalEnabled = terminalAvailable && provider.widgetEnabled(TERMINAL_WIDGET),
+                terminalSize = provider.widgetSize(TERMINAL_WIDGET)?.let {
+                    WidgetSizeLimits.TERMINAL.clamp(WidgetCells(it.first, it.second))
+                } ?: WidgetSizeLimits.TERMINAL.default,
                 ideas = if (languageChanged) emptyList() else _state.value.ideas,
             )
             if (languageChanged) ideasAsked = false
@@ -123,6 +132,12 @@ internal class ChatWelcomeManager(
         provider.setWidgetEnabled(name, enabled)
     }
 
+    fun setTerminalEnabled(enabled: Boolean) {
+        if (!_state.value.terminalAvailable) return
+        _state.update { it.copy(terminalEnabled = enabled) }
+        provider.setWidgetEnabled(TERMINAL_WIDGET, enabled)
+    }
+
     fun refresh(name: String, action: String = "", values: Map<String, Any?> = emptyMap()) {
         if (jobs[name]?.isActive == true) return
         val widget = _state.value.widgets.firstOrNull { it.card.manifest.name == name && it.enabled } ?: return
@@ -152,6 +167,12 @@ internal class ChatWelcomeManager(
      * 松手时 [persist] = true 才落盘。
      */
     fun setSize(name: String, size: WidgetCells, persist: Boolean) {
+        if (name == TERMINAL_WIDGET) {
+            val saved = WidgetSizeLimits.TERMINAL.clamp(size)
+            _state.update { it.copy(terminalSize = saved) }
+            if (persist) provider.setWidgetSize(name, saved.width, saved.height)
+            return
+        }
         if (name == ALL_TOOLS_WIDGET) {
             val saved = WidgetSizeLimits.ALL_TOOLS.clamp(size)
             _state.update { it.copy(toolSize = saved) }
@@ -185,7 +206,11 @@ internal class ChatWelcomeManager(
     }
 
     fun itemSize(name: String, fallback: WidgetCells): WidgetCells {
-        return if (name == ALL_TOOLS_WIDGET) _state.value.toolSize else fallback
+        return when (name) {
+            ALL_TOOLS_WIDGET -> _state.value.toolSize
+            TERMINAL_WIDGET -> _state.value.terminalSize
+            else -> fallback
+        }
     }
 
     fun moveItem(name: String, index: Int, names: List<String>) {
@@ -229,10 +254,18 @@ internal class ChatWelcomeManager(
 }
 
 internal const val ALL_TOOLS_WIDGET = "__khatkit_all_tools"
+internal const val TERMINAL_WIDGET = "__khatkit_terminal"
 
 internal val WidgetSizeLimits.Companion.ALL_TOOLS: WidgetSizeLimits
     get() = WidgetSizeLimits(
         min = WidgetCells(1, 1),
         max = WidgetCells(4, 6),
+        default = WidgetCells(4, 1),
+    )
+
+internal val WidgetSizeLimits.Companion.TERMINAL: WidgetSizeLimits
+    get() = WidgetSizeLimits(
+        min = WidgetCells(2, 1),
+        max = WidgetCells(4, 3),
         default = WidgetCells(4, 1),
     )

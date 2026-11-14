@@ -19,6 +19,8 @@ object UiIcons {
         "trending_up", "verified", "visibility", "warning",
         // Material Symbols Rounded 补齐（khatkit-ui 的 UiIconsSymbols.kt 提供矢量）
         "casino", "emoji_events",
+        // Material Symbols Outlined（khatkit-ui 的 UiIconsSymbolsOutlined.kt，线性风格同 24dp 规格）
+        "text_fields", "subject", "notes", "translate", "format_list_numbered", "data_object",
         // 云盘解析卡片用到的图标（material-icons-core/extended 直接提供）
         "add_circle", "chevron_left", "chevron_right", "content_paste", "clear_history",
         "folder", "folder_open", "insert_drive_file", "key", "verified_user",

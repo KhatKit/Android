@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -297,7 +298,8 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                                     )
                                 )
                             },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_page_preferences_network_auto_retry),
                     )
                 }
             }

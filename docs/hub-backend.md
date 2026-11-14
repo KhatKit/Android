@@ -59,20 +59,22 @@
 - 市场详情通过 `GET /api/cards` 展示价格（分 → 元）、开源协议、优选与票数徽标
 - 发布上传字段：`name/version/description/script/manifest_json/price_per_call/license/changelog`；
   `license` 必须是后端认可的开源协议（MIT、Apache-2.0、GPL-3.0、open-source 等）
-- 发布 / fork 的新版本默认进入审核（`pending`），审核通过后可能成为首选版本
+- 普通用户发布 / fork 的新版本进入审核（`pending`）；管理员和开发者通过管理面板或对应 API 发布时自动批准并上线
 
-## 6. 统一扩展市场（本地已实现，尚未部署）
+## 6. 统一扩展市场（已部署）
 
-KodeHeapServer 新增 `/api/items` 协议；旧卡片发布、fork、投票、计量与
-`/api/cards` 响应保持兼容。完整服务端契约见其 `docs/extension-market.md`。
-客户端新 kind 入口仍须在服务端上线且安装链路验证后启用。
+KodeHeapServer 已部署 `/api/items` 协议；旧卡片发布、fork、投票、计量与
+卡片索引保持兼容。完整服务端契约见其 `docs/extension-market.md`。
+服务器管理面板的「市场发布」提供卡片和插件上传、发布与审核队列；管理员和开发者
+提交后自动批准，普通用户提交后仍需审核。客户端只负责市场浏览、下载和安装。
+WASM 卡片与原生插件的批量发布脚本见服务端 `docs/wasm-hot-upload.md`。
 
 | 接口 | 语义 |
 | --- | --- |
 | `GET /api/items?kind=&q=&app_version=&limit=&offset=` | 已审核条目，名称/本地化名称/描述/标签检索；默认 50 条，最多 100 条 |
 | `GET /api/items/{id}` | 版本详情，包括权限报告、文件哈希、依赖与兼容性字段 |
 | `GET /api/items/{id}/download` | 原 ZIP；响应 `X-Content-SHA256`，客户端必须复验 |
-| `POST /api/items/publish` | 现有登录/激活凭证；所有新 kind 首发也进入 pending |
+| `POST /api/items/publish` | 现有登录/激活凭证；普通用户进入 pending，管理员/开发者自动批准 |
 | `POST /api/items/{id}/vote` | 现有投票身份；幂等投票与 >20% 分数接管 |
 | `GET /api/admin/items/pending` | admin/developer 审核队列 |
 | `POST /api/admin/items/{id}/approve`、`reject` | 审核与审计记录；拒绝后不再公开下载 |

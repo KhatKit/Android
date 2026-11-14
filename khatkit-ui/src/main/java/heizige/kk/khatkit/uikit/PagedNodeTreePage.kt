@@ -161,6 +161,23 @@ internal fun PagedNodeTreePage(
             val page = pages.getValue(id)
             val pageValues = values.getValue(id)
             val errors = remember(page.root) { mutableStateMapOf<String, String>() }
+            // 脚本重新出屏（page.root 换新）时，把「脚本改动过的字段值」写回宿主 state。
+            // 典型场景：卡片把剪贴板内容填进输入框——在此之前分页页的 values 只在用户输入时更新，
+            // 脚本改的值永远显示不出来。只同步与上一棵树不同的字段，用户正在输入的内容不会被盖掉。
+            val previousFields = remember(id) { mutableStateOf<Map<String, Any?>>(emptyMap()) }
+            LaunchedEffect(page.root) {
+                val current = page.root.initialValues()
+                if (previousFields.value.isEmpty()) {
+                    current.forEach { (field, value) ->
+                        if (!pageValues.containsKey(field)) pageValues[field] = value
+                    }
+                } else {
+                    current.forEach { (field, value) ->
+                        if (previousFields.value[field] != value) pageValues[field] = value
+                    }
+                }
+                previousFields.value = current
+            }
             val submit: (String) -> Unit = { event ->
                 errors.clear()
                 errors.putAll(page.root.errors(pageValues))

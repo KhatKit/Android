@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -82,7 +83,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = createNewConversationOnStart,
                             onCheckedChange = { createNewConversationOnStart = it },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_create_new_conversation_on_start_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -90,7 +92,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.sendOnEnter,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(sendOnEnter = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_send_on_enter_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -98,7 +101,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             R.string.setting_display_page_show_message_jumper_desc,
                             checked = displaySetting.showMessageJumper,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showMessageJumper = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_message_jumper_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -108,6 +112,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(messageJumperOnLeft = it)) },
                         ),
                         visible = displaySetting.showMessageJumper,
+                        anchor = settingAnchor(R.string.setting_display_page_message_jumper_position_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -115,7 +120,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.enableAutoScroll,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableAutoScroll = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_enable_auto_scroll_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -125,7 +131,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = {
                                 updateDisplaySetting(displaySetting.copy(useAppIconStyleLoadingIndicator = it))
                             },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_use_app_icon_style_loading_indicator_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -133,7 +140,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.enableBlurEffect,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableBlurEffect = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_background_effect_title),
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_background_effect_type)) },
@@ -154,6 +162,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         },
                         visible = displaySetting.enableBlurEffect,
+                        anchor = settingAnchor(R.string.setting_display_page_background_effect_type),
                     )
                     settingItem(
                         SwitchSetting(
@@ -161,7 +170,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             R.string.setting_display_page_enable_message_generation_haptic_effect_desc,
                             checked = displaySetting.enableMessageGenerationHapticEffect,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableMessageGenerationHapticEffect = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_enable_message_generation_haptic_effect_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -169,7 +179,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.skipCropImage,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(skipCropImage = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_skip_crop_image_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -177,7 +188,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             R.string.setting_display_page_paste_long_text_as_file_desc,
                             checked = displaySetting.pasteLongTextAsFile,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(pasteLongTextAsFile = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_paste_long_text_as_file_title),
                     )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_paste_long_text_threshold_title) },
@@ -188,6 +200,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                         valueRange = 100f..10000f,
                         defaultValue = 1000f,
                         visible = displaySetting.pasteLongTextAsFile,
+                        anchor = settingAnchor(R.string.setting_display_page_paste_long_text_threshold_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -195,7 +208,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             R.string.setting_display_page_volume_key_scroll_desc,
                             checked = displaySetting.enableVolumeKeyScroll,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableVolumeKeyScroll = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_volume_key_scroll_title),
                     )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_volume_key_scroll_ratio) },
@@ -209,6 +223,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                         displayScale = 100f,
                         suffix = "%",
                         visible = displaySetting.enableVolumeKeyScroll,
+                        anchor = settingAnchor(R.string.setting_display_page_volume_key_scroll_ratio),
                     )
                 }
             }
@@ -233,6 +248,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                                 settings.copy(defaultTTSPlaybackSpeed = ttsPlaybackSpeed)
                             )
                         },
+                        anchor = settingAnchor(R.string.setting_tts_page_default_playback_speed),
                     )
                     settingItem(
                         SwitchSetting(
@@ -240,7 +256,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.ttsOnlyReadQuoted,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadQuoted = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_tts_only_read_quoted_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -248,7 +265,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.ttsOnlyReadOutsideBrackets,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(ttsOnlyReadOutsideBrackets = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_tts_read_outside_brackets_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -256,7 +274,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                             R.string.setting_display_page_auto_play_tts_desc,
                             checked = displaySetting.autoPlayTTSAfterGeneration,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(autoPlayTTSAfterGeneration = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_auto_play_tts_title),
                     )
                 }
             }

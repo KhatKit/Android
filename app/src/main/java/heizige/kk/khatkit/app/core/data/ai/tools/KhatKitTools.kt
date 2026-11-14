@@ -41,6 +41,8 @@ import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
 import heizige.kk.khatkit.app.feature.automation.data.CardScheduleRepository
 import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeImpl
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginLoader
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginStore
 import heizige.kk.khatkit.record.UiBBox
 import heizige.kk.khatkit.record.VisualGrounding
 import heizige.kk.khatkit.card.CardManifest
@@ -537,11 +539,21 @@ class KhatKitToolProvider(
     }
 
     fun widgetEnabled(card: LoadedCard): Boolean =
-        settings.getBoolean("chat_widget.${card.manifest.name}", card.manifest.widget?.autostart == true)
+        widgetEnabled(card.manifest.name, card.manifest.widget?.autostart == true)
 
-    fun setWidgetEnabled(cardName: String, enabled: Boolean) {
-        settings.edit().putBoolean("chat_widget.$cardName", enabled).apply()
+    /** Shared preference boundary for built-in and plugin-provided welcome widgets. */
+    fun widgetEnabled(name: String, default: Boolean = false): Boolean =
+        settings.getBoolean("chat_widget.$name", default)
+
+    fun setWidgetEnabled(name: String, enabled: Boolean) {
+        settings.edit().putBoolean("chat_widget.$name", enabled).apply()
         _cardCatalogueRevision.update { it + 1 }
+    }
+
+    /** Whether the optional Termux terminal implementation can be used by the welcome page. */
+    suspend fun terminalPluginAvailable(): Boolean = withContext(Dispatchers.IO) {
+        val record = TerminalPluginStore(appContext).read()
+        TerminalPluginLoader.isLoadable(appContext, record)
     }
 
     /** 用户拖出来的格数，存成 `"列x行"`；没拖过返回 null（由 manifest 默认值决定）。 */

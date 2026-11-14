@@ -4,12 +4,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -54,7 +56,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
-import heizige.kk.khatkit.app.core.ui.components.ui.ExtensionSelector
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import heizige.kk.khatkit.app.core.ui.components.khatkit.TreeUriPaths
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
@@ -67,6 +69,9 @@ import java.io.File
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
+import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.book4
+import heizige.kk.khatkit.app.core.ui.icons.extension
 import heizige.kk.khatkit.app.core.ui.icons.folder
 import heizige.kk.khatkit.app.core.ui.icons.folderCopy
 import heizige.kk.khatkit.app.core.ui.icons.graphicEq
@@ -82,7 +87,19 @@ import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.effect.elastic.mochiPressDeform
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.derivedStateOf
+import ui.feice.mochi.basic.MochiChip
+import ui.feice.mochi.basic.MochiChipGroup
+import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.list.MochiListSectionHeader
 import ui.feice.mochi.shape.MochiCapsule
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiTheme
@@ -126,15 +143,26 @@ internal fun FilesPicker(
     }
     var showCwdSheet by remember { mutableStateOf(false) }
 
+    // 图标一律走 mochi-icons（接入规范：不要引 Material Icons / 手画 Path）：
+    // 名字见 mochi-icons 的 ionicons 目录。
     val attachments = buildList {
-        add(Attachment(photoCamera, stringResource(R.string.take_picture), onTakePic))
-        add(Attachment(image, stringResource(R.string.photo), onPickImage))
+        // 拍照去掉了：媒体选择器网格的第一格就是拍照。
+        add(Attachment("images", stringResource(R.string.photo), onPickImage))
         if (provider is ProviderSetting.Google) {
-            add(Attachment(videocam, stringResource(R.string.video), onPickVideo))
-            add(Attachment(musicNote, stringResource(R.string.audio), onPickAudio))
+            add(Attachment("videocam", stringResource(R.string.video), onPickVideo))
+            add(Attachment("musical-notes", stringResource(R.string.audio), onPickAudio))
         }
-        add(Attachment(folderCopy, stringResource(R.string.upload_file), onPickFile))
-        onStartVoiceMode?.let { add(Attachment(graphicEq, stringResource(R.string.chat_page_voice_title), it)) }
+        add(Attachment("document-attach", stringResource(R.string.tool_ui_file), onPickFile))
+        onStartVoiceMode?.let { add(Attachment("mic", stringResource(R.string.chat_page_voice_title), it)) }
+        add(
+            Attachment(
+                "shield-checkmark",
+                stringResource(R.string.setting_page_permissions),
+            ) {
+                onDismiss()
+                navController.navigate(Screen.SettingPermissions)
+            },
+        )
     }
 
     // 工具行按条件增减；先把要出现的行排好，再按序号给首末行圆角。
@@ -172,7 +200,7 @@ internal fun FilesPicker(
                 onClick = { showCwdSheet = true },
                 modifier = Modifier.fillMaxWidth(),
                 shape = shape,
-                leadingContent = { Icon(folder, null) },
+                leadingContent = { MochiIonicon("folder", size = 22.dp) },
                 titleContent = { Text(stringResource(R.string.chat_page_working_directory)) },
                 supportingContent = {
                     Text(
@@ -205,7 +233,7 @@ internal fun FilesPicker(
                 onClick = { onShowInjectionSheetChange(true) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = shape,
-                leadingContent = { Icon(inventory2, null) },
+                leadingContent = { MochiIonicon("albums", size = 22.dp) },
                 titleContent = { Text(stringResource(R.string.assistant_page_tab_extensions)) },
                 trailingContent = if (activeCount > 0) {
                     { ToolCount(activeCount.toString()) }
@@ -217,7 +245,7 @@ internal fun FilesPicker(
                 onClick = { onShowCompressDialogChange(true) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = shape,
-                leadingContent = { Icon(package2, null) },
+                leadingContent = { MochiIonicon("archive", size = 22.dp) },
                 titleContent = { Text(stringResource(R.string.chat_page_compress_context)) },
                 trailingContent = if (conversation.messageNodes.isNotEmpty()) {
                     { ToolCount(stringResource(R.string.chat_page_message_count, conversation.messageNodes.size)) }
@@ -226,11 +254,19 @@ internal fun FilesPicker(
         }
     }
 
+    // 附件（拍照排第一张）+ 会话工具：面板头「更多选项」已经说明这是什么，不再加分组小标题。
+    // 左右各让出 RowPadding，底部留 SectionSpacing。
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = MochiListDefaults.RowPadding,
+                end = MochiListDefaults.RowPadding,
+                bottom = MochiListDefaults.SectionSpacing,
+            ),
+        verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
     ) {
-        AttachmentGrid(attachments)
+        AttachmentChips(attachments)
         val cards = listCardStyle()
         InlineCardGroup(Modifier.fillMaxWidth()) {
             tools.forEachIndexed { index, row -> row(cards.indexedShape(index, tools.size)) }
@@ -257,11 +293,6 @@ internal fun FilesPicker(
     LaunchedEffect(showInjectionSheet) { if (showInjectionSheet) injectionSheet.show() else injectionSheet.hide() }
     InjectionQuickConfigSheet(
             sheetState = injectionSheet,
-            conversation = conversation,
-            assistant = assistant,
-            settings = settings,
-            onUpdateAssistant = onUpdateAssistant,
-            onUpdateConversation = onUpdateConversation,
             onDismiss = { onShowInjectionSheetChange(false) },
             onDismissAll = onDismiss,
         )
@@ -277,59 +308,41 @@ internal fun FilesPicker(
     }
 }
 
-private data class Attachment(val icon: ImageVector, val label: String, val onClick: () -> Unit)
+private data class Attachment(val icon: String, val label: String, val onClick: () -> Unit)
 
-/** 附件方块：四个以内一排排满；再多就分两排（5 → 3 + 2，6 → 3 + 3），末排不足的位置留空，方块宽度不变。 */
+/**
+ * 附件动作：一排 Mochi 芯片（工具台同款 [MochiChipGroup]：单行横向滚动、手指按在芯片上拖动时
+ * 拖动交给滚动容器，不会误触选中）。
+ *
+ * 顺序照图片选择器：**拍照占第一张图片的位置**，然后才是相册选照片，往后是视频 / 音频 / 文件 / 语音。
+ */
 @Composable
-private fun AttachmentGrid(items: List<Attachment>) {
-    val columns = if (items.size <= 4) items.size else (items.size + 1) / 2
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(columns.coerceAtLeast(1)).forEach { line ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                line.forEach { AttachmentTile(it, Modifier.weight(1f)) }
-                repeat(columns - line.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AttachmentTile(item: Attachment, modifier: Modifier = Modifier) {
-    val shape = MochiRoundedRectangle(listCardStyle().largeCorner)
-    val accent = MochiTheme.colorScheme.primary
-    Column(
-        modifier
-            .mochiPressDeform()
-            .clip(shape)
-            .background(MochiListDefaults.colors().container)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                role = Role.Button,
-                onClick = item.onClick,
-            )
-            .padding(horizontal = 4.dp, vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun AttachmentChips(items: List<Attachment>) {
+    // 外层已经使用 RowPadding；去掉 ChipGroup 默认的 16dp 内缩，让芯片背景
+    // 与下方 OptionItem 卡片的左边缘对齐。
+    MochiChipGroup(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(0.dp),
     ) {
-        Box(Modifier.size(44.dp).background(accent.copy(alpha = 0.12f), MochiCapsule), contentAlignment = Alignment.Center) {
-            Icon(item.icon, null, Modifier.size(22.dp), tint = accent)
+        items.forEach { item ->
+            MochiChip(
+                label = item.label,
+                selected = false,
+                onClick = item.onClick,
+                leadingIcon = { MochiIonicon(item.icon, size = 16.dp) },
+            )
         }
-        Text(
-            item.label,
-            style = MochiTheme.textStyles.footnote,
-            color = MochiTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
 /** 工具行尾部的计数，和 MCP 那一行同一个写法。 */
 @Composable
 private fun ToolCount(text: String) {
-    Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+    Text(
+        text,
+        style = MochiTheme.textStyles.footnote,
+        color = MochiTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -374,7 +387,7 @@ private fun WorkspacePickerListItem(
         onClick = { showSheet = true },
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
-        leadingContent = { Icon(deployedCode, null) },
+        leadingContent = { MochiIonicon("cube", size = 22.dp) },
         titleContent = { Text(stringResource(R.string.assistant_page_workspace)) },
         supportingContent = {
             Text(
@@ -387,11 +400,11 @@ private fun WorkspacePickerListItem(
             {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     MochiIconButton(onClick = { onNavigateToDetail(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(settings, contentDescription = stringResource(R.string.workspace_detail))
+                        MochiIonicon("settings", size = 20.dp)
                     }
                     if (boundWorkspace.shellStatus != WorkspaceShellStatus.DISABLED.name) {
                         MochiIconButton(onClick = { onNavigateToTerminal(boundWorkspace.id) }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(terminal, contentDescription = stringResource(R.string.workspace_terminal))
+                            MochiIonicon("terminal", size = 20.dp)
                         }
                     }
                 }
@@ -447,15 +460,19 @@ private fun WorkspacePickerListItem(
 @Composable
 private fun InjectionQuickConfigSheet(
     sheetState: ui.feice.mochi.basic.MochiSheetState,
-    conversation: Conversation,
-    assistant: Assistant,
-    settings: Settings,
-    onUpdateAssistant: (Assistant) -> Unit,
-    onUpdateConversation: (Conversation) -> Unit,
     onDismiss: () -> Unit,
     onDismissAll: () -> Unit,
 ) {
     val navController = LocalNavController.current
+    val toolProvider = rememberAppEntryPoint().khatKitToolProvider()
+    var terminalAvailable by remember { mutableStateOf(false) }
+    var terminalShortcutEnabled by remember {
+        mutableStateOf(toolProvider.widgetEnabled("__khatkit_terminal"))
+    }
+    LaunchedEffect(toolProvider) {
+        terminalAvailable = toolProvider.terminalPluginAvailable()
+        terminalShortcutEnabled = toolProvider.widgetEnabled("__khatkit_terminal")
+    }
 
     // U7b-6：直连 MochiSheet（state 由调用方持有）。
     MochiSheet(state = sheetState, onDismiss = onDismiss) {
@@ -464,27 +481,108 @@ private fun InjectionQuickConfigSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            ExtensionSelector(
-                assistant = assistant,
-                settings = settings,
-                onUpdate = onUpdateAssistant,
-                conversation = conversation,
-                onUpdateConversation = onUpdateConversation,
-                modifier = Modifier.weight(1f),
-                onNavigateToQuickMessages = {
-                    onDismissAll()
-                    navController.navigate(Screen.QuickMessages)
-                },
-                onNavigateToPrompts = {
-                    onDismissAll()
-                    navController.navigate(Screen.Prompts)
-                },
-                onNavigateToSkills = {
-                    onDismissAll()
-                    navController.navigate(Screen.Skills)
-                })
+            if (terminalAvailable) {
+                CardGroup(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = { Text("插件") },
+                ) {
+                    item(
+                        onClick = {
+                            val next = !terminalShortcutEnabled
+                            terminalShortcutEnabled = next
+                            toolProvider.setWidgetEnabled("__khatkit_terminal", next)
+                        },
+                        leadingContent = { Icon(terminal, null) },
+                        headlineContent = { Text("欢迎页快捷方式") },
+                        supportingContent = {
+                            Text(
+                                "终端插件",
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingContent = {
+                            KkSwitch(
+                                checked = terminalShortcutEnabled,
+                                onCheckedChange = {
+                                    terminalShortcutEnabled = it
+                                    toolProvider.setWidgetEnabled("__khatkit_terminal", it)
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            CardGroup(
+                modifier = Modifier.fillMaxWidth(),
+                title = { Text(stringResource(R.string.extensions_page_section_extensions)) },
+            ) {
+                item(
+                    onClick = {
+                        onDismissAll()
+                        navController.navigate(Screen.QuickMessages)
+                    },
+                    chevron = true,
+                    leadingContent = { Icon(bolt, null) },
+                    headlineContent = { Text(stringResource(R.string.assistant_page_quick_messages)) },
+                    supportingContent = {
+                        Text(stringResource(R.string.extensions_page_quick_messages_desc))
+                    },
+                )
+                item(
+                    onClick = {
+                        onDismissAll()
+                        navController.navigate(Screen.Prompts)
+                    },
+                    chevron = true,
+                    leadingContent = { Icon(book4, null) },
+                    headlineContent = { Text(stringResource(R.string.extensions_page_prompts)) },
+                    supportingContent = {
+                        Text(stringResource(R.string.extensions_page_prompts_desc))
+                    },
+                )
+                item(
+                    onClick = {
+                        onDismissAll()
+                        navController.navigate(Screen.Skills)
+                    },
+                    chevron = true,
+                    leadingContent = { Icon(extension, null) },
+                    headlineContent = { Text(stringResource(R.string.extensions_page_agent_skills)) },
+                    supportingContent = {
+                        Text(stringResource(R.string.extensions_page_agent_skills_desc))
+                    },
+                )
+                item(
+                    onClick = {
+                        onDismissAll()
+                        navController.navigate(Screen.Workspaces)
+                    },
+                    chevron = true,
+                    leadingContent = { Icon(folder, null) },
+                    headlineContent = { Text(stringResource(R.string.extensions_page_workspace)) },
+                    supportingContent = {
+                        Text(stringResource(R.string.extensions_page_workspace_desc))
+                    },
+                )
+                item(
+                    onClick = {
+                        onDismissAll()
+                        navController.navigate(Screen.Extensions)
+                    },
+                    chevron = true,
+                    leadingContent = { Icon(inventory2, null) },
+                    headlineContent = { Text(stringResource(R.string.extensions_page_title)) },
+                    supportingContent = {
+                        Text(stringResource(R.string.setting_page_extensions_desc))
+                    },
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }

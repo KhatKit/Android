@@ -161,6 +161,11 @@ internal fun rememberChatAttachmentPickerActions(
         allowedMedia = AllowedMedia.Photos(null),
         allowMultiple = true,
         onDismiss = { showImagePicker = false },
+        // 网格第一格就是拍照：先关掉选择器，再走同一套系统相机 + 裁剪流程。
+        onTakePicture = {
+            showImagePicker = false
+            onTakePicture()
+        },
         onPicked = { selectedUris ->
             showImagePicker = false
             if (selectedUris.isEmpty()) return@KhatKitMediaPicker

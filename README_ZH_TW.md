@@ -4,6 +4,9 @@
 
 一個原生Android LLM 聊天客戶端，支持切換不同的供應商進行聊天 🤖💬
 
+> ⚠️ 本檔案是上游 RikkaHub 的原始繁體中文 README，**內容已過期**（應用名、套件名、下載位址、贊助商均為上游資訊）。
+> 本 fork（KhatKit）的專案說明、模組結構、卡片執行時與建置方式請見 [README.md](README.md)。
+
 點擊加入我們的Discord伺服器 👉 [【RikkaHub】](https://discord.gg/9weBqxe5c4)
 
 [English](README.md) | 繁體中文 | [简体中文](README_ZH_CN.md)

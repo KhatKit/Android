@@ -14,12 +14,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.SettingFocusController
+import heizige.kk.khatkit.app.navigation.ScreenRoutes
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
@@ -44,31 +45,16 @@ import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
 import heizige.kk.khatkit.app.core.util.plus
 import ui.feice.mochi.basic.MochiSearchBar
 
-internal data class SettingSearchEntry(
-    val title: String,
-    val description: String,
-    val keywords: String,
-    val icon: ImageVector,
-    val destination: Screen,
-)
-
 @Composable
 fun SettingFeatureSearchPage() {
     val navController = LocalNavController.current
     var query by remember { mutableStateOf("") }
     val entries = rememberSettingSearchEntries()
-    val filteredEntries = remember(query, entries) {
-        val normalized = query.trim().lowercase()
-        if (normalized.isEmpty()) {
-            entries
-        } else {
-            entries.filter { entry ->
-                listOf(entry.title, entry.description, entry.keywords)
-                    .joinToString(" ")
-                    .lowercase()
-                    .contains(normalized)
-            }
-        }
+    // 选项级结果（「最小选项」）跟页面级结果一起筛：同一份过滤口径，页面级排在前面，
+    // 选项级按归属页分组接在后面（见 filteredSettingResults）。
+    val leafEntries = SettingLeafEntries.entries()
+    val filteredEntries = remember(query, entries, leafEntries) {
+        filteredSettingResults(query, entries, leafEntries)
     }
 
     MochiSettingsPageScaffold(
@@ -99,7 +85,15 @@ fun SettingFeatureSearchPage() {
                 ) {
                     filteredEntries.forEach { entry ->
                         item(
-                            onClick = { navController.navigate(entry.destination) },
+                            onClick = {
+                                entry.anchor?.let { anchor ->
+                                    SettingFocusController.request(
+                                        route = ScreenRoutes.routeOf(entry.destination),
+                                        anchor = anchor,
+                                    )
+                                }
+                                navController.navigate(entry.destination)
+                            },
                             chevron = true,
                             leadingContent = {
                                 Icon(
@@ -107,9 +101,8 @@ fun SettingFeatureSearchPage() {
                                     contentDescription = null,
                                 )
                             },
-                            supportingContent = entry.description
-                                .takeIf(String::isNotBlank)
-                                ?.let { description -> { Text(description) } },
+                            supportingContent = entry.supportingLine()
+                                ?.let { line -> { Text(line) } },
                             headlineContent = { Text(entry.title) },
                         )
                     }

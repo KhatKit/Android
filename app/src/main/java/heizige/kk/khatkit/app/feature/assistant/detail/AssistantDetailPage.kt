@@ -42,7 +42,10 @@ import ui.feice.mochi.theme.MochiTheme
  */
 @Composable
 fun AssistantDetailPage(id: String) {
-    val vm: AssistantDetailViewModel = hiltViewModel<AssistantDetailViewModel, AssistantDetailViewModel.Factory>(creationCallback = { it.create(id) })
+    val vm: AssistantDetailViewModel = hiltViewModel<AssistantDetailViewModel, AssistantDetailViewModel.Factory>(
+        key = "assistant-$id",
+        creationCallback = { it.create(id) },
+    )
     val assistant by vm.assistant.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val navController = LocalNavController.current

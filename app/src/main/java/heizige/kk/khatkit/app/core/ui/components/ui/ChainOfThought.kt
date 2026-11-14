@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import heizige.kk.khatkit.uikit.mochi.MochiExpandableOptionItem
+import androidx.compose.material3.LocalContentColor
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -79,27 +82,39 @@ fun <T> ChainOfThought(
     collapsedVisibleCount: Int = 2,
     collapsedAdaptiveWidth: Boolean = false,
     showTimeline: Boolean = true,
+    /** 选项行自己的底块颜色；放在共享卡片里时传 `Color.Transparent`，透出 [cardColors] 那一层。 */
+    optionRowBackground: Color = Color.Unspecified,
+    /** 行与行之间画 Mochi 分组卡那种 0.5dp 分隔线（从文字起点开始）。 */
+    showRowDivider: Boolean = false,
     content: @Composable ChainOfThoughtScope.(T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // 已经被外层消息卡包住时（行底块透明），这里不再自造另一套圆角：
+    // 内层容器直接跟随外层消息卡的大圆角（26dp），把它里面所有行/折叠条的底色都裁成同一个弧。
+    val sharedCard = optionRowBackground == Color.Transparent
     val canCollapse = steps.size > collapsedVisibleCount
     val shouldFillCollapseControlWidth = expanded || !collapsedAdaptiveWidth
 
     KkCard(
         modifier = modifier,
         colors = cardColors,
-        shape = RoundedCornerShape(16.dp),
+        shape = if (sharedCard) {
+            ui.feice.mochi.shape.MochiRoundedRectangle(ui.feice.mochi.list.MochiListDefaults.SectionCorner)
+        } else {
+            RoundedCornerShape(16.dp)
+        },
         // KkCard 默认 contentPadding/insideMargin = 16dp，链式形态靠它 + 下面
         // 的 12dp 缩进凑出 28dp 左边距；无时间线形态必须归零，否则 item 铺不满宽度。
-        contentPadding = if (showTimeline) PaddingValues(16.dp) else PaddingValues(0.dp),
+        contentPadding = if (showTimeline) PaddingValues(8.dp) else PaddingValues(0.dp),
     ) {
         Column(
             modifier = Modifier
+                // 上下不留内边距；横向只在保留时间线时留 8dp
                 .padding(
                     if (showTimeline) {
-                        PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        PaddingValues(horizontal = 8.dp)
                     } else {
-                        PaddingValues(horizontal = 0.dp, vertical = 4.dp)
+                        PaddingValues(0.dp)
                     }
                 )
                 .kkAnimateContentSize(),
@@ -110,66 +125,77 @@ fun <T> ChainOfThought(
                 steps.takeLast(collapsedVisibleCount)
             }
 
-            // 显示展开/折叠按钮（统一在顶部）
+            val lineColor = MaterialTheme.colorScheme.outlineVariant
+            // 折叠控制条：和「思考 / 调用工具」同一套行皮（圆角底块 + 左图标 + 标题）
             if (canCollapse) {
-                val collapseIcon: @Composable () -> Unit = {
-                    Icon(
-                        imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .then(
-                            if (shouldFillCollapseControlWidth) {
-                                Modifier.fillMaxWidth()
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable { expanded = !expanded }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (showTimeline) {
-                        // 左侧：图标区域（24.dp，和步骤图标对齐）
-                        Box(
-                            modifier = Modifier.width(24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            collapseIcon()
-                        }
+                MochiOptionItem(
+                    onClick = { expanded = !expanded },
+                    modifier = if (shouldFillCollapseControlWidth) Modifier.fillMaxWidth() else Modifier,
+                    shape = if (sharedCard) {
+                        ui.feice.mochi.shape.MochiRoundedRectangle(16.dp)
                     } else {
-                        collapseIcon()
-                    }
-
-                    // 右侧：文字区域（8.dp 间距后开始，和步骤 label 对齐）
-                    Text(
-                        modifier = Modifier.padding(start = if (showTimeline) 8.dp else 6.dp),
-                        text = if (expanded) {
-                            stringResource(R.string.chain_of_thought_collapse)
-                        } else {
-                            stringResource(
-                                R.string.chain_of_thought_show_more_steps,
-                                steps.size - collapsedVisibleCount
-                            )
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        MaterialTheme.shapes.small
+                    },
+                    backgroundColor = if (sharedCard) Color.Transparent else Color.Unspecified,
+                    leadingContent = {
+                        // 步数图标（Material Symbols format_list_numbered），和思考行的灯泡同一套尺寸/透明度
+                        Icon(
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.formatListNumbered,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = LocalContentColor.current.copy(alpha = 0.7f),
+                        )
+                    },
+                    trailingContent = {
+                        // 右侧展开指示：收起 ›、展开翻转 90° 朝下，和 Mochi 列表的展开手感一致
+                        val chevronRotation = androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (expanded) 90f else 0f,
+                            animationSpec = ui.feice.mochi.anim.MochiMotions.responseSpring(0.3f, 0.6f),
+                            label = "collapse_chevron",
+                        ).value
+                        Box(Modifier.graphicsLayer { rotationZ = chevronRotation }) {
+                            heizige.kk.khatkit.uikit.mochi.KkChevron()
+                        }
+                    },
+                    titleContent = {
+                        // 文案「再显示 N 步 / 收起」切换走 Mochi 的模糊交叉淡化
+                        ui.feice.mochi.effect.content.MochiBlurText(
+                            text = if (expanded) {
+                                stringResource(R.string.chain_of_thought_collapse)
+                            } else {
+                                stringResource(
+                                    R.string.chain_of_thought_show_more_steps,
+                                    steps.size - collapsedVisibleCount
+                                )
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            // 折叠条自己就是展开开关：展开时标题也用主色
+                            color = if (expanded) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.secondary
+                            },
+                        )
+                    },
+                )
+                // 折叠条与下面第一行之间也要有一条分隔线（样式和步骤间的一致）
+                if (showRowDivider) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 48.dp, end = 16.dp)
+                            .height(0.5.dp)
+                            .background(lineColor.copy(alpha = 0.6f))
                     )
                 }
             }
 
-            val lineColor = MaterialTheme.colorScheme.outlineVariant
             // 每个步骤只绘制自己的连线分段并在节点处留空，
             // 避免使用离屏合成 + BlendMode.Clear（离屏层过大时部分设备会退化，节点区域被清成黑块）。
             val cards = listCardStyle()
             // 行间距取风格自带的 gap（MD3 默认 2dp，Miuix 0dp = 完全贴合）：
             // MD3 的分段卡片组本来就有这道 2dp 的轻微间隔，链上不该把它抹成 0。
-            Column(verticalArrangement = Arrangement.spacedBy(cards.gap)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (showRowDivider) 0.dp else cards.gap)) {
                 visibleSteps.fastForEachIndexed { index, step ->
                     val isFirst = index == 0
                     val isLast = index == visibleSteps.lastIndex
@@ -180,14 +206,18 @@ fun <T> ChainOfThought(
                     // 整块的上下各留 4dp 呼吸（原来每行 4dp、行间 8dp 的缝就是这么来的）。
                     // 单步链 = indexedShape(0, 1) = 四角大圆角 + 上下各 4dp，与改动前逐值相同。
                     // 裸行（ask_user 那类）走 ChainOfThoughtStepContent，不用这两个值。
-                    val optionRowShape = cards.indexedShape(index = index, count = visibleSteps.size)
-                    val optionRowPadding = when {
-                        visibleSteps.size == 1 -> PaddingValues(vertical = 4.dp)
-                        isFirst -> PaddingValues(top = 4.dp, bottom = 0.dp)
-                        isLast -> PaddingValues(top = 0.dp, bottom = 4.dp)
-                        else -> PaddingValues(0.dp)
+                    // 行自己带底色，所以也要圆角：共享卡里统一 16dp（大卡 26dp，行 16dp 一档收进去），
+                    // 独立使用时仍按 ListCardStyle 的分段圆角。
+                    val optionRowShape = if (sharedCard) {
+                        ui.feice.mochi.shape.MochiRoundedRectangle(16.dp)
+                    } else {
+                        cards.indexedShape(index = index, count = visibleSteps.size)
                     }
-                    val scope = remember(isFirst, isLast, lineColor, showTimeline, optionRowShape, optionRowPadding) {
+                    // 行上下不再留 2dp：卡片的上下边距完全由 KkCard 自己决定
+                    val optionRowPadding = PaddingValues(0.dp)
+                    val scope = remember(
+                        isFirst, isLast, lineColor, showTimeline, optionRowShape, optionRowPadding, optionRowBackground,
+                    ) {
                         ChainOfThoughtScopeImpl(
                             isFirst = isFirst,
                             isLast = isLast,
@@ -195,9 +225,19 @@ fun <T> ChainOfThought(
                             showTimeline = showTimeline,
                             optionRowShape = optionRowShape,
                             optionRowPadding = optionRowPadding,
+                            optionRowBackground = optionRowBackground,
                         )
                     }
                     scope.content(step)
+                    if (showRowDivider && !isLast) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 48.dp, end = 16.dp)
+                                .height(0.5.dp)
+                                .background(lineColor.copy(alpha = 0.6f))
+                        )
+                    }
                 }
             }
         }
@@ -305,6 +345,12 @@ interface ChainOfThoughtScope {
     )
 }
 
+/** 展开内容统一边距：左右 16dp、上 4dp、下 8dp（思考正文与询问表单共用同一份）。 */
+private val ExpandedContentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
+
+/** 选项行标题是否处于「已展开」高亮态：只给标题文字用，图标/副文本不吃。 */
+internal val LocalChainTitleHighlight = androidx.compose.runtime.staticCompositionLocalOf { false }
+
 private class ChainOfThoughtScopeImpl(
     private val isFirst: Boolean,
     private val isLast: Boolean,
@@ -315,6 +361,8 @@ private class ChainOfThoughtScopeImpl(
     private val optionRowShape: Shape,
     /** 本行的纵向行距：块内 0dp 贴合，块的上下各留 4dp */
     private val optionRowPadding: PaddingValues,
+    /** 选项行底块颜色；透明 = 透出外层共享卡片的底色 */
+    private val optionRowBackground: Color = Color.Unspecified,
 ) : ChainOfThoughtScope {
     @Composable
     override fun ChainOfThoughtStep(
@@ -384,6 +432,7 @@ private class ChainOfThoughtScopeImpl(
             content = content,
             optionRowShape = optionRowShape,
             optionRowPadding = optionRowPadding,
+            rowBackground = optionRowBackground,
             wrapContent = false,
         )
     }
@@ -411,6 +460,7 @@ private class ChainOfThoughtScopeImpl(
             content = content,
             optionRowShape = optionRowShape,
             optionRowPadding = optionRowPadding,
+            rowBackground = optionRowBackground,
             wrapContent = wrapContent,
         )
     }
@@ -496,6 +546,8 @@ private class ChainOfThoughtScopeImpl(
         optionRowPadding: PaddingValues,
         /** 展开内容是否与标题行合成同一张卡；只有推理行开 */
         wrapContent: Boolean,
+        /** 底块颜色：共享卡片里传透明，让整条链透出同一层背景 */
+        rowBackground: Color = Color.Unspecified,
     ) {
         Row(
             modifier = Modifier
@@ -510,12 +562,21 @@ private class ChainOfThoughtScopeImpl(
                 Box(modifier = Modifier.width(24.dp))
             }
 
+            // 行内边距回到 Mochi 列表行的默认度量（左右 16 / 上下 8），共享卡里也一样。
+            val rowPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            // 只有「能展开且已展开」的行，标题才用主色（图标和其它文字不受影响）
+            val titleHighlighted = content != null && contentVisible
+            androidx.compose.runtime.CompositionLocalProvider(
+                LocalChainTitleHighlight provides titleHighlighted
+            ) {
             if (content == null) {
                 // 没有展开内容 = 没有可展开性，尾部也就不该有箭头（箭头由组件按内容决定）。
                 MochiOptionItem(
                     onClick = onClick,
                     modifier = Modifier.weight(1f),
                     shape = optionRowShape,
+                    backgroundColor = rowBackground,
+                    contentPadding = rowPadding,
                     leadingContent = icon,
                     titleContent = label,
                     trailingContent = extra,
@@ -530,15 +591,17 @@ private class ChainOfThoughtScopeImpl(
                     // 推理行开「同卡」：展开内容落在这块之内，而不是块外的第二张卡。
                     // 工具行沿用默认（false），观感一字不变。
                     wrapContent = wrapContent,
+                    backgroundColor = rowBackground,
                     leadingContent = icon,
                     titleContent = label,
                     trailingContent = extra,
                     contentVisible = contentVisible,
-                    // 内容不套内层底色，缩进交给这里：start = 0（对齐底块左边缘，
-                    // 时间线的 32dp 由外面的空槽 + 间距占掉），上下补呼吸空间。
-                    contentPadding = PaddingValues(start = 0.dp, top = 4.dp, bottom = 8.dp),
+                    rowContentPadding = rowPadding,
+                    // 所有可展开内容的统一边距：思考正文 / 工具结果 / 询问表单都用这一套
+                    contentPadding = ExpandedContentPadding,
                     expandedContent = content,
                 )
+            }
             }
         }
     }

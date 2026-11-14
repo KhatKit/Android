@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,7 +63,8 @@ fun SettingPreferencesUICodePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.codeBlockAutoWrap,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoWrap = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_code_block_auto_wrap_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -70,7 +72,8 @@ fun SettingPreferencesUICodePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.codeBlockAutoCollapse,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(codeBlockAutoCollapse = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_code_block_auto_collapse_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -78,7 +81,8 @@ fun SettingPreferencesUICodePage(vm: SettingViewModel = hiltViewModel()) {
                             null,
                             checked = displaySetting.showLineNumbers,
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(showLineNumbers = it)) },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_show_line_numbers_title),
                     )
                 }
             }

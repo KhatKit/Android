@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import heizige.kk.khatkit.app.core.ui.components.ui.SettingFocusController
+import heizige.kk.khatkit.app.navigation.ScreenRoutes
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
@@ -100,18 +102,11 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val searchEntries = rememberSettingSearchEntries()
-    val filteredSearchEntries = remember(searchQuery, searchEntries) {
-        val normalized = searchQuery.trim().lowercase()
-        if (normalized.isEmpty()) {
-            searchEntries
-        } else {
-            searchEntries.filter { entry ->
-                listOf(entry.title, entry.description, entry.keywords)
-                    .joinToString(" ")
-                    .lowercase()
-                    .contains(normalized)
-            }
-        }
+    // 设置页里搜的是**最小选项**，不只是二级页入口：搜索框下面同时给页面级与选项级结果
+    // （「显示时间」这种开关也能直接搜到并跳过去定位）。页面级在前，口径见 filteredSettingResults。
+    val searchLeafEntries = SettingLeafEntries.entries()
+    val filteredSearchEntries = remember(searchQuery, searchEntries, searchLeafEntries) {
+        filteredSettingResults(searchQuery, searchEntries, searchLeafEntries)
     }
 
     MochiSettingsPageScaffold(
@@ -143,7 +138,15 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     ) {
                         filteredSearchEntries.forEach { entry ->
                             item(
-                                onClick = { navController.navigate(entry.destination) },
+                                onClick = {
+                                    entry.anchor?.let { anchor ->
+                                        SettingFocusController.request(
+                                            route = ScreenRoutes.routeOf(entry.destination),
+                                            anchor = anchor,
+                                        )
+                                    }
+                                    navController.navigate(entry.destination)
+                                },
                                 chevron = true,
                                 leadingContent = {
                                     Icon(
@@ -151,9 +154,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                         contentDescription = null,
                                     )
                                 },
-                                supportingContent = entry.description
-                                    .takeIf(String::isNotBlank)
-                                    ?.let { description -> { Text(description) } },
+                                supportingContent = entry.supportingLine()
+                                    ?.let { line -> { Text(line) } },
                                 headlineContent = { Text(entry.title) },
                             )
                         }

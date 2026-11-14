@@ -653,6 +653,8 @@
   <string name="model_list_search_placeholder">输入模型名称搜索</string>
   <string name="model_list_select_model">选择模型</string>
   <string name="more_options">更多选项</string>
+  <string name="chat_input_attachment_section">附件</string>
+  <string name="chat_input_conversation_tools_section">会话工具</string>
   <string name="no_text_content_to_copy">暂无可复制的文本内容</string>
   <string name="notification_channel_chat_completed">聊天完成</string>
   <string name="notification_channel_chat_live_update">聊天生成进度</string>

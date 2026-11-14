@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -104,6 +105,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
                             behavior = ThemeToggleBehavior,
                         )
                     },
+                    anchor = settingAnchor(R.string.setting_display_page_button_style_title),
                 )
                 item(
                     headlineContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
@@ -120,6 +122,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { vm.updateSettings(settings.copy(dynamicColor = it)) },
                         )
                     },
+                    anchor = settingAnchor(R.string.greeting_settings_dynamic_color),
                 )
             }
         }
@@ -219,6 +222,7 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                             },
                         )
                     },
+                    anchor = settingAnchor(R.string.setting_display_page_effects_title),
                 )
                 // 按钮样式只在总开关开着时有意义：visible 走行级展开/收起动画，卡片高度跟着一起收放
                 item(
@@ -290,6 +294,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     defaultValue = 26f,
                     steps = 31,
                     suffix = "dp",
+                    anchor = settingAnchor(R.string.setting_display_page_card_corner_large),
                 )
                 sliderItem(
                     title = { stringResource(R.string.setting_display_page_card_corner_small) },
@@ -303,6 +308,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     defaultValue = 0f,
                     steps = (settings.listCardLargeCorner.roundToInt().coerceAtLeast(1) - 1).coerceAtLeast(0),
                     suffix = "dp",
+                    anchor = settingAnchor(R.string.setting_display_page_card_corner_small),
                 )
                 sliderItem(
                     title = { stringResource(R.string.setting_display_page_card_gap) },
@@ -314,6 +320,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     defaultValue = 0f,
                     steps = 15,
                     suffix = "dp",
+                    anchor = settingAnchor(R.string.setting_display_page_card_gap),
                 )
             }
         }

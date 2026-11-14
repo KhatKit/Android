@@ -7,15 +7,20 @@
 ## ✨ 主要能力
 
 - 🔄 **多服务商**：OpenAI / Google / Anthropic 及任意兼容端点，支持自定义服务商类型与默认模型绑定
-- 🧩 **KhatKit 卡片系统**：从 Hub 按需下载 `lua` / `js` / `command` 卡片，AI 可直接调用；bridge 能力包括 `tool` / `ui` / `download` / `store` / `shizuku` / `root` / `accessibility`
-- 🎨 **双界面风格**：Material 3 Expressive 与 Miuix（基于 Kedge 组件桥），设置内切换即时生效
+- 🧩 **卡片系统**：工具以「卡片」形式从 Hub 按需下载，AI 直接调用；引擎支持 **WASM（默认）/ Lua / JS / command**，见下文「卡片运行时」
+- 🛒 **扩展市场**：卡片 / 技能 / MCP / 提示词 / 工作流 / 依赖包 / 服务商插件七类条目统一检索、安装与评分，卡片源在 [KhatKit/Crads](https://github.com/KhatKit/Crads)
+- 🎨 **UI 栈**：Material 3 负责骨架、Mochi 提供色彩 / 字阶 / 圆角 token 与按压、回弹、液态玻璃等交互设施；旧的三套外观库（Kedge / Miuix / Khromia）已从依赖树删除
 - 👋 **首次启动引导**：危险权限（Root / Shizuku / 无障碍）、AI 服务商配置、主题与配色一气呵成
-- ♿ **无障碍自动化**：真实 `AccessibilityService`，支持查找节点、点击、输入、滚动与手势，能力暴露给卡片
-- 📦 **工作区**：基于 proot 的 Linux 沙箱，可执行命令、读写文件
-- 🖥️ 内置 Web API 与 MCP 服务（供 vFlow / 卡片自动化 / 外部客户端调用）、Markdown 渲染（代码高亮 / LaTeX / 表格 / Mermaid）
-- 🪾 消息分支、搜索（Exa / Tavily / Zhipu / Brave 等）、TTS / ASR、AI 翻译、自定义请求头与请求体、快捷消息
+- ♿ **无障碍自动化**：真实 `AccessibilityService`，支持查找节点、点击、输入、滚动与手势；可**录制人工操作直接存成卡片**，也支持触发器 + 可视化工作流编排
+- 📦 **工作区**：基于 proot 的 Linux 沙箱，可执行命令、读写文件，并作为 AI 工具暴露
+- 🖥️ 内置 Web API（`/api/**`）与 MCP 服务（`POST /mcp`，Claude Desktop / Cursor 等可直接调用本机卡片）、Markdown 渲染（代码高亮 / LaTeX / 表格 / Mermaid）
+- 🪾 消息分支、探索页、搜索（Exa / Tavily / Zhipu / Brave 等）、TTS / ASR、AI 翻译、图片生成、下载中心、用量统计、自定义请求头与请求体、快捷消息
 - ⬆️ **应用更新**：走 KodeHeadServer 的 KhatKit 独立更新通道（stable / beta / force_min）
 - 📝 **更新日志**：见 [CHANGELOG.md](CHANGELOG.md)
+
+> 本仓是 [RikkaHub](https://github.com/rikkahub/rikkahub) 的深度定制 fork：做过整树包名重构
+> （`me.rerere.rikkahub` → `heizige.kk.khatkit`），并持续合并上游提交。
+> 卡片、Hub 服务端与 UI 组件库分别在同级仓库 `Android/KhatKitCards`、`IDEA/Project/KodeHeapServer`、`Android/Project/Mochi`。
 
 ## ⬆️ 应用更新
 
@@ -106,33 +111,59 @@ curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
 
 ## 🧱 模块结构
 
+Gradle 模块全部在 `settings.gradle.kts` 的 `include(...)` 里；`app/feature/*` 是**源码包**，不是模块。
+下面标 ☁ 的两项是 Cargo crate（`docscard-runtime-wasm` 是库，被 `khatkit-core` 以 path 依赖引用），不进 Gradle 模块表。
+
 | 模块 | 说明 |
 | --- | --- |
-| `app` | 主应用（UI / ViewModel / 数据层） |
-| `ai` | 服务商抽象层（OpenAI / Google / Claude） |
-| `khatkit` | 卡片运行时、bridge、Rust 引擎接入（Lua/JS 同一核心） |
-| `khatkit-ui` | 卡片市场与表单宿主，Kedge 双风格桥接 |
-| `card-validator` | 卡片发布前静态校验 |
-| `search` / `speech` / `document` / `highlight` / `material3` / `common` / `web` / `workspace` / `oauth` | 功能模块 |
-| `khatkit-core` | Rust 脚本引擎（Cargo） |
+| `app` | 主应用：`feature/` 27 个功能包 + `core/{data,network,ui,util,di}`；`applicationId = heizige.kk.khatkit`，minSdk 26 / targetSdk 37，仅 `arm64-v8a` + `x86_64` |
+| `ai` | 服务商抽象层（OpenAI / Google / Claude / 兼容端点），`UIMessage` 等平台无关消息模型 |
+| `khatkit` | 卡片运行时：引擎分发（`EngineKind` = LUA / JS / WASM / COMMAND）、bridge 注册与实现、Hub 客户端、卡片包安装、触发器、录制 |
+| ☁ `khatkit-core` | 卡片脚本的 Rust native 核心（JNI）：`mlua`(Lua 5.4) + `rquickjs`(QuickJS) + `docscard-runtime-wasm`，产出 `libkhatkit_core.so` |
+| ☁ `docscard-runtime-wasm` | 纯 Rust 的 WASM 运行时（wasmi 0.44，ABI v1），规格与 ABI 契约见其 `docs/` |
+| `khatkit-ui` | 卡片表单 / 弹层宿主 + `uikit/mochi/` 的 Kk 壳（按压、回弹、Toast、栏按钮等） |
+| `card-validator` | 卡片发布前静态校验（纯 JVM，卡片仓库 CI 复用） |
+| `plugins/{ocr-mlkit,ssh,terminal}` | 原生插件。不随基础包编译，各自打成 dex 的 `*.zip` 经 Hub 按需下发 |
+| `web` | Ktor(CIO) 内嵌服务器外壳（`startWebServer`），不含前端；路由在 `app/.../core/network/routes/` |
+| `workspace` | proot Linux 沙箱：rootfs 安装、shell 执行、沙箱文件系统，作为 AI 工具暴露 |
+| `oauth` / `mediapicker` / `image-toolbox-dependency` / `yunx-parser` | OAuth 登录、自研媒体选择器、ImageToolbox dex 依赖包、YunX 网盘协议解析 |
+| `search` / `speech` / `document` / `highlight` / `material3` / `common` | 搜索、TTS/ASR、文档解析、代码高亮、Material 色彩工具（含 submodule `material-color-utilities`）、通用扩展 |
+| `app:baselineprofile` | Baseline Profile 生成模块 |
+
+`locale-tui`（语言文件翻译 TUI）与 `scripts/`、`tools/` 是开发期工具，不参与 APK 构建。
+
+## 🧩 卡片运行时
+
+- **入口**：卡片由 Hub 下发（标准 WASM 包 = `manifest.json` + `card.wasm`），安装时生成 `card.json`；AI 工具与 MCP 都能调用
+- **引擎优先级**：`manifest.runtime` 优先，缺省视为 `wasm`；存量卡（无 `runtime` 且存在 `main.js`）自动识别为 `js`；`command` 卡经 shizuku / root 执行
+- **WASM 卡**：走 ABI v1（导出 `kk_alloc/kk_free/kk_handle/kk_init/kk_shutdown/kk_last_error`），脚本内 `host_call` 全部转成既有 Kotlin bridge，因此 `ui` / 无障碍 / 网络 / 图像能力与 Lua/JS 卡共用同一实现
+- **bridge 全表**：见 [docs/script-api-reference.md](docs/script-api-reference.md)（`tool` / `net` / `fs` / `json` / `crypto` / `time` / `host` / `system` / `ai` / `mediaPicker` / `ui` / `web` / `browser` / `download` / `store` / `schedule` / `imageToolbox` / `shizuku` / `accessibility` / `root`）；该文件与 `Bridges.kt` 由 `BridgeApiDocTest` 双向校验，改接口必须同步改文档
+- **限额**：Lua/JS 引擎内存 64 MiB、默认 120 秒计算预算（等用户交互的时间不计）；WASM 用 fuel 限额；包体积上限 8 MiB、解压 32 MiB
+- 细节见 [docs/card-runtime.md](docs/card-runtime.md)、[docs/card-runtime-wasm.md](docs/card-runtime-wasm.md)、[docs/lua-card-development.md](docs/lua-card-development.md)
+
+源码仓在 **KhatKit/Crads**（`Android/KhatKitCards`），与本仓分开维护、独立发版。
 
 ## 🔨 构建
 
-- JDK 21 + Android SDK
-- 同级目录存在 `../Kedge`、`../Khromia` 时走 composite build 用源码构建，否则从 GitHub Packages 解析发布版
+- **JDK 21** + Android SDK（compileSdk 37）+ Gradle 9.7.1（wrapper 自带）
+- 改卡片 native 侧还需要 **NDK 28.2.13676358** 与 Rust：`khatkit-core/build-android.sh` 交叉编译 arm64-v8a / x86_64 并把 `libkhatkit_core.so` 拷进 `khatkit/src/main/jniLibs/`（仓库里已有构建好的 .so，只改 Kotlin 不用重编）
+- UI 依赖 `io.github.feice11:mochi-compose` / `mochi-ios` / `mochi-icons` 的 `*-khatkit` 版本（上游 Maven Central 没有这些 API）。本地要先克隆 `feice11/mochi-compose`、跑 `.github/scripts/patch-mochi.py` 再用 `publishToMavenLocal -PVERSION_NAME=<libs.versions.toml 里的 mochi 版本>` 发布；CI（`build-apk.yml` / `daily-build.yml`）在构建前自动完成这一步
 
 ```bash
-./gradlew assembleDebug   # 构建 Debug APK
-./gradlew test            # JVM 单元测试
-./gradlew lint            # Android Lint
+./gradlew assembleDebug                    # 构建 Debug APK
+./gradlew test                             # 全部模块 JVM 单元测试
+./gradlew lint                             # Android Lint
+./gradlew :khatkit:testDebugUnitTest       # 卡片运行时（含 bridge 文档一致性校验）
 ```
 
 ## 🙏 致谢
 
 - [RikkaHub](https://github.com/rikkahub/rikkahub)：本项目基于其深度定制
+- [Mochi Compose](https://github.com/feice11/mochi-compose)：UI token 与交互设施（本仓通过 patch 脚本打 `-khatkit` 版本）
 - [vFlow](https://github.com/ChaoMixian/vFlow)：卡片对接的自动化能力（本地 Web API）
-- Kedge / Khromia：双风格 UI 组件桥
-- [Miuix](https://github.com/compose-miuix-ui/miuix)：Miuix 组件库
+- [ImageToolbox](https://github.com/T8RIN/ImageToolbox)：图像工具箱依赖包与媒体选择器参考
+- [YunX](https://github.com/CYQawa/YunX)：网盘协议解析（`:yunx-parser`）
+- [wasmi](https://github.com/wasmi-labs/wasmi) / [mlua](https://github.com/mlua-rs/mlua) / [rquickjs](https://github.com/DelSkayn/rquickjs)：卡片脚本运行时
 
 ## 📄 License
 

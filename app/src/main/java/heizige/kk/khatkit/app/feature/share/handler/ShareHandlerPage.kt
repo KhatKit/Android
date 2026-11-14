@@ -37,7 +37,10 @@ import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaff
 
 @Composable
 fun ShareHandlerPage(text: String, image: String?) {
-    val vm: ShareHandlerViewModel = hiltViewModel<ShareHandlerViewModel, ShareHandlerViewModel.Factory>(creationCallback = { it.create(text) })
+    val vm: ShareHandlerViewModel = hiltViewModel<ShareHandlerViewModel, ShareHandlerViewModel.Factory>(
+        key = "share-handler-$text",
+        creationCallback = { it.create(text) },
+    )
     val settings by vm.settings.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val navController = LocalNavController.current

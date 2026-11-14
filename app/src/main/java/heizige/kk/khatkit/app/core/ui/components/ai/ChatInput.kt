@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ai
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.drawWithCache
 import heizige.kk.khatkit.uikit.mochi.KkGrowRiseText
+import heizige.kk.khatkit.uikit.mochi.KkRisingText
 import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
@@ -1210,11 +1211,11 @@ private fun ChatInputTextField(
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         if (state.textContent.text.isEmpty()) {
-                            Text(
+                            // 计数器式进场：每个字符从基线下方升上来（MochiCounterText 同款弹簧）
+                            KkRisingText(
                                 text = placeholder,
                                 style = MochiTheme.textStyles.body,
                                 color = cs.onSurfaceVariant.copy(alpha = 0.7f),
-                                maxLines = 1,
                             )
                         }
                         if (inputMotionEnabled) {

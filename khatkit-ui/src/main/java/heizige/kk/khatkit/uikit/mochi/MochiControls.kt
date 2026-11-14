@@ -8,6 +8,7 @@ import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.utils.MochiHapticProfile
 import androidx.compose.ui.draw.clip
 import androidx.compose.animation.core.Animatable
+import ui.feice.mochi.effect.content.mochiAnimateHeight
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.MaterialTheme
@@ -593,6 +594,8 @@ fun MochiOptionItem(
     // 行尾「›」：点进去是下一级页面的行才开（同 MochiListRow 的 chevron）。
     // 弹窗/选择器/开关/外链行不开。画在 trailingContent 之后，见 [KkChevron]。
     chevron: Boolean = false,
+    // 行内边距：默认 Mochi 列表行度量（左右 16 / 上下 8）；嵌在别人的卡片里时可收小。
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
     // 交互照 Mochi 列表行（MochiListRow）：不形变、没有水波纹和触觉，按下整行灰底高亮、松手淡出。
     // 分组卡片（KkGroupedColumn）里的行把按下强度交给组，分隔线跟着淡出；底色默认透明，透出组的底色。
@@ -618,7 +621,7 @@ fun MochiOptionItem(
             // UI-1：行高对齐 Mochi 列表行 56dp。40dp 头像/图标 + 上下各 8dp = 56dp；
             // 纯文字行靠 heightIn 托到 56dp（原来上下各 12dp，带 40dp 头像时是 64dp）。
             .heightIn(min = minHeight)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -705,11 +708,25 @@ fun MochiExpandableOptionItem(
     contentBackgroundColor: Color = Color.Unspecified,
     /** 旧 Kedge 参数：展开内容是否与标题行同卡（Mochi 侧内容总在同一列内，语义保留）。 */
     wrapContent: Boolean = false,
+    /** 标题行内边距，见 [MochiOptionItem.contentPadding]。 */
+    rowContentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
     /** 展开内容（旧 Kedge 用 expandedContent 命名）。 */
     expandedContent: (@Composable () -> Unit)? = null,
     content: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    // 展开/收起照 Mochi 列表卡的做法：容器高度走 mochiAnimateHeight（spring 1.0/380f），
+    // 不是「高度+淡入」两段式；连续点击会在过渡途中改目标高度。
+    // 整块（标题行 + 展开内容）裁成同一个圆角：展开后内容的角与行按下的涟漪完全对齐；
+    // 高度动画只管高度，不改变外形。
+    // 展开箭头：收起时朝右（›），展开时转 90° 朝下，弹性跟 Mochi 列表页的展开一致
+    @Suppress("UNUSED_VARIABLE")
+    val chevronState = androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (contentVisible) 90f else 0f,
+        animationSpec = ui.feice.mochi.anim.MochiMotions.responseSpring(0.3f, 0.6f),
+        label = "expand_chevron",
+    )
+    val chevronRotation = chevronState.value
+    Column(modifier = modifier.fillMaxWidth().clip(shape).mochiAnimateHeight()) {
         MochiOptionItem(
             onClick = {
                 onClick?.invoke()
@@ -721,7 +738,24 @@ fun MochiExpandableOptionItem(
             overlineContent = overlineContent,
             titleContent = titleContent,
             supportingContent = supportingContent,
-            trailingContent = trailingContent,
+            trailingContent = if (showChevron || trailingContent != null) {
+                {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        trailingContent?.invoke()
+                        if (showChevron) {
+                            Box(Modifier.graphicsLayer { rotationZ = chevronRotation }) {
+                                KkChevron()
+                            }
+                        }
+                    }
+                }
+            } else {
+                null
+            },
+            contentPadding = rowContentPadding,
         )
         if (contentVisible) {
             Box(modifier = Modifier.padding(contentPadding)) {

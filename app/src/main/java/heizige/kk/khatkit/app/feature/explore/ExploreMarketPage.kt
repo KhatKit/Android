@@ -133,6 +133,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
+import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
+import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
+import heizige.kk.khatkit.app.feature.tools.helper.toolTitle
 import ui.feice.mochi.basic.MochiActivityIndicator
 import ui.feice.mochi.basic.MochiCarousel
 import ui.feice.mochi.basic.MochiChip
@@ -145,6 +148,8 @@ import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListCard
 import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.icons.MochiIonicon
+import ui.feice.mochi.list.MochiListLeadingStyle
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.navigation.MochiTitleBar
 import kotlin.math.abs
@@ -516,11 +521,20 @@ fun ExploreMarketPage() {
     // 本机内容（本机卡片 / 本地工具 / 已装技能与 MCP）不再平铺在这一页：这一页只负责
     // **发现与下载**，本机有什么去「本地」二级页看。
     val marketList: @Composable (Modifier, PaddingValues) -> Unit = { listModifier, listPadding ->
-        // 列表本身不再提供左右内边距（轮播要铺满整屏），改由每个分区自己带一份 [sectionPad]：
-        // LazyRow / Column 加上它之后的 viewport 仍是「16dp → 屏宽-16dp」，和原来逐像素等价。
-        val sectionPad = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+        // 左右内边距**统一由列表的 contentPadding 给**（和工具台的列表同一个做法）：
+        // 懒加载分组（mochiListSection）的行是 LazyColumn 的直接子项，拿不到逐项 Modifier，
+        // 若还像以前那样逐项塞 sectionPad，分组卡片会从屏幕左边缘铺到右边缘、和其它分区不对齐。
+        // 需要铺满整屏的两项（精选轮播、chip 轨道）各自往外扩回去，见 fullBleed / MochiChipGroup(bleed=)。
+        // [sectionPad] 保留为占位符：调用点只表达"这是铺满一行的区域"，不再夹带边距。
+        val sectionPad = Modifier.fillMaxWidth()
+        // 列表的左右 16dp 由 contentPadding 统一给；铺满整屏的项（轮播）用这个把它抵消掉，
+        // 否则相邻卡就露不出屏幕边缘。Reported 宽度不变，只是把内容往外画。
+        val fullBleed = Modifier.layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints.copy(maxWidth = constraints.maxWidth + 32.dp.roundToPx()))
+            layout(constraints.maxWidth, placeable.height) {
+                placeable.place(-16.dp.roundToPx(), 0)
+            }
+        }
         // 精选轮播这一项是否出现（原来进到 content lambda 里才算）。它决定悬浮筛选栏在列表
         // 里的位号 [chipItemIndex]，而 sticky 有没有钉住又要靠这个位号判断，所以在
         // LazyColumn 之前先算出来。
@@ -529,15 +543,22 @@ fun ExploreMarketPage() {
         // 搜索关键词必须在 LazyColumn 之前取出来：LazyColumn 的 content lambda 不是
         // @Composable 上下文，里面只有 item {} 的 lambda 里才能调 stringResource。
         val featuredKeywords = stringResource(R.string.explore_market_featured_search_keywords)
+        // 同理：卡片分组的懒加载小标题也要在 LazyColumn 之前取好（LazyListScope 不是 @Composable）。
+        val cardsSectionHeader = stringResource(R.string.explore_market_chip_cards)
         // **Miuix 下整项不渲染**（主人判定：这个风格的轮播太丑，宁可不放）。精选卡本身不会消失，
         // 它照旧出现在下面同一筛选条件下的卡片网格里；这一项没有，chip 栏自己就是首项（[chipItemIndex]）。
         val showFeatured =
             cardsVisible && matches(featuredKeywords) &&
             (featuredCards.isNotEmpty() || featuredPending)
+        // 懒加载分组（mochiListSection）的各行要跨过列表的项间距连成一张卡片，
+        // 所以把同一个间距提供进去（Mochi 的懒加载骨架自己会提供；这里是自己写的 LazyColumn）。
+        CompositionLocalProvider(LocalMochiListItemSpacing provides MochiListDefaults.SectionSpacing) {
         LazyColumn(
             state = marketListState,
             modifier = listModifier,
-            contentPadding = listPadding,
+            // 左右 16dp 统一给在这里：懒加载分组的行是列表的直接子项，只有这样分组卡片
+            // 才能和其它分区（骨架 / 空状态 / 页脚）左右对齐。铺满整屏的两项各自反向外扩。
+            contentPadding = listPadding + PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
             // 首项 = 页面大标题 + 一行说明 + Mochi 搜索框：顶栏的紧凑标题只在滚上去后渐显，
@@ -635,7 +656,7 @@ fun ExploreMarketPage() {
                         MochiCarousel(
                             pageCount = featuredCards.size,
                             height = 208.dp,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().then(fullBleed),
                             spacing = 12.dp,
                             cornerRadius = FeaturedCorner,
                         ) { page ->
@@ -681,7 +702,8 @@ fun ExploreMarketPage() {
             // 只剩一条轨道、一个「全部」，行内不再有分组标题。
             // 轨道是 [MochiChipGroup]：横向滚动、左右 16dp 起止，chip 能滑到屏幕边缘。
             item(key = "filter_chips") {
-                MochiChipGroup(modifier = Modifier.fillMaxWidth()) {
+                // chip 轨道自己也按 16dp 起止并要能滑到屏幕边：抵消掉列表那一档内边距。
+                MochiChipGroup(modifier = Modifier.fillMaxWidth().then(fullBleed)) {
                     MarketChip.entries.forEach { chip ->
                         MarketFilterChip(
                             selected = chip == selectedChip,
@@ -713,56 +735,64 @@ fun ExploreMarketPage() {
             }
 
             // 一级页只铺 preview 张，全量列表按需进二级页（卡片市场）。
-            // 卡片区与工具台保持一致：两列、统一高度、卡片内直接给出安装动作，
-            // 用户可以先扫标题和描述，再决定进入详情还是直接安装。
+            //
+            // **懒布局**：卡片行走 [mochiListSection]（LazyListScope 扩展），每行是 LazyColumn 的
+            // **独立一项**——滑到哪组合到哪，不再整组塞进一个 item{} 里用 Column 一次铺完。
+            // 视觉上仍是一张 Mochi 分组卡片：首行上圆角、末行下圆角，行间分隔线从文字起点画、
+            // 按下时上下两条一起淡出。组内要跨过列表的项间距，所以外层 LazyColumn 提供了
+            // LocalMochiListItemSpacing（见下面的 CompositionLocalProvider）。
+            //
+            // 行形态与「工具台」（ToolCataloguePage 列表视图）完全同形：行首工具分类符号图标
+            // （MochiListLeadingStyle.Symbol，不铺底块），行尾安装 / 更新动作。
             //
             // 不再有「外部脚本卡片」这类分区标题：内容类型由每行前置图标自报
             // （卡片 extension / 技能 school / MCP dns / 合集包 package2 / 模型 memory /
             // 依赖 deployed_code），整页只留「发现」本身，管理入口在顶栏的「本地」。
             if (cardsVisible && cardsMatched.isNotEmpty()) {
-                item(key = "cards") {
-                    val preview = cardsMatched.take(CARD_PREVIEW_COUNT)
-                    // 还有剩的才给入口：卡不多时点进去是个和这页一样的列表。
-                    val remaining = cardsMatched.size - preview.size
-                    MochiListSection(
-                        modifier = swapIn(sectionPad),
-                        header = stringResource(R.string.explore_market_chip_cards),
-                    ) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth().padding(8.dp),
-                            maxItemsInEachRow = 2,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            preview.forEach { entry ->
-                                MarketGridCard(
-                                    modifier = Modifier.fillMaxWidth(0.48f),
-                                    entry = entry,
-                                    installedVersion = installed[entry.name],
-                                    triggers = triggers[entry.name] ?: entry.triggers,
-                                    hubInfo = hubInfo[entry.name],
-                                    busy = busyCard == entry.name,
-                                    onClick = { navController.navigate(Screen.ExploreCardDetail(entry.name)) },
-                                    onInstall = {
-                                        vm.install(entry) { ok ->
-                                            scope.launch {
-                                                Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok)
-                                            }
-                                        }
-                                    },
-                                    onUpdate = {
-                                        vm.update(entry) { ok ->
-                                            scope.launch {
-                                                Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok)
-                                            }
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                        if (remaining > 0) {
+                val preview = cardsMatched.take(CARD_PREVIEW_COUNT)
+                // 还有剩的才给入口：卡不多时点进去是个和这页一样的列表。
+                val remaining = cardsMatched.size - preview.size
+                // 「查看全部 N」的标题只能在 row{} 的 @Composable 内容里取（LazyListScope 不是
+                // @Composable 上下文，外面这个 lambda 也不是）。
+                mochiListSection(
+                    key = "cards",
+                    header = cardsSectionHeader,
+                ) {
+                    rows(
+                        items = preview,
+                        key = { entry -> entry.name },
+                        contentType = { "market_card" },
+                    ) { entry ->
+                        MarketCardRow(
+                            entry = entry,
+                            installedVersion = installed[entry.name],
+                            triggers = triggers[entry.name] ?: entry.triggers,
+                            hubInfo = hubInfo[entry.name],
+                            busy = busyCard == entry.name,
+                            onClick = { navController.navigate(Screen.ExploreCardDetail(entry.name)) },
+                            onInstall = {
+                                vm.install(entry) { ok ->
+                                    scope.launch {
+                                        Toast.show(if (ok) toastInstalledNamed.format(entry.name) else toastInstallFailed, !ok)
+                                    }
+                                }
+                            },
+                            onUpdate = {
+                                vm.update(entry) { ok ->
+                                    scope.launch {
+                                        Toast.show(if (ok) toastUpdatedNamed.format(entry.name) else toastUpdateFailed, !ok)
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    if (remaining > 0) {
+                        row(key = "view_all") {
                             MochiListRow(
-                                title = stringResource(R.string.explore_market_view_all_cards_count, cardsMatched.size),
+                                title = stringResource(
+                                    R.string.explore_market_view_all_cards_count,
+                                    cardsMatched.size,
+                                ),
                                 onClick = { navController.navigate(Screen.ExploreCards(query)) },
                                 chevron = true,
                             )
@@ -1028,6 +1058,8 @@ fun ExploreMarketPage() {
                 }
             }
         }
+        }
+
     }
 
     // 外层 Box：整页（Scaffold + 所有浮层）收进同一个容器里。资源详情走 MochiSheet，遮罩由面板自己给。
@@ -1394,7 +1426,7 @@ private fun cardsList(
                         key = { entry -> entry.name },
                         contentType = { "market_card" },
                     ) { entry ->
-                        CompactCard(
+                        MarketCardRow(
                             entry = entry,
                             installedVersion = installed[entry.name],
                             triggers = triggers[entry.name] ?: entry.triggers,
@@ -1411,101 +1443,15 @@ private fun cardsList(
     }
 }
 
-/** 探索市场首屏卡片：沿用工具台的 MochiListCard 信息层级，详情点击与安装动作分开。 */
+/**
+ * 当前语言列表，与工具台（ToolCataloguePage）取的是同一份口径（配置里的 locales，
+ * 按优先级展开成 BCP-47 标签）—— 同一个工具在两个页面解析出的标题 / 简介因此一致。
+ */
 @Composable
-private fun MarketGridCard(
-    entry: CardIndexEntry,
-    installedVersion: String?,
-    triggers: List<String>,
-    hubInfo: HubCardMarketInfo?,
-    busy: Boolean,
-    onClick: () -> Unit,
-    onInstall: () -> Unit,
-    onUpdate: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val installState = installedVersion?.let { cardInstallState(it, entry.version) }
-    val meta = cardMetaLine(entry, triggers, hubInfo, stateLabel = null)
-    MochiListCard(
-        modifier = modifier
-            .heightIn(min = 178.dp)
-            .mochiPressDeform()
-            .clickable(interaction, indication = null, onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                RowIcon(extension)
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = "v${installedVersion ?: entry.version}",
-                    style = MochiTheme.textStyles.labelSmall.tabular(),
-                    color = MochiTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text(
-                text = entry.name,
-                style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = entry.summary.ifBlank { entry.description }.ifBlank { entry.author },
-                style = MochiTheme.textStyles.footnote,
-                color = MochiTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            Text(
-                text = meta,
-                style = MochiTheme.textStyles.labelSmall.tabular(),
-                color = MochiTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (busy) {
-                    MochiActivityIndicator(Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("处理中", style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.primary)
-                } else {
-                    Text(
-                        text = when (installState) {
-                            CardInstallState.INSTALLED -> "已安装"
-                            CardInstallState.UPDATE -> "有更新"
-                            else -> "未安装"
-                        },
-                        style = MochiTheme.textStyles.footnote,
-                        color = if (installState == CardInstallState.INSTALLED) {
-                            MochiTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MochiTheme.colorScheme.primary
-                        },
-                    )
-                    Spacer(Modifier.weight(1f))
-                    MochiButton(
-                        onClick = if (installState == CardInstallState.UPDATE) onUpdate else onInstall,
-                        style = if (installState == CardInstallState.INSTALLED) MochiButtonStyle.Tonal else MochiButtonStyle.Filled,
-                        enabled = installState != CardInstallState.INSTALLED,
-                        minHeight = 32.dp,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Text(
-                            text = when (installState) {
-                                CardInstallState.UPDATE -> "更新"
-                                CardInstallState.INSTALLED -> "已安装"
-                                else -> "安装"
-                            },
-                            style = MochiTheme.textStyles.labelMedium,
-                        )
-                    }
-                }
-            }
-        }
+private fun rememberToolLocales(): List<String> {
+    val configuration = LocalConfiguration.current
+    return remember(configuration) {
+        (0 until configuration.locales.size()).map { configuration.locales[it].toLanguageTag() }
     }
 }
 
@@ -2474,11 +2420,15 @@ private fun cardMetaLine(
 }
 
 /**
- * 二级卡片市场的列表单元：一行 [MochiListRow] —— 行首图标（[extension]）+ 名称 + 摘要 / 元信息两行
- * + 行尾安装状态。首屏使用上面的 [MarketGridCard] 两列卡片。
+ * 卡片市场的一行，**与工具台（ToolCataloguePage 的列表视图）逐项同形**：
+ * 行首是工具分类符号图标（[MochiListLeadingStyle.Symbol]，不铺底块，工具台就是这个样子），
+ * 标题走 [toolTitle]、副标题走 [toolDescription] —— 和工具台读同一份本地化字段，
+ * 所以同一个工具在两页显示的名字、简介完全一致；行尾保留安装 / 更新 / 已装动作。
+ *
+ * 一级页的预览区与二级「卡片市场」全量列表共用这一行。
  */
 @Composable
-private fun CompactCard(
+private fun MarketCardRow(
     entry: CardIndexEntry,
     installedVersion: String?,
     triggers: List<String>,
@@ -2494,15 +2444,18 @@ private fun CompactCard(
     // 状态判定与轮播药丸同一套。
     val installState = installedVersion?.let { cardInstallState(it, entry.version) }
     val meta = cardMetaLine(entry = entry, triggers = triggers, hubInfo = hubInfo, stateLabel = null)
+    val locales = rememberToolLocales()
     MochiListRow(
-        title = entry.name,
+        // 工具台用「本地化标题 + 本地化简介」；本地化缺失时两者都会退回名称 / 原始简介。
+        title = entry.toolTitle(locales),
         modifier = modifier,
-        // 摘要一行、元信息一行（副标题最多两行）。
-        subtitle = listOf(entry.summary.ifBlank { entry.description }, meta)
+        // 简介一行、元信息一行（副标题最多两行），与工具台同字段。
+        subtitle = listOf(entry.toolDescription(locales).ifBlank { entry.summary }, meta)
             .filter { it.isNotBlank() }
             .joinToString("\n")
             .takeIf { it.isNotBlank() },
-        leading = { RowIcon(extension) },
+        leading = { MochiIonicon(entry.toolCategory().icon, tint = MochiTheme.colorScheme.primary) },
+        leadingStyle = MochiListLeadingStyle.Symbol,
         onClick = onClick,
         loading = busy,
         trailing = if (busy) {

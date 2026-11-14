@@ -5,7 +5,7 @@ do
   local fields = {
     TextField="string", NumberField="number", Switch="boolean", Checkbox="boolean",
     Slider="number", Select="string", RadioGroup="string", FilePicker="paths", DirPicker="string",
-    CounterButton="number",
+    CounterButton="number", ChipRow="string_or_strings", Dropdown="string",
   }
   -- Icon 名单与运行时 UiIcons.names 一致（khatkit 的 UiIconsTest 会比对两份）。
   local icons = {}
@@ -19,7 +19,8 @@ do
     insert_drive_file key verified_user
     brand_baidu brand_xhs brand_kuaishou brand_weibo brand_douyin brand_bilibili brand_pixiv
     brand_github brand_quark brand_uc brand_xunlei brand_c139
-    casino emoji_events]]):gmatch("%S+") do icons[name] = true end
+    casino emoji_events
+    text_fields subject notes translate format_list_numbered data_object]]):gmatch("%S+") do icons[name] = true end
   local schemas = {
     Column={spacing="number",hAlign="start|center|end",scrollable="boolean",modifier="modifier"},
     Row={spacing="number",vAlign="start|center|end|space_between",modifier="modifier"},
@@ -38,6 +39,8 @@ do
     NumberField={min="number",max="number",step="number"},
     Switch={}, Checkbox={}, Slider={min="number",max="number",step="number"},
     Select={options="strings"}, RadioGroup={options="strings"},
+    ChipRow={action="string",options="strings",icons="strings",multiple="boolean",wrap="boolean",disabled="boolean",modifier="modifier"},
+    Dropdown={action="string",options="strings",icon="icon",disabled="boolean",modifier="modifier"},
     FilePicker={filter="image|video|audio|document|any",multiple="boolean"}, DirPicker={},
     CounterButton={action="string",count="number",localCount="number",caption="string",
       revision="number",disabled="boolean",tone="primary|default",modifier="modifier"},
@@ -55,7 +58,8 @@ do
   local function number(v) return type(v)=="number" and v==v and math.abs(v)<math.huge end
   local color_roles = {}
   for role in ([[surface on_surface on_surface_variant surface_container surface_container_high
-    surface_container_highest outline_variant primary on_primary error error_container on_error_container]]):gmatch("%S+") do
+    surface_container_highest outline_variant primary on_primary
+    primary_container on_primary_container error error_container on_error_container]]):gmatch("%S+") do
     color_roles[role] = true
   end
   local function color(v)
@@ -133,6 +137,15 @@ do
     elseif kind=="strings" or (kind=="paths" and type(v)=="table") then
       array(v,where)
       for _,s in ipairs(v) do if type(s)~="string" then fail(where,"expected string array") end end
+    elseif kind=="string_or_strings" then
+      if type(v)=="string" then
+        -- ok
+      elseif type(v)=="table" then
+        array(v,where)
+        for _,s in ipairs(v) do if type(s)~="string" then fail(where,"expected string array") end end
+      else
+        fail(where,"expected string or string array")
+      end
     elseif kind=="number" then
       if not number(v) then fail(where,"expected finite number") end
     elseif kind=="color" then

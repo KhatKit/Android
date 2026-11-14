@@ -76,7 +76,10 @@ import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {
-    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(creationCallback = { it.create(id) })
+    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(
+        key = "workspace-$id",
+        creationCallback = { it.create(id) },
+    )
     val state by vm.state.collectAsStateWithLifecycle()
     val sessionManager: WorkspaceTerminalSessionManager = rememberAppEntryPoint().workspaceTerminalSessionManager()
     val root = state.workspace?.root

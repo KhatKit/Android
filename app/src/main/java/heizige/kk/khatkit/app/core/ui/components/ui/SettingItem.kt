@@ -115,7 +115,19 @@ fun SettingGroup(
  *
  * [visible]：依赖别的设置才出现的行传条件，不要包 `if`，显隐才有展开/收起动画。
  */
-fun CardGroupScope.settingItem(item: SettingItem, visible: Boolean = true) = setItem(item, visible)
+fun CardGroupScope.settingItem(
+    item: SettingItem,
+    visible: Boolean = true,
+    anchor: String? = settingAnchor(item.titleRes),
+) = setItem(item, visible, anchor)
+
+/**
+ * 设置项在搜索定位里的锚点：由标题资源 id 派生，**不需要每个调用点手写**。
+ *
+ * 只在同一进程、同一次构建内比对（搜索结果 → 目标页高亮），所以用资源 id 是安全的：
+ * id 在构建之间会变，但锚点从不落盘、不进路由、不跨版本。
+ */
+fun settingAnchor(@StringRes titleRes: Int): String = "r" + titleRes
 
 /**
  * 左标题 + 右开关的紧凑行，用于表单中间（不在 [CardGroup] 分组内）。
@@ -243,7 +255,11 @@ fun SliderValueText(text: String) {
     )
 }
 
-private fun CardGroupScope.setItem(item: SettingItem, visible: Boolean = true) {
+private fun CardGroupScope.setItem(
+    item: SettingItem,
+    visible: Boolean = true,
+    anchor: String? = null,
+) {
     val sliderValueText = (item as? SliderSetting)?.let {
         it.valueLabel?.invoke(it.value) ?: "${(it.value * 100).toInt()}%"
     }
@@ -259,6 +275,7 @@ private fun CardGroupScope.setItem(item: SettingItem, visible: Boolean = true) {
     item(
         visible = visible,
         chevron = item is NavSetting,
+        anchor = anchor,
         // 只有导航行给整行点击。开关行照 Mochi（iOS）：行本身不可点、不高亮，只有开关能拨。
         onClick = when (item) {
             is NavSetting -> item.onClick
@@ -351,6 +368,7 @@ fun CardGroupScope.sliderItem(
     description: (@Composable () -> String)? = null,
     onValueChangeFinished: (() -> Unit)? = null,
     supporting: (@Composable () -> Unit)? = null,
+    anchor: String? = null,
 ) {
     val editor = SliderValueEditor(
         value = value,
@@ -367,6 +385,7 @@ fun CardGroupScope.sliderItem(
     item(
         modifier = modifier,
         visible = visible,
+        anchor = anchor,
         headlineContent = {
             SliderTitleRow(
                 title = title(),

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import android.content.Context
 import android.content.Intent
@@ -113,6 +114,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             )
                         },
                         // 点了是弹出暂停时长对话框，不是进二级页，所以行尾不放 ›
+                        anchor = settingAnchor(R.string.setting_display_page_show_updates_title),
                     )
                     settingItem(
                         SwitchSetting(
@@ -125,7 +127,8 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                                 }
                                 updateDisplaySetting(displaySetting.copy(enableNotificationOnMessageGeneration = it))
                             },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_notification_message_generated),
                     )
                     settingItem(
                         SwitchSetting(
@@ -135,6 +138,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                             onCheckedChange = { updateDisplaySetting(displaySetting.copy(enableLiveUpdateNotification = it)) },
                         ),
                         visible = displaySetting.enableNotificationOnMessageGeneration,
+                        anchor = settingAnchor(R.string.setting_display_page_live_update_notification),
                     )
                     settingItem(
                         SwitchSetting(
@@ -145,7 +149,8 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                                 if (enabled) ensureOverlayPermission(context)
                                 updateDisplaySetting(displaySetting.copy(enableFloatingChatWindow = enabled))
                             },
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_floating_chat),
                     )
                 }
             }

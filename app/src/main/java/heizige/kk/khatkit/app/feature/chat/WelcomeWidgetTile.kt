@@ -51,11 +51,13 @@ import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.feature.tools.ToolCatalogueWidget
+import heizige.kk.khatkit.app.feature.extensions.TerminalPluginInfo
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.ui.CardWidgetLayout
@@ -98,6 +100,7 @@ internal fun WelcomeWidgetBoard(
     widgets: List<WelcomeWidget>,
     locales: List<String>,
     manager: ChatWelcomeManager,
+    terminalEnabled: Boolean,
     editing: Boolean,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -112,11 +115,12 @@ internal fun WelcomeWidgetBoard(
     var width by remember { mutableIntStateOf(0) }
     val geometry = remember(width, gap, maxCell) { WidgetGridGeometry.of(width, gap, maxCell) }
     val cardNames = widgets.map { it.card.manifest.name }
-    val names = manager.itemOrder(cardNames + ALL_TOOLS_WIDGET)
+    val names = manager.itemOrder(cardNames + listOfNotNull(TERMINAL_WIDGET.takeIf { terminalEnabled }, ALL_TOOLS_WIDGET))
     val cards = remember(widgets, names) { widgets.associateBy { it.card.manifest.name } }
     // 「添加」那格排在最后，只占位置、不参与换序。
     val sizes = names.map { name ->
         if (name == ALL_TOOLS_WIDGET) manager.itemSize(name, WidgetSizeLimits.ALL_TOOLS.default)
+        else if (name == TERMINAL_WIDGET) manager.itemSize(name, WidgetSizeLimits.TERMINAL.default)
         else cards[name]?.size ?: WidgetCells(4, 1)
     } + listOfNotNull(AddTileCells.takeIf { editing })
     val rects = remember(sizes, geometry) { widgetRects(sizes, geometry) }
@@ -150,7 +154,72 @@ internal fun WelcomeWidgetBoard(
         modifier = modifier.fillMaxWidth().onSizeChanged { width = it.width }.zIndex(if (active) 1f else 0f),
     ) {
         names.forEachIndexed { index, name ->
-            if (name == ALL_TOOLS_WIDGET) {
+            if (name == TERMINAL_WIDGET) {
+                key(name) {
+                    val state = remember { states.getOrPut(name) { WidgetResizeState(scope) } }
+                    val size = manager.itemSize(name, WidgetSizeLimits.TERMINAL.default)
+                    val lifted = move.lifted(name)
+                    Box(
+                        Modifier
+                            .zIndex(if (lifted || state.edge != null) 1f else 0f)
+                            .then(Modifier.widgetResizePreview(state.preview))
+                            .graphicsLayer {
+                                val offset = move.translation(name, slot(name))
+                                translationX = offset.x
+                                translationY = offset.y
+                            }
+                            .then(
+                                if (editing) Modifier.pointerInput(name) {
+                                    detectDragGestures(
+                                        onDragStart = {
+                                            move.start(name, slot(name))
+                                            haptics.dragStarted()
+                                        },
+                                        onDragEnd = {
+                                            haptics.dragStopped()
+                                            move.drop(slot(name), reduceMotion)
+                                            manager.persistOrder()
+                                        },
+                                        onDragCancel = {
+                                            haptics.dragStopped()
+                                            move.drop(slot(name), reduceMotion)
+                                            manager.persistOrder()
+                                        },
+                                    ) { change, amount ->
+                                        change.consume()
+                                        dragged(name, amount)
+                                    }
+                                } else Modifier,
+                            ),
+                    ) {
+                        TerminalShortcutWidget(
+                            modifier = Modifier.fillMaxSize(),
+                            enabled = !editing,
+                            onOpen = { nav?.navigate(Screen.Plugin(TerminalPluginInfo.ID), source = widgetSourceKey(name)) },
+                        )
+                        if (editing) {
+                            Box(Modifier.matchParentSize().mochiBorder(2.dp, MochiTheme.colorScheme.primary.copy(alpha = 0.55f), MochiRoundedRectangle(tileCorner()))) {
+                                WidgetResizeHandles(
+                                    size = size,
+                                    limits = WidgetSizeLimits.TERMINAL,
+                                    geometry = geometry,
+                                    state = state,
+                                    haptics = haptics,
+                                    reduceMotion = reduceMotion,
+                                    onResize = { manager.setSize(name, it, persist = false) },
+                                    onResizeEnd = { manager.setSize(name, size, persist = true) },
+                                )
+                                RemoveBadge(
+                                    stringResource(R.string.chat_widget_remove, "终端"),
+                                    { 1f },
+                                ) {
+                                    manager.setTerminalEnabled(false)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (name == ALL_TOOLS_WIDGET) {
                 key(name) {
                     val state = remember { states.getOrPut(name) { WidgetResizeState(scope) } }
                     val size = manager.itemSize(name, WidgetSizeLimits.ALL_TOOLS.default)
@@ -523,6 +592,46 @@ private fun AddWidgetTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+/** Welcome-page shortcut supplied by the optional Termux terminal plugin. */
+@Composable
+private fun TerminalShortcutWidget(
+    modifier: Modifier = Modifier,
+    enabled: Boolean,
+    onOpen: () -> Unit,
+) {
+    val shape = MochiRoundedRectangle(tileCorner())
+    MochiOptionItem(
+        onClick = onOpen.takeIf { enabled },
+        modifier = modifier
+            .background(MochiListDefaults.colors().container, shape)
+            .clip(shape),
+        shape = RectangleShape,
+        backgroundColor = Color.Transparent,
+        leadingContent = {
+            Icon(terminal, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.primary)
+        },
+        titleContent = {
+            Text(
+                TerminalPluginInfo.DISPLAY_NAME,
+                style = MochiTheme.textStyles.titleMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        supportingContent = {
+            Text(
+                "打开独立 Termux 终端",
+                style = MochiTheme.textStyles.body,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        chevron = enabled,
+    )
 }
 
 /**

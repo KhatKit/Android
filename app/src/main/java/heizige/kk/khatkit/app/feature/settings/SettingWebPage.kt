@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import heizige.kk.khatkit.uikit.mochi.Md3TextField
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Intent
@@ -234,6 +235,7 @@ fun SettingWebPage() {
                                 )
                             )
                         },
+                        anchor = settingAnchor(R.string.setting_page_web_server_port),
                     )
                     settingItem(
                         SwitchSetting(
@@ -248,7 +250,8 @@ fun SettingWebPage() {
                                     }
                             },
                             enabled = !serverState.isRunning,
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_page_web_server_localhost_only),
                     )
                     settingItem(
                         SwitchSetting(
@@ -263,7 +266,8 @@ fun SettingWebPage() {
                                     }
                             },
                             enabled = settings.webServerJwtEnabled || accessPasswordText.isNotBlank(),
-                        )
+                        ),
+                        anchor = settingAnchor(R.string.setting_page_web_server_jwt_enable),
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_page_web_server_password)) },
@@ -307,6 +311,7 @@ fun SettingWebPage() {
                                 )
                             )
                         },
+                        anchor = settingAnchor(R.string.setting_page_web_server_password),
                     )
                     // 服务地址几行跟着服务启停显隐：行一直占位、只切 visible，启停时展开/收起，不再一下蹦出来
                     val running = serverState.isRunning

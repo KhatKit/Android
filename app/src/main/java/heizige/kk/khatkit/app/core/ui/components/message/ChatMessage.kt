@@ -267,14 +267,17 @@ fun ChatMessage(
             // 昵称行保留：原先它与头像共用一个开关（showUserAvatarLine），开关随「删消息头像」
             // 一并删掉后这里改成无条件显示 —— 与默认开启时逐像素一致，不新增设置项。
             // 字号/字重沿用助手侧名字槽那套（脚注 + 半粗），否则两行名字一眼就能看出大小差。
-            Text(
-                text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // 单聊不显示「我」的名字：名字只有在多角色（群聊）里才有辨识意义
+            if (groupChat) {
+                Text(
+                    text = settings.userNickname.ifEmpty { stringResource(R.string.user_default_name) },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             messageBody()
         }
     } else {
@@ -294,7 +297,8 @@ fun ChatMessage(
                 modelNameFallback = node.snapshotDisplayName(message.id),
                 assistant = assistant,
             )
-            if (label != null || speakerBadge != null) {
+            // 单聊不显示助手名 / 模型名（同上：只在群聊里有意义），错误徽章照旧显示
+            if (groupChat && (label != null || speakerBadge != null)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -314,7 +318,24 @@ fun ChatMessage(
                     }
                 }
             }
-            messageBody()
+            // 整条助手消息共用一张卡：思考链 / 正文 / 询问表单都落在这层背景里。
+            // 用户把「助手气泡」关掉时保持裸排版，内层各块照旧自己找背景。
+            if (settings.showAssistantBubble) {
+                androidx.compose.runtime.CompositionLocalProvider(LocalAssistantCard provides true) {
+                    KkSurface(
+                        // 整条消息一个大圆角（Mochi 列表卡 26dp），里面所有行都不带圆角
+                        shape = AssistantMessageShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                            .copy(alpha = settings.bubbleOpacity),
+                    ) {
+                        Column(modifier = Modifier.padding(ChatBubblePadding)) {
+                            messageBody()
+                        }
+                    }
+                }
+            } else {
+                messageBody()
+            }
         }
     }
 
@@ -379,6 +400,7 @@ private fun MessagePartsBlock(
     onUserMessageClick: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
+    val insideAssistantCard = LocalAssistantCard.current
     val contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
 
     // 助手气泡底色。**Miuix 下必须用卡片色**：那边 `surfaceContainerHigh` 只比页面底色亮一档
@@ -433,19 +455,21 @@ private fun MessagePartsBlock(
             }
             is MessagePartBlock.ThinkingBlock -> {
                 if (block.steps.isNotEmpty()) {
-                    // 全是圆角底块（推理 / 工具调用）时不要卡片底：连时间线槽与内边距一起去掉，
-                    // 让 OptionItem 底块直接铺满消息宽度（见 ChainOfThought.showTimeline）
-                    val isOptionItemOnlyBlock = block.steps.fastAll { it.usesOptionItemStyle() }
-                    val hasOptionItemStep = block.steps.any { it.usesOptionItemStyle() }
+                    // 整条链共用一个背景卡：推理 / 工具调用 / 询问用户都套在这张卡里，
+                    // 行自己的底块变透明（optionRowBackground），只靠时间线和行距分层。
                     ChainOfThought(
                         modifier = Modifier.kkAnimateContentSize(),
                         steps = block.steps,
-                        showTimeline = !isOptionItemOnlyBlock,
+                        // 不要左侧竖线：卡片底 + 行内分隔线就够分层了
+                        showTimeline = false,
+                        optionRowBackground = Color.Transparent,
+                        showRowDivider = true,
                         cardColors = CardDefaults.cardColors(
-                            containerColor = if (hasOptionItemStep) {
+                            containerColor = if (insideAssistantCard) {
                                 Color.Transparent
                             } else {
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = settings.displaySetting.bubbleOpacity)
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                                    .copy(alpha = settings.displaySetting.bubbleOpacity)
                             },
                         ),
                     ) { step ->
@@ -506,7 +530,7 @@ private fun MessagePartsBlock(
                                         )
                                     }
                                 }
-                            } else if (settings.displaySetting.showAssistantBubble) {
+                            } else if (settings.displaySetting.showAssistantBubble && !insideAssistantCard) {
                                 // 开关**默认开**（`DisplaySetting.showAssistantBubble`）。
                                 // 老安装的 JSON 里躺着显式 false（该字段随 encodeDefaults
                                 // 一起落盘），由 `PreferenceStoreV6Migration` 一次性翻成 true，
@@ -793,4 +817,13 @@ private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
 // 消息气泡度量（用户 / 助手两侧共用）：Mochi 连续曲率圆角 18dp + 横 14 / 纵 9 内边距，
 // 取自 Mochi 示例的 DemoChatBubble。
 private val ChatBubbleShape = MochiRoundedRectangle(18.dp)
+
+/** 助手整条消息的共享卡：Mochi 列表卡的大圆角，卡里所有行都不再各自做圆角。 */
+private val AssistantMessageShape = MochiRoundedRectangle(ui.feice.mochi.list.MochiListDefaults.SectionCorner)
 private val ChatBubblePadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)
+
+/**
+ * 助手消息是否已经整体包进一张共享卡片（思考链 + 正文 + 询问表单共用一张卡）。
+ * 为 true 时内层正文不再自画气泡，ChainOfThought 也不再画自己的底色。
+ */
+internal val LocalAssistantCard = androidx.compose.runtime.staticCompositionLocalOf { false }

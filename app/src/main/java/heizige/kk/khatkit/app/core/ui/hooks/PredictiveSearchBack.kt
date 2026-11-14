@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.hooks
 
 import heizige.kk.khatkit.app.LocalPageRoute
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
@@ -12,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * 顶栏搜索展开状态，暴露一个 0f（标题态）→ 1f（搜索态）的跟手进度。
@@ -40,10 +42,28 @@ fun rememberSearchExpandState(
         progress.animateTo(if (expanded) 1f else 0f, animationSpec)
     }
 
-    // U7a-6：返回收敛到 PageBackInterceptor（只在展开时登记），不再自己挂 PredictiveBackHandler。
-    // 代价：搜索框收起不再跟手，改为直接把展开布尔置 false（progress 由上面的 LaunchedEffect 补间）。
-    // dragging 恒为 false，保留给调用方兼容（它们据此判断是否直接用 progress）。
+    // 预测返回跟手：展开时挂一条 PredictiveBackHandler，手势进度 0→1 映射成收起进度 1→0；
+    // 提交（松手返回）才调 onCollapse，取消则弹回展开态。
+    // PageBackInterceptor 仍然登记（只在展开时），负责吃掉「非手势」的返回（三键导航 / 旧版本），
+    // 两者分工：手势走下面这条，按键走拦截器。
     // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+    // 手势进行中直接读 progress（不做自己的补间），调用方据此避免与手势打架。
+    PredictiveBackHandler(enabled = progress.value > 0.02f) { backEvents ->
+        try {
+            backEvents.collect { event ->
+                dragging.value = true
+                progress.snapTo((1f - event.progress).coerceIn(0f, 1f))
+            }
+            // 手势提交：松手返回 → 收起（progress 由 LaunchedEffect 补间到 0）
+            dragging.value = false
+            onCollapse()
+        } catch (e: CancellationException) {
+            // 手势取消：回弹到展开态
+            dragging.value = false
+            progress.animateTo(1f, animationSpec)
+        }
+    }
+
     val expandBackTokenRoute = LocalPageRoute.current
     val expandBackToken = remember { Any() }
     DisposableEffect(expanded) {

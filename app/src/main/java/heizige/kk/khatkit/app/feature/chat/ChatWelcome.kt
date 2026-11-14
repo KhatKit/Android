@@ -88,6 +88,7 @@ import heizige.kk.khatkit.app.core.ui.icons.school
 import heizige.kk.khatkit.app.core.ui.icons.search
 import heizige.kk.khatkit.app.core.ui.icons.translate
 import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.terminal
 import heizige.kk.khatkit.app.core.ui.icons.videocam
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
@@ -183,10 +184,12 @@ private fun ChatWelcome(
             )
         }
     }
-    // 只留「卡片的小组件」和 AI 提示两种内容：用户自己装的卡片（原「我的卡片」区）不再出现在欢迎页。
+    // 欢迎页保留卡片小组件、可选的插件快捷方式和 AI 提示。
     val widgets = remember(state.widgets) { state.widgets.filter { it.enabled } }
+    val hasWidgetOptions = state.widgets.isNotEmpty() || state.terminalAvailable
+    val hasEnabledWidgets = widgets.isNotEmpty() || state.terminalEnabled
     // 编辑态里把最后一个也移除了：没东西可编辑，退回「添加小组件」那一行。
-    LaunchedEffect(widgets.isEmpty()) { if (widgets.isEmpty()) editing = false }
+    LaunchedEffect(hasEnabledWidgets) { if (!hasEnabledWidgets) editing = false }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 32.dp),
@@ -194,9 +197,9 @@ private fun ChatWelcome(
     ) {
         // 这一区常驻：没有开着的组件时，标题右侧是管理入口、列表里是全宽「添加小组件」；
         // 有组件时标题按钮切编辑态，编辑态的网格末尾多一格「添加小组件」打开管理 sheet。
-        if (state.widgets.isNotEmpty()) {
+        if (hasWidgetOptions) {
             item(key = "widgets_title", contentType = "section") {
-                val manage = widgets.isEmpty()
+                val manage = !hasEnabledWidgets
                 WelcomeSection(
                     stringResource(R.string.chat_widgets),
                     if (!manage && editing) check else edit,
@@ -210,7 +213,7 @@ private fun ChatWelcome(
                     onClick = { if (manage) widgetSheet.show() else editing = !editing },
                 )
             }
-            if (widgets.isEmpty()) {
+            if (!hasEnabledWidgets) {
                 item(key = "widgets_add", contentType = "widget") {
                     AddWidgetRow(Modifier.welcomeReveal(1)) { widgetSheet.show() }
                 }
@@ -221,6 +224,7 @@ private fun ChatWelcome(
                         widgets = widgets,
                         locales = locales,
                         manager = manager,
+                        terminalEnabled = state.terminalEnabled,
                         editing = editing,
                         onAdd = { widgetSheet.show() },
                         modifier = Modifier.welcomeReveal(1),
@@ -228,7 +232,7 @@ private fun ChatWelcome(
                 }
             }
         }
-        if (widgets.isEmpty()) {
+        if (!hasEnabledWidgets) {
             item(key = "all_tools", contentType = "widget") {
                 ToolCatalogueWidget()
             }
@@ -299,6 +303,25 @@ private fun ChatWelcome(
                         },
                     )
                 }
+                if (state.terminalAvailable) {
+                    val terminalIndex = state.widgets.size
+                    MochiOptionItem(
+                        onClick = { manager.setTerminalEnabled(!state.terminalEnabled) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = cards.indexedShape(terminalIndex, state.widgets.size + 1),
+                        leadingContent = {
+                            Icon(terminal, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.onSurfaceVariant)
+                        },
+                        titleContent = { Text("终端快捷方式", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.Medium) },
+                        supportingContent = { Text("在欢迎页添加独立 Termux 终端入口", style = MochiTheme.textStyles.body, color = MochiTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        trailingContent = {
+                            KkSwitch(
+                                checked = state.terminalEnabled,
+                                onCheckedChange = manager::setTerminalEnabled,
+                            )
+                        },
+                    )
+                }
             }
         }
     }
@@ -336,7 +359,13 @@ private fun WelcomeSection(
     onClick: () -> Unit,
     loading: Boolean = false,
 ) {
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    // 和 Mochi 的分组小标题对齐：标题缩进到卡片内文字起点（16dp 页面边距 + 16dp 行内边距）
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             title,
             Modifier.weight(1f),

@@ -27,12 +27,13 @@ const LEAVES: &[&str] = &[
     "Spacer", "Divider", "Text", "Icon", "Markdown", "Image", "Badge", "ProgressBar", "TextField",
     "NumberField", "Slider", "Switch", "Checkbox", "Select", "RadioGroup", "FilePicker",
     "DirPicker", "CounterButton", "Stepper", "Selector", "Button", "IconButton", "ListRow",
+    "ChipRow", "Dropdown",
 ];
 
 /// 表单字段组件（必须有唯一 id）。
 const FIELDS: &[&str] = &[
     "TextField", "NumberField", "Slider", "Switch", "Checkbox", "Select", "RadioGroup",
-    "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector",
+    "FilePicker", "DirPicker", "CounterButton", "Stepper", "Selector", "ChipRow", "Dropdown",
 ];
 
 /// 属性值类型（与 Kotlin UiNodeParser 的 schema 字符串一一对应）。
@@ -46,6 +47,8 @@ enum PropKind {
     Strings,
     Modifier,
     Paths,
+    /// 字符串或字符串数组（ChipRow 的 value：单选/多选共用同一字段）。
+    StrOrStrings,
     Enum(&'static [&'static str]),
 }
 
@@ -183,6 +186,24 @@ fn specific_props(kind: &str) -> Option<&'static [(&'static str, PropKind)]> {
             ("disabled", PropKind::Bool),
             ("modifier", PropKind::Modifier),
         ],
+        // Mochi 芯片行：单选（value 字符串）或多选（value 字符串数组）。
+        "ChipRow" => &[
+            ("action", PropKind::Str),
+            ("options", PropKind::Strings),
+            ("icons", PropKind::Strings),
+            ("multiple", PropKind::Bool),
+            ("wrap", PropKind::Bool),
+            ("disabled", PropKind::Bool),
+            ("modifier", PropKind::Modifier),
+        ],
+        // Mochi 下拉选择：按钮槽显示 label + 当前值，点开菜单原地回填。
+        "Dropdown" => &[
+            ("action", PropKind::Str),
+            ("options", PropKind::Strings),
+            ("icon", PropKind::Icon),
+            ("disabled", PropKind::Bool),
+            ("modifier", PropKind::Modifier),
+        ],
         _ => return None,
     };
     Some(table)
@@ -194,7 +215,7 @@ pub fn components() -> Vec<&'static str> {
         "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section", "Text", "Icon",
         "Markdown", "Image", "Badge", "ProgressBar", "TextField", "NumberField", "Slider",
         "Switch", "Checkbox", "Select", "RadioGroup", "FilePicker", "DirPicker", "CounterButton",
-        "Stepper", "Selector", "Button", "IconButton", "Group", "ListRow",
+        "Stepper", "Selector", "Button", "IconButton", "Group", "ListRow", "ChipRow", "Dropdown",
     ]
     .into_iter()
     .filter(|kind| specific_props(kind).is_some())
@@ -214,6 +235,8 @@ fn field_value_kind(kind: &str) -> PropKind {
         "NumberField" | "Slider" | "CounterButton" | "Stepper" => PropKind::Number,
         "Switch" | "Checkbox" => PropKind::Bool,
         "FilePicker" => PropKind::Paths,
+        // ChipRow 的 value 单选是字符串、多选是字符串数组，两种都收。
+        "ChipRow" => PropKind::StrOrStrings,
         _ => PropKind::Str,
     }
 }
@@ -254,6 +277,11 @@ fn check_value(kind: PropKind, value: &Value, path: &str) -> Result<(), String> 
                 Err(fail(path, "expected string"))
             }
         }
+        PropKind::StrOrStrings => match value {
+            Value::String(_) => Ok(()),
+            Value::Array(items) if items.iter().all(|item| item.is_string()) => Ok(()),
+            _ => Err(fail(path, "expected string or array of strings")),
+        },
         PropKind::Bool => {
             if value.is_boolean() {
                 Ok(())
@@ -355,6 +383,48 @@ fn normalize_node(
     }
     if kind == "Section" && props_source.get("title").and_then(|value| value.as_str()).is_none() {
         return Err(fail(&format!("{kind}.title"), "required"));
+    }
+    // ChipRow：2..24 个选项；icons 与 options 等长；value 必须落在 options 里。
+    if kind == "ChipRow" {
+        let options: Vec<&str> = props_source
+            .get("options")
+            .and_then(|value| value.as_array())
+            .map(|items| items.iter().filter_map(|item| item.as_str()).collect())
+            .unwrap_or_default();
+        if !(2..=24).contains(&options.len()) {
+            return Err(fail(&format!("{kind}.options"), "expected 2..24 items"));
+        }
+        if let Some(icons) = props_source.get("icons").and_then(|value| value.as_array()) {
+            if !icons.is_empty() && icons.len() != options.len() {
+                return Err(fail(&format!("{kind}.icons"), "expected same length as options"));
+            }
+        }
+        let values: Vec<&str> = match props_source.get("value") {
+            Some(Value::String(text)) => vec![text.as_str()],
+            Some(Value::Array(items)) => items.iter().filter_map(|item| item.as_str()).collect(),
+            _ => Vec::new(),
+        };
+        for value in values {
+            if !options.contains(&value) {
+                return Err(fail(&format!("{kind}.value"), "must be one of options"));
+            }
+        }
+    }
+    // Dropdown：2..50 个选项；value（若有）必须是其中一项。
+    if kind == "Dropdown" {
+        let options: Vec<&str> = props_source
+            .get("options")
+            .and_then(|value| value.as_array())
+            .map(|items| items.iter().filter_map(|item| item.as_str()).collect())
+            .unwrap_or_default();
+        if !(2..=50).contains(&options.len()) {
+            return Err(fail(&format!("{kind}.options"), "expected 2..50 items"));
+        }
+        if let Some(value) = props_source.get("value").and_then(|value| value.as_str()) {
+            if !options.contains(&value) {
+                return Err(fail(&format!("{kind}.value"), "must be one of options"));
+            }
+        }
     }
     if kind == "Button"
         && props_source

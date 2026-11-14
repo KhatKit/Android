@@ -426,18 +426,25 @@ private fun ChatListNormal(
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        // 自动滚动到底部
+        // 自动跟随到底部。
+        // 旧写法只在「已经贴底」这个事实变成 true 时补一次滚动；流式输出里内容一直在长，
+        // 贴底之后立刻又不贴底，flow 不会再发 true，于是整段生成期间列表都不跟随（生成完才落底）。
+        // 改成粘性跟随：用户往上滚就脱钩，滚回底部再挂钩；挂钩期间每次布局都重新贴底。
         if (settings.displaySetting.enableAutoScroll) {
-            val isAtBottom by remember { derivedStateOf { state.layoutInfo.visibleItemsInfo.isAtBottom() } }
             val loadingNow by rememberUpdatedState(loadingState)
+            val lastIndexNow by rememberUpdatedState(conversationUpdated.messageNodes.lastIndex)
+            var followBottom by remember(state) { mutableStateOf(true) }
             LaunchedEffect(state) {
-                snapshotFlow { isAtBottom }
-                    .distinctUntilChanged()
-                    .collect { atBottom ->
-                        if (atBottom && loadingNow && !state.isScrollInProgress) {
-                            state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
-                        }
+                snapshotFlow { state.layoutInfo }.collect { info ->
+                    val atBottom = info.visibleItemsInfo.isAtBottom()
+                    when {
+                        atBottom -> followBottom = true
+                        state.isScrollInProgress -> followBottom = false
                     }
+                    if (loadingNow && followBottom && !atBottom && !state.isScrollInProgress) {
+                        state.requestScrollToItem(lastIndexNow + 10)
+                    }
+                }
             }
         }
 
@@ -573,7 +580,7 @@ private fun ChatListNormal(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         RabbitLoadingIndicator(
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(48.dp)  // 从 28dp 增大到 48dp
                         )
                         AnimatedVisibility(
                             visible = processingStatus != null,
@@ -694,100 +701,6 @@ private fun ChatListNormal(
             )
 
             val captureProgress = LocalScrollCaptureInProgress.current
-
-            // Now in Android 风格 DraggableScrollbar：轨道 + 可拖动滑块 + 回答位置点
-            // 纯索引比例（量化 5% 步进）；生成/流式期间冻结，避免每帧重排导致跳变
-            val frozenTotal = remember { androidx.compose.runtime.mutableIntStateOf(0) }
-            val frozenVisible = remember { androidx.compose.runtime.mutableIntStateOf(1) }
-            val frozenProgress = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            // layoutInfo / firstVisibleItemIndex / firstVisibleItemScrollOffset 都带
-            // @FrequentlyChangingValue：在组合期直读会让整个 ChatListNormal 每滚一帧重组一次。
-            // 这里 derivedStateOf 收敛成一份不可变快照，只在下面两处读——LaunchedEffect 体与
-            // Canvas 的 draw lambda，两者都不是组合作用域，于是滚动只重绘滚动条，不再重组列表。
-            val scrollbarMetrics by remember(state) { derivedStateOf { state.scrollbarMetrics() } }
-
-            LaunchedEffect(loading) {
-                if (loading) {
-                    val m = scrollbarMetrics
-                    frozenTotal.intValue = m.total
-                    frozenVisible.intValue = m.visible
-                    frozenProgress.floatValue = m.progress
-                }
-            }
-
-            val scrollbarTrackColor = MochiTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            val scrollbarThumbColor = MochiTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            val scrollbarDotColor = MochiTheme.colorScheme.primary
-            androidx.compose.foundation.Canvas(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 2.dp, top = 24.dp, bottom = 24.dp)
-                    .width(14.dp)
-                    .fillMaxHeight()
-                    .draggable(
-                        orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
-                        state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                            val info = state.layoutInfo
-                            val total = info.totalItemsCount
-                            val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
-                            if (total > 1) {
-                                val raw = delta * total / visible
-                                scope.launch { state.dispatchRawDelta(raw) }
-                            }
-                        },
-                    ),
-            ) {
-                val info = state.layoutInfo
-                val total = info.totalItemsCount
-                if (total <= 1 || size.height <= 0f) return@Canvas
-                val nodes = conversation.messageNodes
-                val nodeCount = nodes.size.coerceAtLeast(1)
-                val visible = info.visibleItemsInfo.size.coerceAtLeast(1)
-                val track = size.height
-                val thickness = 4.dp.toPx()
-                val radius = androidx.compose.ui.geometry.CornerRadius(thickness / 2f)
-                val x = size.width - thickness
-
-                // 滑块比例与位置在这里（draw 作用域）才算，不在组合期算：
-                // 组合期算会让每帧滚动都重组 ChatListNormal，读快照走 draw 只重绘这一个 Canvas。
-                val metrics = scrollbarMetrics
-                val sbTotal = if (loading) frozenTotal.intValue.coerceAtLeast(1) else metrics.total
-                val sbVisible = if (loading) frozenVisible.intValue.coerceAtLeast(1) else metrics.visible
-                val thumbRatio = ((sbVisible.toFloat() / sbTotal).coerceIn(0.06f, 1f) * 20f)
-                    .let { kotlin.math.round(it) / 20f }
-                val scrollProgress = if (loading) frozenProgress.floatValue else metrics.progress
-
-                // 轨道
-                drawRoundRect(
-                    color = scrollbarTrackColor,
-                    topLeft = androidx.compose.ui.geometry.Offset(x, 0f),
-                    size = androidx.compose.ui.geometry.Size(thickness, track),
-                    cornerRadius = radius,
-                )
-
-                // 滑块（动画比例；到底/到顶时严格贴边）
-                val thumbH = (track * thumbRatio).coerceAtLeast(32.dp.toPx()).coerceAtMost(track)
-                val thumbTop = scrollProgress * (track - thumbH)
-                drawRoundRect(
-                    color = scrollbarThumbColor,
-                    topLeft = androidx.compose.ui.geometry.Offset(x, thumbTop),
-                    size = androidx.compose.ui.geometry.Size(thickness, thumbH),
-                    cornerRadius = radius,
-                )
-
-                // 回答位置点
-                val dotColor = scrollbarDotColor
-                nodes.forEachIndexed { index, node ->
-                    if (node.currentMessage.role == MessageRole.ASSISTANT) {
-                        val y = if (nodeCount <= 1) 0f else index.toFloat() / (nodeCount - 1) * track
-                        drawCircle(
-                            color = dotColor,
-                            radius = 2.dp.toPx(),
-                            center = androidx.compose.ui.geometry.Offset(size.width - thickness / 2f, y),
-                        )
-                    }
-                }
-            }
 
             // 消息快速跳转
             MessageJumper(

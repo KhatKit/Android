@@ -50,6 +50,14 @@ import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import ui.feice.mochi.basic.MochiStepper
 import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.basic.MochiChip
+import ui.feice.mochi.basic.MochiChipGroup
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiDropdownDefaults
+import ui.feice.mochi.basic.MochiItem
+import kotlinx.collections.immutable.toPersistentList
+import heizige.kk.khatkit.uikit.mochi.KkChevron
+import heizige.kk.khatkit.uikit.mochi.rememberKkGroupedRow
 import ui.feice.mochi.effect.content.MochiCounterText
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Job
@@ -244,6 +252,8 @@ private fun nodeColor(value: String): Color? = when (value) {
     "outline_variant" -> MaterialTheme.colorScheme.outlineVariant
     "primary" -> MaterialTheme.colorScheme.primary
     "on_primary" -> MaterialTheme.colorScheme.onPrimary
+    "primary_container" -> MaterialTheme.colorScheme.primaryContainer
+    "on_primary_container" -> MaterialTheme.colorScheme.onPrimaryContainer
     "error" -> MaterialTheme.colorScheme.error
     "error_container" -> MaterialTheme.colorScheme.errorContainer
     "on_error_container" -> MaterialTheme.colorScheme.onErrorContainer
@@ -452,6 +462,8 @@ fun UiNode.Render(
         "CounterButton" -> CounterButton(this, values, readOnly, onAction, m)
         "Stepper" -> StepperControl(this, values, readOnly, onAction, m)
         "Selector" -> SelectorControl(this, values, readOnly, onAction, m)
+        "ChipRow" -> ChipRowControl(this, values, readOnly, onAction, m)
+        "Dropdown" -> DropdownControl(this, values, readOnly, onAction, m)
         "Button" -> {
             val primary = text("tone") == "primary"
             val buttonStyle = if (primary) MochiRealButtonStyle.Filled else MochiRealButtonStyle.Tonal
@@ -651,6 +663,161 @@ private fun SelectorControl(
         modifier = modifier.fillMaxWidth(),
         enabled = !disabled,
     )
+}
+
+/**
+ * 节点树里的 Mochi 芯片行（[ChipRow]）：单选或多选，选中时 chip 自己一笔画出对勾。
+ *
+ * 交互照 [SelectorControl]：点选当下先本地切，动画立即走 Mochi 的形变；
+ * 320ms 去抖后再把 action 回传卡片，避免快速连点把卡片的 fuel 花光。
+ */
+@Composable
+private fun ChipRowControl(
+    node: UiNode,
+    values: MutableMap<String, Any?>,
+    readOnly: Boolean,
+    onAction: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val id = node.props["id"] as String
+    val action = (node.props["action"] as? String).orEmpty()
+    val options = (node.props["options"] as? List<*>)?.map { it.toString() }.orEmpty()
+    if (options.isEmpty()) return
+    val icons = (node.props["icons"] as? List<*>)?.map { it.toString() }.orEmpty()
+    val multiple = node.props["multiple"] == true
+    val wrap = node.props["wrap"] != false
+    val disabled = readOnly || node.props["disabled"] == true
+    val initial: Set<String> = when (val raw = node.props["value"]) {
+        is List<*> -> raw.mapNotNull { it as? String }.toSet()
+        is String -> setOf(raw)
+        else -> emptySet()
+    }
+    var shown by remember(node) { mutableStateOf(initial) }
+    var sendJob by remember(id) { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    fun submit() {
+        if (action.isEmpty()) return
+        sendJob?.cancel()
+        sendJob = scope.launch {
+            kotlinx.coroutines.delay(320)
+            onAction(action)
+        }
+    }
+    if (!multiple) {
+        // 单选：界面上只保留一个选中项。
+        MochiChipGroup(wrap = wrap, contentPadding = PaddingValues(horizontal = 16.dp), modifier = modifier) {
+            options.forEachIndexed { index, label ->
+                MochiChip(
+                    label = label,
+                    selected = label in shown,
+                    showCheck = true,
+                    enabled = !disabled,
+                    onClick = {
+                        if (disabled || label in shown) return@MochiChip
+                        shown = setOf(label)
+                        values[id] = label
+                        submit()
+                    },
+                    leadingIcon = chipIcon(icons.getOrNull(index)),
+                )
+            }
+        }
+    } else {
+        MochiChipGroup(wrap = wrap, contentPadding = PaddingValues(horizontal = 16.dp), modifier = modifier) {
+            options.forEachIndexed { index, label ->
+                MochiChip(
+                    label = label,
+                    selected = label in shown,
+                    showCheck = true,
+                    enabled = !disabled,
+                    onClick = {
+                        if (disabled) return@MochiChip
+                        shown = if (label in shown) shown - label else shown + label
+                        values[id] = shown.toList()
+                        submit()
+                    },
+                    leadingIcon = chipIcon(icons.getOrNull(index)),
+                )
+            }
+        }
+    }
+}
+
+/** chip 的前导图标槽：图标名为空或未知时返回 null（chip 不画图标）。 */
+private fun chipIcon(name: String?): (@Composable () -> Unit)? {
+    val key = name?.takeIf { it.isNotBlank() } ?: return null
+    val vector = UiIconVectors.vector(key) ?: return null
+    return { Icon(vector, contentDescription = null, modifier = Modifier.size(17.dp)) }
+}
+
+/**
+ * 节点树里的 Mochi 下拉选择（[Dropdown]）：按钮槽显示 label + 当前值 + 箭头，
+ * 点开是 Mochi 菜单，选中后**原地**回填 values[id] 并回传 action（不换屏）。
+ *
+ * 外观与 [ListRow] 对齐（16dp 横内边距、行高 ≥52dp），放在 Group 里不会像异类控件。
+ */
+@Composable
+private fun DropdownControl(
+    node: UiNode,
+    values: MutableMap<String, Any?>,
+    readOnly: Boolean,
+    onAction: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val id = node.props["id"] as String
+    val action = (node.props["action"] as? String).orEmpty()
+    val label = (node.props["label"] as? String).orEmpty()
+    val icon = (node.props["icon"] as? String).orEmpty()
+    val options = (node.props["options"] as? List<*>)?.map { it.toString() }.orEmpty()
+    if (options.isEmpty()) return
+    val disabled = readOnly || node.props["disabled"] == true
+    val current = (node.props["value"] as? String) ?: options.first()
+    var expanded by remember(node) { mutableStateOf(false) }
+    val style = StyleResolvers.current()
+    // 按钮槽的底：在 Group（inset grouped 卡片）里就和其它行一样透明、透出组底色；
+    // 独立一行时用列表行容器色。默认的 secondaryContainer 会在一片中性灰里冒出一块青色。
+    val grouped = rememberKkGroupedRow() != null
+    val dropdownColors = MochiDropdownDefaults.dropdownColors(
+        buttonColor = if (grouped) Color.Transparent else MochiListDefaults.colors().container,
+        buttonContentColor = style.color("default"),
+    )
+    MochiDropdown(
+        expanded = expanded,
+        onExpandedChange = { if (!disabled) expanded = it },
+        items = options.map { MochiItem(it) }.toPersistentList(),
+        colors = dropdownColors,
+        buttonPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        onItemClick = { index ->
+            expanded = false
+            val picked = options.getOrNull(index)
+            if (picked != null) {
+                values[id] = picked
+                if (action.isNotEmpty()) onAction(action)
+            }
+        },
+        selectedIndex = options.indexOf(current),
+        enabled = !disabled,
+        modifier = modifier,
+        onClick = { if (!disabled) expanded = true },
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val vector = UiIconVectors.vector(icon)?.takeIf { icon.isNotBlank() }
+            if (vector != null) {
+                Icon(vector, contentDescription = null, tint = style.color("primary"), modifier = Modifier.size(20.dp))
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (label.isNotEmpty()) {
+                    Text(label, style = style.textStyle("label"), color = style.color("muted"))
+                }
+                Text(current, style = style.textStyle("body"), color = style.color("default"))
+            }
+            KkChevron()
+        }
+    }
 }
 
 private fun AlignmentBased(h: Alignment.Horizontal, v: Alignment.Vertical): Alignment =

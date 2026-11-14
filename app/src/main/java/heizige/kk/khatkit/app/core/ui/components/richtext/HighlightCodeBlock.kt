@@ -132,10 +132,10 @@ fun HighlightCodeBlock(
         }
     }
 
+    // Mochi 的代码块：无描边，纯 surface 填充 + 连续圆角（12dp），头部条用 surfaceContainerHigh
     Column(
         modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
-            .clip(MaterialTheme.shapes.large)
+            .clip(ui.feice.mochi.shape.MochiRoundedRectangle(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Box(

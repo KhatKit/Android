@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KhatKit 图标呼吸动画加载指示器
+
+  设计理念：
+  - 基于应用图标 |<_ 字形
+  - 三个元素依次脉动（竖线 → 尖括号 → 下划线）
+  - 仅使用透明度变化，营造"呼吸"效果
+  - 循环播放，总周期 1800ms
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="48dp"
+            android:height="48dp"
+            android:viewportWidth="512"
+            android:viewportHeight="512">
+
+            <!-- 竖线 | -->
+            <path
+                android:name="vertical_bar"
+                android:fillColor="?attr/colorPrimary"
+                android:pathData="M193.43,193.43L193.43,310.57L206.84,310.57L206.84,193.43Z"
+                android:strokeWidth="12.9705"
+                android:strokeColor="?attr/colorPrimary" />
+
+            <!-- 尖括号 < -->
+            <path
+                android:name="chevron"
+                android:fillColor="?attr/colorPrimary"
+                android:pathData="M310.57,197.14L249.78,225.95L249.78,234.28L310.57,259.76L310.57,245.83L268.70,229.52L310.57,211.07Z"
+                android:strokeWidth="12.9705"
+                android:strokeColor="?attr/colorPrimary" />
+
+            <!-- 下划线 _ -->
+            <path
+                android:name="underscore"
+                android:fillColor="?attr/colorPrimary"
+                android:pathData="M249.87,302.44L249.87,310.48L310.48,310.48L310.48,302.44Z"
+                android:strokeWidth="12.9705"
+                android:strokeColor="?attr/colorPrimary" />
+        </vector>
+    </aapt:attr>
+
+    <!-- 竖线动画：0-600ms 脉动 -->
+    <target android:name="vertical_bar">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="600"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <!-- 尖括号动画：延迟 600ms 后脉动 -->
+    <target android:name="chevron">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="600"
+                android:startOffset="600"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <!-- 下划线动画：延迟 1200ms 后脉动 -->
+    <target android:name="underscore">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="600"
+                android:startOffset="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:repeatCount="infinite"
+                android:repeatMode="reverse"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+</animated-vector>

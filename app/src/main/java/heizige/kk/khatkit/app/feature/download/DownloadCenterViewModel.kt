@@ -26,4 +26,11 @@ class DownloadCenterViewModel @Inject constructor(
     fun cancel(id: String) = viewModelScope.launch { provider.cancelDownload(id) }
 
     fun remove(id: String) = viewModelScope.launch { provider.removeDownload(id) }
+
+    /** 清空：还在跑的先取消，其余直接移除（bridge 没有批量接口，这里逐条走现有 API）。 */
+    fun removeAll() = viewModelScope.launch {
+        provider.downloadTasks.value.forEach { task ->
+            if (task.isActive) provider.cancelDownload(task.id) else provider.removeDownload(task.id)
+        }
+    }
 }

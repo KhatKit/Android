@@ -660,6 +660,8 @@
   <string name="model_list_search_placeholder">Enter model name to search</string>
   <string name="model_list_select_model">Select Model</string>
   <string name="more_options">More options</string>
+  <string name="chat_input_attachment_section">Attachment</string>
+  <string name="chat_input_conversation_tools_section">Conversation</string>
   <string name="no_text_content_to_copy">No text content available to copy</string>
   <string name="notification_channel_chat_completed">Chat Completed</string>
   <string name="notification_channel_chat_live_update">Chat Generation Progress</string>

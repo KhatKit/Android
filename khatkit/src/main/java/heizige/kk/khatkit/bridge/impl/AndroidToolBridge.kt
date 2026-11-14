@@ -199,8 +199,14 @@ class AndroidToolBridge(
     }
 
     override fun getClipboard(): String {
+        if (!ClipboardAccess.isEnabled(context)) {
+            throw SecurityException("剪贴板读取已在「设置 → 权限」中关闭")
+        }
         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = manager.primaryClip ?: return ""
+        // Android 10+ / ColorOS 等 ROM：没有「读取剪贴板」授权的应用会拿到 null，
+        // 之前直接 return "" 会让卡片显示「已粘贴分享内容」但框里是空的。这里给出可解释的错误。
+        val clip = manager.primaryClip
+            ?: throw SecurityException("系统未允许读取剪贴板：请在系统设置里授予 KhatKit 剪贴板权限后重试")
         return clip.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
     }
 

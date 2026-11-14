@@ -38,25 +38,31 @@ suspend fun createPluginTools(context: Context): List<Tool> {
         add(
             Tool(
                 name = "plugin_list",
-                description = "列出当前已安装且可用的 KhatKit 插件及其能力。需要插件能力前先调用此工具。",
+                description = "列出 KhatKit 已知插件及其安装、可用状态和能力。需要插件能力前先调用此工具。",
                 parameters = { InputSchema.Obj(properties = buildJsonObject {}) },
                 execute = {
                     val ssh = SshPluginStore(appContext).read()
                     val ocr = OcrPluginStore(appContext).read()
                     val payload = buildJsonObject {
                         put("plugins", buildJsonObject {
-                            if (ssh != null) {
-                                val available = SshEngineProvider.engine() != null
-                                put(SshPluginInfo.ID, buildJsonObject {
-                                    put("name", SshPluginInfo.DISPLAY_NAME)
-                                    put("version", ssh.version)
-                                    put("capability", "ssh_execute")
-                                    put("description", SshPluginInfo.DESCRIPTION)
-                                    put("installed", true)
-                                    put("available", available)
-                                    put("ai_callable", available)
-                                })
-                            }
+                            val sshAvailable = ssh != null && SshEngineProvider.engine() != null
+                            put(SshPluginInfo.ID, buildJsonObject {
+                                put("name", SshPluginInfo.DISPLAY_NAME)
+                                put("version", ssh?.version ?: "")
+                                put("capability", "ssh_execute")
+                                put("description", SshPluginInfo.DESCRIPTION)
+                                put("installed", ssh != null)
+                                put("available", sshAvailable)
+                                put("ai_callable", sshAvailable)
+                                put(
+                                    "install_hint",
+                                    if (ssh == null) {
+                                        "请到设置→扩展安装远程 SSH 插件，安装后即可使用 ssh_execute"
+                                    } else {
+                                        ""
+                                    },
+                                )
+                            })
                             if (ocr != null) {
                                 val available = heizige.kk.khatkit.ocr.api.OcrEngineProvider.engine() != null
                                 put(ocr.pluginId, buildJsonObject {

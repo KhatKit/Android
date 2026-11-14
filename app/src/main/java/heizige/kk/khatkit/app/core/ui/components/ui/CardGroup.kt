@@ -9,6 +9,7 @@ import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListSectionFooter
 import ui.feice.mochi.theme.MochiTheme
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 
 private data class CardGroupItem(
     val onClick: (() -> Unit)?,
+    val anchor: String?,
     val modifier: Modifier,
     val overlineContent: (@Composable () -> Unit)?,
     val headlineContent: @Composable () -> Unit,
@@ -59,6 +62,8 @@ interface CardGroupScope {
      *   注意隐藏时内容还会在退场动画里画一会儿，所以只适合内容本身总能渲染的行。
      * @param chevron 点了进二级页面的行打开，行尾画统一的 [KkChevron]；
      *   弹窗/选择器/开关/外链行不开。
+     * @param anchor 设置搜索的定位锚点（见 [LocalSettingFocusKey]）：这一行被搜索结果命中时，
+     *   跳到本页会描边并滚到它。只有「最小选项」行才需要给，纯展示/操作行不给（不给就不会被搜到）。
      */
     fun item(
         onClick: (() -> Unit)? = null,
@@ -69,6 +74,7 @@ interface CardGroupScope {
         trailingContent: (@Composable () -> Unit)? = null,
         visible: Boolean = true,
         chevron: Boolean = false,
+        anchor: String? = null,
         headlineContent: @Composable () -> Unit,
     )
 }
@@ -85,11 +91,13 @@ private class CardGroupScopeImpl : CardGroupScope {
         trailingContent: (@Composable () -> Unit)?,
         visible: Boolean,
         chevron: Boolean,
+        anchor: String?,
         headlineContent: @Composable () -> Unit,
     ) {
         items.add(
             CardGroupItem(
                 onClick = onClick,
+                anchor = anchor,
                 modifier = modifier,
                 overlineContent = overlineContent,
                 headlineContent = headlineContent,
@@ -111,13 +119,24 @@ private fun CardGroupListItem(
     topGap: Dp = 0.dp,
 ) {
     val cards = heizige.kk.khatkit.app.core.ui.theme.listCardStyle()
+    val shape = cards.indexedShape(index, count)
+    val focusKey = LocalSettingFocusKey.current
+    val focused = item.anchor != null && item.anchor == focusKey
+    val focusColor by animateColorAsState(
+        targetValue = if (focused) MochiTheme.colorScheme.primary else Color.Transparent,
+        label = "settingFocusBorder",
+    )
     // onClick 原样传下去（可空）：MochiOptionItem 会按 null 关掉整行的点击与
     // 按压回弹。以前这里兜成空 lambda，纯信息行按下也会缩一下，看着像能点。
     heizige.kk.khatkit.uikit.mochi.MochiOptionItem(
         // topGap：分卡排法下的项间距，放在行里而不是外层 spacedBy，跟着显隐动画一起收放
-        modifier = Modifier.padding(top = topGap).then(item.modifier).fillMaxWidth(),
+        modifier = Modifier
+            .padding(top = topGap)
+            .then(item.modifier)
+            .fillMaxWidth()
+            .kkSettingFocusHighlight(focused = focused, color = focusColor, shape = shape),
         onClick = item.onClick,
-        shape = cards.indexedShape(index, count),
+        shape = shape,
         leadingContent = item.leadingContent,
         overlineContent = item.overlineContent,
         titleContent = item.headlineContent,

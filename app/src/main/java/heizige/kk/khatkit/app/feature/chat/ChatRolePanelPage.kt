@@ -86,7 +86,9 @@ import kotlin.uuid.Uuid
  */
 @Composable
 fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
+    // 同 ChatPage：key 要带 roleId，否则不同角色的面板复用同一个 ViewModel。
     val vm: ChatRolePanelViewModel = hiltViewModel<ChatRolePanelViewModel, ChatRolePanelViewModel.Factory>(
+        key = "role-panel-$roleId",
         creationCallback = { it.create(roleId) }
     )
     val appSettings by vm.settings.collectAsStateWithLifecycle()

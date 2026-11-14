@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Context
 import android.graphics.Typeface
@@ -140,6 +141,8 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 }
                             )
                         }
+                    ,
+                        anchor = settingAnchor(R.string.setting_display_page_chat_font_family_title),
                     )
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_custom_font_title)) },
@@ -189,6 +192,8 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 }
                             }
                         }
+                    ,
+                        anchor = settingAnchor(R.string.setting_display_page_custom_font_title),
                     )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_font_size_title) },
@@ -209,6 +214,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                 )
                             )
                         },
+                        anchor = settingAnchor(R.string.setting_display_page_font_size_title),
                     )
                 }
             }

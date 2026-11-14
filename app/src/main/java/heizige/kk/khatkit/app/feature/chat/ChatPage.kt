@@ -66,6 +66,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -156,7 +157,13 @@ import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, messageId: Uuid? = null) {
-    val vm: ChatViewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(creationCallback = { it.create(id.toString()) })
+    // key 必须带会话 id：MochiNavHost 不给每个导航条目自己的 ViewModelStoreOwner，
+    // 默认 owner 是 Activity、默认 key 是类名 —— 不加 key 的话所有 Chat 路由复用同一个
+    // ChatViewModel（首次进入那个会话），点历史记录会打开旧对话/空白欢迎页。
+    val vm: ChatViewModel = hiltViewModel<ChatViewModel, ChatViewModel.Factory>(
+        key = "chat-${id}",
+        creationCallback = { it.create(id.toString()) },
+    )
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
@@ -733,10 +740,32 @@ private fun ChatFilesPickerSheet(
         onDismiss()
     }
 
-    MochiSheet(
-        state = sheetState,
-        onDismiss = { dismissAll() },
+    // 面板开着时把返回登记到本页的拦截器：键盘/手势返回先关面板，不会把整页 pop 掉。
+    val pageRoute = heizige.kk.khatkit.app.LocalPageRoute.current
+    val sheetBackToken = remember { Any() }
+    val sheetVisible = sheetState.isVisible
+    DisposableEffect(sheetVisible) {
+        if (sheetVisible) {
+            heizige.kk.khatkit.app.PageBackInterceptor.push(sheetBackToken, pageRoute) {
+                dismissAll()
+                true
+            }
+        } else {
+            heizige.kk.khatkit.app.PageBackInterceptor.pop(sheetBackToken)
+        }
+        onDispose { heizige.kk.khatkit.app.PageBackInterceptor.pop(sheetBackToken) }
+    }
+
+    // 面板自己也有 PredictiveBackHandler（MochiSheet），但它只在 LocalMochiPredictiveBack 为 true 时挂；
+    // 有页内浮层登记时 RouteActivity 会把 MochiNavHost 的预测返回关掉，这里显式打开，
+    // 让返回手势跟手收起面板（预览的是面板，不是整页侧滑）。
+    androidx.compose.runtime.CompositionLocalProvider(
+        ui.feice.mochi.navigation.LocalMochiPredictiveBack provides true,
     ) {
+        MochiSheet(
+            state = sheetState,
+            onDismiss = { dismissAll() },
+        ) {
         MochiSheetHeader(title = stringResource(R.string.more_options))
         FilesPicker(
             conversation = conversation,
@@ -785,6 +814,7 @@ private fun ChatFilesPickerSheet(
                 }
             } else null,
         )
+        }
     }
 }
 

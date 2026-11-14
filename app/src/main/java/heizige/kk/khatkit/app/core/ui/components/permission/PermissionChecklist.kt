@@ -57,6 +57,7 @@ import heizige.kk.khatkit.app.feature.automation.KhatKitAccessibilityService
 import heizige.kk.khatkit.app.core.ui.icons.bolt
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
+import heizige.kk.khatkit.bridge.impl.ClipboardAccess
 import heizige.kk.khatkit.bridge.impl.RootBridgeImpl
 import heizige.kk.khatkit.bridge.impl.ShizukuPermission
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -87,6 +88,7 @@ fun PermissionChecklist(
     val activity = context as? Activity
     val provider: KhatKitToolProvider = rememberAppEntryPoint().khatKitToolProvider()
 
+    var clipboardEnabled by remember { mutableStateOf(ClipboardAccess.isEnabled(context)) }
     var rootEnabled by remember { mutableStateOf(provider.enableRoot) }
     var rootAvailable by remember { mutableStateOf(RootBridgeImpl.isAvailable()) }
     var shizukuAvailable by remember { mutableStateOf(ShizukuPermission.isAvailable()) }
@@ -412,6 +414,21 @@ fun PermissionChecklist(
         // 常规权限：运行时权限，点了直接弹系统授权框。
         MochiListSection(header = stringResource(R.string.greeting_permissions_normal)) {
             runtimeItems.forEach { item -> PermissionRow(item) }
+            // 剪贴板不是 Android 运行时权限（系统只允许前台读取），放在常规组作为应用级开关
+            MochiListRow(
+                title = "剪贴板读取",
+                subtitle = if (clipboardEnabled) {
+                    "允许卡片和工具读取剪贴板 · 系统只允许前台读取"
+                } else {
+                    "已关闭：卡片读取剪贴板会直接报错"
+                },
+                checked = clipboardEnabled,
+                onClick = {
+                    val next = !clipboardEnabled
+                    ClipboardAccess.setEnabled(context, next)
+                    clipboardEnabled = next
+                },
+            )
         }
 
         // 系统级权限：跳系统设置页授权，回来 LifecycleResumeEffect 自动刷新状态。

@@ -213,11 +213,6 @@ dependencies {
     implementation(libs.androidx.material3.adaptive)
     implementation(libs.androidx.material3.adaptive.layout)
 
-    // KMP Terminal Emulator：独立终端插件使用 Compose Canvas 渲染器，避免依赖 Android TerminalView。
-    implementation("io.github.johnan:terminal-core-android:0.3.11-khatkit2")
-    implementation("io.github.johnan:terminal-ui-android:0.3.11-khatkit6") {
-        exclude(group = "io.github.johnan", module = "terminal-core")
-    }
 
     // Navigation 3
     implementation(libs.androidx.navigation3.runtime)

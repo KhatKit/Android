@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import heizige.kk.khatkit.app.core.ui.components.ui.LocalChainTitleHighlight
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -231,7 +232,7 @@ fun ChainOfThoughtScope.ChatMessageReasoningStep(
                         state.duration.toDouble(DurationUnit.SECONDS).toFloat()
                     ),
                     style = MaterialTheme.typography.titleMedium.copy(fontFamily = chatFontFamily),
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = if (LocalChainTitleHighlight.current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.shimmer(isLoading = loading),
                 )
             }

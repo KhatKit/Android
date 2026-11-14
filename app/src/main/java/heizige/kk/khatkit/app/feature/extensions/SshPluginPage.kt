@@ -17,7 +17,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginInstaller
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
@@ -28,13 +27,13 @@ import heizige.kk.khatkit.ssh.api.SshEngineProvider
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.ssh.api.SshRequest
-import heizige.kk.khatkit.uikit.mochi.KkCard
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.list.MochiListSection
 
 /**
  * 远程 SSH 插件的宿主 UI。
@@ -90,7 +89,10 @@ fun SshPluginPage(
         ) {
             if (engineReady && !engineAvailable) {
                 item {
-                    KkCard(modifier = Modifier.fillMaxWidth()) {
+                    MochiListSection(
+                        modifier = Modifier.fillMaxWidth(),
+                        header = "插件状态",
+                    ) {
                         Text(
                             text = "插件引擎加载失败：插件包可能损坏或不支持当前 ABI，去扩展页重新安装。",
                             modifier = Modifier.padding(16.dp),
@@ -100,57 +102,49 @@ fun SshPluginPage(
                 }
             }
             item {
-                KkCard(
+                MochiListSection(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(0.dp),
+                    header = "连接远程主机",
+                    footer = "首次连接会记住主机密钥；密钥发生变化时将拒绝连接。密码只在本次运行中使用，不会落盘。",
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(
-                            text = "连接远程主机",
-                            style = MochiTheme.textStyles.titleMedium,
-                        )
-                        Text(
-                            text = "首次连接会记住主机密钥；密钥发生变化时将拒绝连接。密码只走内存，不落盘。",
-                            style = MochiTheme.textStyles.footnote,
-                            color = MochiTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Md3OutlinedTextFieldWithSlots(
+                        MochiTextField(
                             value = host,
                             onValueChange = { host = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("主机地址") },
+                            placeholder = "主机地址",
                             singleLine = true,
                         )
-                        Md3OutlinedTextFieldWithSlots(
+                        MochiTextField(
                             value = port,
                             onValueChange = { port = it.filter(Char::isDigit).take(5) },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("端口") },
+                            placeholder = "端口",
                             singleLine = true,
                         )
-                        Md3OutlinedTextFieldWithSlots(
+                        MochiTextField(
                             value = username,
                             onValueChange = { username = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("用户名") },
+                            placeholder = "用户名",
                             singleLine = true,
                         )
-                        Md3OutlinedTextFieldWithSlots(
+                        MochiTextField(
                             value = password,
                             onValueChange = { password = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("密码") },
-                            visualTransformation = PasswordVisualTransformation(),
+                            placeholder = "密码",
+                            secure = true,
                             singleLine = true,
                         )
-                        Md3OutlinedTextFieldWithSlots(
+                        MochiTextField(
                             value = command,
                             onValueChange = { command = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("执行命令") },
+                            placeholder = "执行命令",
                             singleLine = true,
                         )
                         MochiButton(
@@ -199,12 +193,11 @@ fun SshPluginPage(
             }
             output?.let { text ->
                 item {
-                    KkCard(
+                    MochiListSection(
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(0.dp),
+                        header = "输出",
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("输出", style = MochiTheme.textStyles.titleMedium)
                             Text(
                                 text = text.ifBlank { "(没有输出)" },
                                 modifier = Modifier.padding(top = 8.dp),

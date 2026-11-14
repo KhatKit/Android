@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import ui.feice.mochi.shape.MochiRoundedRectangle
+import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -316,18 +318,19 @@ object HeaderStyle {
     private const val LINE_HEIGHT_RATIO = 1.25f
 
     fun fromLevel(level: Int, fontSizeRatio: Float): TextStyle {
+        // Mochi 的字阶：标题比正文大但不夸张，字重 600（Mochi 的标题一律半粗，不用 Bold）
         val fontSize = when (level) {
-            1 -> 24.sp
-            2 -> 22.sp
-            3 -> 20.sp
-            4 -> 18.sp
-            5 -> 16.sp
+            1 -> 22.sp
+            2 -> 20.sp
+            3 -> 18.sp
+            4 -> 16.sp
+            5 -> 15.sp
             else -> 14.sp
         } * fontSizeRatio
 
         return TextStyle(
             fontStyle = FontStyle.Normal,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             fontSize = fontSize,
             lineHeight = fontSize * LINE_HEIGHT_RATIO,
         )
@@ -464,21 +467,20 @@ private fun MarkdownNode(
 
         // 引用块
         MarkdownElementTypes.BLOCK_QUOTE -> {
-            ProvideTextStyle(LocalTextStyle.current.copy(fontStyle = FontStyle.Italic)) {
-                val borderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                val bgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+            // Mochi 的引用块：一块浅色圆角底 + 左侧 3dp 主色竖条，不用斜体（Mochi 正文不改字形）
+            ProvideTextStyle(LocalTextStyle.current.copy(color = MochiTheme.colorScheme.onSurfaceVariant)) {
+                val accent = MochiTheme.colorScheme.primary.copy(alpha = 0.6f)
                 Column(
                     modifier = Modifier
-                        .drawWithContent {
-                            drawContent()
-                            drawRect(
-                                color = bgColor, size = size
-                            )
-                            drawRect(
-                                color = borderColor, size = Size(10f, size.height)
-                            )
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(MochiRoundedRectangle(12.dp))
+                        .background(MochiTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f))
+                        .drawBehind {
+                            drawRect(color = accent, size = Size(3.dp.toPx(), size.height))
                         }
-                        .padding(8.dp)) {
+                        .padding(start = 14.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
+                ) {
                     node.children.fastForEach { child ->
                         MarkdownNode(
                             node = child, content = content, onClickCitation = onClickCitation
@@ -1197,7 +1199,9 @@ private fun AnnotatedString.Builder.appendMarkdownNodeContent(
                     fontFamily = JetbrainsMono,
                     fontFeatureSettings = "'calt' 0, 'liga' 0, 'clig' 0",
                     fontSize = 0.9.em,
-                    color = colorScheme.primary,
+                    // Mochi 的行内代码：浅色底 + 正常文字色，不用主色（主色留给链接）
+                    color = colorScheme.onSurface,
+                    background = colorScheme.surfaceContainerHigh,
                 )
             ) {
                 append(' ')

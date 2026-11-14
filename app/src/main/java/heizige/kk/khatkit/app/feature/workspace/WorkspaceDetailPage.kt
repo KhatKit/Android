@@ -115,7 +115,10 @@ import heizige.kk.khatkit.app.PageBackInterceptor
 @Composable
 fun WorkspaceDetailPage(id: String) {
     val navController = LocalNavController.current
-    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(creationCallback = { it.create(id) })
+    val vm: WorkspaceDetailViewModel = hiltViewModel<WorkspaceDetailViewModel, WorkspaceDetailViewModel.Factory>(
+        key = "workspace-$id",
+        creationCallback = { it.create(id) },
+    )
     val state by vm.state.collectAsStateWithLifecycle()
     val installProgress by vm.installProgress.collectAsStateWithLifecycle()
     val installError by vm.installError.collectAsStateWithLifecycle()
