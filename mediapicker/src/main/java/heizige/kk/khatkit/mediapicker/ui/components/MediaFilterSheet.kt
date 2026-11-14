@@ -7,6 +7,7 @@
 package heizige.kk.khatkit.mediapicker.ui.components
 
 import androidx.compose.material3.Button
+import ui.feice.mochi.basic.MochiButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -102,7 +103,7 @@ internal fun MediaFilterSheet(
                 }
             }
 
-            Button(
+            MochiButton(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()

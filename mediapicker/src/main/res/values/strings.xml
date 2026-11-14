@@ -2,6 +2,7 @@
 <resources>
     <!-- 选择器。英文为库内默认值，宿主可在自己的 values-zh 里同名覆盖。 -->
     <string name="media_picker_all">All</string>
+    <string name="media_picker_take_picture">拍照</string>
     <string name="media_picker_pick">Pick</string>
     <string name="media_picker_pick_multiple">Select media</string>
     <string name="media_picker_pick_single">Select one</string>

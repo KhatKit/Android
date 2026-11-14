@@ -13,7 +13,6 @@ import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.grid.LazyGridItemInfo
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -45,7 +44,7 @@ import kotlinx.coroutines.launch
 /**
  * @param key 用于在数据刷新时重建手势协程
  * @param itemIndex 从 `LazyGridItemInfo` 取业务下标（列表里混着粘性头，要跳过）
- * @param onLongTap 传的是 `key - 1`（扣掉网格最前面那条提示栏占位）
+ * @param onLongTap 传的是 [itemIndex] 返回的业务下标。
  */
 @SuppressLint("UnnecessaryComposedModifier")
 fun Modifier.dragHandler(
@@ -55,7 +54,6 @@ fun Modifier.dragHandler(
     selectedItems: MutableState<Set<Int>>,
     onSelectionChange: (Set<Int>) -> Unit = {},
     enabled: Boolean = true,
-    onTap: (Int) -> Unit = {},
     onLongTap: (Int) -> Unit = {},
     shouldHandleLongTap: Boolean = true,
     itemIndex: (LazyGridItemInfo) -> Int?,
@@ -65,25 +63,7 @@ fun Modifier.dragHandler(
     val isRtl = !isVertical && LocalLayoutDirection.current == LayoutDirection.Rtl
     val autoScrollThreshold = with(LocalDensity.current) { 40.dp.toPx() }
 
-    Modifier
-        .pointerInput(key, enabled, isRtl) {
-            if (enabled) {
-                detectTapGestures { offset ->
-                    val position =
-                        if (isRtl) offset.copy(x = size.width - offset.x) else offset
-                    lazyGridState.gridItemKeyAtPosition(position, currentItemIndex)?.let { key ->
-                        val newItems =
-                            if (selectedItems.value.contains(key)) selectedItems.value - key
-                            else selectedItems.value + key
-                        selectedItems.value = newItems
-                        onSelectionChange(newItems)
-                        haptics.longPress()
-                        onTap(key - 1)
-                    }
-                }
-            }
-        }
-        .pointerInput(key, shouldHandleLongTap, enabled, isRtl) {
+    Modifier.pointerInput(key, shouldHandleLongTap, enabled, isRtl) {
             if (enabled) {
                 coroutineScope {
                     var initialKey: Int? = null
@@ -144,7 +124,7 @@ fun Modifier.dragHandler(
                                     }
                                 }
                                 haptics.longPress()
-                                onLongTap(key - 1)
+                                onLongTap(key)
                             }
                         },
                         onDragCancel = ::stopDrag,

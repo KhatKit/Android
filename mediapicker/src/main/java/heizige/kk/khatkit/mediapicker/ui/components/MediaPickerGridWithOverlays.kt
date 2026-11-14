@@ -5,7 +5,8 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
-import androidx.compose.material3.OutlinedTextField
+import androidx.activity.compose.PredictiveBackHandler
+import kotlin.coroutines.cancellation.CancellationException
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -67,7 +68,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ui.feice.mochi.basic.MochiButton
 import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiActivityIndicator
+import androidx.compose.runtime.CompositionLocalProvider
+import ui.feice.mochi.basic.MochiEmptyState
+import ui.feice.mochi.effect.glass.LocalMochiBackdrop
 import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.MochiSearchBar
+import ui.feice.mochi.icons.MochiIonicon
 
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
@@ -93,6 +100,18 @@ internal fun MediaPickerGridWithOverlays(
     onRequestFilter: () -> Unit,
     onPreview: (String?) -> Unit,
     modifier: Modifier = Modifier,
+    /** 第一格「拍照」；null 时不出这一格。 */
+    onTakePicture: (() -> Unit)? = null,
+    /** 网格滚离顶部时回调 true（收起相册芯片行用）。 */
+    onScrolled: (Boolean) -> Unit = {},
+    /** 栏底渐显进度 0..1。 */
+    onScrollProgress: (Float) -> Unit = {},
+    /** Mochi 下拉刷新：重新扫一遍 MediaStore。 */
+    onRefresh: (suspend () -> Unit)? = null,
+    /** 玻璃取样源：只录网格本身，录完给栏 / 按钮取样。 */
+    backdrop: ui.feice.mochi.effect.glass.MochiBackdrop? = null,
+    /** 网格顶部的留白（= 栏高 + 状态栏），让内容能从栏底下面滚过去。 */
+    topContentPadding: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp.Unspecified,
 ) {
     var searchKeyword by rememberSaveable(isSearching) { mutableStateOf("") }
 
@@ -108,6 +127,9 @@ internal fun MediaPickerGridWithOverlays(
     val clearSelectionLabel = stringResource(R.string.media_picker_clear_selection)
     val pickLabel = stringResource(R.string.media_picker_pick)
 
+    // 底部浮着的按钮（搜索 / 筛选 / 取消选择 / 选取）在网格录制层外面，
+    // 这里把网格那份背景来源下发给它们，玻璃样式才有东西可取样。
+    CompositionLocalProvider(LocalMochiBackdrop provides backdrop) {
     Box(modifier = modifier.fillMaxSize()) {
         MediaPickerGrid(
             state = filteredMediaState,
@@ -119,6 +141,12 @@ internal fun MediaPickerGridWithOverlays(
             isManagePermissionAllowed = isManagePermissionAllowed,
             onRequestManagePermission = onRequestManagePermission,
             onPreview = onPreview,
+            onTakePicture = onTakePicture,
+            onScrolled = onScrolled,
+            onScrollProgress = onScrollProgress,
+            onRefresh = onRefresh,
+            backdrop = backdrop,
+            topContentPadding = topContentPadding,
         )
 
         // ── 选择确认条：Deselect 小 FAB + Pick 扩展 FAB，角标显示已选数量
@@ -136,6 +164,7 @@ internal fun MediaPickerGridWithOverlays(
                 AnimatedVisibility(visible = canPick) {
                     MochiIconButton(
                         onClick = { selectedMedia.clear() },
+                        style = MochiButtonStyle.Glass,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Deselect,
@@ -146,7 +175,8 @@ internal fun MediaPickerGridWithOverlays(
                 MochiButton(
                     onClick = { if (canPick) onPicked() },
                     enabled = canPick,
-                    style = MochiButtonStyle.Filled,
+                    // 玻璃样式：跟设置中心的「玻璃按钮」开关联动（关掉退回实心）。
+                    style = MochiButtonStyle.Glass,
                     modifier = Modifier.semantics { contentDescription = pickLabel },
                 ) {
                     Row(
@@ -181,7 +211,7 @@ internal fun MediaPickerGridWithOverlays(
             exit = scaleOut() + fadeOut(),
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                MochiActivityIndicator()
             }
         }
 
@@ -234,22 +264,17 @@ internal fun MediaPickerGridWithOverlays(
                 verticalArrangement = Arrangement.Center,
             ) {
                 Spacer(Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Rounded.BrokenImage,
-                    contentDescription = null,
-                    modifier = Modifier.size(108.dp),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = (albumsState.error + "\n" + mediaState.error).trim()
+                MochiEmptyState(
+                    title = (albumsState.error + "\n" + mediaState.error).trim()
                         .ifEmpty { stringResource(R.string.media_picker_no_data) },
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    icon = { MochiIonicon("images", size = 36.dp) },
+                    action = {
+                        MochiButton(
+                            onClick = onRetry,
+                            style = MochiButtonStyle.Glass,
+                        ) { Text(stringResource(R.string.media_picker_try_again)) }
+                    },
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                MochiButton(onClick = onRetry) { Text(stringResource(R.string.media_picker_try_again)) }
                 Spacer(Modifier.weight(1f))
             }
         }
@@ -275,57 +300,23 @@ internal fun MediaPickerGridWithOverlays(
                     contentAlignment = Alignment.BottomStart,
                 ) {
                     if (searchMode) {
-                        OutlinedTextField(
-                            value = searchKeyword,
-                            onValueChange = {
+                        // Mochi 的搜索栏：胶囊输入框 + 清空按钮，聚焦时右侧滑出取消键。
+                        MochiSearchBar(
+                            query = searchKeyword,
+                            onQueryChange = {
                                 searchKeyword = it
                                 onKeywordChange(it)
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.media_picker_search_here)) },
-                            leadingIcon = {
-                                MochiIconButton(
-                                    onClick = {
-                                        searchKeyword = ""
-                                        onKeywordChange("")
-                                        onSearchingChange(false)
-                                    },
-                                    modifier = Modifier.padding(start = 4.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                        contentDescription = stringResource(R.string.media_picker_exit),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            placeholder = stringResource(R.string.media_picker_search_here),
+                            cancelText = stringResource(R.string.media_picker_exit),
+                            onCancel = {
+                                searchKeyword = ""
+                                onKeywordChange("")
+                                onSearchingChange(false)
                             },
-                            trailingIcon = {
-                                BoxAnimatedVisibility(
-                                    visible = searchKeyword.isNotEmpty(),
-                                    enter = fadeIn() + scaleIn(),
-                                    exit = fadeOut() + scaleOut(),
-                                ) {
-                                    MochiIconButton(
-                                        onClick = {
-                                            searchKeyword = ""
-                                            onKeywordChange("")
-                                        },
-                                        modifier = Modifier.padding(end = 4.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Delete,
-                                            contentDescription = stringResource(R.string.media_picker_close),
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Search,
-                                autoCorrectEnabled = null,
-                            ),
-                            shape = CircleShape,
                         )
                     } else {
                         MediaSearchAndFilterButtons(
@@ -338,9 +329,15 @@ internal fun MediaPickerGridWithOverlays(
             }
         }
 
-        BackHandler(selectedMedia.isNotEmpty() && !isSearching) {
-            selectedMedia.clear()
+        // 清空选择也用预测返回：手势期间先看窗口退后预览，松手提交才清空。
+        PredictiveBackHandler(selectedMedia.isNotEmpty() && !isSearching) { events ->
+            try {
+                events.collect { }
+                selectedMedia.clear()
+            } catch (_: CancellationException) {
+            }
         }
+    }
     }
 }
 
@@ -354,6 +351,7 @@ internal fun MediaSearchAndFilterButtons(
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         MochiIconButton(
             onClick = onSearch,
+            style = MochiButtonStyle.Glass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
@@ -362,6 +360,7 @@ internal fun MediaSearchAndFilterButtons(
         }
         MochiIconButton(
             onClick = onFilter,
+            style = MochiButtonStyle.Glass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.FilterAlt,

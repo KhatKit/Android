@@ -12,6 +12,8 @@ package heizige.kk.khatkit.mediapicker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -26,7 +28,25 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import heizige.kk.khatkit.mediapicker.R
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.runtime.snapshotFlow
+import ui.feice.mochi.basic.MochiRefreshIndicator
+import ui.feice.mochi.basic.mochiRefreshHold
+import ui.feice.mochi.basic.rememberMochiRefreshState
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.effect.overscroll.mochiContainedScroll
+import ui.feice.mochi.effect.overscroll.rememberMochiOverscrollEffect
+import ui.feice.mochi.effect.glass.MochiBackdrop
+import ui.feice.mochi.effect.glass.mochiBackdropSource
+import ui.feice.mochi.icons.MochiIonicon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +58,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.mediapicker.domain.Media
 import heizige.kk.khatkit.mediapicker.domain.MediaItem
@@ -58,6 +79,15 @@ internal fun MediaPickerGrid(
     isManagePermissionAllowed: Boolean,
     onRequestManagePermission: () -> Unit,
     onPreview: (String?) -> Unit,
+    onTakePicture: (() -> Unit)? = null,
+    onScrolled: (Boolean) -> Unit = {},
+    /** 栏底渐显进度 0..1（滚进栏下面多少）。 */
+    onScrollProgress: (Float) -> Unit = {},
+    onRefresh: (suspend () -> Unit)? = null,
+    /** 玻璃取样源：录网格自己，给栏 / 底部按钮取样。 */
+    backdrop: MochiBackdrop? = null,
+    /** 网格顶部留白（= 栏高 + 状态栏）；内容可以从它下面滚进栏里。 */
+    topContentPadding: Dp = Dp.Unspecified,
 ) {
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
@@ -112,6 +142,61 @@ internal fun MediaPickerGrid(
     val cutout = WindowInsets.displayCutout.asPaddingValues()
     val navBar = WindowInsets.navigationBars.asPaddingValues()
 
+    // 网格条目：媒体项（含日期头）+ 第一格「拍照」。拍照放在「今天」这一组里面，
+    // 也就是第一个日期头之后第一格；没有日期头时退回最前面。
+    val entries = remember(state.mappedMedia, onTakePicture) {
+        if (onTakePicture == null) {
+            state.mappedMedia.map { GridEntry.Real(it) }
+        } else {
+            buildList<GridEntry> {
+                var inserted = false
+                state.mappedMedia.forEach { item ->
+                    add(GridEntry.Real(item))
+                    if (!inserted && item is MediaItem.Header) {
+                        add(GridEntry.Camera)
+                        inserted = true
+                    }
+                }
+                if (!inserted) add(0, GridEntry.Camera)
+            }
+        }
+    }
+    // 不用 LazyGridItemInfo.index 做换算：权限提示、拍照格和日期头都会改变布局下标，
+    // 而 itemsIndexed 的 index 只代表 entries 自身下标，混用两套下标会让首行点选落到下一行。
+    // 直接按稳定 key 映射到 mappedMedia，拖拽连选与普通点选共用同一套业务索引。
+    val mediaIndexByEntryKey = remember(entries, state.mappedMedia) {
+        state.mappedMedia.withIndex().associate { (index, item) -> item.key to index }
+    }
+
+    // 滚离顶部 → 收起相册芯片行（工具台同一套判断：第一项不是 0 或已滚过一点）。
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0
+        }.distinctUntilChanged().collect(onScrolled)
+    }
+    // 栏底渐显：滚到顶透明，滚过一小段就完全不透明（同 Mochi 滚动边缘的节奏）。
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            if (gridState.firstVisibleItemIndex > 0) 1f
+            else (gridState.firstVisibleItemScrollOffset / 48f).coerceIn(0f, 1f)
+        }.distinctUntilChanged().collect(onScrollProgress)
+    }
+
+    // Mochi 下拉刷新：跟页面同一套 overscroll / 指示器。
+    val overscroll = rememberMochiOverscrollEffect()
+    val refresh = rememberMochiRefreshState(overscroll, onRefresh = onRefresh)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .then(
+                if (backdrop != null) {
+                    Modifier.mochiBackdropSource(backdrop)
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
     LazyVerticalGrid(
         state = gridState,
         modifier = Modifier
@@ -121,12 +206,14 @@ internal fun MediaPickerGrid(
                 start = cutout.calculateStartPadding(layoutDirection),
                 end = cutout.calculateEndPadding(layoutDirection),
             )
+            .mochiRefreshHold(refresh)
+            .mochiContainedScroll(overscroll)
             .dragHandler(
                 key = state.mappedMedia,
                 enabled = isSelectionOfAll && allowMultiple &&
                     (!isGalleryMode || selectedMedia.isNotEmpty()),
                 itemIndex = { item ->
-                    (item.index - if (isManagePermissionAllowed) 0 else 1).takeIf { it >= 0 }
+                    mediaIndexByEntryKey[item.key]
                 },
                 lazyGridState = gridState,
                 isVertical = true,
@@ -139,22 +226,28 @@ internal fun MediaPickerGrid(
                     selectedMedia.addAll(media)
                 },
                 onLongTap = {
-                    // 粘性头也是一条 item，长按它会走到这里；它不是 MediaViewItem，
-                    // 必须传 null 而不是空串 —— 空串会让预览器 open 到第 0 张不相干的图。
                     if (selectedMedia.isEmpty()) {
                         onPreview(
-                            (state.mappedMedia.getOrNull(it + 1) as? MediaItem.MediaViewItem)
-                                ?.media?.uri
+                            (state.mappedMedia.getOrNull(it) as? MediaItem.MediaViewItem)
+                                ?.media?.uri,
                         )
                     }
                 },
                 shouldHandleLongTap = selectedMedia.isNotEmpty(),
             ),
+        overscrollEffect = overscroll,
+        flingBehavior = MochiScrollDefaults.flingBehavior(),
         columns = GridCells.Adaptive(100.dp),
         horizontalArrangement = Arrangement.spacedBy(1.dp),
         verticalArrangement = Arrangement.spacedBy(1.dp),
-        contentPadding = remember(navBar, isButtonVisible, selectedMedia.isNotEmpty()) {
+        contentPadding = remember(
+            navBar,
+            isButtonVisible,
+            selectedMedia.isNotEmpty(),
+            topContentPadding,
+        ) {
             PaddingValues(
+                top = if (topContentPadding == Dp.Unspecified) 0.dp else topContentPadding,
                 bottom = navBar.calculateBottomPadding() +
                     (if (isButtonVisible) 80.dp else 0.dp) +
                     (if (selectedMedia.isNotEmpty()) 52.dp else 0.dp),
@@ -167,12 +260,17 @@ internal fun MediaPickerGrid(
             }
         }
         itemsIndexed(
-            items = state.mappedMedia,
-            key = { _, item -> item.key },
-            contentType = { _, item -> item.key.startsWith("media_") },
-            span = { _, item -> GridItemSpan(if (item.key.isHeaderKey) maxLineSpan else 1) },
-        ) { _, item ->
-            when (item) {
+            items = entries,
+            key = { _, entry -> entry.key },
+            contentType = { _, entry -> entry.key.toString().startsWith("media_") },
+            span = { _, entry -> GridItemSpan(if (entry.spanFull) maxLineSpan else 1) },
+        ) { _, entry ->
+            when (entry) {
+                is GridEntry.Camera -> {
+                    if (onTakePicture != null) CameraTile(onClick = onTakePicture)
+                }
+
+                is GridEntry.Real -> when (val item = entry.item) {
                 is MediaItem.Header -> {
                     // 部分选中时整个头不亮：只有整组全选才打勾
                     val isChecked = remember { mutableStateOf(false) }
@@ -232,7 +330,53 @@ internal fun MediaPickerGrid(
                         isSelected = selectionIndex >= 0,
                     )
                 }
+                }
             }
+        }
+    }
+        MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
+    }
+}
+
+/** 网格里的一项：媒体项（含日期头）或「拍照」格。 */
+private sealed interface GridEntry {
+    val key: Any
+    val spanFull: Boolean
+
+    data class Real(val item: MediaItem) : GridEntry {
+        override val key: Any get() = item.key
+        override val spanFull: Boolean get() = item.key.isHeaderKey
+    }
+
+    data object Camera : GridEntry {
+        override val key: Any get() = "camera"
+        override val spanFull: Boolean get() = false
+    }
+}
+
+/** 网格第一格的「拍照」：和照片同尺寸的方块，图标用 mochi-icons。 */
+@Composable
+private fun CameraTile(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .aspectRatio(1f)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            MochiIonicon(
+                "camera",
+                size = 28.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.media_picker_take_picture),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

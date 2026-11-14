@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,32 +7,24 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.uikit.mochi.MochiListItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.feature.workspace.toShellStatusLabel
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
 import heizige.kk.khatkit.app.core.ui.icons.deployedCode
-import heizige.kk.khatkit.app.core.ui.icons.doneAll
 import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.khatkit.app.core.ui.icons.terminal
-import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.basic.MochiSheet
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.list.MochiListLeadingStyle
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
 
 @Composable
 internal fun WorkspaceSelectSheet(
@@ -55,76 +46,51 @@ internal fun WorkspaceSelectSheet(
                 .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = 360.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                // 不绑定
-                WorkspaceSelectRow(
-                    title = stringResource(R.string.workspace_no_binding),
-                    selected = assistant.workspaceId == null,
-                    onClick = {
-                        onSelect(null)
-                        onDismiss()
-                    },
-                )
-                workspaces.forEach { workspace ->
+            MochiListSection {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    // 不绑定
                     WorkspaceSelectRow(
-                        title = workspace.name,
-                        status = workspace.shellStatus.toShellStatusLabel(),
-                        selected = workspace.id == assistant.workspaceId?.toString(),
+                        title = stringResource(R.string.workspace_no_binding),
+                        selected = assistant.workspaceId == null,
                         onClick = {
-                            onSelect(workspace.id)
+                            onSelect(null)
                             onDismiss()
                         },
                     )
+                    workspaces.forEach { workspace ->
+                        WorkspaceSelectRow(
+                            title = workspace.name,
+                            status = workspace.shellStatus.toShellStatusLabel(),
+                            selected = workspace.id == assistant.workspaceId?.toString(),
+                            onClick = {
+                                onSelect(workspace.id)
+                                onDismiss()
+                            },
+                        )
+                    }
                 }
             }
 
-            MochiHorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            MochiListItem(
-                leadingContent = {
-                    Icon(folder, contentDescription = null)
-                },
-                headlineContent = {
-                    Text(stringResource(R.string.workspace_choose_directory))
-                },
-                trailingContent = {
-                    Icon(
-                        imageVector = arrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.large)
-                    .clickable(onClick = onChooseDirectory),
-            )
-
-            // 管理工作区
-            MochiListItem(
-                leadingContent = {
-                    Icon(deployedCode, contentDescription = null)
-                },
-                headlineContent = {
-                    Text(stringResource(R.string.workspace_manage))
-                },
-                trailingContent = {
-                    Icon(
-                        imageVector = arrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.large)
-                    .clickable { onManage() },
-            )
+            MochiListSection {
+                MochiListRow(
+                    title = stringResource(R.string.workspace_choose_directory),
+                    onClick = onChooseDirectory,
+                    leading = { Icon(folder, contentDescription = null) },
+                    leadingStyle = MochiListLeadingStyle.Symbol,
+                    chevron = true,
+                )
+                MochiListRow(
+                    title = stringResource(R.string.workspace_manage),
+                    onClick = onManage,
+                    leading = { Icon(deployedCode, contentDescription = null) },
+                    leadingStyle = MochiListLeadingStyle.Symbol,
+                    chevron = true,
+                )
+            }
         }
     }
 }
@@ -136,46 +102,12 @@ private fun WorkspaceSelectRow(
     onClick: () -> Unit,
     status: String? = null,
 ) {
-    MochiListItem(
-        leadingContent = {
-            Icon(deployedCode, contentDescription = null)
-        },
-        headlineContent = {
-            Text(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        supportingContent = status?.let {
-            {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        trailingContent = if (selected) {
-            {
-                Icon(
-                    imageVector = doneAll,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        } else null,
-        colors = ListItemDefaults.colors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            } else {
-                Color.Transparent
-            }
-        ),
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.large)
-            .clickable { onClick() },
+    MochiListRow(
+        title = title,
+        subtitle = status?.takeIf { it.isNotBlank() },
+        onClick = onClick,
+        leading = { Icon(deployedCode, contentDescription = null) },
+        leadingStyle = MochiListLeadingStyle.Symbol,
+        checked = selected,
     )
 }

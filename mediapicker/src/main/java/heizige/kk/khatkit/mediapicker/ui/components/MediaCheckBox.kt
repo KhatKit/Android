@@ -8,6 +8,7 @@
 package heizige.kk.khatkit.mediapicker.ui.components
 
 import androidx.compose.material3.IconButton
+import ui.feice.mochi.basic.MochiIconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.animation.AnimatedContent
@@ -59,12 +60,10 @@ fun MediaCheckBox(
     )
 
     if (onCheck != null) {
-        IconButton(
+        // Mochi 的图标按钮：按下有 Mochi 的形变/发光，选中态图标用模糊交叉淡化。
+        MochiIconButton(
             onClick = onCheck,
             modifier = modifier,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = if (addContainer) suggestContainerColorBy(color) else Color.Transparent,
-            ),
         ) {
             AnimatedContent(
                 targetState = image,

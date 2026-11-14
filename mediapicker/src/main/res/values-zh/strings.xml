@@ -2,6 +2,7 @@
 <resources>
     <!-- 媒体选择器中文翻译：默认文案在 values/strings.xml -->
     <string name="media_picker_all">全部</string>
+    <string name="media_picker_take_picture">拍照</string>
     <string name="media_picker_pick">选取</string>
     <string name="media_picker_pick_multiple">选择媒体</string>
     <string name="media_picker_pick_single">选择一张</string>
