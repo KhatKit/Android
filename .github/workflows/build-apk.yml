@@ -5,10 +5,10 @@ name: Build APK
 #   1. release 用仓库 secrets 里的项目签名密钥（KEY_BASE64 + SIGNING_CONFIG，alias/password
 #      均为 khatkit，见 docs/release-signing.md）。没有配置这两个 secrets 时（例如 fork）
 #      退化为一次性临时密钥。
-#   2. app 依赖的 io.github.feice11:mochi-*:0.3.0-khatkit 只存在于开发者本地 mavenLocal
-#      （见 docs/mochi-migration-plan.md §12），这里用公开源码
-#      feice11/mochi-compose@main + .github/scripts/patch-mochi.py 补齐 app 需要的
-#      少量 API 后 publishToMavenLocal，再构建 app。
+#   2. app 依赖的 mochi-* 目前是开发者本地 mavenLocal 的补丁产物（见
+#      docs/mochi-migration-plan.md §12）。CI 以 gradle/libs.versions.toml 的 mochi
+#      版本为准，用公开源码 + .github/scripts/patch-mochi.py 补齐少量 API 后
+#      publishToMavenLocal，再构建 app（版本漂移不会再 401）。
 on:
   workflow_dispatch:
     inputs:
@@ -61,15 +61,29 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare local mochi dependency (io.github.feice11:*:0.2.0-khatkit)
+      - name: Prepare local mochi dependency (version from libs.versions.toml)
         run: |
-          git clone --depth 1 https://github.com/feice11/mochi-compose.git _mochi
+          set -eo pipefail
+          # mochi-* 是开发者本地 mavenLocal 的补丁产物（见 docs/mochi-migration-plan.md §12）。
+          # 这里以 gradle/libs.versions.toml 里的 mochi 版本为唯一真相，避免 pin 与
+          # CI 里 publish 的版本漂移（之前手写的 0.2.0/0.3.0 不一致导致 jitpack 401）。
+          MOCHI_VERSION="$(sed -nE 's/^mochi[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -1)"
+          [ -n "$MOCHI_VERSION" ] || { echo "::error::mochi version not found in gradle/libs.versions.toml"; exit 1; }
+          BASE="${MOCHI_VERSION%-khatkit}"
+          CLONE_ARGS=(--depth 1)
+          if git ls-remote --tags https://github.com/feice11/mochi-compose.git "refs/tags/v$BASE" | grep -q .; then
+            CLONE_ARGS+=(--branch "v$BASE")
+            echo "mochi $MOCHI_VERSION -> tag v$BASE"
+          else
+            echo "mochi $MOCHI_VERSION -> tag v$BASE not found, build from main"
+          fi
+          rm -rf _mochi
+          git clone "${CLONE_ARGS[@]}" https://github.com/feice11/mochi-compose.git _mochi
           python3 .github/scripts/patch-mochi.py _mochi
           cd _mochi
           chmod +x gradlew
-          ./gradlew publishToMavenLocal -PVERSION_NAME=0.3.0-khatkit --stacktrace
+          ./gradlew publishToMavenLocal -PVERSION_NAME="$MOCHI_VERSION" --stacktrace
           find ~/.m2/repository/io/github/feice11 -name '*.aar' -printf '%p %s bytes\n'
-
       - name: Build debug APK
         run: |
           chmod +x gradlew
@@ -112,15 +126,29 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare local mochi dependency (io.github.feice11:*:0.2.0-khatkit)
+      - name: Prepare local mochi dependency (version from libs.versions.toml)
         run: |
-          git clone --depth 1 https://github.com/feice11/mochi-compose.git _mochi
+          set -eo pipefail
+          # mochi-* 是开发者本地 mavenLocal 的补丁产物（见 docs/mochi-migration-plan.md §12）。
+          # 这里以 gradle/libs.versions.toml 里的 mochi 版本为唯一真相，避免 pin 与
+          # CI 里 publish 的版本漂移（之前手写的 0.2.0/0.3.0 不一致导致 jitpack 401）。
+          MOCHI_VERSION="$(sed -nE 's/^mochi[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -1)"
+          [ -n "$MOCHI_VERSION" ] || { echo "::error::mochi version not found in gradle/libs.versions.toml"; exit 1; }
+          BASE="${MOCHI_VERSION%-khatkit}"
+          CLONE_ARGS=(--depth 1)
+          if git ls-remote --tags https://github.com/feice11/mochi-compose.git "refs/tags/v$BASE" | grep -q .; then
+            CLONE_ARGS+=(--branch "v$BASE")
+            echo "mochi $MOCHI_VERSION -> tag v$BASE"
+          else
+            echo "mochi $MOCHI_VERSION -> tag v$BASE not found, build from main"
+          fi
+          rm -rf _mochi
+          git clone "${CLONE_ARGS[@]}" https://github.com/feice11/mochi-compose.git _mochi
           python3 .github/scripts/patch-mochi.py _mochi
           cd _mochi
           chmod +x gradlew
-          ./gradlew publishToMavenLocal -PVERSION_NAME=0.3.0-khatkit --stacktrace
+          ./gradlew publishToMavenLocal -PVERSION_NAME="$MOCHI_VERSION" --stacktrace
           find ~/.m2/repository/io/github/feice11 -name '*.aar' -printf '%p %s bytes\n'
-
       # release 签名：优先用仓库 secrets 里的密钥（KEY_BASE64 / SIGNING_CONFIG），
       # 没配置时退化为一次性临时密钥（fork 场景），保证仍能产出可安装的包。
       - name: Prepare signing files

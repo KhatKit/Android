@@ -59,16 +59,29 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Prepare local mochi dependency (io.github.feice11:*:0.2.0-khatkit)
+      - name: Prepare local mochi dependency (version from libs.versions.toml)
         run: |
-          # app 依赖的 mochi 0.2.0-khatkit 原本只存在于开发者本地 mavenLocal
-          # （见 docs/mochi-migration-plan.md §12）。CI 里用公开源码 + 兼容补丁现编一份。
-          git clone --depth 1 --branch v0.2.0 https://github.com/feice11/mochi-compose.git _mochi
+          set -eo pipefail
+          # mochi-* 是开发者本地 mavenLocal 的补丁产物（见 docs/mochi-migration-plan.md §12）。
+          # 这里以 gradle/libs.versions.toml 里的 mochi 版本为唯一真相，避免 pin 与
+          # CI 里 publish 的版本漂移（之前手写的 0.2.0/0.3.0 不一致导致 jitpack 401）。
+          MOCHI_VERSION="$(sed -nE 's/^mochi[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -1)"
+          [ -n "$MOCHI_VERSION" ] || { echo "::error::mochi version not found in gradle/libs.versions.toml"; exit 1; }
+          BASE="${MOCHI_VERSION%-khatkit}"
+          CLONE_ARGS=(--depth 1)
+          if git ls-remote --tags https://github.com/feice11/mochi-compose.git "refs/tags/v$BASE" | grep -q .; then
+            CLONE_ARGS+=(--branch "v$BASE")
+            echo "mochi $MOCHI_VERSION -> tag v$BASE"
+          else
+            echo "mochi $MOCHI_VERSION -> tag v$BASE not found, build from main"
+          fi
+          rm -rf _mochi
+          git clone "${CLONE_ARGS[@]}" https://github.com/feice11/mochi-compose.git _mochi
           python3 .github/scripts/patch-mochi.py _mochi
           cd _mochi
           chmod +x gradlew
-          ./gradlew publishToMavenLocal -PVERSION_NAME=0.2.0-khatkit --stacktrace
-
+          ./gradlew publishToMavenLocal -PVERSION_NAME="$MOCHI_VERSION" --stacktrace
+          find ~/.m2/repository/io/github/feice11 -name '*.aar' -printf '%p %s bytes\n'
       - name: Prepare build files
         run: |
           # 解码base64编码的keystore文件
