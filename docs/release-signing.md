@@ -1,17 +1,19 @@
 # Release 签名密钥
 
-> 状态：**2026-11-11 起生效**。release 包统一用本密钥签名，旧的 `CN=Hei zige` 密钥停止使用。
+> 状态：**2026-11-14 重新生成**（2026-11-11 那把密钥已丢失且无备份）。release 包统一用本密钥签名，旧的 `CN=Hei zige` 与 2026-11-11 密钥均停止使用。
+>
+> ⚠️ 换钥代价：此前用旧密钥签名的安装包无法覆盖升级，用户需卸载重装一次（自更新通道需同步换包）。
 
 ## 密钥
 
 | 项 | 值 |
 | --- | --- |
-| keystore 文件 | `khatkit-release.jks`（由发布者离线备份，不随仓库分发） |
+| keystore 文件 | `khatkit-release.jks`（发布者需离线双备份；密钥只应存在于本机安全位置与仓库 secrets） |
 | 类型 | JKS，RSA 4096，有效期 36500 天 |
 | alias | `khatkit` |
 | storePassword / keyPassword | `khatkit` / `khatkit` |
 | subject | `CN=khatkit, OU=khatkit, O=khatkit, L=khatkit, ST=khatkit, C=CN` |
-| 证书 SHA-256 指纹 | `32:3C:87:93:FE:29:7F:CB:E9:DC:EA:FB:B3:30:BF:40:DC:03:C7:44:81:A5:E6:67:A2:AD:9D:B2:8F:1B:C4:53` |
+| 证书 SHA-256 指纹 | `F7:61:18:C9:C1:F4:14:57:7B:D6:FF:FF:5D:57:D5:78:F0:C5:BD:33:00:1E:8D:3B:BC:55:5D:2D:B5:62:A1:BF` |
 
 ## CI 里的用法
 
