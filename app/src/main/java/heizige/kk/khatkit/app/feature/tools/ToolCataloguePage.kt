@@ -1,10 +1,5 @@
 package heizige.kk.khatkit.app.feature.tools
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -97,11 +92,12 @@ import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 
-private enum class ToolScope(val title: String, val icon: String) {
-    ALL("全部", "apps"), FAVORITES("收藏", "star"), RECENT("最近使用", "time"), INSTALLED("已安装", "checkmark-circle"),
-}
+private data class ToolView(val grid: Boolean)
 
-private data class ToolView(val category: String, val scope: ToolScope, val grid: Boolean)
+private data class ToolGroup(
+    val category: ToolCategory,
+    val cards: List<CardIndexEntry>,
+)
 
 internal const val TOOL_CATALOGUE_SOURCE = "welcome:all-tools"
 private fun toolSource(name: String) = "tool-catalogue:$name"
@@ -116,15 +112,21 @@ internal fun ToolCataloguePage() {
         (0 until configuration.locales.size()).map { configuration.locales[it].toLanguageTag() }
     }
     var query by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf("") }
-    var scopeName by rememberSaveable { mutableStateOf(ToolScope.ALL.name) }
+    var selectedCategory by rememberSaveable { mutableStateOf("") }
+    var categoryRequest by remember { mutableStateOf(0) }
     var grid by rememberSaveable { mutableStateOf(true) }
-    var chipsCollapsed by rememberSaveable { mutableStateOf(false) }
-    val scope = ToolScope.valueOf(scopeName)
-    val counts = remember(state.cards) { state.cards.groupingBy { it.toolCategory() }.eachCount() }
-    val categories = remember(counts) { ToolCategory.entries.filter { (counts[it] ?: 0) > 0 } }
     val searched = remember(state.cards, query, locales) {
         state.cards.filter { it.matchesToolQuery(query, locales) }
+    }
+    val categories = remember(searched) {
+        ToolCategory.entries.filter { category ->
+            searched.any { it.toolCategory() == category }
+        }
+    }
+    LaunchedEffect(categories) {
+        if (selectedCategory !in categories.map { it.name }) {
+            selectedCategory = categories.firstOrNull()?.name.orEmpty()
+        }
     }
     val open: (CardIndexEntry) -> Unit = { entry ->
         vm.open(entry) {
@@ -146,7 +148,6 @@ internal fun ToolCataloguePage() {
                     MochiBarIconButton(
                         onClick = {
                             grid = !grid
-                            chipsCollapsed = false
                         },
                         navId = "tools.layout",
                         contentKey = if (grid) "list" else "grid",
@@ -165,27 +166,6 @@ internal fun ToolCataloguePage() {
                 placeholder = "搜索工具名称或功能",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            AnimatedVisibility(
-                visible = !chipsCollapsed,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                MochiChipGroup(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                ) {
-                    ToolScope.entries.forEach { option ->
-                        MochiChip(
-                            label = option.title,
-                            selected = scope == option,
-                            onClick = {
-                                scopeName = option.name
-                                chipsCollapsed = false
-                            },
-                            leadingIcon = { MochiIonicon(option.icon, size = 16.dp) },
-                        )
-                    }
-                }
-            }
             if (state.error != null) {
                 MochiListSection(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     MochiListRow(
@@ -202,18 +182,12 @@ internal fun ToolCataloguePage() {
                 val rail = this@BoxWithConstraints.maxWidth >= 600.dp
                 Column(Modifier.fillMaxSize()) {
                     if (!rail) {
-                        AnimatedVisibility(
-                            visible = !chipsCollapsed,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut(),
-                        ) {
-                            MochiChipGroup(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                categories.forEach { item ->
-                                    val selected = category == item.name
-                                    CategoryChip(item.title, item.icon, selected, counts[item] ?: 0) {
-                                        category = if (selected) "" else item.name
-                                        chipsCollapsed = false
-                                    }
+                        MochiChipGroup(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            categories.forEach { item ->
+                                val selected = selectedCategory == item.name
+                                CategoryChip(item.title, item.icon, selected, searched.count { it.toolCategory() == item }) {
+                                    selectedCategory = item.name
+                                    categoryRequest++
                                 }
                             }
                         }
@@ -227,42 +201,30 @@ internal fun ToolCataloguePage() {
                                 flingBehavior = MochiScrollDefaults.flingBehavior(),
                             ) {
                                 items(categories, key = { it.name }) { item ->
-                                    val selected = category == item.name
-                                    RailCategory(item.title, item.icon, selected, counts[item] ?: 0) {
-                                        category = if (selected) "" else item.name
+                                    val selected = selectedCategory == item.name
+                                    RailCategory(item.title, item.icon, selected, searched.count { it.toolCategory() == item }) {
+                                        selectedCategory = item.name
+                                        categoryRequest++
                                     }
                                 }
                             }
                         }
                         MochiBlurCrossfade(
-                            targetState = ToolView(category, scope, grid),
+                            targetState = ToolView(grid),
                             modifier = Modifier.weight(1f).fillMaxSize(),
                         ) { view ->
-                            val matched = remember(searched, view, state.favorites, state.recent, state.installed) {
-                                searched.filter { item ->
-                                    (view.category.isEmpty() || item.toolCategory().name == view.category) &&
-                                        when (view.scope) {
-                                            ToolScope.ALL -> true
-                                            ToolScope.FAVORITES -> item.name in state.favorites
-                                            ToolScope.RECENT -> item.name in state.recent
-                                            ToolScope.INSTALLED -> item.name in state.installed
-                                        }
-                                }.let { result ->
-                                    if (view.scope == ToolScope.RECENT) result.sortedBy { state.recent.indexOf(it.name) } else result
-                                }
-                            }
                             ToolResults(
-                                cards = matched, state = state, locales = locales, query = query,
-                                view = view, onOpen = open, onFavorite = vm::toggleFavorite,
+                                cards = searched, state = state, locales = locales, query = query,
+                                view = view, selectedCategory = selectedCategory,
+                                categoryRequest = categoryRequest,
+                                onCategorySelected = { selectedCategory = it },
+                                onOpen = open, onFavorite = vm::toggleFavorite,
                                 onClear = {
                                     query = ""
-                                    category = ""
-                                    scopeName = ToolScope.ALL.name
-                                    chipsCollapsed = false
+                                    selectedCategory = ""
                                 },
                                 onRefresh = vm::refresh,
                                 onRefreshAwait = vm::refreshAndAwait,
-                                onScrolled = { chipsCollapsed = it },
                                 onLoadMore = vm::loadMore,
                             )
                         }
@@ -309,150 +271,165 @@ private fun ToolResults(
     locales: List<String>,
     query: String,
     view: ToolView,
+    selectedCategory: String,
+    categoryRequest: Int,
+    onCategorySelected: (String) -> Unit,
     onOpen: (CardIndexEntry) -> Unit,
     onFavorite: (String) -> Unit,
     onClear: () -> Unit,
     onRefresh: () -> Unit,
     onRefreshAwait: suspend () -> Unit,
-    onScrolled: (Boolean) -> Unit,
     onLoadMore: () -> Unit,
 ) {
-    val title = ToolCategory.entries.firstOrNull { it.name == view.category }?.title
-        ?: if (view.scope == ToolScope.ALL) "全部工具" else view.scope.title
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MochiBlurText(title, style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.weight(1f), maxLines = 1)
-            MochiCounterText(cards.size.toLong(), color = MochiTheme.colorScheme.onSurfaceVariant, style = MochiTheme.textStyles.footnote)
-            if (state.loading) MochiActivityIndicator(Modifier.size(16.dp))
+    val groups = remember(cards) {
+        ToolCategory.entries.mapNotNull { category ->
+            cards.filter { it.toolCategory() == category }
+                .takeIf { it.isNotEmpty() }
+                ?.let { ToolGroup(category, it) }
         }
-        val overscroll = rememberMochiOverscrollEffect()
-        if (cards.isEmpty()) {
-            val listState = rememberLazyListState()
-            val refresh = rememberMochiRefreshState(overscroll, listState, onRefreshAwait)
-            LaunchedEffect(listState) {
-                snapshotFlow { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 }
-                    .distinctUntilChanged()
-                    .collect(onScrolled)
-            }
-            Box(Modifier.fillMaxSize()) {
-                LazyColumn(
-                    Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
-                    state = listState,
-                    overscrollEffect = overscroll,
-                    flingBehavior = MochiScrollDefaults.flingBehavior(),
-                ) {
-                    item {
-                        Box(
-                            Modifier.fillMaxWidth().heightIn(min = 240.dp).padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (state.loading) {
-                                MochiActivityIndicator()
-                            } else {
-                                MochiEmptyState(
-                                    title = when {
-                                        query.isNotBlank() -> "没有匹配的工具"
-                                        view.scope == ToolScope.FAVORITES -> "还没有收藏"
-                                        view.scope == ToolScope.RECENT -> "还没有使用记录"
-                                        view.scope == ToolScope.INSTALLED -> "还没有安装工具"
-                                        else -> "暂无工具"
-                                    },
-                                    message = when {
-                                        query.isNotBlank() -> "换个名称或功能试试。"
-                                        view.scope == ToolScope.FAVORITES -> "点工具上的星标，方便下次找到。"
-                                        view.scope == ToolScope.RECENT -> "打开过的工具会保留在这里。"
-                                        state.error != null -> "连接网络后重新加载目录。"
-                                        else -> "浏览全部分类，选择需要的工具。"
-                                    },
-                                    icon = { MochiIonicon(if (query.isNotBlank()) "search" else view.scope.icon, size = 36.dp) },
-                                    action = {
-                                        MochiButton(onClick = if (state.error != null) onRefresh else onClear, style = MochiButtonStyle.Tonal) {
-                                            Text(if (state.error != null) "重新加载" else "查看全部工具")
-                                        }
-                                    },
-                                )
-                            }
+    }
+    val overscroll = rememberMochiOverscrollEffect()
+    if (cards.isEmpty()) {
+        val listState = rememberLazyListState()
+        val refresh = rememberMochiRefreshState(overscroll, listState, onRefreshAwait)
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
+                state = listState,
+                overscrollEffect = overscroll,
+                flingBehavior = MochiScrollDefaults.flingBehavior(),
+            ) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().heightIn(min = 240.dp).padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.loading) {
+                            MochiActivityIndicator()
+                        } else {
+                            MochiEmptyState(
+                                title = if (query.isNotBlank()) "没有匹配的工具" else "暂无工具",
+                                message = if (query.isNotBlank()) "换个名称或功能试试。" else "浏览全部分类，选择需要的工具。",
+                                icon = { MochiIonicon(if (query.isNotBlank()) "search" else "apps", size = 36.dp) },
+                                action = {
+                                    MochiButton(onClick = if (state.error != null) onRefresh else onClear, style = MochiButtonStyle.Tonal) {
+                                        Text(if (state.error != null) "重新加载" else "查看全部工具")
+                                    }
+                                },
+                            )
                         }
                     }
                 }
-                MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
             }
-            return
+            MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
         }
-        if (view.grid) {
-            val gridState = rememberLazyGridState()
-            val refresh = rememberMochiRefreshState(overscroll, onRefresh = onRefreshAwait)
-            LaunchedEffect(query, view) { gridState.scrollToItem(0) }
-            LaunchedEffect(gridState) {
-                snapshotFlow { gridState.firstVisibleItemIndex > 0 || gridState.firstVisibleItemScrollOffset > 0 }
-                    .distinctUntilChanged()
-                    .collect(onScrolled)
+        return
+    }
+    if (view.grid) {
+        val gridState = rememberLazyGridState()
+        val sectionStarts = remember(groups) {
+            var next = 0
+            groups.map {
+                val start = next
+                next += it.cards.size + 1
+                start
             }
-            LaunchedEffect(gridState, cards.size, state.loading, state.complete, state.error) {
-                if (state.loading || state.complete || state.error != null) return@LaunchedEffect
-                snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
-                    .collect { lastVisible ->
-                        if (lastVisible >= cards.lastIndex - 8) onLoadMore()
+        }
+        val refresh = rememberMochiRefreshState(overscroll, onRefresh = onRefreshAwait)
+        LaunchedEffect(query, view) { gridState.scrollToItem(0) }
+        LaunchedEffect(categoryRequest) {
+            val index = groups.indexOfFirst { it.category.name == selectedCategory }
+            if (index >= 0) gridState.animateScrollToItem(sectionStarts[index])
+        }
+        LaunchedEffect(gridState, groups) {
+            snapshotFlow { gridState.firstVisibleItemIndex }
+                .distinctUntilChanged()
+                .collect { firstVisible ->
+                    val index = sectionStarts.indexOfLast { it <= firstVisible }
+                    groups.getOrNull(index)?.category?.name?.let(onCategorySelected)
+                }
+        }
+        LaunchedEffect(gridState, cards.size, state.loading, state.complete, state.error) {
+            if (state.loading || state.complete || state.error != null) return@LaunchedEffect
+            snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+                .collect { lastVisible ->
+                    if (lastVisible >= gridState.layoutInfo.totalItemsCount - 8) onLoadMore()
+                }
+        }
+        Box(Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
+                columns = GridCells.Adaptive(112.dp),
+                state = gridState,
+                overscrollEffect = overscroll,
+                contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                flingBehavior = MochiScrollDefaults.flingBehavior(),
+            ) {
+                groups.forEach { group ->
+                    item(key = "category-header:${group.category.name}", span = { GridItemSpan(maxLineSpan) }) {
+                        ToolCategoryHeader(group.category, group.cards.size, Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
                     }
-            }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                LazyVerticalGrid(
-                    modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
-                    columns = GridCells.Adaptive(112.dp),
-                    state = gridState,
-                    overscrollEffect = overscroll,
-                    contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    flingBehavior = MochiScrollDefaults.flingBehavior(),
-                ) {
-                    items(cards, key = { it.name }, contentType = { "tool" }) { entry ->
+                    items(group.cards, key = { it.name }, contentType = { "tool" }) { entry ->
                         ToolGridCard(entry, state, locales, onOpen, onFavorite, Modifier.animateItem())
                     }
-                    if (!state.complete) {
-                        item(key = "load_more", span = { GridItemSpan(maxLineSpan) }) {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                                if (state.loading) MochiActivityIndicator()
-                                else if (state.error != null) {
-                                    MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
-                                }
+                }
+                if (!state.complete) {
+                    item(key = "load_more", span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                            if (state.loading) MochiActivityIndicator()
+                            else if (state.error != null) {
+                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
                             }
                         }
                     }
                 }
-                MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
             }
-        } else {
-            val listState = rememberLazyListState()
-            val refresh = rememberMochiRefreshState(overscroll, listState, onRefreshAwait)
-            LaunchedEffect(query, view) { listState.scrollToItem(0) }
-            LaunchedEffect(listState) {
-                snapshotFlow { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 }
-                    .distinctUntilChanged()
-                    .collect(onScrolled)
+            MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
+        }
+    } else {
+        val listState = rememberLazyListState()
+        val sectionStarts = remember(groups) {
+            var next = 0
+            groups.map {
+                val start = next
+                next += it.cards.size
+                start
             }
-            LaunchedEffect(listState, cards.size, state.loading, state.complete, state.error) {
-                if (state.loading || state.complete || state.error != null) return@LaunchedEffect
-                snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
-                    .collect { lastVisible ->
-                        if (lastVisible >= cards.size - 8) onLoadMore()
-                    }
-            }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
-                    state = listState,
-                    overscrollEffect = overscroll,
-                    contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),
-                    flingBehavior = MochiScrollDefaults.flingBehavior(),
-                ) {
-                    mochiListSection(key = "tools") {
-                        rows(cards, key = { it.name }) { entry ->
+        }
+        val refresh = rememberMochiRefreshState(overscroll, listState, onRefreshAwait)
+        LaunchedEffect(query, view) { listState.scrollToItem(0) }
+        LaunchedEffect(categoryRequest) {
+            val index = groups.indexOfFirst { it.category.name == selectedCategory }
+            if (index >= 0) listState.animateScrollToItem(sectionStarts[index])
+        }
+        LaunchedEffect(listState, groups) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .distinctUntilChanged()
+                .collect { firstVisible ->
+                    val index = sectionStarts.indexOfLast { it <= firstVisible }
+                    groups.getOrNull(index)?.category?.name?.let(onCategorySelected)
+                }
+        }
+        LaunchedEffect(listState, cards.size, state.loading, state.complete, state.error) {
+            if (state.loading || state.complete || state.error != null) return@LaunchedEffect
+            snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+                .collect { lastVisible ->
+                    if (lastVisible >= cards.size - 8) onLoadMore()
+                }
+        }
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
+                state = listState,
+                overscrollEffect = overscroll,
+                contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),
+                flingBehavior = MochiScrollDefaults.flingBehavior(),
+            ) {
+                groups.forEach { group ->
+                    mochiListSection(key = "tools:${group.category.name}", header = group.category.title) {
+                        rows(group.cards, key = { it.name }) { entry ->
                             MochiListRow(
                                 title = entry.toolTitle(locales),
                                 subtitle = entry.toolDescription(locales).ifBlank { entry.name },
@@ -465,20 +442,38 @@ private fun ToolResults(
                             )
                         }
                     }
-                    if (!state.complete) {
-                        item(key = "load_more") {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
-                                if (state.loading) MochiActivityIndicator()
-                                else if (state.error != null) {
-                                    MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
-                                }
+                }
+                if (!state.complete) {
+                    item(key = "load_more") {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+                            if (state.loading) MochiActivityIndicator()
+                            else if (state.error != null) {
+                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
                             }
                         }
                     }
                 }
-                MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
             }
+            MochiRefreshIndicator(refresh, Modifier.align(Alignment.TopCenter))
         }
+    }
+}
+
+@Composable
+private fun ToolCategoryHeader(category: ToolCategory, count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().padding(bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MochiIonicon(category.icon, size = 20.dp, tint = MochiTheme.colorScheme.primary)
+        MochiBlurText(
+            category.title,
+            style = MochiTheme.textStyles.navTitle,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+        )
+        MochiCounterText(count.toLong(), color = MochiTheme.colorScheme.onSurfaceVariant, style = MochiTheme.textStyles.footnote)
     }
 }
 
