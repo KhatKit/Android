@@ -5,8 +5,13 @@ import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
-import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import androidx.compose.foundation.layout.PaddingValues
+import ui.feice.mochi.basic.MochiButton as MochiRealButton
+import ui.feice.mochi.basic.MochiButtonStyle as MochiRealButtonStyle
+import ui.feice.mochi.basic.MochiChip
+import ui.feice.mochi.basic.MochiChipGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,6 +66,8 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
 import ui.feice.mochi.basic.MochiDialog
 import ui.feice.mochi.basic.MochiDialogAction
 import ui.feice.mochi.basic.MochiDialogActionRole
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.ui.icons.build
 import heizige.kk.khatkit.app.core.ui.icons.check
 import heizige.kk.khatkit.app.core.ui.icons.close
@@ -330,7 +337,33 @@ private fun ChainOfThoughtScope.AskUserToolStep(
 
     var expanded by remember { mutableStateOf(true) }
 
-    ControlledChainOfThoughtStep(
+    fun answerPayload(skip: Boolean): String = buildJsonObject {
+        if (skip) {
+            put("skipped", JsonPrimitive(true))
+            put("message", JsonPrimitive("The user chose not to answer these questions. Continue without these answers."))
+        }
+        put("answers", buildJsonObject {
+            questions.forEach { q ->
+                val answer = if (skip) {
+                    ""
+                } else {
+                    when (q.selectionType) {
+                        "multi" -> (
+                            multiAnswers[q.id].orEmpty().toList() +
+                                listOfNotNull(answers[q.id]?.takeIf { it.isNotBlank() })
+                            ).joinToString(", ")
+
+                        else -> answers[q.id] ?: ""
+                    }
+                }
+                put(q.id, JsonPrimitive(answer))
+            }
+        })
+    }.toString()
+
+    // 和思考、工具调用同一套皮：MochiOptionItem 的圆角底块 + 左图标，
+    // 表单内容用 wrapContent 落进同一张卡（推理行同款）
+    ControlledOptionItemStep(
         expanded = expanded,
         onExpandedChange = { expanded = it },
         icon = {
@@ -422,52 +455,47 @@ private fun ChainOfThoughtScope.AskUserToolStep(
                                 ?.jsonObject?.get(q.id)?.jsonPrimitive?.contentOrNull
                                 ?: answeredState.answer
                             Text(
-                                text = answerText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
+                                text = answerText.ifBlank {
+                                    stringResource(R.string.chat_message_tool_not_answered)
+                                },
+                                style = MochiTheme.textStyles.body,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
 
-                // Submit button
+                // 提交：通栏胶囊，Mochi 表单的主操作形态
                 if (isPending && onToolAnswer != null) {
-                    MochiButton(
-                        onClick = {
-                            val answerPayload = buildJsonObject {
-                                put("answers", buildJsonObject {
-                                    questions.forEach { q ->
-                                        when (q.selectionType) {
-                                            "multi" -> put(q.id, JsonPrimitive(
-                                                (multiAnswers[q.id].orEmpty().toList() +
-                                                    listOfNotNull(answers[q.id]?.takeIf { it.isNotBlank() }))
-                                                    .joinToString(", ")
-                                            ))
-                                            else -> put(q.id, JsonPrimitive(answers[q.id] ?: ""))
-                                        }
-                                    }
-                                })
-                            }
-                            onToolAnswer(tool.toolCallId, answerPayload.toString())
-                        },
-                        enabled = questions.all { q ->
-                            when (q.selectionType) {
-                                "multi" -> !multiAnswers[q.id].isNullOrEmpty() || !answers[q.id].isNullOrBlank()
-                                else -> !answers[q.id].isNullOrBlank()
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                        shapes = ButtonDefaults.shapes(),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = check,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.chat_message_tool_submit),
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
+                        MochiTextButton(
+                            onClick = { onToolAnswer(tool.toolCallId, answerPayload(skip = true)) },
+                        ) {
+                            Text(
+                                text = stringResource(R.string.chat_message_tool_skip),
+                                style = MochiTheme.textStyles.body,
+                            )
+                        }
+                        MochiRealButton(
+                            onClick = { onToolAnswer(tool.toolCallId, answerPayload(skip = false)) },
+                            enabled = questions.all { q ->
+                                when (q.selectionType) {
+                                    "multi" -> !multiAnswers[q.id].isNullOrEmpty() || !answers[q.id].isNullOrBlank()
+                                    else -> !answers[q.id].isNullOrBlank()
+                                }
+                            },
+                            style = MochiRealButtonStyle.Filled,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.chat_message_tool_submit),
+                                style = MochiTheme.textStyles.body,
+                            )
+                        }
                     }
                 }
             }

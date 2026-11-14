@@ -321,6 +321,11 @@ fun ChatInput(
         }
     }
 
+    fun changeEditorOpen(open: Boolean) {
+        if (open) editorOpen = true
+        settleEditor(open = open)
+    }
+
     // 上滑拉起编辑器时输入胶囊那一行（ActionIconButton + TextInputRow）与右侧 FAB 淡出：
     // alpha = 1 - smoothstep(reveal / 0.25)，与编辑器工具栏的 smoothstep(reveal / 0.25) 严格互补
     // ⇒ 任一时刻屏幕底部只有一条底栏 >0.5 可见。reveal = 0（静止态）不挂任何额外节点，
@@ -817,24 +822,24 @@ fun ChatInput(
                                 onEditorRevealProgress = { editorReveal = it },
                                 flbBounds = flbBounds,
                                 attachmentActions = attachmentActions,
-                                onFullScreenChange = { open ->
-                                    if (open) {
-                                        editorOpen = true
-                                        editorJobRef.job?.cancel()
-                                        editorJobRef.job = scope.launch {
-                                            animate(
-                                                initialValue = editorReveal,
-                                                targetValue = 1f,
-                                                animationSpec = EditorRevealSpring,
-                                            ) { value, _ -> editorReveal = value }
-                                            editorReveal = 1f
-                                        }
-                                    } else {
-                                        settleEditor(open = false)
-                                    }
-                                },
+                                onFullScreenChange = ::changeEditorOpen,
                                 modifier = Modifier.weight(1f),
                             )
+                            MochiRealIconButton(
+                                onClick = { changeEditorOpen(!editorOpen) },
+                                modifier = Modifier
+                                    .padding(MochiTextFieldDefaults.TrailingInset)
+                                    .testTag("chat_fullscreen_button"),
+                                size = MochiTextFieldDefaults.TrailingButtonSize,
+                                style = MochiButtonStyle.Text,
+                            ) {
+                                Icon(
+                                    fullscreen,
+                                    contentDescription = stringResource(R.string.text_area_fullscreen_edit),
+                                    tint = MochiTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
                             SendButton(
                                 state = when {
                                     asrState.isRecording -> SendButtonState.Recording
@@ -1134,20 +1139,6 @@ private fun TextInputRow(
             ),
             onSendMessage = onSendMessage,
             sendOnEnter = settings.displaySetting.sendOnEnter,
-            // 只在聚焦时提供全屏按钮，避免未展示仍占位
-            trailingContent = if (isFocused) {
-                {
-                    MochiRealIconButton(
-                        onClick = {
-                            onFullScreenChange(!isFullScreen)
-                        },
-                        size = MochiTextFieldDefaults.TrailingButtonSize,
-                        style = MochiButtonStyle.Text,
-                    ) {
-                        Icon(fullscreen, null, tint = MochiTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                    }
-                }
-            } else null,
             leadingContent = if (quickMessages.isNotEmpty()) {
                 {
                     QuickMessageButton(quickMessages = quickMessages, state = state)

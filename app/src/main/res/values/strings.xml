@@ -479,6 +479,8 @@
   <string name="chat_message_tool_search_results_count">%1$d results</string>
   <string name="chat_message_tool_search_web">Search web: %1$s</string>
   <string name="chat_message_tool_submit">Submit</string>
+  <string name="chat_message_tool_skip">Skip</string>
+  <string name="chat_message_tool_not_answered">Not answered</string>
   <string name="chat_message_tool_answer_hint">Type an answer</string>
   <string name="chat_page_cancel">Cancel</string>
   <string name="chat_page_check_fast_model_settings">Check fast model settings</string>

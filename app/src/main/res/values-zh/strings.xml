@@ -473,6 +473,8 @@
   <string name="chat_message_tool_search_results_count">共 %1$d 条结果</string>
   <string name="chat_message_tool_search_web">搜索网页: %1$s</string>
   <string name="chat_message_tool_submit">提交</string>
+  <string name="chat_message_tool_skip">不回答</string>
+  <string name="chat_message_tool_not_answered">未回答</string>
   <string name="chat_message_tool_answer_hint">输入回答</string>
   <string name="chat_page_cancel">取消</string>
   <string name="chat_page_check_fast_model_settings">检查快速模型设置</string>
