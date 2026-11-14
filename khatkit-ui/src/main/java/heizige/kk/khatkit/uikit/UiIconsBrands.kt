@@ -2,6 +2,8 @@ package heizige.kk.khatkit.uikit
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
@@ -21,6 +23,10 @@ import androidx.compose.ui.unit.dp
  * - brand_bilibili = simple-icons/bilibili.svg
  * - brand_pixiv = simple-icons/pixiv.svg
  * - brand_github = simple-icons/github.svg
+ * - brand_quark = arcticons/quark-cloud-drive.svg
+ * - brand_uc = arcticons/uc-browser.svg
+ * - brand_xunlei = arcticons/xunlei.svg
+ * - brand_c139 = arcticons/china-mobile.svg
  */
 internal object UiIconsBrands {
     private val raw: Map<String, String> = mapOf(
@@ -42,22 +48,62 @@ internal object UiIconsBrands {
             "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
     )
 
+    // Iconify/Arcticons 的品牌轮廓，原始 viewBox 为 48×48，保留描边以免云盘品牌
+    // 退化成通用 folder_open。Simple Icons 没有这些中国厂商条目。
+    private val stroked: Map<String, List<String>> = mapOf(
+        "brand_quark" to listOf(
+            "M24.588 39.5h-11c-7.287 0-11.49-9.07-8.255-14.502c5.686-9.548 20.36-2.986 17.585 4.464c-2.14 5.744-12.699 2.141-11.01-10.886c.83-5.494 5.608-10.076 12.275-10.076c7.584 0 11.535 6.466 11.696 12.044c4.022-.034 7.892 3.538 7.892 9.676c0 5.131-4.307 9.28-8.938 9.28h-3.529",
+        ),
+        "brand_uc" to listOf(
+            "M29.384 38.58s5.985-1.098 5.985 3.92H16.524c-6.184 0-11.197-5.013-11.197-11.197c0-2.9 1.1-5.548 2.914-7.533c3.51-3.84 5.1-5.194 5.1-8.375s-3.953-5.124-8.014-2.65C8.806 6.678 11.574 5.5 17.228 5.5s8.305 4.712 8.305 8.835c0 8.187-13.197 8.894-13.197 20.917",
+            "M29.384 38.58a9.131 9.131 0 0 0-15.58-9.521",
+            "M18.141 25.52c5.272-3.705 12.575-2.233 17.228 2.185c5.36-.943 7.304 2.356 7.304 2.356c-2.28-.178-5.034.656-6.854 1.343a3.04 3.04 0 0 1-3.336-.79c-3.593-3.961-9.133-7.585-14.342-5.093",
+            "M22.98 23.573s2.789-2.863 8.973-6.175c-.236-3.004-.088-4.13 1.414-5.066c2.65.67 3.18 3.829 3.18 3.829c4.889 1.649 6.832 8.304 5.007 9.247s-7.741.256-11.353-.98",
+        ),
+        "brand_xunlei" to listOf(
+            "M27.23 28.86c1.975 4.68 3.568 7.483 5.829 12.754c-3.485-4.045-7.909-7.71-11.865-9.59c-6.919-3.286-9.034-6.955-7.973-12.406c.874-4.493-4.014-7.132-7.72-8.782l6.98 2.197c3.186-1.652 6.249.742 7.987 3.717c6.248-5.128 12.675-8.52 19.859-10.364c-1.87 2.706-3.133 4.646-4.79 7.837l1.276-.283c-1.682 2.453-3.592 4.583-5.044 7.602c3.744.678 8.069 2.087 10.731 3.94c-5.338.804-10.627 1.673-15.27 3.377",
+        ),
+        "brand_c139" to listOf(
+            "M6 15.5S18 3 24 3s16 11 21 17",
+            "M12 21s10-11 15-11s18 15 18 15",
+            "M4 18s10 12 13 12s11-12 14-12s13 12 13 12",
+            "M36 27S26 38 21 38S3 23 3 23",
+            "M42 32.5S30 45 24 45S8 34 3 28",
+        ),
+    )
+
     private val cache = HashMap<String, ImageVector>()
 
-    val names: Set<String> get() = raw.keys
+    val names: Set<String> get() = raw.keys + stroked.keys
 
-    fun vector(name: String): ImageVector? = raw[name]?.let { path ->
-        cache.getOrPut(name) {
-            ImageVector.Builder(
+    fun vector(name: String): ImageVector? {
+        if (name !in names) return null
+        return cache.getOrPut(name) {
+            val isStroked = name in stroked
+            val builder = ImageVector.Builder(
                 name = name,
                 defaultWidth = 24.dp,
                 defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f,
-            ).addPath(
-                pathData = PathParser().parsePathString(path).toNodes(),
-                fill = SolidColor(Color.Black),
-            ).build()
+                viewportWidth = if (isStroked) 48f else 24f,
+                viewportHeight = if (isStroked) 48f else 24f,
+            )
+            raw[name]?.let { path ->
+                builder.addPath(
+                    pathData = PathParser().parsePathString(path).toNodes(),
+                    fill = SolidColor(Color.Black),
+                )
+            }
+            stroked[name]?.forEach { path ->
+                builder.addPath(
+                    pathData = PathParser().parsePathString(path).toNodes(),
+                    fill = null,
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round,
+                )
+            }
+            builder.build()
         }
     }
 }

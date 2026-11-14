@@ -18,7 +18,7 @@ do
     add_circle chevron_left chevron_right content_paste clear_history folder folder_open
     insert_drive_file key verified_user
     brand_baidu brand_xhs brand_kuaishou brand_weibo brand_douyin brand_bilibili brand_pixiv
-    brand_github
+    brand_github brand_quark brand_uc brand_xunlei brand_c139
     casino emoji_events]]):gmatch("%S+") do icons[name] = true end
   local schemas = {
     Column={spacing="number",hAlign="start|center|end",scrollable="boolean",modifier="modifier"},

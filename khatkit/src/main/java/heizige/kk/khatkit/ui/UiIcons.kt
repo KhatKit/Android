@@ -24,7 +24,8 @@ object UiIcons {
         "folder", "folder_open", "insert_drive_file", "key", "verified_user",
         // 厂商品牌 logo（khatkit-ui 的 UiIconsBrands.kt，Simple Icons 路径）
         "brand_baidu", "brand_xhs", "brand_kuaishou", "brand_weibo", "brand_douyin",
-        "brand_bilibili", "brand_pixiv", "brand_github",
+        "brand_bilibili", "brand_pixiv", "brand_github", "brand_quark", "brand_uc",
+        "brand_xunlei", "brand_c139",
     )
 
     fun isValid(name: String): Boolean = name in names
