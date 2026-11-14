@@ -5,6 +5,7 @@ import androidx.compose.ui.draw.drawWithCache
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
 import heizige.kk.khatkit.uikit.mochi.rememberKkHaptics
+import heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
@@ -225,6 +226,8 @@ import ui.feice.mochi.basic.MochiButton
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import ui.feice.mochi.anim.MochiMotions
+import ui.feice.mochi.anim.MochiSprings
+import ui.feice.mochi.effect.content.mochiBlur
 import heizige.kk.khatkit.uikit.mochi.kkPressState
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.semantics.semantics
@@ -1219,7 +1222,10 @@ private fun ChatInputTextField(
                                 maxLines = 1,
                             )
                         }
-                        innerTextField()
+                        AnimatedChatInputContent(
+                            text = state.textContent.text.toString(),
+                            content = innerTextField,
+                        )
                     }
                     trailingContent?.invoke()
                 }
@@ -1247,6 +1253,48 @@ private fun ChatInputTextField(
         trailingIcon = trailingContent,
         leadingIcon = leadingContent,
     )
+}
+
+/**
+ * Mochi 计数器式的输入内容进场：文字变化时从基线下方飞入，先模糊后清晰。
+ *
+ * 真实的 BasicTextField 仍然保留在里面，因此光标、选区、复制和输入法行为不受动画影响；
+ * 这里只在绘制层对输入内容做转场。
+ */
+@Composable
+private fun AnimatedChatInputContent(
+    text: String,
+    content: @Composable () -> Unit,
+) {
+    val reduceMotion = rememberKkReduceMotion()
+    val reveal = remember {
+        Animatable(if (text.isEmpty() || reduceMotion) 1f else 0f)
+    }
+
+    LaunchedEffect(text, reduceMotion) {
+        if (text.isEmpty() || reduceMotion) {
+            reveal.snapTo(1f)
+            return@LaunchedEffect
+        }
+        // 从当前输入内容的下方重新进入，快速输入时由 Animatable 自然取消上一段转场。
+        reveal.snapTo(0f)
+        reveal.animateTo(1f, MochiSprings.snappy(300))
+    }
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                val p = reveal.value.coerceIn(0f, 1f)
+                val smooth = p * p * (3f - 2f * p)
+                alpha = smooth
+                translationY = (1f - p) * 10.dp.toPx()
+            }
+            .mochiBlur {
+                3.dp * (1f - reveal.value.coerceIn(0f, 1f))
+            },
+    ) {
+        content()
+    }
 }
 
 @Composable
