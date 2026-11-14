@@ -134,9 +134,15 @@ fun KkGroupedColumn(
                 val group = state.coordinates?.takeIf { it.isAttached }
                 // 每行在组坐标里的上下边与文字起点；绘制时现算，不依赖 onPlaced 的先后
                 val placed = if (group == null) emptyList() else state.rows.mapNotNull { info ->
-                    val row = info.row?.takeIf { it.isAttached } ?: return@mapNotNull null
+                    // BottomSheet/Popup 切换时，旧行坐标可能短暂仍是 attached，但已经不在
+                    // 这张分组卡片的 LayoutNode 子树里。localPositionOf 对这种坐标会直接抛出
+                    // “layouts are not part of the same hierarchy”，因此先确认实际祖先关系。
+                    val row = info.row?.takeIf { it.isAttached && it.isDescendantOf(group) }
+                        ?: return@mapNotNull null
                     val top = group.localPositionOf(row, Offset.Zero).y
-                    val textX = info.text?.takeIf { it.isAttached }?.let { group.localPositionOf(it, Offset.Zero).x }
+                    val textX = info.text
+                        ?.takeIf { it.isAttached && it.isDescendantOf(group) }
+                        ?.let { group.localPositionOf(it, Offset.Zero).x }
                     PlacedRow(top, top + row.size.height, textX, info.press.value)
                 }
                 val edges = if (topDivider) listOf(0) + state.boundaries else state.boundaries
@@ -212,6 +218,19 @@ internal fun rememberKkGroupedRow(): KkGroupedRowInfo? {
 }
 
 private class PlacedRow(val top: Float, val bottom: Float, val textStart: Float?, val press: Float)
+
+/**
+ * LayoutCoordinates.isAttached 只表示节点仍挂在某个 Compose owner 上；Popup/BottomSheet
+ * 切换期间，旧节点可能仍 attached，却已经和当前分组不在同一棵 LayoutNode 树。
+ */
+private fun LayoutCoordinates.isDescendantOf(ancestor: LayoutCoordinates): Boolean {
+    var current: LayoutCoordinates? = this
+    while (current != null) {
+        if (current === ancestor) return true
+        current = current.parentLayoutCoordinates
+    }
+    return false
+}
 
 /** 登记行的外框；放在行最外层（背景之前）。 */
 internal fun Modifier.kkGroupedRowPosition(info: KkGroupedRowInfo?): Modifier =
