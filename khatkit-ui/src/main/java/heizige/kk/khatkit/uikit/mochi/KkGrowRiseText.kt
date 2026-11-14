@@ -53,6 +53,7 @@ fun KkGrowRiseText(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     rise: Dp = 10.dp,
+    driftX: Dp = 0.dp,
     blur: Dp = 3.dp,
     animate: Boolean = true,
 ) {
@@ -60,6 +61,7 @@ fun KkGrowRiseText(
     val ink = if (color == Color.Unspecified) LocalContentColor.current else color
     val density = LocalDensity.current
     val risePx = with(density) { rise.toPx() }
+    val driftXPx = with(density) { driftX.toPx() }
     BoxWithConstraints(modifier) {
         val maxWidth = constraints.maxWidth
         val info = remember(text, style, maxWidth) { measureRise(measurer, text, style, maxWidth) }
@@ -99,7 +101,10 @@ fun KkGrowRiseText(
                         .offset { IntOffset(glyph.topLeft.x.roundToInt(), glyph.topLeft.y.roundToInt()) }
                         .graphicsLayer {
                             val p = tracked?.value ?: 1f
-                            translationY = (1f - p.coerceIn(0f, 1f)) * risePx
+                            val hidden = 1f - p.coerceIn(0f, 1f)
+                            // 正值表示从右下方进入，落定时向左上方收束。
+                            translationX = hidden * driftXPx
+                            translationY = hidden * risePx
                             alpha = p.coerceIn(0f, 1f)
                         }
                         // 飞得越远越糊，落定半径归 0（0 半径不建离屏层）

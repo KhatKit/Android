@@ -859,6 +859,8 @@ private fun Paragraph(
                 text = annotatedString.text,
                 style = paragraphStyle,
                 color = LocalContentColor.current,
+                // AI 回复从右下方轻轻收束到左上方，横向只偏 8dp，避免晃得太开。
+                driftX = 8.dp,
                 modifier = Modifier,
             )
         } else {
