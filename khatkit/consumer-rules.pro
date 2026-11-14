@@ -13,3 +13,9 @@
 -keepclassmembers class heizige.kk.khatkit.bridge.impl.* {
     public <methods>;
 }
+
+# 卡片运行时：khatkit-core(Rust) 通过 JNI 按「方法名 + 签名」回调分派器，
+# 见 khatkit-core/src/host.rs（dispatch / interruptReason / wasmAllowed）。
+# R8 改名后 GetMethodID 失败，正式包（release）里所有 Lua/JS/WASM 卡片都跑不起来，
+# debug 包不受影响——这类问题只在 release 包暴露，务必保留类名和方法名。
+-keep class heizige.kk.khatkit.engine.RustBridgeDispatcher { *; }

@@ -92,6 +92,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      # 卡片运行时走 JNI 名字回调，R8 裁掉会只在 release 包暴露（debug 正常）。
+      - name: Verify card runtime JNI symbols
+        run: bash .github/scripts/verify-card-runtime-symbols.sh
+
       # 把 APK 直接发布为 Prerelease，用户点链接即可下载单个 apk，无需登录、无需解压
       - name: Publish nightly prerelease
         uses: softprops/action-gh-release@v3
