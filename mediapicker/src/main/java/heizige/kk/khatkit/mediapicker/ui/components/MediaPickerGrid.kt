@@ -306,10 +306,12 @@ internal fun MediaPickerGrid(
                     MediaImage(
                         media = item.media,
                         isInSelection = !isGalleryMode || selectionIndex >= 0,
+                        // 普通选择器中的每张图片都必须可点；`isSelectionOfAll`
+                        // 只用于相册全选/拖拽逻辑，不能把「全部」相册的网格锁死。
                         canClick = if (isGalleryMode) {
                             selectedMedia.isEmpty() || !isSelectionOfAll || !allowMultiple
                         } else {
-                            !isSelectionOfAll || !allowMultiple
+                            true
                         },
                         onItemClick = {
                             if (isGalleryMode && selectedMedia.isEmpty()) {

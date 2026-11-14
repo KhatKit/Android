@@ -16,6 +16,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -39,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
-import ui.feice.mochi.effect.glass.MochiGlassSurface
 import ui.feice.mochi.effect.glass.rememberMochiBackdrop
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.runtime.mutableStateOf
@@ -225,41 +225,42 @@ internal fun MediaPickerRootContent(
     Scaffold(
         modifier = modifier,
         topBar = {
-            // 顶栏与相册行共用一块 surfaceContainer（上游是两个嵌套 Scaffold 的
-            // topBar，视觉上是一整块），发丝线只画在最下面一行下面。
+            // 顶栏与相册行共用一块渐隐底色；不再包一层 MochiGlassSurface，
+            // 避免玻璃材质在顶栏边缘画出一圈边框。顶栏按钮仍由 MochiTitleBar
+            // 通过 backdrop 走透明玻璃。
             val hasAlbums = albumsState.albums.size > 1
             val isRefreshing = mediaState.isLoading && mediaState.media.isNotEmpty()
-            // 顶栏和设置页共用 MochiTitleBar；外层玻璃直接取样网格，避免只给按钮套
-            // fallback 纯色而看不出通透。标题栏自身的 scroll-edge fade 仍由 barProgress
-            // 控制：停在顶部透明，内容滚入栏下方后渐进铺底。
-            MochiGlassSurface(
-                modifier = Modifier.fillMaxWidth(),
-                material = MochiTheme.materials.bar,
-                backdrop = contentBackdrop,
-                cornerRadius = 0.dp,
+            // 顶栏和设置页共用 MochiTitleBar；按钮通过 contentBackdrop 取样网格，
+            // 保持透明玻璃效果。标题栏自身的 scroll-edge fade 仍由 barProgress 控制：
+            // 停在顶部透明，内容滚入栏下方后渐进铺底。
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MochiTheme.colorScheme.background.copy(alpha = barProgress.coerceIn(0f, 1f))
+                    ),
             ) {
-                Column {
-                    MochiTitleBar(
-                        title = title ?: stringResource(
-                            if (allowMultiple) R.string.media_picker_pick_multiple
-                            else R.string.media_picker_pick_single
-                        ),
-                        titleProgress = { 1f },
-                        backgroundProgress = { barProgress },
-                        background = MochiTheme.colorScheme.background,
-                        backdrop = contentBackdrop,
-                        navigationIcon = {
-                            MochiBarIconButton(
-                                onClick = onDismiss,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.media_picker_close),
-                                )
-                            }
-                        },
-                    )
-                    if (hasPermission) {
+                MochiTitleBar(
+                    title = title ?: stringResource(
+                        if (allowMultiple) R.string.media_picker_pick_multiple
+                        else R.string.media_picker_pick_single
+                    ),
+                    titleProgress = { 1f },
+                    backgroundProgress = { barProgress },
+                    background = MochiTheme.colorScheme.background,
+                    backdrop = contentBackdrop,
+                    navigationIcon = {
+                        MochiBarIconButton(
+                            onClick = onDismiss,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.media_picker_close),
+                            )
+                        }
+                    },
+                )
+                if (hasPermission) {
                     MediaAlbumRow(
                         albumsState = albumsState,
                         mediaState = mediaState,
@@ -267,7 +268,6 @@ internal fun MediaPickerRootContent(
                         onAlbumSelected = pickerState::getAlbum,
                         collapsed = chipsCollapsed,
                     )
-                    }
                 }
             }
         },

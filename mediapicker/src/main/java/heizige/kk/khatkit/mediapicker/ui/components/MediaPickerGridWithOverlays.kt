@@ -164,7 +164,7 @@ internal fun MediaPickerGridWithOverlays(
                 AnimatedVisibility(visible = canPick) {
                     MochiIconButton(
                         onClick = { selectedMedia.clear() },
-                        style = MochiButtonStyle.Glass,
+                        style = MochiButtonStyle.ClearGlass,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Deselect,
@@ -176,7 +176,7 @@ internal fun MediaPickerGridWithOverlays(
                     onClick = { if (canPick) onPicked() },
                     enabled = canPick,
                     // 玻璃样式：跟设置中心的「玻璃按钮」开关联动（关掉退回实心）。
-                    style = MochiButtonStyle.Glass,
+                    style = MochiButtonStyle.ClearGlass,
                     modifier = Modifier.semantics { contentDescription = pickLabel },
                 ) {
                     Row(
@@ -271,7 +271,7 @@ internal fun MediaPickerGridWithOverlays(
                     action = {
                         MochiButton(
                             onClick = onRetry,
-                            style = MochiButtonStyle.Glass,
+                            style = MochiButtonStyle.ClearGlass,
                         ) { Text(stringResource(R.string.media_picker_try_again)) }
                     },
                 )
@@ -351,7 +351,7 @@ internal fun MediaSearchAndFilterButtons(
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         MochiIconButton(
             onClick = onSearch,
-            style = MochiButtonStyle.Glass,
+            style = MochiButtonStyle.ClearGlass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
@@ -360,7 +360,7 @@ internal fun MediaSearchAndFilterButtons(
         }
         MochiIconButton(
             onClick = onFilter,
-            style = MochiButtonStyle.Glass,
+            style = MochiButtonStyle.ClearGlass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.FilterAlt,
