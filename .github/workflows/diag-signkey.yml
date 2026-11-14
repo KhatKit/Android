@@ -35,9 +35,14 @@ jobs:
           echo "--- try candidate passwords ---"
           n=0
           for cand in \
-            "khatkit" "123456" "WebIDE" "android" "hezige" "Heizige" "rrzt" \
-            "khatkit123" "khatkit2026" "password" "keypass" "storepass" \
-            "000000" "12345678" "qwerty" "admin" "khatkit-release" "khatkit123456"; do
+            "khatkit" "Khatkit" "KhatKit" "KHATKIT" "khatkit " "khatkit1" \
+            "khatkit123" "khatkit1234" "khatkit12345" "khatkit123456" "khatkit!" "@khatkit" \
+            "khatkit@123" "khatkit.2026" "khatkit2026" "khatkit2025" "khatkit2024" \
+            "123456" "1234567" "12345678" "123456789" "1234567890" "000000" "111111" \
+            "qwerty" "qwerty123" "password" "password123" "admin" "admin123" \
+            "android" "WebIDE" "webide" "hezige" "Heizige" "heizige" "heizige123" \
+            "rrzt" "h465855hgg" "3382198490" "3382198490@qq.com" \
+            "khatkit-release" "release" "signing" "storepass" "keypass" ""; do
             n=$((n+1))
             if keytool -list -keystore k.jks -storepass "$cand" >/dev/null 2>&1; then
               echo "::notice::unlocked with candidate #$n"
