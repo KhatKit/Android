@@ -24,7 +24,7 @@ on:
       versionCode:
         description: 'Android versionCode（必须高于当前线上版本）'
         required: true
-        default: '191'
+        default: '192'
         type: string
       versionName:
         description: '展示给用户的版本名'

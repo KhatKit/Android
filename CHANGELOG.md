@@ -1,6 +1,6 @@
 # 更新日志
 
-## 2.5.6（2026-11-14）
+## 2.5.7（2026-11-14）
 - **卡片 UI DSL 新增 `ChipRow` / `Dropdown`**：给卡片补上「一行可点选 chips」（单选 / 多选、图标、折行或横滚）与「当前值 + ⌄ 展开菜单」两个节点，渲染分别走 `MochiChip` / `MochiDropdown`；运行时 `NodeTree.kt` 与卡片侧 `ui_kit.lua` 双份校验同步，已有卡片的 `Select` / `RadioGroup` 外观不变（`docs/card-dsl-chip-and-dropdown.md`）。
 - **工具台卡片设计规范落地**：新增 `docs/card-design-spec.md`（Mochi 版式：hero 大卡 + iOS inset grouped 分组 + 表单/结果分层），配套 Rust 侧 `docscard-runtime-wasm/src/ui.rs` 与 `libkhatkit_core.so` 同步重编。
 - **设置搜索直达二级项**：新增叶子索引 `SettingLeafIndex`（索引表 + 焦点定位 `SettingFocus`），搜索页可直接跳到二级设置页并高亮目标项，配 `SettingLeafIndexTest` / `SettingSearchFilterTest`。
