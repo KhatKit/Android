@@ -1,0 +1,49 @@
+name: Diagnose Signing Key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inspect KEY_BASE64 keystore
+        env:
+          KEY_BASE64: ${{ secrets.KEY_BASE64 }}
+          SIGNING_CONFIG: ${{ secrets.SIGNING_CONFIG }}
+        run: |
+          set -eo pipefail
+          mkdir -p /tmp/diag && cd /tmp/diag
+          B64="$(printf '%s' "$KEY_BASE64" | tr -d '[:space:]')"
+          echo "base64 length: ${#B64}"
+          if ! printf '%s' "$B64" | base64 -d > k.jks 2>/dev/null; then
+            echo "::error::KEY_BASE64 is not valid base64"; exit 1
+          fi
+          echo "keystore bytes: $(stat -c%s k.jks)"
+          echo "sha256: $(sha256sum k.jks | cut -d' ' -f1)"
+          echo "magic: $(xxd -l 8 -p k.jks)"
+          file k.jks || true
+          echo "SIGNING_CONFIG keys:"
+          printf '%s\n' "$SIGNING_CONFIG" | tr -d '\r' | sed -nE 's/^([A-Za-z][A-Za-z0-9_.-]*)=.*/  \1/p'
+          echo "SIGNING_CONFIG storePassword sha256: $(printf '%s' "$(printf '%s\n' "$SIGNING_CONFIG" | tr -d '\r' | sed -nE 's/^[[:space:]]*storePassword[[:space:]]*=[[:space:]]*(.*)$/\1/p')" | sha256sum | cut -d' ' -f1)"
+          echo "--- try candidate passwords ---"
+          n=0
+          for cand in \
+            "khatkit" "123456" "WebIDE" "android" "hezige" "Heizige" "rrzt" \
+            "khatkit123" "khatkit2026" "password" "keypass" "storepass" \
+            "000000" "12345678" "qwerty" "admin" "khatkit-release" "khatkit123456"; do
+            n=$((n+1))
+            if keytool -list -keystore k.jks -storepass "$cand" >/dev/null 2>&1; then
+              echo "::notice::unlocked with candidate #$n"
+              echo "fingerprint: $(keytool -list -v -keystore k.jks -storepass "$cand" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -1)"
+              echo "alias: $(keytool -list -keystore k.jks -storepass "$cand" 2>/dev/null | sed -n 's/^\([^,]*\),.*/\1/p' | head -1)"
+              exit 0
+            fi
+          done
+          echo "::warning::no candidate password unlocked the keystore"
