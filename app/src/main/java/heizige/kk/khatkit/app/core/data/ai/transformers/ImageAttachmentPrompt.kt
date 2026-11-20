@@ -21,9 +21,36 @@ internal fun imageAttachmentNote(url: String, fromUser: Boolean = true): String?
 
 /** file:// URI 或裸绝对路径 → 本机文件；其它（http/data/content）返回 null。 */
 internal fun localImageFile(url: String): File? = when {
-    url.startsWith("file:") -> runCatching { URI(url).path }.getOrNull()?.let(::File)
-    url.startsWith("/") -> File(url)
+    url.startsWith("file:") -> runCatching { File(URI(url)) }.getOrNull()
+    url.startsWith("/") || File(url).isAbsolute -> File(url)
     else -> null
+}
+
+internal const val IMAGE_PATH_HINT_PREFIX = "[本地图片附件，可直接用于图片处理]"
+
+/**
+ * 给当前轮的模型与工具提供其各自可访问的图片路径。
+ * 图片保存在应用的 files/upload 目录时，工作区 shell 通过 /upload 挂载访问；
+ * KhatKit 卡片则在宿主侧使用绝对路径。
+ */
+internal fun imageAttachmentPathHint(urls: List<String>, uploadDirectory: File): String? {
+    val files = urls.mapIndexedNotNull { index, url ->
+        val file = localImageFile(url)?.takeIf { it.isFile } ?: return@mapIndexedNotNull null
+        val inUploadDirectory = runCatching {
+            file.canonicalFile.parentFile == uploadDirectory.canonicalFile
+        }.getOrDefault(false)
+        Triple(index + 1, file, inUploadDirectory)
+    }
+    if (files.isEmpty()) return null
+
+    return buildString {
+        appendLine(IMAGE_PATH_HINT_PREFIX)
+        appendLine("不要向用户索要路径。KhatKit 图像卡片使用 host 路径；如 workspace_shell 可用，则使用 workspace 路径。")
+        files.forEach { (index, file, inUploadDirectory) ->
+            appendLine("image_${index}_host=${file.absolutePath}")
+            if (inUploadDirectory) appendLine("image_${index}_workspace=/upload/${file.name}")
+        }
+    }.trimEnd()
 }
 
 internal fun imageMimeType(fileName: String): String? =

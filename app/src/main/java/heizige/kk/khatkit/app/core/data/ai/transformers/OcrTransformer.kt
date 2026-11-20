@@ -92,14 +92,12 @@ class OcrTransformer @Inject constructor(
 
     private suspend fun describeImageForTextModel(part: UIMessagePart.Image, fromUser: Boolean): String {
         // 仅本机文件能给出绝对路径；内联/远程图片用简短占位，避免 data: base64 淹没上下文
-        val local = localImageFile(part.url) != null
         val note = imageAttachmentNote(part.url, fromUser = fromUser)
             ?: imageAttachmentLabel(part.url, fromUser = fromUser)
         val ocr = if (isLocalOrInline(part.url)) performOcr(part) else null
         return buildString {
             append(note)
             ocr?.takeIf { it.isNotBlank() }?.let { append('\n').append(it) }
-            if (local) append('\n').append(IMAGE_PATH_TOOL_HINT)
         }
     }
 
@@ -158,8 +156,4 @@ class OcrTransformer @Inject constructor(
         }.getOrNull()
     }
 
-    companion object {
-        private const val IMAGE_PATH_TOOL_HINT =
-            "提示：以上是本机图片路径，需要看图、OCR 或图像处理时请直接调用工具并传入该路径，不要反问用户要图片路径。"
-    }
 }

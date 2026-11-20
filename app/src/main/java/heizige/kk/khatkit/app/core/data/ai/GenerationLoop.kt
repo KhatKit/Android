@@ -25,7 +25,6 @@ import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.core.sum
 import heizige.kk.khatkit.ai.provider.Model
-import heizige.kk.khatkit.ai.provider.Modality
 import heizige.kk.khatkit.ai.provider.Provider
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
@@ -37,6 +36,8 @@ import heizige.kk.khatkit.ai.ui.StreamChunkHandler
 import heizige.kk.khatkit.ai.ui.handleTextGenerationResult
 import heizige.kk.khatkit.ai.ui.limitContext
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.data.ai.transformers.IMAGE_PATH_HINT_PREFIX
+import heizige.kk.khatkit.app.core.data.ai.transformers.imageAttachmentPathHint
 import heizige.kk.khatkit.app.core.data.ai.transformers.InputMessageTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.MessageTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OutputMessageTransformer
@@ -118,12 +119,10 @@ class GenerationLoop(
             if (pendingTools.isEmpty()) {
                 for ((chainIndex, candidate) in failoverChain.withIndex()) {
                     val (candidateProvider, candidateModel) = candidate
-                    val messagesForCandidate =
-                        if (candidateModel.inputModalities.contains(Modality.IMAGE)) {
-                            messages
-                        } else {
-                            messages.withLocalImagePathHints()
-                        }
+                    // 视觉模型仍保留原图 part，同时也需要可供本地图片工具使用的路径。
+                    val messagesForCandidate = messages.withLocalImagePathHints(
+                        uploadDirectory = File(context.filesDir, FileFolders.UPLOAD),
+                    )
                     try {
                         generateInternal(
                             assistant = assistant,
@@ -725,25 +724,20 @@ class GenerationLoop(
 }
 
 /**
- * 文本模型无法消费 image_url，但本地工具卡仍需要知道附件文件。
- * 将路径作为生成上下文中的合成文本注入，不写回会话数据库，也不改变聊天气泡。
+ * 给所有模型提供本地图片工具路径；视觉模型仍保留原图 part。
+ * 路径提示仅进入当前生成上下文，不写回会话数据库，也不改变聊天气泡。
  */
-private fun List<UIMessage>.withLocalImagePathHints(): List<UIMessage> {
+private fun List<UIMessage>.withLocalImagePathHints(uploadDirectory: File): List<UIMessage> {
     val index = indexOfLast { it.role == MessageRole.USER }
     if (index < 0) return this
     val message = this[index]
-    val paths = message.parts.filterIsInstance<UIMessagePart.Image>().mapNotNull { image ->
-        when {
-            image.url.startsWith("file://") -> image.url.removePrefix("file://")
-            image.url.startsWith("/") -> image.url
-            else -> null
-        }
-    }
-    if (paths.isEmpty()) return this
-    val hint = "[本地图片附件，供图像工具调用，不需要向用户索要路径]\n" +
-        paths.mapIndexed { i, path -> "image_${i + 1}=$path" }.joinToString("\n")
-    val already = message.parts.filterIsInstance<UIMessagePart.Text>().any { it.text.contains("[本地图片附件") }
+    val already = message.parts.filterIsInstance<UIMessagePart.Text>()
+        .any { it.text.startsWith(IMAGE_PATH_HINT_PREFIX) }
     if (already) return this
+    val hint = imageAttachmentPathHint(
+        urls = message.parts.filterIsInstance<UIMessagePart.Image>().map { it.url },
+        uploadDirectory = uploadDirectory,
+    ) ?: return this
     return toMutableList().also { it[index] = message.copy(parts = message.parts + UIMessagePart.Text(hint)) }
 }
 
@@ -771,7 +765,7 @@ private fun List<UIMessage>.withStepStats(
 private fun List<UIMessage>.withoutLocalImagePathHints(): List<UIMessage> = map { message ->
     message.copy(
         parts = message.parts.filterNot { part ->
-            part is UIMessagePart.Text && part.text.startsWith("[本地图片附件，供图像工具调用")
+            part is UIMessagePart.Text && part.text.startsWith(IMAGE_PATH_HINT_PREFIX)
         }
     )
 }

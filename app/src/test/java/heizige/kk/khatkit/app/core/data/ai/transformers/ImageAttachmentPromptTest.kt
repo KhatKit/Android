@@ -39,6 +39,38 @@ class ImageAttachmentPromptTest {
     }
 
     @Test
+    fun `image path hint provides host and workspace paths for uploaded files`() {
+        val uploadDirectory = tempFolder.newFolder("upload")
+        val file = File(uploadDirectory, "my photo.jpg").apply { writeBytes(ByteArray(10)) }
+
+        val hint = imageAttachmentPathHint(listOf(file.toURI().toString()), uploadDirectory)
+
+        assertTrue(hint!!.startsWith(IMAGE_PATH_HINT_PREFIX))
+        assertTrue(hint.contains("image_1_host=${file.absolutePath}"))
+        assertTrue(hint.contains("image_1_workspace=/upload/${file.name}"))
+        assertFalse(hint.contains("%20"))
+    }
+
+    @Test
+    fun `image outside upload directory has no workspace alias`() {
+        val uploadDirectory = tempFolder.newFolder("upload")
+        val file = File(tempFolder.newFolder("other"), "photo.jpg").apply { createNewFile(); writeBytes(ByteArray(10)) }
+
+        val hint = imageAttachmentPathHint(listOf(file.toURI().toString()), uploadDirectory)
+
+        assertTrue(hint!!.contains("image_1_host=${file.absolutePath}"))
+        assertFalse(hint.contains("image_1_workspace="))
+    }
+
+    @Test
+    fun `image path hint skips missing and remote files`() {
+        val uploadDirectory = tempFolder.newFolder("upload")
+
+        assertNull(imageAttachmentPathHint(listOf("https://example.com/a.jpg"), uploadDirectory))
+        assertNull(imageAttachmentPathHint(listOf("file:///definitely/not/exists.jpg"), uploadDirectory))
+    }
+
+    @Test
     fun `assistant image note uses neutral label`() {
         val file = tempFolder.newFile("gen.jpg")
         file.writeBytes(ByteArray(10))

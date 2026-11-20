@@ -30,6 +30,8 @@ import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
 import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
 import heizige.kk.khatkit.app.core.data.ai.CardEmbeddingEngine
+import heizige.kk.khatkit.app.core.data.ai.transformers.imageAttachmentPathHint
+import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.ai.AiCallReport
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
@@ -2027,21 +2029,10 @@ class KhatKitToolProvider(
     /** 将当前用户消息中的图片附件作为工具参数上下文直接提供给模型。 */
     private fun attachedImageToolPrompt(messages: List<UIMessage>): String {
         val user = messages.lastOrNull { it.role == MessageRole.USER } ?: return ""
-        val paths = user.parts.filterIsInstance<UIMessagePart.Image>()
-            .mapNotNull { image ->
-                when {
-                    image.url.startsWith("file://") -> image.url.removePrefix("file://")
-                    image.url.startsWith("/") -> image.url
-                    else -> null
-                }
-            }
-            .filter { it.startsWith("/") }
-        if (paths.isEmpty()) return ""
-        return buildString {
-            appendLine("当前用户消息附带了本地图片。不要向用户索要路径，也不要使用 content://、file:// 或相对路径。")
-            appendLine("调用图片处理工具时，涉及输入图片的 path/input/source/image 参数必须使用下面的绝对路径：")
-            paths.forEachIndexed { index, path -> appendLine("image_${index + 1}=$path") }
-        }
+        return imageAttachmentPathHint(
+            urls = user.parts.filterIsInstance<UIMessagePart.Image>().map { it.url },
+            uploadDirectory = File(appContext.filesDir, FileFolders.UPLOAD),
+        ).orEmpty()
     }
 
     /** wake 动作：调用工具 bridge 点亮屏幕，返回唤醒结果与最新屏幕状态。 */
