@@ -31,20 +31,16 @@ import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
 import ui.feice.mochi.effect.glass.rememberMochiBackdrop
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -52,8 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -103,18 +97,9 @@ fun KhatKitMediaPicker(
 ) {
     if (!visible) return
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            usePlatformDefaultWidth = false,
-        ),
-    ) {
-        // 选择器是 Dialog 的独立窗口：Activity 那套 Mochi 系统栏处理不会作用到这里，
-        // 不显式接一下，状态栏 / 导航栏就还是系统默认色。
-        MochiDialogSystemBars()
+    MediaPickerDialog(onDismiss = onDismiss) { close ->
         MediaPickerRootContent(
-            onDismiss = onDismiss,
+            onDismiss = close,
             onPicked = onPicked,
             modifier = modifier.fillMaxSize(),
             allowedMedia = allowedMedia,
@@ -122,34 +107,6 @@ fun KhatKitMediaPicker(
             title = title,
             onTakePicture = onTakePicture,
         )
-    }
-}
-
-/**
- * 顶栏 + 相册行那一整块的底色。
- *
- * 原来写死 MD3 的 `surfaceContainer`，Miuix 下那块底色会和 Miuix 页面底色对不上
- * （Miuix 主题只桥接了配色，`MaterialTheme.colorScheme` 仍是 MD3 那套）。
- */
-/**
- * Dialog 窗口的系统栏：透明 + 图标深浅跟主题，内容（顶栏 / 底部栏）自己铺到底下。
- * Android 15+ 强制 edge-to-edge，statusBarColor 已无效，所以只设透明度与图标明暗。
- */
-@Composable
-private fun MochiDialogSystemBars() {
-    val view = LocalView.current
-    val dark = MochiTheme.colorScheme.isDark
-    SideEffect {
-        val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        @Suppress("DEPRECATION")
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
-        WindowCompat.getInsetsController(window, view).apply {
-            isAppearanceLightStatusBars = !dark
-            isAppearanceLightNavigationBars = !dark
-        }
     }
 }
 
@@ -198,8 +155,7 @@ internal fun MediaPickerRootContent(
     }
 
     // 返回键分层：先退搜索 → 再回「全部」→ 再清空选择 → 最后才关掉选择器。
-    // 用 PredictiveBackHandler 而不是 BackHandler：手势期间系统会先放预览动画（面板缩小退后），
-    // 松手提交时才执行这一层；取消就什么都不做。注册顺序即优先级，Compose 取最后 enabled 的那个。
+    // 子状态只在提交时修改；关闭选择器的跟手转场由 MediaPickerDialog 的 MochiNavHost 负责。
     PredictiveBackHandler(enabled = isSearching) { events ->
         try {
             events.collect { }
@@ -216,9 +172,6 @@ internal fun MediaPickerRootContent(
         }
     }
 
-    // 骨架与顶栏都走 Kedge：MD3Exp 下与原来的 MD3 Scaffold + TopAppBar 等价，
-    // Miuix 下换成 Miuix Scaffold + Miuix 顶栏（此前整页是 MD3，AGENTS.md 里
-    // 「Miuix 分支待补」指的就是这一块）。
     // Dialog 是独立窗口：只把「网格」录成玻璃取样源（栏与按钮在录制层外面，
     // 否则它们会取样到包含自己的那层，RenderThread 递归建节点直接栈溢出崩溃）。
     val contentBackdrop = rememberMochiBackdrop(background = MaterialTheme.colorScheme.background)

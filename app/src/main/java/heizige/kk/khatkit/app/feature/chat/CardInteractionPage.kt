@@ -5,15 +5,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.components.khatkit.CardPageStackPage
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitRequestPage
+import heizige.kk.khatkit.app.core.ui.components.khatkit.isCardPage
 import heizige.kk.khatkit.ui.UiRequest
-import ui.feice.mochi.theme.MochiTheme
 
 /**
  * A route for card initiated UI. The card's request is rendered in the Mochi
@@ -25,6 +30,9 @@ internal fun CardInteractionPage(name: String) {
     val nav = LocalKkNavController.current
     val request by provider.uiRequest.collectAsStateWithLifecycle()
     val owned = request?.takeIf { provider.isPageHosted(it, setOf(name)) }
+    val active = nav?.current == Screen.CardInteraction(name)
+    var shown by remember(name) { mutableStateOf<UiRequest?>(null) }
+    SideEffect { if (active && owned != null) shown = owned }
     DisposableEffect(provider, name) {
         provider.attachCardPage(name)
         onDispose {
@@ -41,8 +49,14 @@ internal fun CardInteractionPage(name: String) {
         }
     }
     Box(Modifier.fillMaxSize()) {
-        owned?.let { current ->
-            MochiTheme { KhatKitRequestPage(current, provider) }
+        // Closing routes stay composed during predictive-back release. Keep their
+        // last request even when the bridge has already published the parent page.
+        (if (active) owned ?: shown else shown)?.let { current ->
+            if (current is UiRequest.Screen && current.isCardPage()) {
+                CardPageStackPage(if (active) owned else null, provider)
+            } else {
+                KhatKitRequestPage(current, provider)
+            }
         }
     }
 }

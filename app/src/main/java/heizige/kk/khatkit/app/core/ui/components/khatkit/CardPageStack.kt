@@ -1,38 +1,26 @@
 package heizige.kk.khatkit.app.core.ui.components.khatkit
 
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.ui.UiScreenPage
 import heizige.kk.khatkit.ui.UiSheetOptions
+import heizige.kk.khatkit.uikit.LocalKhatKitPageBack
 import heizige.kk.khatkit.uikit.mochi.LocalKkInsidePageStack
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
-import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.navigation.MochiNavHost
+import ui.feice.mochi.navigation.rememberMochiNavigator
 
 /**
  * 卡片页导航栈的一层。
@@ -49,7 +37,7 @@ internal data class CardPageFrame(
     val pages: Map<String, UiScreenPage>,
 )
 
-/** 栈这一帧正在做哪种过渡；[CardPageStackRuntime] 只负责放动画。 */
+/** 桥接请求与 Mochi 导航栈当前需要同步的压层或退层操作。 */
 internal enum class CardPageMotion { Push, Pop }
 
 /**
@@ -59,15 +47,13 @@ internal enum class CardPageMotion { Push, Pop }
  * 仍旧走原来的整屏弹层，外观不变。
  */
 internal fun UiRequest.Screen.isCardPage(): Boolean =
-    options.fullscreen && (pages.isNotEmpty() || options.layer)
+    options.fullscreen && (pages.isNotEmpty() || options.layer || options.push)
 
 /**
- * 卡片页栈的纯状态：卡片每来一屏，这里决定「压一层」还是「回根层」。
+ * 卡片页栈的纯状态，每层页面独立保存内容与身份。
  *
- * 判定很简单，也正好对上卡片的脚本流程：
- * - `push = true` 的全屏屏 → 压一层；
- * - 其余全屏屏 → 这是根层重画（返回上一屏、应用设置、下拉刷新后都会重画根层），
- *   深栈开始退层，根层内容原地换新（滚动位置/分页状态都保留）。
+ * `push = true` 压入新层，当前层刷新只更新自身；返回请求更新目标父层，
+ * 正在退出的子层保留原内容，直到 Mochi 的返回动画结束才移除。
  */
 @Stable
 internal class CardPageStackState {
@@ -81,9 +67,13 @@ internal class CardPageStackState {
     private val order = mutableStateListOf<Long>()
     private val content = mutableStateMapOf<Long, CardPageFrame>()
     private var nextId = 0L
+    private var popTargetId: Long? = null
+    private var pendingPush: UiRequest.Screen? = null
 
     /** 栈的顺序 id（压层/退层才变）。 */
     val ids: List<Long> get() = order
+
+    val popTargetIndex: Int get() = order.indexOf(popTargetId).coerceAtLeast(0)
 
     val size: Int get() = order.size
     val isEmpty: Boolean get() = order.isEmpty()
@@ -115,24 +105,33 @@ internal class CardPageStackState {
             return
         }
         if (screen.options.push) {
+            if (motion == CardPageMotion.Pop) {
+                pendingPush = screen
+                return
+            }
             backSubmitted = false
             addLayer(screen)
             motion = CardPageMotion.Push
             return
         }
-        // 非 push 但标题和栈顶那页一样：卡片正在原地刷新当前页（例如设置里切了时区再出一次设置屏）。
-        // 只换这一层的内容，栈深和其它层都不动 —— 底下那页连重组都不会发生。
+        // 分页屏是根页，即使它和子页的标题相同，也不能覆盖正在退出的子页。
+        val returning = motion == CardPageMotion.Pop || backSubmitted
         val topId = order.last()
         val top = content[topId]
-        val sameLayer = screen.options.layer || (top != null && top.title == screen.title)
-        if (order.size > 1 && sameLayer) {
+        val sameLayer = screen.pages.isEmpty() &&
+            (screen.options.layer || (top != null && top.title == screen.title))
+        if (order.size > 1 && !returning && sameLayer) {
             content[topId] = frameOf(topId, screen)
             return
         }
-        // 其余非 push：卡片回到了根层。根层换新数据（保留 id），深栈退掉。
-        content[rootId] = frameOf(rootId, screen)
+        val targetId = if (returning && screen.pages.isEmpty()) {
+            popTargetId ?: order[order.lastIndex - 1]
+        } else {
+            rootId
+        }
+        content[targetId] = frameOf(targetId, screen)
         if (order.size > 1) {
-            // 退层动画期间保持 backSubmitted（连点不会再发一次返回事件），finishPop 时复位。
+            popTargetId = targetId
             motion = CardPageMotion.Pop
         } else {
             backSubmitted = false
@@ -140,35 +139,40 @@ internal class CardPageStackState {
     }
 
     fun pushPop() {
-        if (order.size <= 1) return
+        if (order.size <= 1 || motion == CardPageMotion.Pop) return
+        popTargetId = order[order.lastIndex - 1]
         motion = CardPageMotion.Pop
     }
 
     fun finishPop() {
-        while (order.size > 1) {
+        val target = popTargetId ?: order.firstOrNull()
+        while (order.size > 1 && order.last() != target) {
             val id = order.removeAt(order.lastIndex)
             content.remove(id)
         }
+        popTargetId = null
         motion = null
         backSubmitted = false
+        val next = pendingPush
+        pendingPush = null
+        if (next != null) apply(next)
     }
 
     fun clear() {
         order.clear()
         content.clear()
+        pendingPush = null
+        popTargetId = null
         motion = null
         backSubmitted = false
     }
 }
 
-/** 栈的运行时：状态 + 跟手动画 + 返回行为；页面版和弹层版共用。 */
+/** Keeps bridge requests separate from the navigation entries that are still animating out. */
 @Stable
 internal class CardPageStackRuntime(val provider: KhatKitToolProvider) {
     val state = CardPageStackState()
-    val entering: Animatable<Float, AnimationVector1D> = Animatable(0f)
-    val closing: Animatable<Float, AnimationVector1D> = Animatable(0f)
 
-    /** 替用户发一次「返回上一屏」；根层则交给卡片自己关。 */
     fun back() {
         if (state.size <= 1) {
             provider.dismissUi()
@@ -177,196 +181,69 @@ internal class CardPageStackRuntime(val provider: KhatKitToolProvider) {
         if (state.backSubmitted) return
         state.backSubmitted = true
         state.pushPop()
-        val event = state.lastOrNull()?.options?.backEvent
-        if (event != null) provider.submitScreen(event, emptyMap())
+        state.lastOrNull()?.options?.backEvent?.let { provider.submitScreen(it, emptyMap()) }
     }
 }
 
 /**
- * 卡片自己的页面（`CardWidgetPage`）用的入口：不弹层，直接铺在页面里。
- *
- * 跟手返回只管「退层」；根层（栈里只剩一页）的返回交给页面导航 —— 那是专门的页面返回，
- * 有 MochiNavHost 自己的预测性返回/来源容器形变，不该被卡片截胡。
+ * Card child pages use Mochi's page transitions, including gesture cancellation and release.
+ * Bridge replies may update the parent immediately; the leaving entry keeps its own frame
+ * until Mochi finishes its closing animation.
  */
 @Composable
 internal fun CardPageStackPage(request: UiRequest?, provider: KhatKitToolProvider) {
-    // 页面版不按「请求为空」清栈：卡片在算下一屏时先留着当前这层兜底（页面关闭会整页销毁）。
-    val runtime = rememberCardPageStack(request, provider, clearOnIdle = false)
-    if (runtime.state.isEmpty) return
-    Box(Modifier.fillMaxSize()) {
-        StackPredictiveBack(runtime, enabled = runtime.state.size > 1, dialogRoot = false)
-        CardPageStackLayers(runtime)
-    }
-}
-
-@Composable
-private fun StackPredictiveBack(
-    runtime: CardPageStackRuntime,
-    enabled: Boolean,
-    dialogRoot: Boolean,
-) {
-    PredictiveBackHandler(enabled = enabled) { backEvents ->
-        try {
-            backEvents.collect { event ->
-                val progress = event.progress.coerceIn(0f, 1f)
-                if (runtime.state.size > 1) {
-                    runtime.entering.snapTo(progress)
-                } else if (dialogRoot) {
-                    runtime.closing.snapTo(progress)
-                }
-            }
-            runtime.back()
-        } catch (error: CancellationException) {
-            if (runtime.state.size > 1) {
-                runtime.entering.animateTo(0f, tween(durationMillis = 180))
-            } else if (dialogRoot) {
-                runtime.closing.animateTo(0f, tween(durationMillis = 180))
-            }
-            throw error
-        }
-    }
-}
-
-@Composable
-private fun rememberCardPageStack(
-    request: UiRequest?,
-    provider: KhatKitToolProvider,
-    clearOnIdle: Boolean,
-): CardPageStackRuntime {
-    val runtime = remember { CardPageStackRuntime(provider) }
+    val runtime = remember(provider) { CardPageStackRuntime(provider) }
     val state = runtime.state
-    val entering = runtime.entering
-    val closing = runtime.closing
-
-    // 卡片的新一屏：落进栈里。放 side effect 里，不在组合过程中改状态。
     LaunchedEffect(request) {
         val screen = request as? UiRequest.Screen
-        if (screen != null && screen.isCardPage()) {
-            // 压层：先把新页挪到屏幕右侧，下一帧再滑进来（否则会先闪一帧到位的样子）。
-            if (screen.options.push && !state.isEmpty) entering.snapTo(1f)
-            state.apply(screen)
-            return@LaunchedEffect
-        }
-        // 请求被收掉（卡片结束/用户取消）时把栈收掉。先等一小会儿，避开请求队列
-        // 「先清空再挂下一屏」的中间态；上面还压着别的请求（sheet 之类）时栈先留着。
-        if (!clearOnIdle) return@LaunchedEffect
-        delay(140)
-        if (provider.uiRequest.value != null) return@LaunchedEffect
-        if (state.isEmpty) return@LaunchedEffect
-        closing.animateTo(1f, tween(durationMillis = 180, easing = FastOutLinearInEasing))
-        state.clear()
-        closing.snapTo(0f)
+        if (screen != null && screen.isCardPage()) state.apply(screen)
     }
+    if (state.isEmpty) return
+    CardPageStackHost(state, runtime::back) { frame ->
+        CompositionLocalProvider(
+            LocalKkInsidePageStack provides true,
+            LocalKhatKitPageBack provides runtime::back,
+        ) {
+            TreePage(frame.title, frame.root, frame.options, provider, pages = frame.pages)
+        }
+    }
+}
 
-    LaunchedEffect(state.motion) {
+@Composable
+internal fun CardPageStackHost(
+    state: CardPageStackState,
+    onBack: () -> Unit,
+    content: @Composable (CardPageFrame) -> Unit,
+) {
+    val navigator = rememberMochiNavigator(state.ids.first().toString())
+    val routes = navigator.backStack
+    LaunchedEffect(state.motion, state.ids.toList()) {
         when (state.motion) {
             CardPageMotion.Push -> {
-                entering.snapTo(1f)
-                entering.animateTo(0f, tween(durationMillis = 320, easing = FastOutSlowInEasing))
+                val route = state.ids.last().toString()
+                if (navigator.current != route) navigator.push(route)
+                state.motion = null
             }
             CardPageMotion.Pop -> {
-                // 退层：当前页滑出去（到 1 时下层已经回到原位），然后把它从栈里摘掉，
-                // 并把进度归零 —— 不归零的话剩下那层会一直带着 translationX = 整屏宽（白屏）。
-                entering.animateTo(1f, tween(durationMillis = 240, easing = FastOutLinearInEasing))
-                state.finishPop()
-                entering.snapTo(0f)
+                val target = state.ids[state.popTargetIndex].toString()
+                if (navigator.current != target) navigator.popTo(state.popTargetIndex)
             }
-            null -> return@LaunchedEffect
-        }
-        state.motion = null
-    }
-    return runtime
-}
-
-@Composable
-private fun CardPageStackLayers(runtime: CardPageStackRuntime) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MochiTheme.colorScheme.background)
-            .graphicsLayer {
-                translationY = runtime.closing.value * size.height
-                alpha = 1f - runtime.closing.value * 0.2f
-            },
-    ) {
-        // 只读顺序（压层/退层才变）。每层的内容在自己的 layer 里读 —— 换掉栈顶那层的内容
-        // 只让那一层重组，下面那页不受影响。
-        val ids = runtime.state.ids
-        ids.forEachIndexed { index, id ->
-            key(id) {
-                CardPageStackLayer(
-                    id = id,
-                    depth = ids.lastIndex - index,
-                    entering = runtime.entering,
-                    runtime = runtime,
-                )
-            }
+            null -> Unit
         }
     }
-}
-
-/**
- * 栈里的一层：内容 + 跟手位移 + 下层压暗。
- *
- * [depth] 0 = 栈顶，1 = 被盖住的那层（跟着顶层滑动一起退位），2+ = 更深的层（静止在后面）。
- */
-@Composable
-private fun CardPageStackLayer(
-    id: Long,
-    depth: Int,
-    entering: Animatable<Float, AnimationVector1D>,
-    runtime: CardPageStackRuntime,
-) {
-    // 只订阅这一层自己的内容：别的层刷新不会让本层重组。
-    val frame = runtime.state.frame(id) ?: return
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                val motion = entering.value
-                if (depth == 0) {
-                    translationX = motion * size.width
-                } else {
-                    val cover = if (depth == 1) 1f - motion else 1f
-                    translationX = -size.width * 0.28f * cover
-                    val scale = 1f - 0.04f * cover
-                    scaleX = scale
-                    scaleY = scale
-                }
-                clip = true
-            },
-    ) {
-        CompositionLocalProvider(LocalKkInsidePageStack provides true) {
-            TreePage(
-                title = frame.title,
-                root = frame.root,
-                options = frame.options,
-                provider = runtime.provider,
-                pages = frame.pages,
-            )
+    // A completed system/full-page swipe changes Mochi's stack. Only then send the
+    // card's back event; a cancelled prediction never changes the bridge or page data.
+    LaunchedEffect(routes) {
+        if (routes.size < state.size && state.motion == null) onBack()
+    }
+    LaunchedEffect(navigator.isTransitioning, routes, state.motion) {
+        if (state.motion == CardPageMotion.Pop && !navigator.isTransitioning &&
+            routes.size == state.popTargetIndex + 1) {
+            state.finishPop()
         }
-        if (depth > 0) {
-            // 下层压暗：跟手动画在 draw 阶段读 entering，不跟着重组。
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        alpha = if (depth == 1) 0.22f * (1f - entering.value) else 0.22f
-                    }
-                    .background(Color.Black),
-            )
-            // 被盖住的层不能收到触摸（顶层滑动途中会短暂露出下层）。
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                awaitPointerEvent().changes.forEach { it.consume() }
-                            }
-                        }
-                    },
-            )
-        }
+    }
+    MochiNavHost(navigator, Modifier.fillMaxSize()) { route ->
+        val frame = route.toLongOrNull()?.let(state::frame)
+        if (frame != null) content(frame)
     }
 }

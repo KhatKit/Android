@@ -6,9 +6,6 @@
 package heizige.kk.khatkit.mediapicker.ui.components
 
 import androidx.activity.compose.PredictiveBackHandler
-import kotlin.coroutines.cancellation.CancellationException
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -16,8 +13,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,29 +22,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.FilterAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,26 +47,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ui.feice.mochi.basic.MochiButton
-import ui.feice.mochi.basic.MochiButtonStyle
-import ui.feice.mochi.basic.MochiActivityIndicator
-import androidx.compose.runtime.CompositionLocalProvider
-import ui.feice.mochi.basic.MochiEmptyState
-import ui.feice.mochi.effect.glass.LocalMochiBackdrop
-import ui.feice.mochi.basic.MochiIconButton
-import ui.feice.mochi.basic.MochiSearchBar
-import ui.feice.mochi.icons.MochiIonicon
-
 import heizige.kk.khatkit.mediapicker.R
 import heizige.kk.khatkit.mediapicker.domain.ALL_ALBUM_ID
 import heizige.kk.khatkit.mediapicker.domain.AlbumState
 import heizige.kk.khatkit.mediapicker.domain.Media
 import heizige.kk.khatkit.mediapicker.domain.MediaState
+import kotlin.coroutines.cancellation.CancellationException
+import ui.feice.mochi.basic.MochiActivityIndicator
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiBarGroup
+import ui.feice.mochi.basic.MochiBarGroupItem
+import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.basic.MochiBottomToolbar
+import ui.feice.mochi.basic.MochiButton
+import ui.feice.mochi.basic.MochiEmptyState
+import ui.feice.mochi.basic.MochiSearchBar
+import ui.feice.mochi.effect.glass.LocalMochiBackdrop
+import ui.feice.mochi.icons.MochiIonicon
+import ui.feice.mochi.theme.LocalContentColor
 
 @Composable
 internal fun MediaPickerGridWithOverlays(
@@ -130,214 +117,188 @@ internal fun MediaPickerGridWithOverlays(
     // 底部浮着的按钮（搜索 / 筛选 / 取消选择 / 选取）在网格录制层外面，
     // 这里把网格那份背景来源下发给它们，玻璃样式才有东西可取样。
     CompositionLocalProvider(LocalMochiBackdrop provides backdrop) {
-    Box(modifier = modifier.fillMaxSize()) {
-        MediaPickerGrid(
-            state = filteredMediaState,
-            isSelectionOfAll = selectedAlbumId == ALL_ALBUM_ID,
-            selectedMedia = selectedMedia,
-            allowMultiple = allowMultiple,
-            isGalleryMode = false,
-            isButtonVisible = isButtonVisible,
-            isManagePermissionAllowed = isManagePermissionAllowed,
-            onRequestManagePermission = onRequestManagePermission,
-            onPreview = onPreview,
-            onTakePicture = onTakePicture,
-            onScrolled = onScrolled,
-            onScrollProgress = onScrollProgress,
-            onRefresh = onRefresh,
-            backdrop = backdrop,
-            topContentPadding = topContentPadding,
-        )
+        Box(modifier = modifier.fillMaxSize()) {
+            MediaPickerGrid(
+                state = filteredMediaState,
+                isSelectionOfAll = selectedAlbumId == ALL_ALBUM_ID,
+                selectedMedia = selectedMedia,
+                allowMultiple = allowMultiple,
+                isGalleryMode = false,
+                isButtonVisible = isButtonVisible,
+                isManagePermissionAllowed = isManagePermissionAllowed,
+                onRequestManagePermission = onRequestManagePermission,
+                onPreview = onPreview,
+                onTakePicture = onTakePicture,
+                onScrolled = onScrolled,
+                onScrollProgress = onScrollProgress,
+                onRefresh = onRefresh,
+                backdrop = backdrop,
+                topContentPadding = topContentPadding,
+            )
 
-        // ── 选择确认条：Deselect 小 FAB + Pick 扩展 FAB，角标显示已选数量
-        BoxAnimatedVisibility(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .safeDrawingPadding(),
-            visible = isButtonVisible,
-            enter = slideInVertically { it * 2 },
-            exit = slideOutVertically { it * 2 },
-        ) {
-            Column(horizontalAlignment = Alignment.End) {
-                // 取消选择：使用 Mochi 图标按钮，避免在选择器里混用 Material FAB。
-                AnimatedVisibility(visible = canPick) {
-                    MochiIconButton(
-                        onClick = { selectedMedia.clear() },
-                        style = MochiButtonStyle.ClearGlass,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Deselect,
-                            contentDescription = clearSelectionLabel,
-                        )
-                    }
-                }
-                MochiButton(
-                    onClick = { if (canPick) onPicked() },
-                    enabled = canPick,
-                    // 玻璃样式：跟设置中心的「玻璃按钮」开关联动（关掉退回实心）。
-                    style = MochiButtonStyle.ClearGlass,
-                    modifier = Modifier.semantics { contentDescription = pickLabel },
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    ) {
-                        Icon(imageVector = Icons.Filled.Verified, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (allowMultiple && selectedMedia.isNotEmpty()) "$pickLabel (${selectedMedia.size})" else pickLabel)
-                    }
-                }
-            }
-        }
-
-        // ── 首次加载 / 搜索重算时的遮罩
-        val isHaveNoData = mediaState.media.isEmpty() && !mediaState.isLoading
-        val showLoading = (mediaState.isLoading && mediaState.media.isEmpty() || filteredMediaState.isLoading) &&
-            !isHaveNoData
-        val scrimColor by animateColorAsState(
-            targetValue = MaterialTheme.colorScheme.scrim.copy(
-                if (showLoading && filteredMediaState.media.isNotEmpty()) 0.5f else 0f,
-            ),
-            label = "pickerScrim",
-        )
-        BoxAnimatedVisibility(
-            visible = showLoading,
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding()
-                .background(scrimColor),
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                MochiActivityIndicator()
-            }
-        }
-
-        // ── 搜索无结果
-        BoxAnimatedVisibility(
-            visible = filteredMediaState.media.isEmpty() &&
-                !filteredMediaState.isLoading && isSearching,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = stringResource(R.string.media_picker_nothing_found_by_search),
-                    fontSize = 18.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                )
-                Icon(
-                    imageVector = Icons.Outlined.SearchOff,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .weight(2f)
-                        .sizeIn(maxHeight = 140.dp, maxWidth = 140.dp)
-                        .fillMaxSize(),
-                )
-                Spacer(Modifier.weight(1f))
-            }
-        }
-
-        // ── 没有任何媒体（空相册 / 查询失败）
-        BoxAnimatedVisibility(
-            visible = isHaveNoData,
-            enter = scaleIn() + fadeIn(),
-            exit = scaleOut() + fadeOut(),
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Spacer(Modifier.weight(1f))
-                MochiEmptyState(
-                    title = (albumsState.error + "\n" + mediaState.error).trim()
-                        .ifEmpty { stringResource(R.string.media_picker_no_data) },
-                    icon = { MochiIonicon("images", size = 36.dp) },
-                    action = {
-                        MochiButton(
-                            onClick = onRetry,
-                            style = MochiButtonStyle.ClearGlass,
-                        ) { Text(stringResource(R.string.media_picker_try_again)) }
-                    },
-                )
-                Spacer(Modifier.weight(1f))
-            }
-        }
-
-        // ── 底部：搜索框 / 搜索 + 筛选 两颗按钮
-        BoxAnimatedVisibility(
-            visible = !mediaState.isLoading && !isHaveNoData,
-            modifier = Modifier.fillMaxSize(),
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
-            AnimatedContent(
+            // ── 首次加载 / 搜索重算时的遮罩
+            val isHaveNoData = mediaState.media.isEmpty() && !mediaState.isLoading
+            val showLoading = (mediaState.isLoading && mediaState.media.isEmpty() || filteredMediaState.isLoading) &&
+                !isHaveNoData
+            val scrimColor by animateColorAsState(
+                targetValue = MaterialTheme.colorScheme.scrim.copy(
+                    if (showLoading && filteredMediaState.media.isNotEmpty()) 0.5f else 0f,
+                ),
+                label = "pickerScrim",
+            )
+            BoxAnimatedVisibility(
+                visible = showLoading,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .safeDrawingPadding(),
-                targetState = isSearching,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "pickerSearchMode",
-            ) { searchMode ->
-                Box(
+                    .imePadding()
+                    .background(scrimColor),
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    MochiActivityIndicator()
+                }
+            }
+
+            // ── 搜索无结果
+            BoxAnimatedVisibility(
+                visible = filteredMediaState.media.isEmpty() &&
+                    !filteredMediaState.isLoading && isSearching,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
+            ) {
+                Column(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomStart,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                 ) {
-                    if (searchMode) {
-                        // Mochi 的搜索栏：胶囊输入框 + 清空按钮，聚焦时右侧滑出取消键。
-                        MochiSearchBar(
-                            query = searchKeyword,
-                            onQueryChange = {
-                                searchKeyword = it
-                                onKeywordChange(it)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            placeholder = stringResource(R.string.media_picker_search_here),
-                            cancelText = stringResource(R.string.media_picker_exit),
-                            onCancel = {
-                                searchKeyword = ""
-                                onKeywordChange("")
-                                onSearchingChange(false)
-                            },
-                        )
-                    } else {
-                        MediaSearchAndFilterButtons(
-                            onSearch = { onSearchingChange(true) },
-                            onFilter = onRequestFilter,
-                            modifier = Modifier.padding(bottom = 6.dp),
-                        )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = stringResource(R.string.media_picker_nothing_found_by_search),
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    )
+                    Icon(
+                        imageVector = Icons.Outlined.SearchOff,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .weight(2f)
+                            .sizeIn(maxHeight = 140.dp, maxWidth = 140.dp)
+                            .fillMaxSize(),
+                    )
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+
+            // ── 没有任何媒体（空相册 / 查询失败）
+            BoxAnimatedVisibility(
+                visible = isHaveNoData,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Spacer(Modifier.weight(1f))
+                    MochiEmptyState(
+                        title = (albumsState.error + "\n" + mediaState.error).trim()
+                            .ifEmpty { stringResource(R.string.media_picker_no_data) },
+                        icon = { MochiIonicon("images", size = 36.dp) },
+                        action = {
+                            MochiButton(
+                                onClick = onRetry,
+                                ) { Text(stringResource(R.string.media_picker_try_again)) }
+                        },
+                    )
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+
+            // Use Mochi's native toolbar and grouped controls, matching other Mochi pages.
+            BoxAnimatedVisibility(
+                visible = !mediaState.isLoading && !isHaveNoData,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                MochiBottomToolbar(modifier = Modifier.imePadding()) {
+                    AnimatedContent(
+                        targetState = isSearching,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "pickerSearchMode",
+                    ) { searchMode ->
+                        if (searchMode) {
+                            MochiSearchBar(
+                                query = searchKeyword,
+                                onQueryChange = {
+                                    searchKeyword = it
+                                    onKeywordChange(it)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = stringResource(R.string.media_picker_search_here),
+                                cancelText = stringResource(R.string.media_picker_exit),
+                                onCancel = {
+                                    searchKeyword = ""
+                                    onKeywordChange("")
+                                    onSearchingChange(false)
+                                },
+                            )
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                MediaSearchAndFilterButtons(
+                                    onSearch = { onSearchingChange(true) },
+                                    onFilter = onRequestFilter,
+                                )
+                                Spacer(Modifier.weight(1f))
+                                AnimatedVisibility(visible = isButtonVisible) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        if (canPick) {
+                                            MochiBarIconButton(onClick = { selectedMedia.clear() }) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Deselect,
+                                                    contentDescription = clearSelectionLabel,
+                                                    tint = LocalContentColor.current,
+                                                )
+                                            }
+                                        }
+                                        MochiBarButton(
+                                            text = if (allowMultiple && canPick) "$pickLabel (${selectedMedia.size})" else pickLabel,
+                                            onClick = { if (canPick) onPicked() },
+                                            enabled = canPick,
+                                            modifier = Modifier.semantics { contentDescription = pickLabel },
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-
-        // 清空选择也用预测返回：手势期间先看窗口退后预览，松手提交才清空。
-        PredictiveBackHandler(selectedMedia.isNotEmpty() && !isSearching) { events ->
-            try {
-                events.collect { }
-                selectedMedia.clear()
-            } catch (_: CancellationException) {
+            // 清空选择只在返回手势提交时执行，取消手势保留选择。
+            PredictiveBackHandler(selectedMedia.isNotEmpty() && !isSearching) { events ->
+                try {
+                    events.collect { }
+                    selectedMedia.clear()
+                } catch (_: CancellationException) {
+                }
             }
         }
-    }
     }
 }
 
@@ -348,19 +309,17 @@ internal fun MediaSearchAndFilterButtons(
     onFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        MochiIconButton(
+    MochiBarGroup(modifier = modifier) {
+        MochiBarGroupItem(
             onClick = onSearch,
-            style = MochiButtonStyle.ClearGlass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = stringResource(R.string.media_picker_search),
             )
         }
-        MochiIconButton(
+        MochiBarGroupItem(
             onClick = onFilter,
-            style = MochiButtonStyle.ClearGlass,
         ) {
             Icon(
                 imageVector = Icons.Outlined.FilterAlt,

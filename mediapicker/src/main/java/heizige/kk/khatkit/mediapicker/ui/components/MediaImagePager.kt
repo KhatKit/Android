@@ -51,8 +51,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import heizige.kk.khatkit.mediapicker.ui.MediaPickerDialog
 import coil3.compose.rememberAsyncImagePainter
 import com.jvziyaoyao.scale.image.pager.ImagePager
 import com.jvziyaoyao.scale.zoomable.pager.PagerGestureScope
@@ -73,19 +72,13 @@ internal fun MediaImagePager(
 ) {
     if (previewUri == null || media.isEmpty()) return
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false,
-        ),
-    ) {
+    MediaPickerDialog(onDismiss = onDismiss, darkSystemBars = true) { close ->
         MediaImagePagerContent(
             initialUri = previewUri,
             media = media,
             selectedMedia = selectedMedia,
             onMediaClick = onMediaClick,
-            onDismiss = onDismiss,
+            onDismiss = close,
         )
     }
 }

@@ -6,42 +6,24 @@
 
 package heizige.kk.khatkit.mediapicker.ui.components
 
-import androidx.compose.material3.Button
-import ui.feice.mochi.basic.MochiButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Sort
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
-import androidx.compose.material.icons.rounded.RadioButtonChecked
-import androidx.compose.material.icons.rounded.ViewComfy
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.mediapicker.R
@@ -50,6 +32,15 @@ import heizige.kk.khatkit.mediapicker.domain.MediaDisplaySettings
 import heizige.kk.khatkit.mediapicker.domain.MediaGrouping
 import heizige.kk.khatkit.mediapicker.domain.MediaOrder
 import heizige.kk.khatkit.mediapicker.domain.OrderType
+import kotlinx.collections.immutable.toPersistentList
+import ui.feice.mochi.basic.MochiBarButton
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.theme.MochiDefaults
 
 @Composable
 internal fun MediaFilterSheet(
@@ -59,85 +50,30 @@ internal fun MediaFilterSheet(
 ) {
     var page by rememberSaveable { mutableIntStateOf(0) }
 
-    // Kedge 弹层：MD3Exp 下是 ModalBottomSheet，Miuix 下是 Miuix WindowBottomSheet。
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerHigh,
-                        RoundedCornerShape(12.dp),
-                    )
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                FilterTab(
-                    text = stringResource(R.string.media_picker_gallery_grouping),
-                    icon = Icons.Rounded.ViewComfy,
-                    selected = page == 0,
-                    modifier = Modifier.weight(1f),
-                    onClick = { page = 0 },
-                )
-                FilterTab(
-                    text = stringResource(R.string.media_picker_sorting),
-                    icon = Icons.AutoMirrored.Outlined.Sort,
-                    selected = page == 1,
-                    modifier = Modifier.weight(1f),
-                    onClick = { page = 1 },
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(360.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (page == 0) {
-                    MediaGroupingOptions(settings, onSettingsChange)
-                } else {
-                    MediaSortingOptions(settings, onSettingsChange)
-                }
-            }
-
-            MochiButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-            ) {
-                Text(stringResource(R.string.media_picker_close))
+    val sheet = rememberMochiSheetState()
+    LaunchedEffect(sheet) { sheet.show() }
+    MochiSheet(state = sheet, onDismiss = onDismiss, hideNavigationBar = false) {
+        MochiSheetHeader(
+            title = stringResource(R.string.media_picker_sorting),
+            navigationIcon = {
+                MochiBarButton(stringResource(R.string.media_picker_close), onClick = sheet::hide)
+            },
+        )
+        MochiSheetContent {
+            MochiSegmentedControl(
+                selectedIndex = page,
+                onSelect = { page = it },
+                items = listOf(
+                    stringResource(R.string.media_picker_gallery_grouping),
+                    stringResource(R.string.media_picker_sorting),
+                ).toPersistentList(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (page == 0) MediaGroupingOptions(settings, onSettingsChange)
+                else MediaSortingOptions(settings, onSettingsChange)
             }
         }
-    }
-}
-
-@Composable
-private fun FilterTab(
-    text: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val container = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    val content = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-    else MaterialTheme.colorScheme.onSurface
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(container)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(imageVector = icon, contentDescription = null, tint = content)
-        Spacer(Modifier.width(6.dp))
-        Text(text = text, color = content, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -264,28 +200,12 @@ private fun OptionRow(
     bottomContent: (@Composable () -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(
-                    if (selected) MaterialTheme.colorScheme.secondaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainer
-                )
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
-            Icon(
-                imageVector = if (selected) Icons.Rounded.RadioButtonChecked
-                else Icons.Outlined.RadioButtonUnchecked,
-                contentDescription = null,
-                tint = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        MochiListRow(
+            title = title,
+            checked = selected,
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth().clip(shape).background(MochiDefaults.groupedContainer()),
+        )
         bottomContent?.invoke()
     }
 }
@@ -300,37 +220,12 @@ private fun DateGroupSegmented(
         MediaDateGroup.Month to R.string.media_picker_months,
         MediaDateGroup.Day to R.string.media_picker_days,
     )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        options.forEachIndexed { index, (group, labelRes) ->
-            val isSelected = group == selected
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(groupedShape(index = index, size = options.size, vertical = false, roundedCorner = 10.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.tertiaryContainer
-                        else Color.Transparent
-                    )
-                    .clickable { onSelect(group) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(labelRes),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onTertiaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
+    MochiSegmentedControl(
+        selectedIndex = options.indexOfFirst { it.first == selected }.coerceAtLeast(0),
+        onSelect = { onSelect(options[it].first) },
+        items = options.map { stringResource(it.second) }.toPersistentList(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+    )
 }
 
 private fun MediaGrouping.labelRes(): Int = when (this) {

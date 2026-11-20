@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,8 +43,8 @@ import heizige.kk.khatkit.uikit.LocalKhatKitPageInline
 import heizige.kk.khatkit.uikit.LocalKhatKitPageRegisterScrollProgress
 import heizige.kk.khatkit.uikit.UiIconVectors
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
-import ui.feice.mochi.effect.content.MochiBlurCrossfade
 import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.effect.content.MochiBlurCrossfade
 import ui.feice.mochi.theme.MochiTheme
 
 /**
@@ -62,7 +63,8 @@ internal fun CardWidgetPage(name: String, title: String) {
     val queued by provider.uiRequest.collectAsStateWithLifecycle()
     val owned = queued?.takeIf { provider.isPageHosted(it, setOf(name)) }
     var shown by remember { mutableStateOf<UiRequest?>(null) }
-    LaunchedEffect(owned) { if (owned != null) shown = owned }
+    val active = nav?.current == Screen.CardWidget(name, title)
+    SideEffect { if (active && owned != null) shown = owned }
     var result by remember { mutableStateOf<CardRunResult?>(null) }
     var started by rememberSaveable(name) { mutableStateOf(false) }
 
@@ -93,7 +95,8 @@ internal fun CardWidgetPage(name: String, title: String) {
 
     // 卡片整页（全屏分页页 / push 叠层）：不再当弹层弹，直接铺成一张真正的页面，
     // 页面里跑卡片自己的导航栈（今日页 → 设置页逐层压/退）。
-    val cardPage = ((owned ?: shown) as? UiRequest.Screen)?.isCardPage() == true
+    val pageRequest = if (active) owned ?: shown else shown
+    val cardPage = (pageRequest as? UiRequest.Screen)?.isCardPage() == true
     if (cardPage) {
         // 卡片在算下一屏（手上没有待应答的请求）时只叠一个转圈，**不盖掉**当前这层：
         // 慢的时候用户看到的还是原来的页面，而不是白屏。等 160ms 才出现，避开请求队列的瞬时空档。
@@ -107,7 +110,7 @@ internal fun CardWidgetPage(name: String, title: String) {
             }
         }
         Box(Modifier.fillMaxSize()) {
-            CardPageStackPage(request = owned, provider = provider)
+            CardPageStackPage(request = if (active) owned else null, provider = provider)
             val loading = shown == null && done == null
             val failed = done != null && !done.ok
             if (waiting && !loading && !failed) {
@@ -149,9 +152,9 @@ internal fun CardWidgetPage(name: String, title: String) {
     // 顶层骨架不自己滚（正文是卡片自己的滚动容器），所以标题进度由正文注册进来：
     // KhatKitPage 在内联模式下把这一页的滚动进度（State）交给这里，骨架顶栏按它淡入标题。
     // 持有 State 而不是缓存的数值：读 .value 时才会订阅，滚动才推得动顶栏。
-    val body = owned ?: shown?.takeIf { keep }
+    val body = if (active) owned ?: shown?.takeIf { keep } else shown
     // 保留上一屏的外观配置覆盖脚本计算中的短暂空档，加载指示器出现时顶栏不跳回默认样式。
-    val chrome = owned ?: shown
+    val chrome = pageRequest
     var cardTitleProgress by remember { mutableStateOf<State<Float>?>(null) }
     val requestOptions = when (val request = chrome) {
         is UiRequest.Form -> request.options
