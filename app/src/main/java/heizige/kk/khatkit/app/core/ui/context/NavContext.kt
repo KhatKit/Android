@@ -38,7 +38,7 @@ class Navigator(private val backStack: MutableList<NavKey>) {
 class NavigateOptionsBuilder {
     internal var popUpToScreen: Screen? = null
     internal var popUpToInclusive: Boolean = false
-    var launchSingleTop: Boolean = false
+    var launchSingleTop: Boolean = true
 
     fun popUpTo(screen: Screen, builder: PopUpToBuilder.() -> Unit = {}) {
         val options = PopUpToBuilder().apply(builder)

@@ -35,13 +35,15 @@ class KkNavController(private val navigator: MochiNavigator) {
         get() = navigator.canPop
 
     /**
-     * 打开一页。
+     * 打开一页；完整路由已在栈顶时忽略，避免连续点击重复压栈。
      *
      * @param source 来源元素的 key（Mochi 的 `mochiNavSource`）。给了才是「卡片长成整页」的 morph，
      *   不给是 iOS 侧推转场。本步只把参数留出来，暂不接任何 UI。
      */
     fun navigate(screen: Screen, source: String? = null) {
-        navigator.push(ScreenRoutes.routeOf(screen), from = source)
+        val route = ScreenRoutes.routeOf(screen)
+        if (navigator.current == route) return
+        navigator.push(route, from = source)
     }
 
     /**
