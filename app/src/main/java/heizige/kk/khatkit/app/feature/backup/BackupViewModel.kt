@@ -19,6 +19,8 @@ import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.files.saveUploadFromBytes
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.feature.backup.data.DeepSeekImportResult
+import heizige.kk.khatkit.app.feature.backup.helper.DeepSeekImportHelper
 import heizige.kk.khatkit.app.core.data.sync.importer.ChatboxImporter
 import heizige.kk.khatkit.app.core.data.sync.importer.CherryStudioProviderImporter
 import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavBackupItem
@@ -171,6 +173,27 @@ class BackupViewModel @Inject constructor(
             skippedEmptyMessages = result.skippedEmptyMessages,
             skippedForkMessages = result.skippedForkMessages,
             skippedSessions = result.skippedSessions,
+        )
+    }
+
+    suspend fun restoreFromDeepSeek(
+        file: File,
+        formatMissingAttachment: (String) -> String,
+    ): DeepSeekImportResult = withContext(Dispatchers.IO) {
+        DeepSeekImportHelper.importStreaming(
+            file = file,
+            assistantId = settings.value.assistantId,
+            formatMissingAttachment = formatMissingAttachment,
+            shouldImportConversation = { !conversationRepository.existsConversationById(it) },
+            saveAttachment = { attachment ->
+                val entity = filesManager.saveUploadFromBytes(
+                    bytes = attachment.bytes,
+                    displayName = attachment.fileName,
+                    mimeType = attachment.mimeType,
+                )
+                filesManager.getFile(entity).toUri().toString()
+            },
+            onConversation = { conversationRepository.insertConversation(it) },
         )
     }
 

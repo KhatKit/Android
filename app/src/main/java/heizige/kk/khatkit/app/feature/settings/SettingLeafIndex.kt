@@ -88,6 +88,7 @@ internal data class SettingSearchEntry(
         Leaf(R.string.setting_display_page_auto_play_tts_title, R.string.setting_display_page_auto_play_tts_desc, "tts auto play 朗读 自动播放", Screen.SettingPreferencesGeneral),
         // ── 界面 → 消息显示 ─────────────────────────────────────────
         Leaf(R.string.setting_display_page_show_assistant_bubble_title, null, "bubble assistant 气泡 助手", Screen.SettingPreferencesUIMessage),
+        Leaf(R.string.setting_display_page_split_assistant_bubble_title, R.string.setting_display_page_split_assistant_bubble_desc, "paragraph split bubble 段落 分段 气泡", Screen.SettingPreferencesUIMessage),
         Leaf(R.string.setting_display_page_bubble_opacity_title, null, "bubble opacity alpha 气泡 透明度", Screen.SettingPreferencesUIMessage),
         Leaf(R.string.setting_display_page_show_model_name_title, null, "model name 模型 名称", Screen.SettingPreferencesUIMessage),
         Leaf(R.string.setting_display_page_show_datetime_in_message_title, null, "datetime time timestamp 时间 日期", Screen.SettingPreferencesUIMessage),

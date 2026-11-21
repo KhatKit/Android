@@ -82,6 +82,18 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                         ),
                         anchor = settingAnchor(R.string.setting_display_page_show_assistant_bubble_title),
                     )
+                    settingItem(
+                        SwitchSetting(
+                            R.string.setting_display_page_split_assistant_bubble_title,
+                            R.string.setting_display_page_split_assistant_bubble_desc,
+                            checked = displaySetting.splitAssistantBubbleByParagraph,
+                            onCheckedChange = {
+                                updateDisplaySetting(displaySetting.copy(splitAssistantBubbleByParagraph = it))
+                            },
+                            enabled = displaySetting.showAssistantBubble,
+                        ),
+                        anchor = settingAnchor(R.string.setting_display_page_split_assistant_bubble_title),
+                    )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_bubble_opacity_title) },
                         value = displaySetting.bubbleOpacity,

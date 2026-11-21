@@ -28,7 +28,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import heizige.kk.khatkit.app.feature.backup.data.DeepSeekImportResult
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
@@ -65,8 +72,10 @@ fun ImportExportTab(
     var isExporting by remember { mutableStateOf(false) }
     var isRestoring by remember { mutableStateOf(false) }
     var showImportConfirmDialog by remember { mutableStateOf(false) }
+    var deepSeekImportResult by remember { mutableStateOf<DeepSeekImportResult?>(null) }
+    var showDeepSeekImportResult by remember { mutableStateOf(false) }
 
-    // 导入类型：local 为本地备份，chatbox 为 Chatbox 导入，cherry 为 Cherry Studio 导入
+    // 导入类型：local 为本地备份，chatbox / deepseek / cherry 为其他应用导入
     var importType by remember { mutableStateOf("local") }
 
     // 创建文件保存的launcher
@@ -151,6 +160,27 @@ fun ImportExportTab(
                             }
                         }
 
+                        "deepseek" -> {
+                            val tempFile = withContext(Dispatchers.IO) {
+                                File.createTempFile("deepseek_import_", ".zip", context.cacheDir)
+                            }
+                            try {
+                                withContext(Dispatchers.IO) {
+                                    val input = context.contentResolver.openInputStream(sourceUri)
+                                        ?: error(context.getString(R.string.backup_page_import_deepseek_read_error))
+                                    input.use { source ->
+                                        tempFile.outputStream().use { source.copyTo(it) }
+                                    }
+                                }
+                                deepSeekImportResult = vm.restoreFromDeepSeek(tempFile) { fileName ->
+                                    context.getString(R.string.backup_page_import_deepseek_missing_attachment, fileName)
+                                }
+                                showDeepSeekImportResult = true
+                            } finally {
+                                tempFile.delete()
+                            }
+                        }
+
                         "cherry" -> {
                             // Cherry Studio导入：处理zip文件
                             val tempFile =
@@ -170,11 +200,10 @@ fun ImportExportTab(
                         }
                     }
 
-                    Toast.show(
-                        backupPageRestoreSuccess,
-                        isError = false
-                    )
-                    onShowRestartDialog()
+                    if (importType != "deepseek") {
+                        Toast.show(backupPageRestoreSuccess, isError = false)
+                        onShowRestartDialog()
+                    }
                 }.onFailure { e ->
                     e.printStackTrace()
                     Toast.show(
@@ -312,6 +341,27 @@ fun ImportExportTab(
                 item(
                     onClick = if (!isRestoring) {
                         {
+                            importType = "deepseek"
+                            openDocumentLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
+                        }
+                    } else null,
+                    headlineContent = { Text(stringResource(R.string.backup_page_import_from_deepseek)) },
+                    supportingContent = { Text(stringResource(R.string.backup_page_import_deepseek_desc)) },
+                    leadingContent = {
+                        if (isRestoring && importType == "deepseek") {
+                            KkProgressIndicator(
+                                type = KkProgressIndicatorType.Circular,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        } else {
+                            Icon(uploadFile, null)
+                        }
+                    },
+                )
+
+                item(
+                    onClick = if (!isRestoring) {
+                        {
                             importType = "cherry"
                             openDocumentLauncher.launch(arrayOf("application/zip"))
                         }
@@ -328,6 +378,28 @@ fun ImportExportTab(
                     },
                 )
             }
+        }
+    }
+
+    MochiDialog(
+        visible = showDeepSeekImportResult,
+        onDismissRequest = { showDeepSeekImportResult = false },
+        title = stringResource(R.string.backup_page_import_deepseek_complete),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.confirm),
+                role = MochiDialogActionRole.Primary,
+            ),
+        ),
+    ) {
+        deepSeekImportResult?.let { result ->
+            Text(stringResource(
+                R.string.backup_page_import_deepseek_summary,
+                result.importedConversations,
+                result.skippedExistingConversations,
+                result.skippedEmptyConversations,
+                result.missingAttachments,
+            ))
         }
     }
 

@@ -319,8 +319,8 @@ fun ChatMessage(
                 }
             }
             // 整条助手消息共用一张卡：思考链 / 正文 / 询问表单都落在这层背景里。
-            // 用户把「助手气泡」关掉时保持裸排版，内层各块照旧自己找背景。
-            if (settings.showAssistantBubble) {
+            // 开启按段落分泡时交给正文块分别绘制；关闭助手气泡时保持裸排版。
+            if (settings.showAssistantBubble && !settings.splitAssistantBubbleByParagraph) {
                 androidx.compose.runtime.CompositionLocalProvider(LocalAssistantCard provides true) {
                     KkSurface(
                         // 整条消息一个大圆角（Mochi 列表卡 26dp），里面所有行都不带圆角
@@ -531,27 +531,30 @@ private fun MessagePartsBlock(
                                     }
                                 }
                             } else if (settings.displaySetting.showAssistantBubble && !insideAssistantCard) {
-                                // 开关**默认开**（`DisplaySetting.showAssistantBubble`）。
-                                // 老安装的 JSON 里躺着显式 false（该字段随 encodeDefaults
-                                // 一起落盘），由 `PreferenceStoreV6Migration` 一次性翻成 true，
-                                // 所以「装完看不见气泡」不会再复发。关掉后退回裸 Markdown 是
-                                // 用户主动选择，与用户侧 primaryContainer 气泡左右不对称属预期。
-                                KkSurface(
-                                    modifier = Modifier.kkAnimateContentSize(),
-                                    shape = ChatBubbleShape,
-                                    color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
-                                ) {
-                                    Column(modifier = Modifier.padding(ChatBubblePadding)) {
-                                        MarkdownBlock(
-                                            content = part.text.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.ASSISTANT,
-                                                visual = true,
-                                            ),
-                                            onClickCitation = handleClickCitation,
-                                            // 生成中：新冒出来的字符从底部升起（见 KkGrowRiseText）
-                                            animateStreamingTail = loading,
-                                        )
+                                val content = part.text.replaceRegexes(
+                                    assistant = assistant,
+                                    scope = AssistantAffectScope.ASSISTANT,
+                                    visual = true,
+                                )
+                                val splitByParagraph = settings.displaySetting.splitAssistantBubbleByParagraph
+                                val paragraphs = remember(content, splitByParagraph) {
+                                    if (splitByParagraph) splitMarkdownParagraphs(content) else listOf(content)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    paragraphs.forEachIndexed { index, paragraph ->
+                                        KkSurface(
+                                            modifier = Modifier.kkAnimateContentSize(),
+                                            shape = ChatBubbleShape,
+                                            color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                        ) {
+                                            Column(modifier = Modifier.padding(ChatBubblePadding)) {
+                                                MarkdownBlock(
+                                                    content = paragraph,
+                                                    onClickCitation = handleClickCitation,
+                                                    animateStreamingTail = loading && index == paragraphs.lastIndex,
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             } else {

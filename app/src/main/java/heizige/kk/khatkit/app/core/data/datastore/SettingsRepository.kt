@@ -729,6 +729,7 @@ data class DisplaySetting(
     // false —— 改这个默认值只影响新装。老安装由 `PreferenceStoreV6Migration` 一次性翻成
     // true（版本记到 6），之后用户手动关掉不会被覆盖。
     val showAssistantBubble: Boolean = true,
+    val splitAssistantBubbleByParagraph: Boolean = false,
     val bubbleOpacity: Float = 1.0f,
     val showModelIcon: Boolean = true,
     val showModelName: Boolean = true,
