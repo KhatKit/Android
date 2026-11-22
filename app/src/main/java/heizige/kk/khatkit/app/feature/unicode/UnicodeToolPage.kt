@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +46,17 @@ import ui.feice.mochi.theme.MochiTheme
 
 @Composable
 internal fun UnicodeToolPage() {
+    var showGlyphs by rememberSaveable { mutableStateOf(false) }
+    val pages = rememberSaveableStateHolder()
     MochiSettingsPageScaffold(title = "Unicode 工具") { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
-            UnicodeConvertPage()
+            MochiChipGroup {
+                MochiChip("编码转换", !showGlyphs, { showGlyphs = false })
+                MochiChip("字形查看", showGlyphs, { showGlyphs = true })
+            }
+            pages.SaveableStateProvider(if (showGlyphs) "glyphs" else "convert") {
+                if (showGlyphs) UnicodeGlyphsPage() else UnicodeConvertPage()
+            }
         }
     }
 }
@@ -94,7 +103,7 @@ private fun UnicodeConvertPage() {
 }
 
 @Composable
-private fun UnicodeOutput(label: String, value: String, monospace: Boolean) {
+internal fun UnicodeOutput(label: String, value: String, monospace: Boolean) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Column {
@@ -113,7 +122,7 @@ private fun UnicodeOutput(label: String, value: String, monospace: Boolean) {
 }
 
 @Composable
-private fun UnicodeError(error: UnicodeInputError) {
+internal fun UnicodeError(error: UnicodeInputError) {
     Text(
         when (error) {
             UnicodeInputError.TOO_LONG -> "最多转换 512 个 Unicode 码点"
