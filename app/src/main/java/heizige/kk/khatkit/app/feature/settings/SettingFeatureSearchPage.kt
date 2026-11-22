@@ -129,7 +129,6 @@ internal fun rememberSettingSearchEntries(): List<SettingSearchEntry> {
         SettingSearchEntry(stringResource(R.string.setting_page_mcp), "", "mcp server tools 服务器 工具", dns, Screen.SettingMcp),
         SettingSearchEntry(stringResource(R.string.setting_page_trace_audit), stringResource(R.string.setting_page_trace_audit_desc), "trace audit debug request 追踪 审计 调试 请求", bolt, Screen.TraceAudit),
         SettingSearchEntry("探索市场", "浏览工具、技能与脚本卡片", "market tools skills cards 市场 工具 技能 卡片", inventory2, Screen.ExploreMarket),
-        SettingSearchEntry("套餐激活", "套餐激活、额度与网关供应商", "package plan quota gateway 套餐 计划 额度 网关", favorite, Screen.SettingPackage),
         SettingSearchEntry("自动化触发器", "定时、事件自动运行卡片", "automation trigger schedule event 自动化 触发器 定时 事件", bolt, Screen.SettingTriggers),
         SettingSearchEntry(stringResource(R.string.setting_page_web_server), stringResource(R.string.setting_page_web_server_desc), "web api http server 网页 接口 服务端", dns, Screen.SettingWeb),
         SettingSearchEntry(stringResource(R.string.setting_page_data_backup), stringResource(R.string.setting_page_data_backup_desc), "backup restore export import 备份 恢复 导出 导入", database, Screen.Backup),

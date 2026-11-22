@@ -4,9 +4,7 @@ import ui.feice.mochi.navigation.MochiSidebarHeader
 import ui.feice.mochi.navigation.MochiSidebarHeaderButton
 import ui.feice.mochi.navigation.MochiSidebarItem
 import ui.feice.mochi.navigation.MochiSidebarProfileRow
-import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.shape.MochiCapsule
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.graphics.vector.ImageVector
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -85,13 +83,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
@@ -102,7 +98,6 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
-import heizige.kk.khatkit.hub.HubAccountInfo
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
 import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
@@ -158,28 +153,6 @@ fun ChatDrawerContent(
     val toaster = LocalToaster.current
     val isPlayStore = rememberIsPlayStoreVersion()
     val repo = rememberAppEntryPoint().conversationRepository()
-    val hubAccountRepository = rememberAppEntryPoint().hubAccountRepository()
-
-    var hubAccount by remember { mutableStateOf<HubAccountInfo?>(null) }
-    LaunchedEffect(Unit) {
-        hubAccount = withContext(Dispatchers.IO) { hubAccountRepository.cachedAccount() }
-    }
-    val account = hubAccount
-    val subscriptionLabel = when {
-        account == null -> stringResource(R.string.chat_drawer_plan)
-        !account.active -> stringResource(R.string.chat_drawer_subscription_expired)
-        account.toolCallsRemaining != null -> stringResource(
-            R.string.chat_drawer_plan_remaining_calls,
-            account.toolCallsRemaining!!,
-        )
-
-        account.aiTokensRemaining != null -> stringResource(
-            R.string.chat_drawer_plan_remaining_tokens,
-            account.aiTokensRemaining!!,
-        )
-
-        else -> stringResource(R.string.chat_drawer_plan)
-    }
 
     val activity = context as ComponentActivity
     val drawerVm: ChatDrawerViewModel = hiltViewModel(viewModelStoreOwner = activity)
@@ -341,8 +314,6 @@ fun ChatDrawerContent(
                     )
                 }
             }
-            // 底部照 Mochi 侧栏示例用个人资料行：整行进设置，行尾胶囊 chip 显示套餐状态、
-            // 点它直达套餐页（有效订阅时 chip 为选中色）。探索市场 / 下载中心已移到列表顶部。
             MochiSidebarProfileRow(
                 name = stringResource(R.string.app_name),
                 subtitle = stringResource(R.string.settings),
@@ -361,16 +332,6 @@ fun ChatDrawerContent(
                             modifier = Modifier.size(18.dp),
                         )
                     }
-                },
-                trailing = {
-                    MochiChip(
-                        label = subscriptionLabel,
-                        selected = account?.active == true,
-                        onClick = { navController.navigate(Screen.SettingPackage) },
-                        modifier = Modifier
-                            .widthIn(max = 160.dp)
-                            .testTag("drawer_plan_chip"),
-                    )
                 },
                 modifier = Modifier.testTag("drawer_profile_row"),
             )

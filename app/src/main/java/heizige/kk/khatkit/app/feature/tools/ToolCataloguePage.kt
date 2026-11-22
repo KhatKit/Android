@@ -7,6 +7,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,13 +36,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -53,6 +60,7 @@ import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.feature.tools.helper.ToolCategory
+import heizige.kk.khatkit.app.feature.tools.helper.ToolGridZoom
 import heizige.kk.khatkit.app.feature.tools.helper.matchesToolQuery
 import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
 import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
@@ -127,6 +135,7 @@ internal fun ToolCataloguePage() {
     var selectedCategory by rememberSaveable { mutableStateOf("") }
     var categoryRequest by remember { mutableStateOf(0) }
     var grid by rememberSaveable { mutableStateOf(true) }
+    var gridColumnOffset by rememberSaveable { mutableIntStateOf(0) }
     var chipsCollapsed by rememberSaveable { mutableStateOf(false) }
     val scope = ToolScope.valueOf(scopeName)
     val searched = remember(state.cards, query, locales) {
@@ -234,19 +243,12 @@ internal fun ToolCataloguePage() {
                 val rail = this@BoxWithConstraints.maxWidth >= 600.dp
                 Column(Modifier.fillMaxSize()) {
                     if (!rail) {
-                        AnimatedVisibility(
-                            visible = !chipsCollapsed,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut(),
-                        ) {
-                            MochiChipGroup(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                categories.forEach { item ->
-                                    val selected = selectedCategory == item.name
-                                    CategoryChip(item.title, item.icon, selected, scoped.count { it.toolCategory() == item }) {
-                                        selectedCategory = item.name
-                                        categoryRequest++
-                                        chipsCollapsed = false
-                                    }
+                        MochiChipGroup(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            categories.forEach { item ->
+                                val selected = selectedCategory == item.name
+                                CategoryChip(item.title, item.icon, selected, scoped.count { it.toolCategory() == item }) {
+                                    selectedCategory = item.name
+                                    categoryRequest++
                                 }
                             }
                         }
@@ -275,6 +277,8 @@ internal fun ToolCataloguePage() {
                             ToolResults(
                                 cards = scoped, state = state, locales = locales, query = query, scope = scope,
                                 view = view, selectedCategory = selectedCategory,
+                                gridColumnOffset = gridColumnOffset,
+                                onGridColumnOffsetChange = { gridColumnOffset = it },
                                 categoryRequest = categoryRequest,
                                 onCategorySelected = { selectedCategory = it },
                                 onScrolled = { chipsCollapsed = it },
@@ -334,6 +338,8 @@ private fun ToolResults(
     query: String,
     scope: ToolScope,
     view: ToolView,
+    gridColumnOffset: Int,
+    onGridColumnOffsetChange: (Int) -> Unit,
     selectedCategory: String,
     categoryRequest: Int,
     onCategorySelected: (String) -> Unit,
@@ -440,10 +446,42 @@ private fun ToolResults(
                     if (lastVisible >= gridState.layoutInfo.totalItemsCount - 8) onLoadMore()
                 }
         }
-        Box(Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Match Adaptive's default and keep the available densities relative to the window width.
+            val available = maxWidth.value - 28f + 10f // content padding, then recover the last gap
+            val defaultColumns = (available / 122f).toInt().coerceAtLeast(1)
+            val maxColumns = (available / 102f).toInt().coerceAtLeast(1)
+            val columns = (defaultColumns + gridColumnOffset).coerceIn(1, maxColumns)
+            val onGridStep by rememberUpdatedState<(Int) -> Unit> { step ->
+                onGridColumnOffsetChange((columns + step).coerceIn(1, maxColumns) - defaultColumns)
+            }
             LazyVerticalGrid(
-                modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
-                columns = GridCells.Adaptive(112.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                            val zoom = ToolGridZoom()
+                            var claimed = false
+                            do {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                if (event.changes.count { it.pressed && it.previousPressed } == 2) {
+                                    val step = zoom.update(event.calculateZoom())
+                                    if (step != 0) {
+                                        claimed = true
+                                        onGridStep(step)
+                                    }
+                                } else {
+                                    zoom.reset()
+                                }
+                                // Leave one-finger scrolling and card taps to the grid until a pinch is recognized.
+                                if (claimed) event.changes.forEach { it.consume() }
+                            } while (event.changes.any { it.pressed })
+                        }
+                    }
+                    .mochiRefreshHold(refresh)
+                    .mochiContainedScroll(overscroll),
+                columns = GridCells.Fixed(columns),
                 state = gridState,
                 overscrollEffect = overscroll,
                 contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),

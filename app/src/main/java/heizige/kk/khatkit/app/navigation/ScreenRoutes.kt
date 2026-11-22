@@ -32,7 +32,7 @@ object ScreenRoutes {
         "setting-models", "setting-about", "about-terminal", "setting-search", "setting-feature-search", "setting-search-detail",
         "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget", "card-interaction",
         "tool-catalogue", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
-        "setting-triggers", "create-workflow", "setting-package", "debug", "log", "extensions",
+        "setting-triggers", "create-workflow", "debug", "log", "extensions",
         "plugin",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
         "workspace-terminal", "workspace-file-editor", "skill-detail", "message-search",
@@ -113,7 +113,6 @@ object ScreenRoutes {
         Screen.SettingWeb -> "setting-web"
         Screen.SettingTriggers -> "setting-triggers"
         is Screen.CreateWorkflow -> Route("create-workflow").str("workflowId", screen.workflowId).build()
-        Screen.SettingPackage -> "setting-package"
         Screen.Debug -> "debug"
         Screen.Log -> "log"
         Screen.Extensions -> "extensions"
@@ -213,7 +212,6 @@ object ScreenRoutes {
             "setting-web" -> Screen.SettingWeb
             "setting-triggers" -> Screen.SettingTriggers
             "create-workflow" -> Screen.CreateWorkflow(workflowId = params.str("workflowId"))
-            "setting-package" -> Screen.SettingPackage
             "debug" -> Screen.Debug
             "log" -> Screen.Log
             "extensions" -> Screen.Extensions

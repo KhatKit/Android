@@ -139,7 +139,6 @@ import heizige.kk.khatkit.app.feature.settings.SettingSearchDetailPage
 import heizige.kk.khatkit.app.feature.settings.SettingSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingFeatureSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingSpeechPage
-import heizige.kk.khatkit.app.feature.settings.SettingPackagePage
 import heizige.kk.khatkit.app.feature.settings.SettingTriggersPage
 import heizige.kk.khatkit.app.feature.settings.CreateWorkflowPage
 import heizige.kk.khatkit.app.feature.settings.SettingWebPage
@@ -463,7 +462,6 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingWeb -> SettingWebPage()
                             is Screen.SettingTriggers -> SettingTriggersPage()
                             is Screen.CreateWorkflow -> CreateWorkflowPage(screen.workflowId)
-                            is Screen.SettingPackage -> SettingPackagePage()
                             is Screen.Debug -> DebugPage()
                             is Screen.Log -> LogPage()
                             is Screen.Extensions -> ExtensionsPage()
@@ -817,9 +815,6 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class CreateWorkflow(val workflowId: String? = null) : Screen
-
-    @Serializable
-    data object SettingPackage : Screen
 
     @Serializable
     data object Debug : Screen

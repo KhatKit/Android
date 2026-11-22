@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * [ScreenRoutes] 的护栏：
- * - 73 个 [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
+ * - [Screen] 子类全都有路由，且全表唯一（新增子类忘了映射时，main 里的 `when` 先编不过；
  *   这里再从「名字集合 == routeNames」和「逐个可逆」两头兜住）；
  * - `routeOf` / `screenOf` 互为逆运算，route 字符串本身稳定（重复编码不漂）。
  */
@@ -73,7 +73,6 @@ class ScreenRoutesTest {
         Screen.SettingWeb,
         Screen.SettingTriggers,
         Screen.CreateWorkflow(workflowId = "w-1"),
-        Screen.SettingPackage,
         Screen.Debug,
         Screen.Log,
         Screen.Extensions,
@@ -94,7 +93,7 @@ class ScreenRoutesTest {
 
     @Test
     fun everyScreenHasARouteAndRoundTrips() {
-        assertEquals("Screen 子类代表实例数量", 73, samples.size)
+        assertEquals("Screen 子类代表实例数量", 72, samples.size)
         for (screen in samples) {
             val route = ScreenRoutes.routeOf(screen)
             assertEquals("route 解析回原型: $route", screen, ScreenRoutes.screenOf(route))
@@ -107,7 +106,12 @@ class ScreenRoutesTest {
         val routes = samples.map { ScreenRoutes.routeOf(it) }
         assertEquals("route 两两不同", routes.size, routes.toSet().size)
         assertEquals("名字集合与 routeNames 一致", ScreenRoutes.routeNames, routes.map { it.substringBefore('?') }.toSet())
-        assertEquals("routeNames 条数", 73, ScreenRoutes.routeNames.size)
+        assertEquals("routeNames 条数", 72, ScreenRoutes.routeNames.size)
+    }
+
+    @Test
+    fun retiredSubscriptionRouteNoLongerOpens() {
+        assertNull(ScreenRoutes.screenOf("setting-package"))
     }
 
     @Test

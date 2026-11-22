@@ -304,13 +304,6 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         headlineContent = { Text("探索市场") },
                     )
                     item(
-                        onClick = { navController.navigate(Screen.SettingPackage) },
-                        chevron = true,
-                        leadingContent = { Icon(favorite, null) },
-                        supportingContent = { Text("套餐激活、额度与网关供应商") },
-                        headlineContent = { Text("套餐激活") },
-                    )
-                    item(
                         onClick = { navController.navigate(Screen.SettingTriggers) },
                         chevron = true,
                         leadingContent = { Icon(bolt, null) },
