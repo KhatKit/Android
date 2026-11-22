@@ -31,6 +31,8 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.ReasoningLevel
@@ -225,9 +227,7 @@ internal fun createForkConversation(
 ): Conversation = Conversation(
     id = Uuid.random(),
     assistantId = source.assistantId,
-    title = generateSequence(1) { it + 1 }
-        .map { "${source.title}($it)" }
-        .first { it !in existingTitles },
+    title = forkConversationTitle(source.title, existingTitles),
     messageNodes = messageNodes,
     customSystemPrompt = source.customSystemPrompt,
     modeInjectionIds = source.modeInjectionIds,
@@ -235,6 +235,24 @@ internal fun createForkConversation(
     workspaceCwd = source.workspaceCwd,
     folderId = source.folderId,
 )
+
+internal fun forkMessageNodes(
+    nodes: List<MessageNode>,
+    copyPart: (UIMessagePart) -> UIMessagePart,
+): List<MessageNode> = nodes.map { node ->
+    val snapshots = mutableMapOf<String, heizige.kk.khatkit.app.core.data.model.ModelSnapshot>()
+    val messages = node.messages.map { message ->
+        val id = Uuid.random()
+        node.snapshotFor(message.id)?.let { snapshots[id.toString()] = it }
+        message.copy(id = id, parts = message.parts.map { part ->
+            if (part is UIMessagePart.Tool && !part.isExecuted) {
+                val notice = "原对话中的工具调用未完成，未在副本执行"
+                part.copy(approvalState = ToolApprovalState.Denied(notice), output = listOf(UIMessagePart.Text(notice)))
+            } else copyPart(part)
+        })
+    }
+    node.copy(id = Uuid.random(), messages = messages, modelSnapshots = snapshots)
+}
 
 data class ChatError(
     val id: Uuid = Uuid.random(),
@@ -1777,6 +1795,8 @@ class ChatManager(
         saveConversation(conversationId, currentConversation.copy(messageNodes = updatedNodes))
     }
 
+    private val forkMutex = Mutex()
+
     suspend fun forkConversationAtMessage(
         conversationId: Uuid,
         messageId: Uuid
@@ -1789,30 +1809,29 @@ class ChatManager(
         if (targetNodeIndex == -1) {
             throw NotFoundException("Message not found")
         }
+        return saveFork(currentConversation, currentConversation.messageNodes.take(targetNodeIndex + 1))
+    }
 
-        val copiedNodes = currentConversation.messageNodes
-            .subList(0, targetNodeIndex + 1)
-            .map { node ->
-                node.copy(
-                    id = Uuid.random(),
-                    messages = node.messages.map { message ->
-                        message.copy(
-                            parts = message.parts.map { part ->
-                                part.copyWithForkedFileUrl()
-                            }
-                        )
-                    }
-                )
-            }
+    suspend fun duplicateConversation(conversationId: Uuid): Conversation {
+        val session = sessionManager.get(conversationId)
+        require(session?.generationJob?.value == null && session?.processingStatus?.value == null) { "对话正在处理，请稍后复制" }
+        val source = session?.state?.value?.takeIf { it.messageNodes.isNotEmpty() }
+            ?: conversationRepo.getConversationById(conversationId)
+            ?: throw NotFoundException("Conversation not found")
+        requireActiveRoleConversation(source)
+        require(source.messageNodes.isNotEmpty()) { "没有可复制的消息" }
+        return saveFork(source, source.messageNodes)
+    }
 
-        val existingTitles = conversationRepo
-            .getConversationsOfAssistant(currentConversation.assistantId)
-            .first()
-            .mapTo(mutableSetOf()) { it.title }
-        val forkConversation = createForkConversation(currentConversation, copiedNodes, existingTitles)
-
-        saveConversation(forkConversation.id, forkConversation)
-        return forkConversation
+    private suspend fun saveFork(source: Conversation, nodes: List<MessageNode>): Conversation = withContext(Dispatchers.IO) {
+        forkMutex.withLock {
+            val existingTitles = conversationRepo.getConversationsOfAssistant(source.assistantId).first()
+                .mapTo(mutableSetOf()) { it.title }
+            val copiedNodes = forkMessageNodes(nodes) { part -> part.copyWithForkedFileUrl() }
+            val fork = createForkConversation(source, copiedNodes, existingTitles)
+            saveConversation(fork.id, fork)
+            fork
+        }
     }
 
     suspend fun selectMessageNode(
@@ -1913,6 +1932,7 @@ class ChatManager(
             is UIMessagePart.Document -> copy(url = copyLocalFileIfNeeded(url))
             is UIMessagePart.Video -> copy(url = copyLocalFileIfNeeded(url))
             is UIMessagePart.Audio -> copy(url = copyLocalFileIfNeeded(url))
+            is UIMessagePart.Tool -> copy(output = output.map { it.copyWithForkedFileUrl() })
             else -> this
         }
     }

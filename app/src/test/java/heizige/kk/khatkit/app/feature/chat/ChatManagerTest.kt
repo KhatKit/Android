@@ -6,9 +6,14 @@ import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.CustomBody
 import heizige.kk.khatkit.ai.provider.CustomHeader
 import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.ui.ToolApprovalState
+import heizige.kk.khatkit.ai.ui.UIMessage
+import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.ai.tools.shouldUseExternalWebSearch
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.MessageNode
+import heizige.kk.khatkit.app.core.data.model.ModelSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -17,6 +22,23 @@ import org.junit.Test
 import kotlin.uuid.Uuid
 
 class ChatManagerTest {
+    @Test
+    fun `fork creates independent message ids and does not requeue pending tools`() {
+        val ready = UIMessage.assistant("ready")
+        val pending = ready.copy(id = Uuid.random(), parts = listOf(
+            UIMessagePart.Tool("call1", "tool", "{}", approvalState = ToolApprovalState.Pending),
+        ))
+        val snapshot = ModelSnapshot("before", "Snapshot")
+        val source = MessageNode(messages = listOf(ready, pending), selectIndex = 1,
+            modelSnapshots = mapOf(pending.id.toString() to snapshot))
+        val copy = forkMessageNodes(listOf(source)) { it }.single()
+        assertNotEquals(source.id, copy.id)
+        assertNotEquals(pending.id, copy.currentMessage.id)
+        assertEquals(1, copy.selectIndex)
+        assertEquals(snapshot, copy.snapshotFor(copy.currentMessage.id))
+        assertTrue(copy.currentMessage.getTools().single().isExecuted)
+        assertTrue(source.currentMessage.getTools().single().isPending)
+    }
     @Test
     fun `fork conversation inherits folder and workspace context`() {
         val source = Conversation(

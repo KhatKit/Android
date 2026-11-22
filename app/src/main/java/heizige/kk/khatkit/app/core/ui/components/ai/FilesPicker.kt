@@ -97,6 +97,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.derivedStateOf
 import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.basic.MochiChipGroup
+import ui.feice.mochi.basic.MochiProgressBar
+import heizige.kk.khatkit.app.core.data.datastore.findModelById
+import heizige.kk.khatkit.app.feature.chat.helper.lastReportedContextUsage
 import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListSectionHeader
@@ -132,9 +135,12 @@ internal fun FilesPicker(
     onPickAudio: () -> Unit,
     onPickFile: () -> Unit,
     onStartVoiceMode: (() -> Unit)? = null,
+    onDuplicateConversation: (() -> Unit)? = null,
 ) {
     val settings = LocalSettings.current
     val provider = settings.getCurrentChatModel()?.findProvider(providers = settings.providers)
+    val model = settings.findModelById(assistant.chatModelId ?: settings.chatModelId)
+    val usage = remember(conversation.messageNodes, model) { lastReportedContextUsage(conversation.currentMessages, model) }
     val navController = LocalNavController.current
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     val workspaces by workspaceRepository.listFlow().collectAsState(initial = emptyList())
@@ -247,9 +253,28 @@ internal fun FilesPicker(
                 shape = shape,
                 leadingContent = { MochiIonicon("archive", size = 22.dp) },
                 titleContent = { Text(stringResource(R.string.chat_page_compress_context)) },
+                supportingContent = usage?.let { item ->
+                    {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            val limit = item.limit
+                            Text(if (limit == null) "上次请求：${item.tokens} tokens · 上限未知"
+                                else "上次请求：${item.tokens} / $limit tokens")
+                            item.fraction?.let { MochiProgressBar(progress = it) }
+                        }
+                    }
+                },
                 trailingContent = if (conversation.messageNodes.isNotEmpty()) {
                     { ToolCount(stringResource(R.string.chat_page_message_count, conversation.messageNodes.size)) }
                 } else null,
+            )
+        }
+        if (onDuplicateConversation != null && conversation.messageNodes.isNotEmpty()) add { shape ->
+            MochiOptionItem(
+                onClick = onDuplicateConversation,
+                modifier = Modifier.fillMaxWidth(),
+                shape = shape,
+                leadingContent = { MochiIonicon("copy", size = 22.dp) },
+                titleContent = { Text("复制整段对话") },
             )
         }
     }

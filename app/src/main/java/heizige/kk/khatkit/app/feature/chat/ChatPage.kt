@@ -709,6 +709,19 @@ internal fun ChatScaffold(
                 vm = vm,
                 attachmentPickerActions = attachmentPickerActions,
                 onStartVoiceMode = onStartVoiceMode,
+                onDuplicateConversation = if (!archived && loadingJob == null && processingStatus == null) ({
+                    scope.launch {
+                        try {
+                            val copy = vm.duplicateConversation()
+                            showFilesSheet = false
+                            navigateToChatPage(navController, chatId = copy.id)
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            Toast.show("复制对话失败", isError = true)
+                        }
+                    }
+                }) else null,
                 onDismiss = { showFilesSheet = false },
             )
     }
@@ -724,6 +737,7 @@ private fun ChatFilesPickerSheet(
     vm: ChatViewModel,
     attachmentPickerActions: ChatAttachmentPickerActions,
     onStartVoiceMode: () -> Unit,
+    onDuplicateConversation: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
@@ -800,6 +814,7 @@ private fun ChatFilesPickerSheet(
             onPickVideo = attachmentPickerActions.onPickVideo,
             onPickAudio = attachmentPickerActions.onPickAudio,
             onPickFile = attachmentPickerActions.onPickFile,
+            onDuplicateConversation = onDuplicateConversation,
             onStartVoiceMode = if (
                 setting.getSelectedASRProvider()?.supportsServerVadVoiceMode == true &&
                 voiceState.phase == VoicePhase.Off

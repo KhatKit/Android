@@ -273,6 +273,8 @@ class ChatViewModel @AssistedInject constructor(
         return chatService.forkConversationAtMessage(_conversationId, message.id)
     }
 
+    suspend fun duplicateConversation(): Conversation = chatService.duplicateConversation(_conversationId)
+
     fun deleteMessage(message: UIMessage) {
         viewModelScope.launch {
             chatService.deleteMessage(_conversationId, message)
