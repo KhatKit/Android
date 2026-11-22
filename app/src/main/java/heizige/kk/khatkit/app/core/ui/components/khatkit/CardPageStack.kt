@@ -173,9 +173,9 @@ internal class CardPageStackState {
 internal class CardPageStackRuntime(val provider: KhatKitToolProvider) {
     val state = CardPageStackState()
 
-    fun back() {
+    fun back(onRootBack: () -> Unit) {
         if (state.size <= 1) {
-            provider.dismissUi()
+            onRootBack()
             return
         }
         if (state.backSubmitted) return
@@ -191,7 +191,11 @@ internal class CardPageStackRuntime(val provider: KhatKitToolProvider) {
  * until Mochi finishes its closing animation.
  */
 @Composable
-internal fun CardPageStackPage(request: UiRequest?, provider: KhatKitToolProvider) {
+internal fun CardPageStackPage(
+    request: UiRequest?,
+    provider: KhatKitToolProvider,
+    onRootBack: () -> Unit = { provider.dismissUi() },
+) {
     val runtime = remember(provider) { CardPageStackRuntime(provider) }
     val state = runtime.state
     LaunchedEffect(request) {
@@ -199,10 +203,11 @@ internal fun CardPageStackPage(request: UiRequest?, provider: KhatKitToolProvide
         if (screen != null && screen.isCardPage()) state.apply(screen)
     }
     if (state.isEmpty) return
-    CardPageStackHost(state, runtime::back) { frame ->
+    val back = { runtime.back(onRootBack) }
+    CardPageStackHost(state, back) { frame ->
         CompositionLocalProvider(
             LocalKkInsidePageStack provides true,
-            LocalKhatKitPageBack provides runtime::back,
+            LocalKhatKitPageBack provides back,
         ) {
             TreePage(frame.title, frame.root, frame.options, provider, pages = frame.pages)
         }

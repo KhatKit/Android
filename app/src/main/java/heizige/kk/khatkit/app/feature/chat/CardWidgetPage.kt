@@ -34,7 +34,6 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.khatkit.CardPageStackPage
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitTreeRequest
 import heizige.kk.khatkit.app.core.ui.components.khatkit.isCardPage
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.tools.helper.toolHeaderIcon
 import heizige.kk.khatkit.ui.UiRequest
@@ -65,7 +64,9 @@ internal fun CardWidgetPage(name: String, title: String) {
     val queued by provider.uiRequest.collectAsStateWithLifecycle()
     val owned = queued?.takeIf { provider.isPageHosted(it, setOf(name)) }
     var shown by remember { mutableStateOf<UiRequest?>(null) }
-    val active = nav?.current == Screen.CardWidget(name, title)
+    val screen = Screen.CardWidget(name, title)
+    val active = nav?.current == screen
+    val closePage: () -> Unit = { if (nav?.current == screen) nav.popBackStack() }
     var recordedHeader by remember(name) { mutableStateOf(false) }
     LaunchedEffect(active, owned) {
         if (active && !recordedHeader) owned?.toolHeaderIcon()?.let { icon ->
@@ -96,10 +97,13 @@ internal fun CardWidgetPage(name: String, title: String) {
         }
     }
     val done = result
+    // The leaving route stays composed for the back animation. Dismissal can finish
+    // the script with an error, but it must not replace the exiting page.
+    val failed = active && done?.ok == false
     val keep = shown is UiRequest.ShowTree
     LaunchedEffect(done, owned, keep) {
         Log.i("KKCardPage", "effect done=${done?.ok} owned=${owned?.javaClass?.simpleName} keep=$keep shown=${shown?.javaClass?.simpleName}")
-        if (done?.ok == true && owned == null && !keep && nav?.current == Screen.CardWidget(name, title)) nav.popBackStack()
+        if (done?.ok == true && owned == null && !keep) closePage()
     }
 
     // 卡片整页（全屏分页页 / push 叠层）：不再当弹层弹，直接铺成一张真正的页面，
@@ -119,10 +123,9 @@ internal fun CardWidgetPage(name: String, title: String) {
             }
         }
         Box(Modifier.fillMaxSize()) {
-            CardPageStackPage(request = if (active) owned else null, provider = provider)
+            CardPageStackPage(request = if (active) owned else null, provider = provider, onRootBack = closePage)
             val loading = shown == null && done == null
-            val failed = done != null && !done.ok
-            if (waiting && !loading && !failed) {
+            if (active && waiting && !loading && !failed) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     KkProgressIndicator(Modifier.size(28.dp))
                 }
@@ -216,7 +219,7 @@ internal fun CardWidgetPage(name: String, title: String) {
             MochiBlurCrossfade(
                 targetState = when {
                     body != null -> PageBody.Content
-                    done != null && !done.ok -> PageBody.Failed
+                    failed -> PageBody.Failed
                     else -> PageBody.Loading
                 },
                 modifier = Modifier.fillMaxSize(),

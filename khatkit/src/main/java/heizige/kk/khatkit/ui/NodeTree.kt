@@ -15,6 +15,7 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
             "Switch", "Checkbox" -> false
             "Slider" -> field.props["min"] ?: 0.0
             "CounterButton" -> 0
+            "Dropdown" -> (field.props["options"] as? List<*>)?.firstOrNull()
             else -> ""
         })
     }
@@ -50,7 +51,7 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
                     if (kotlin.math.abs(units - kotlin.math.round(units)) > 1e-6) put(id, "数值不符合步长 $step")
                 }
             }
-            if (!empty && field.type in setOf("Select", "RadioGroup") && value !in (p["options"] as? List<*>).orEmpty()) {
+            if (!empty && field.type in setOf("Select", "RadioGroup", "Dropdown") && value !in (p["options"] as? List<*>).orEmpty()) {
                 put(id, "请选择列表中的值")
             }
         }

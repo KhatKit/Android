@@ -771,7 +771,8 @@ private fun DropdownControl(
     val options = (node.props["options"] as? List<*>)?.map { it.toString() }.orEmpty()
     if (options.isEmpty()) return
     val disabled = readOnly || node.props["disabled"] == true
-    val current = (node.props["value"] as? String) ?: options.first()
+    val current = (values[id] as? String)?.takeIf { it in options }
+        ?: (node.props["value"] as? String) ?: options.first()
     var expanded by remember(node) { mutableStateOf(false) }
     val style = StyleResolvers.current()
     // 按钮槽的底：在 Group（inset grouped 卡片）里就和其它行一样透明、透出组底色；

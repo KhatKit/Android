@@ -135,6 +135,16 @@ class NodeTreeParserTest {
         } finally { host.dismiss(); pool.shutdownNow() }
     }
 
+    @Test fun dropdownCollectsDefaultOrSelectedOptionAndRejectsUnknownValues() {
+        val root = UiNodeParser.parse(node("Column", emptyMap(),
+            node("Dropdown", mapOf("id" to "mode", "options" to listOf("Combination", "Factorial")))))
+        assertEquals(mapOf("mode" to "Combination"), root.collect(emptyMap()))
+        val selected = mapOf("mode" to "Factorial")
+        assertTrue(root.errors(selected).isEmpty())
+        assertEquals(selected, root.collect(selected))
+        assertTrue("mode" in root.errors(mapOf("mode" to "invalid")))
+    }
+
     @Test fun timeoutKeepsTreeRequestForLateAnswerAndLegacyStillSubmits() {
         // §3.5：等待超时不等于取消 —— 弹层留着，用户迟到的提交走 onLateAnswer 续跑
         val host = UiBridgeHost(timeoutMillis = 10).apply { onHostAttached() }
