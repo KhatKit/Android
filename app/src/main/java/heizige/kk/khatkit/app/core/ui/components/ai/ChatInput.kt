@@ -69,6 +69,7 @@ import androidx.compose.foundation.content.hasMediaType
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -220,7 +221,10 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.effect.glass.LocalMochiBackdrop
+import ui.feice.mochi.effect.glass.LocalMochiGlassShadow
+import ui.feice.mochi.effect.glass.MochiGlassSurface
+import ui.feice.mochi.effect.glass.MochiNoGlassShadow
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -277,10 +281,6 @@ fun ChatInput(
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val composerFieldColor = MochiTextFieldDefaults.colors().container.compositeOver(CustomColors.pageContainerColor)
-    val composerBackdrop = hazeState.takeIf { settings.displaySetting.effectsEnabled }
-    val inputHazeStyle = HazeBlurStyle.Material3 {
-        blurRadius(20.dp)
-    }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -636,6 +636,7 @@ fun ChatInput(
                                         containerColor = hazeTintColor,
                                         tint = hazeTintColor.copy(alpha = 0.3f),
                                     ) {
+                                        edgeShadow(Color.Transparent)
                                         optics(
                                             GlassDefaults.optics.copy(
                                                 blurRadius = OpticalSizeValue.Fixed(16.dp),
@@ -653,7 +654,6 @@ fun ChatInput(
                 // 让 FAB 拉起的能力面板与工具台/设置页的分组容器有明确层次。
                 color = MochiTheme.colorScheme.surfaceContainer.copy(alpha = easedProgress()),
                 contentColor = MochiTheme.colorScheme.onSurface,
-                shadowElevation = (4f * easedProgress()).dp,
                 // 收起时不描边，展开过程中出现 Mochi outline。
                 border = if (easedProgress() > 0.05f) {
                     BorderStroke(
@@ -816,79 +816,76 @@ fun ChatInput(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        MochiBarIconButton(
-                            onClick = onMoreClick,
-                            // 栏按钮取样页面；普通 Glass 样式只取样纯色画布。
+                        ComposerGlass(
                             modifier = Modifier.size(MochiTextFieldDefaults.Height),
+                            fallback = composerFieldColor,
                         ) {
-                            Icon(
-                                imageVector = add,
-                                contentDescription = stringResource(R.string.more_options),
-                                tint = MochiTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = MochiTextFieldDefaults.Height)
-                                .clip(MochiTextFieldDefaults.Shape)
-                                .then(
-                                    if (composerBackdrop != null) {
-                                        Modifier.composerGlass(
-                                            composerBackdrop,
-                                            hazeTintColor,
-                                            RoundedCornerShape(MochiTextFieldDefaults.Height / 2),
-                                        )
-                                    } else {
-                                        Modifier.background(composerFieldColor)
-                                    },
-                                ),
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            TextInputRow(
-                                state = state,
-                                completionProviders = completionProviders,
-                                commands = commands,
-                                onRunCommand = ::runCommand,
-                                onSendMessage = { sendMessage() },
-                                isFullScreen = editorOpen,
-                                editorRevealProgress = editorReveal,
-                                onEditorRevealProgress = { editorReveal = it },
-                                flbBounds = flbBounds,
-                                attachmentActions = attachmentActions,
-                                onFullScreenChange = ::changeEditorOpen,
-                                modifier = Modifier.weight(1f),
-                            )
                             MochiRealIconButton(
-                                onClick = { changeEditorOpen(!editorOpen) },
-                                modifier = Modifier
-                                    .padding(MochiTextFieldDefaults.TrailingInset)
-                                    .testTag("chat_fullscreen_button"),
-                                size = MochiTextFieldDefaults.TrailingButtonSize,
+                                onClick = onMoreClick,
+                                size = MochiTextFieldDefaults.Height,
                                 style = MochiButtonStyle.Text,
                             ) {
                                 Icon(
-                                    fullscreen,
-                                    contentDescription = stringResource(R.string.text_area_fullscreen_edit),
-                                    tint = MochiTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp),
+                                    imageVector = add,
+                                    contentDescription = stringResource(R.string.more_options),
+                                    tint = MochiTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(22.dp),
                                 )
                             }
-                            SendButton(
-                                state = when {
-                                    asrState.isRecording -> SendButtonState.Recording
-                                    loading && state.isEmpty() -> SendButtonState.Stop
-                                    state.isEmpty() -> SendButtonState.Idle
-                                    else -> SendButtonState.Send
-                                },
-                                backdrop = composerBackdrop,
-                                onClick = {
-                                    if (asrState.isRecording) asr.stop() else sendMessage()
-                                },
-                                onLongClick = { startVoiceInput() },
-                                modifier = Modifier.padding(MochiTextFieldDefaults.TrailingInset),
-                            )
+                        }
+                        ComposerGlass(
+                            modifier = Modifier.weight(1f),
+                            fallback = composerFieldColor,
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth()
+                                    .heightIn(min = MochiTextFieldDefaults.Height)
+                                    .clip(MochiTextFieldDefaults.Shape),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                TextInputRow(
+                                    state = state,
+                                    completionProviders = completionProviders,
+                                    commands = commands,
+                                    onRunCommand = ::runCommand,
+                                    onSendMessage = { sendMessage() },
+                                    isFullScreen = editorOpen,
+                                    editorRevealProgress = editorReveal,
+                                    onEditorRevealProgress = { editorReveal = it },
+                                    flbBounds = flbBounds,
+                                    attachmentActions = attachmentActions,
+                                    onFullScreenChange = ::changeEditorOpen,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                MochiRealIconButton(
+                                    onClick = { changeEditorOpen(!editorOpen) },
+                                    modifier = Modifier
+                                        .padding(MochiTextFieldDefaults.TrailingInset)
+                                        .testTag("chat_fullscreen_button"),
+                                    size = MochiTextFieldDefaults.TrailingButtonSize,
+                                    style = MochiButtonStyle.Text,
+                                ) {
+                                    Icon(
+                                        fullscreen,
+                                        contentDescription = stringResource(R.string.text_area_fullscreen_edit),
+                                        tint = MochiTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                SendButton(
+                                    state = when {
+                                        asrState.isRecording -> SendButtonState.Recording
+                                        loading && state.isEmpty() -> SendButtonState.Stop
+                                        state.isEmpty() -> SendButtonState.Idle
+                                        else -> SendButtonState.Send
+                                    },
+                                    onClick = {
+                                        if (asrState.isRecording) asr.stop() else sendMessage()
+                                    },
+                                    onLongClick = { startVoiceInput() },
+                                    modifier = Modifier.padding(MochiTextFieldDefaults.TrailingInset),
+                                )
+                            }
                         }
 
                         if (loading) {
@@ -974,7 +971,6 @@ private fun SendButton(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
-    backdrop: HazeState? = null,
 ) {
     val cs = MochiTheme.colorScheme
     Box(
@@ -1001,16 +997,10 @@ private fun SendButton(
                 SendButtonState.Send -> cs.onPrimary
                 SendButtonState.Stop, SendButtonState.Recording -> cs.surface
             }
-            val surfaceModifier = if (backdrop != null) {
-                val glassColor = if (s == SendButtonState.Idle) cs.surfaceContainerHigh else container
-                Modifier.composerGlass(backdrop, glassColor, CircleShape)
-            } else {
-                Modifier.background(container, CircleShape)
-            }
             Box(
                 Modifier
                     .size(MochiTextFieldDefaults.TrailingButtonSize)
-                    .then(surfaceModifier),
+                    .background(container, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -1031,18 +1021,22 @@ private fun SendButton(
 }
 
 @Composable
-private fun Modifier.composerGlass(backdrop: HazeState, color: Color, shape: RoundedCornerShape): Modifier = hazeGlass(
-    input = HazeInput.Sources(backdrop),
-    style = GlassStyle.Material3(containerColor = color, tint = color.copy(alpha = 0.3f)) {
-        optics(
-            GlassDefaults.optics.copy(
-                blurRadius = OpticalSizeValue.Fixed(16.dp),
-                depth = OpticalSizeValue.Fixed(0.5f),
-            ),
-        )
-        shape(shape)
-    },
-)
+private fun ComposerGlass(
+    modifier: Modifier,
+    fallback: Color,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val material = MochiTheme.materials.controlGlass
+    val backdrop = LocalMochiBackdrop.current
+    if (material == null || backdrop == null) {
+        Box(modifier.background(fallback, MochiTextFieldDefaults.Shape), content = content)
+        return
+    }
+    // The backdrop contains only the page, not the composer or its contents.
+    CompositionLocalProvider(LocalMochiGlassShadow provides MochiNoGlassShadow) {
+        MochiGlassSurface(modifier, material, backdrop, content = content)
+    }
+}
 
 @Composable
 private fun TextInputRow(
