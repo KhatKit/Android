@@ -245,6 +245,18 @@ internal fun ToolCataloguePage() {
                     }
                 }
             }
+            if (scope == ToolScope.ALL && (!chipsCollapsed || query.isNotBlank()) &&
+                listOf("Unicode 工具", "文本与编码互转", "码点", "UTF-16").any { it.contains(query.trim(), ignoreCase = true) }
+            ) {
+                MochiListSection(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    MochiListRow(
+                        title = "Unicode 工具",
+                        subtitle = "文本与编码互转",
+                        onClick = { nav?.navigate(Screen.UnicodeTool) },
+                        chevron = true,
+                    )
+                }
+            }
             if (state.error != null) {
                 MochiListSection(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     MochiListRow(

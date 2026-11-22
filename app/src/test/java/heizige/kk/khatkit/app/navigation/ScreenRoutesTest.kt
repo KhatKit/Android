@@ -62,6 +62,7 @@ class ScreenRoutesTest {
         Screen.ToolCatalogue,
         Screen.LanShare,
         Screen.ToolApiHealth,
+        Screen.UnicodeTool,
         Screen.ExploreCards(initialQuery = "moon"),
         Screen.ExploreLocal,
         Screen.ExploreCardDetail(name = "moon-card"),
@@ -95,7 +96,7 @@ class ScreenRoutesTest {
 
     @Test
     fun everyScreenHasARouteAndRoundTrips() {
-        assertEquals("Screen 子类代表实例数量", 74, samples.size)
+        assertEquals("Screen 子类代表实例数量", 75, samples.size)
         for (screen in samples) {
             val route = ScreenRoutes.routeOf(screen)
             assertEquals("route 解析回原型: $route", screen, ScreenRoutes.screenOf(route))
@@ -108,7 +109,7 @@ class ScreenRoutesTest {
         val routes = samples.map { ScreenRoutes.routeOf(it) }
         assertEquals("route 两两不同", routes.size, routes.toSet().size)
         assertEquals("名字集合与 routeNames 一致", ScreenRoutes.routeNames, routes.map { it.substringBefore('?') }.toSet())
-        assertEquals("routeNames 条数", 74, ScreenRoutes.routeNames.size)
+        assertEquals("routeNames 条数", 75, ScreenRoutes.routeNames.size)
     }
 
     @Test
