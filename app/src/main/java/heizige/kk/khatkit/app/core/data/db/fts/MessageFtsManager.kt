@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.core.data.db.fts
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
@@ -16,6 +16,7 @@ data class MessageSearchResult(
     val title: String,
     val updateAt: Instant,
     val snippet: String,
+    val snippetHasFtsMarkers: Boolean = true,
 )
 
 enum class MessageSearchSort(val orderBy: String) {
@@ -23,8 +24,6 @@ enum class MessageSearchSort(val orderBy: String) {
     NEWEST_FIRST("update_at DESC, rank"),
     OLDEST_FIRST("update_at ASC, rank"),
 }
-
-private const val TAG = "MessageFtsManager"
 
 class MessageFtsManager(private val database: AppDatabase) {
 
@@ -65,7 +64,33 @@ class MessageFtsManager(private val database: AppDatabase) {
         keyword: String,
         sort: MessageSearchSort = MessageSearchSort.RELEVANCE,
         assistantId: String? = null,
+        mode: MessageSearchMode = MessageSearchMode.KEYWORDS,
     ): List<MessageSearchResult> = withContext(Dispatchers.IO) {
+        if (mode != MessageSearchMode.KEYWORDS) {
+            val query = MessageTextQuery.compile(keyword, mode) ?: return@withContext emptyList()
+            val matches = mutableListOf<MessageSearchResult>()
+            val filter = if (assistantId == null) "" else "WHERE c.assistant_id = ?"
+            val args = if (assistantId == null) emptyArray<String>() else arrayOf(assistantId)
+            val direction = if (sort == MessageSearchSort.OLDEST_FIRST) "ASC" else "DESC"
+            db.query(
+                """
+                    SELECT f.node_id, f.message_id, f.conversation_id, c.title, f.update_at, f.text
+                    FROM message_fts AS f JOIN conversationentity AS c ON c.id = f.conversation_id
+                    $filter ORDER BY f.update_at $direction, f.rowid $direction
+                """.trimIndent(), args,
+            ).use { cursor ->
+                while (matches.size < 50 && cursor.moveToNext()) {
+                    ensureActive()
+                    val text = cursor.getString(5)
+                    val match = query.find(text) ?: continue
+                    matches.add(MessageSearchResult(
+                        cursor.getString(0), cursor.getString(1), cursor.getString(2), cursor.getString(3),
+                        Instant.ofEpochMilli(cursor.getLong(4)), messageTextSnippet(text, match), snippetHasFtsMarkers = false,
+                    ))
+                }
+            }
+            return@withContext matches
+        }
         val results = mutableListOf<MessageSearchResult>()
         val matchQuery = buildFtsMatchQuery(keyword, ::simpleQuery) ?: return@withContext results
         val assistantFilter = if (assistantId != null) {
@@ -91,7 +116,6 @@ class MessageFtsManager(private val database: AppDatabase) {
             """.trimIndent(),
             if (assistantId != null) arrayOf(matchQuery, assistantId) else arrayOf(matchQuery)
         )
-        Log.i(TAG, "search: $keyword")
         cursor.use {
             while (it.moveToNext()) {
                 results.add(

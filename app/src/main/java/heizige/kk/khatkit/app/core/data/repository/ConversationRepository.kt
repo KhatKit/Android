@@ -14,6 +14,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
 import heizige.kk.khatkit.app.core.data.db.fts.MessageFtsManager
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchMode
 import heizige.kk.khatkit.app.core.data.db.dao.ConversationDAO
 import heizige.kk.khatkit.app.core.data.db.dao.MessageNodeDAO
 import heizige.kk.khatkit.app.core.data.db.entity.ConversationEntity
@@ -444,7 +445,8 @@ class ConversationRepository(
         keyword: String,
         sort: MessageSearchSort = MessageSearchSort.RELEVANCE,
         assistantId: Uuid? = null,
-    ) = messageFtsManager.search(keyword, sort, assistantId?.toString())
+        mode: MessageSearchMode = MessageSearchMode.KEYWORDS,
+    ) = messageFtsManager.search(keyword, sort, assistantId?.toString(), mode)
 
     suspend fun rebuildAllIndexes(onProgress: (current: Int, total: Int) -> Unit = { _, _ -> }) {
         messageFtsManager.deleteAll()

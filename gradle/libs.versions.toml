@@ -42,6 +42,7 @@ google-services = "4.5.0"
 firebase-bom = "34.19.0"
 firebase-crashlytics = "3.0.8"
 jsoup = "1.23.2"
+re2j = "1.8"
 zxing = "3.5.4"
 # 实时扫码：CameraX 取景 + zxing 解码（群聊 / 提供商导入二维码）。
 # 上游 d8ba9cf67 用 CameraX + zxing 换掉了 quickie + ML Kit barhopper（arm64 省 4.7MB）；
@@ -152,6 +153,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+re2j = { group = "com.google.re2j", name = "re2j", version.ref = "re2j" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }

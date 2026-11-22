@@ -10,6 +10,7 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchMode
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.ui.hooks.readStringPreference
@@ -38,6 +40,7 @@ private data class SearchRequest(
     val scope: MessageSearchScope,
     val assistantId: Uuid?,
     val debounce: Boolean,
+    val mode: MessageSearchMode,
 )
 
 @HiltViewModel
@@ -52,6 +55,10 @@ class SearchViewModel @Inject constructor(
     var searchQuery by mutableStateOf("")
         private set
     var searchScope by mutableStateOf(MessageSearchScope.CURRENT_ASSISTANT)
+        private set
+    var mode by mutableStateOf(MessageSearchMode.KEYWORDS)
+        private set
+    var searchError by mutableStateOf<String?>(null)
         private set
     var sortOrder by mutableStateOf(
         runCatching {
@@ -98,6 +105,12 @@ class SearchViewModel @Inject constructor(
         search()
     }
 
+    fun onModeChange(mode: MessageSearchMode) {
+        if (this.mode == mode) return
+        this.mode = mode
+        search()
+    }
+
     fun onSortChange(sort: MessageSearchSort) {
         if (sortOrder == sort) return
         sortOrder = sort
@@ -121,6 +134,7 @@ class SearchViewModel @Inject constructor(
                 scope = searchScope,
                 assistantId = assistantId,
                 debounce = debounce,
+                mode = mode,
             )
         )
     }
@@ -141,6 +155,7 @@ class SearchViewModel @Inject constructor(
 
     private suspend fun performSearch(request: SearchRequest) {
         results = emptyList()
+        searchError = null
         if (request.query.isBlank() ||
             (request.scope == MessageSearchScope.CURRENT_ASSISTANT && request.assistantId == null)
         ) {
@@ -149,7 +164,16 @@ class SearchViewModel @Inject constructor(
         isLoading = true
         try {
             if (request.debounce) delay(300L)
-            results = conversationRepo.searchMessages(request.query, request.sort, request.assistantId)
+            val sort = if (request.mode != MessageSearchMode.KEYWORDS && request.sort == MessageSearchSort.RELEVANCE) {
+                MessageSearchSort.NEWEST_FIRST
+            } else request.sort
+            results = conversationRepo.searchMessages(request.query, sort, request.assistantId, request.mode)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IllegalArgumentException) {
+            searchError = if (request.mode == MessageSearchMode.KEYWORDS) "搜索失败" else e.message ?: "搜索失败"
+        } catch (_: Exception) {
+            searchError = "搜索失败"
         } finally {
             isLoading = false
         }

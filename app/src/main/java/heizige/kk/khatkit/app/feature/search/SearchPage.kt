@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
+import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchMode
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
@@ -100,7 +101,10 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             // 顶栏只留一颗「排序方式」按钮：刷新改成列表下拉刷新，
             // 重建索引这类低频动作收进排序菜单末尾，不再单独占一颗图标。
             SortMenuButton(
-                current = vm.sortOrder,
+                current = if (vm.mode != MessageSearchMode.KEYWORDS && vm.sortOrder == MessageSearchSort.RELEVANCE) {
+                    MessageSearchSort.NEWEST_FIRST
+                } else vm.sortOrder,
+                allowRelevance = vm.mode == MessageSearchMode.KEYWORDS,
                 onSortChange = { vm.onSortChange(it) },
                 onRebuildIndex = { showRebuildDialog = true },
             )
@@ -114,11 +118,21 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             MochiSearchBar(
                 query = vm.searchQuery,
                 onQueryChange = { vm.onQueryChange(it) },
-                placeholder = stringResource(R.string.search_page_placeholder),
+                placeholder = when (vm.mode) {
+                    MessageSearchMode.KEYWORDS -> stringResource(R.string.search_page_placeholder)
+                    MessageSearchMode.REGEX -> "正则表达式"
+                    MessageSearchMode.ANY_TEXT -> "文本一，文本二"
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 onSearch = { vm.search() },
+            )
+            MochiSegmentedControl(
+                selectedIndex = vm.mode.ordinal,
+                onSelect = { MessageSearchMode.entries.getOrNull(it)?.let(vm::onModeChange) },
+                items = persistentListOf("关键词", "正则", "多文本"),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
             SearchResultSection(vm = vm, onOpen = onOpenResult)
         }
@@ -129,11 +143,13 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
 @Composable
 private fun SortMenuButton(
     current: MessageSearchSort,
+    allowRelevance: Boolean,
     onSortChange: (MessageSearchSort) -> Unit,
     onRebuildIndex: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val sortLabels = MessageSearchSort.entries.map { sort ->
+    val options = MessageSearchSort.entries.filter { allowRelevance || it != MessageSearchSort.RELEVANCE }
+    val sortLabels = options.map { sort ->
         stringResource(
             when (sort) {
                 MessageSearchSort.RELEVANCE -> R.string.search_page_sort_relevance
@@ -154,13 +170,13 @@ private fun SortMenuButton(
         items = items,
         onItemClick = { index ->
             expanded = false
-            if (index < MessageSearchSort.entries.size) {
-                MessageSearchSort.entries.getOrNull(index)?.let(onSortChange)
+            if (index < options.size) {
+                options.getOrNull(index)?.let(onSortChange)
             } else {
                 onRebuildIndex()
             }
         },
-        selectedIndex = MessageSearchSort.entries.indexOf(current),
+        selectedIndex = options.indexOf(current),
         // 触发器用栏里的透明玻璃 iconbutton（和页面其它顶栏按钮同一枚），
         // 下拉自身的胶囊底/发光全部透明，只借它的面板与选中态。
         colors = MochiDropdownDefaults.dropdownColors(
@@ -232,6 +248,10 @@ private fun SearchResultSection(
                         icon = { MochiIonicon("search", size = 36.dp) },
                     )
                 }
+                vm.searchError != null -> MochiEmptyState(
+                    title = vm.searchError.orEmpty(),
+                    icon = { MochiIonicon("search", size = 36.dp) },
+                )
                 vm.results.isEmpty() && !vm.isLoading -> {
                     MochiEmptyState(
                         title = stringResource(R.string.search_page_no_results),
@@ -280,8 +300,8 @@ private fun SearchResultRow(
     onClick: () -> Unit,
 ) {
     val untitled = stringResource(R.string.search_page_untitled)
-    val snippet = remember(result.snippet) {
-        result.snippet.replace("[", "").replace("]", "")
+    val snippet = remember(result.snippet, result.snippetHasFtsMarkers) {
+        if (result.snippetHasFtsMarkers) result.snippet.replace("[", "").replace("]", "") else result.snippet
     }
     val formattedTime = remember(result.updateAt) { result.updateAt.toLocalDateTime() }
     MochiListRow(
