@@ -21,7 +21,7 @@ data class CardIssue(
 object CardValidator {
     val ENGINES = setOf("lua", "js", "wasm", "auto", "command")
     val PRIVILEGES = setOf("none", "elevated")
-    val BRIDGES = setOf("tool", "net", "fs", "json", "crypto", "time", "host", "system", "ai", "mediaPicker", "ui", "web", "browser", "download", "store", "shizuku", "root", "accessibility", "imageToolbox", "schedule", "i18n")
+    val BRIDGES = setOf("tool", "net", "fs", "json", "crypto", "time", "host", "system", "ai", "mediaPicker", "ui", "web", "browser", "download", "store", "shizuku", "root", "accessibility", "imageToolbox", "schedule", "i18n", "card")
     private val BRIDGE_METHODS = mapOf(
         "net" to setOf("get", "post", "put", "delete", "multipart", "streamText", "toFile", "head"),
         "fs" to setOf("read", "write", "exists", "stat", "list", "copy", "move", "mkdir", "delete", "zip", "unzip", "readBase64", "saveBase64", "openDir"),
@@ -29,9 +29,10 @@ object CardValidator {
         "system" to setOf("launchApp"),
         "mediaPicker" to setOf("pickMedia"),
         "browser" to setOf("open", "snapshot", "act", "close"),
+        "card" to setOf("call"),
     )
 
-    private val NAME_REGEX = Regex("^[a-z][a-z0-9_]{1,63}$")
+    private val NAME_REGEX = CardManifest.CardCalls.NAME_PATTERN
 
     /** 依赖名 = bridge 名，允许 camelCase（如 imageToolbox） */
     private val DEPENDENCY_NAME_REGEX = Regex("^[a-z][A-Za-z0-9_]{1,63}$")
@@ -63,6 +64,23 @@ object CardValidator {
         if (manifest.privilege !in PRIVILEGES) {
             error("PRIVILEGE_UNKNOWN", "privilege 必须是 none|elevated：${manifest.privilege}")
         }
+        val calls = manifest.cardCalls
+        // Use an explicit declaration for both directions; a bridge declaration alone grants nothing.
+        for (names in listOf(calls.targets, calls.allowedCallers)) {
+            if (names.size > 32 || names.distinct().size != names.size ||
+                names.any { it == manifest.name || !NAME_REGEX.matches(it) }
+            ) error("CARD_CALL_NAMES", "card_calls 每个列表最多 32 个不同的有效卡片名，不允许填自己")
+        }
+        if (("card" in manifest.requiredBridges) != calls.targets.isNotEmpty()) {
+            error("CARD_CALL_BRIDGE", "card bridge 和 card_calls.targets 必须同时声明")
+        }
+        if ((calls.targets.isNotEmpty() || calls.allowedCallers.isNotEmpty()) && (manifest.isCommand || manifest.isWasm)) {
+            error("CARD_CALL_ENGINE", "卡片互调仅支持 Lua / JS")
+        }
+        if (calls.allowedCallers.isNotEmpty() && (manifest.privilege != "none" ||
+                (manifest.requiredBridges - CardManifest.CardCalls.CHILD_BRIDGES).isNotEmpty() ||
+                manifest.requires.run { libs.isNotEmpty() || dependencies.isNotEmpty() || bins.isNotEmpty() || env.isNotEmpty() })
+        ) error("CARD_CALL_CAPABILITIES", "可被调用卡片只能使用 card / json / time / i18n，不能声明额外依赖")
         (manifest.i18n.keys + manifest.defaultLocale).forEach { tag ->
             if (tag.isBlank() || java.util.Locale.forLanguageTag(tag.replace('_', '-')).language.isBlank()) {
                 error("LOCALE_INVALID", "i18n 需要有效的 BCP 47 语言代码：$tag")
@@ -409,7 +427,7 @@ object CardValidator {
             val body = scripts.values.joinToString("\n")
             val usedBridges = BRIDGE_CALL_REGEX.findAll(body)
                 .map { it.groupValues[1] }
-                .toSet()
+                .toSet() + if (Regex("""\bcard\s*[.:]\s*call\s*\(""").containsMatchIn(body)) setOf("card") else emptySet()
             val undeclared = usedBridges - declared
             if (undeclared.isNotEmpty()) {
                 error("BRIDGE_UNDECLARED", "脚本调用了未声明的 bridge：$undeclared")

@@ -17,6 +17,7 @@ import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AndroidToolBridge
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
+import heizige.kk.khatkit.bridge.CardCallHost
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
@@ -496,6 +497,16 @@ class KhatKitToolProvider(
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
                 mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
                 onCardApiObservation = apiHealth::record,
+                cardCallHost = CardCallHost(
+                    findInstalled = { name -> cache.findInstalled(name) },
+                    run = { child, input, parent, chain, deadline ->
+                        runCardWithStatus(
+                            child, input, trigger = "卡片调用", parentRunId = parent,
+                            uiMode = UiMode.HEADLESS,
+                            options = CardExecutionOptions(deadlineAt = deadline, cardCallChain = chain),
+                        )
+                    },
+                ),
             ).also {
                 it.bridges.registerDynamic("yunx", heizige.kk.khatkit.app.feature.yunx.YunxCardBridge(appContext))
                 executor = it
@@ -873,7 +884,7 @@ class KhatKitToolProvider(
             val scriptArgs = arguments.filterKeys { !it.startsWith("__khatkit_ui") } + mapOf("__khatkit_trigger" to trigger)
             val executionOptions = options.copy(
                 interactionId = runId,
-                approvalMode = if (trigger == "AI") {
+                approvalMode = if (trigger == "AI" || options.cardCallChain != null) {
                     CardApprovalMode.DEFAULT
                 } else {
                     CardApprovalMode.BYPASS

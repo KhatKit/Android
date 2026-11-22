@@ -297,6 +297,30 @@ return { count = #paths, first = paths[1] }
 
 > PDF 能力已剥离到依赖包：`mergePdf` 不再提供，改用 `imageToolbox.pdfEdit("merge", …)`。
 
+## 3.10 card（Lua / JS 卡片互调）
+
+`card.call(name, args)` 同步调用本机**已安装**卡片的普通入口，不下载目标卡片，也不打开界面。成功返回
+`{ok: true, value: {...}}`，失败返回 `{ok: false, error: {code, message}}`。`args` 为参数对象，省略则传空对象。
+
+调用方在 `requires.bridges` 加入 `card`，并在 `card_calls.targets` 列出目标卡片名；目标卡片必须在
+`card_calls.allowed_callers` 列出调用方。被调用卡片限免费、非提权 Lua / JS，且只能声明 `card`、
+`json`、`time`、`i18n`，不支持额外脚本库、原生依赖或网络/文件/设备能力。宿主不会将父卡片的权限或参数自动传给子卡片。
+子运行记录与父运行关联；循环、超过三层子调用或每次父运行超过十二次子调用均被拒绝。子调用共享最长 30 秒的时间预算，取消父运行会取消子运行。
+
+例如，在 `report_card` 的清单中加入：
+
+```json
+{"requires":{"bridges":["card"]},"card_calls":{"targets":["format_value"]}}
+```
+
+在 `format_value` 的清单中加入 `"card_calls":{"allowed_callers":["report_card"]}`，然后在 `report_card` 的脚本里调用：
+
+```lua
+local result = card.call("format_value", { value = 42 })
+if not result.ok then return { failure = result.error.code } end
+return result.value
+```
+
 ## 4. ui（L0）
 
 弹层都是阻塞调用：用户确认 / 等待上限（默认 300 秒，或卡片运行期限，取小）后才返回。

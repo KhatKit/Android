@@ -3,6 +3,11 @@ package heizige.kk.khatkit.bridge
 import android.view.View
 import android.view.WindowManager
 
+/** Invoke an explicitly exported entry of another locally installed card. */
+interface CardCallBridge {
+    fun call(name: String?, args: Map<String, Any?>?): Map<String, Any?>
+}
+
 /**
  * 七个 bridge（设计文档第 7 节）。全部由宿主 Kotlin 实现，脚本只能调用暴露出来的方法。
  *

@@ -184,6 +184,12 @@ class CardCache(private val rootDir: File) {
         }.sortedWith(compareBy({ order[it.manifest.name] ?: Int.MAX_VALUE }, { it.manifest.name }))
     }
 
+    /** Resolves an installed package without consulting or refreshing the Hub. */
+    fun findInstalled(name: String): LoadedCard? {
+        val version = installedVersions()[name] ?: return null
+        return runCatching { load(cardDir(name, version)) }.getOrNull()
+    }
+
     /** 读取本地 card.json + 脚本，交给引擎执行。 */
     fun load(dir: File): LoadedCard {
         val key = dir.canonicalPath

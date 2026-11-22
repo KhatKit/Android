@@ -61,7 +61,19 @@ data class CardManifest(
     @SerialName("default_locale") val defaultLocale: String = "en",
     /** An independent, inline ChatPage entry; never auto-runs the normal tool entry. */
     val widget: Widget? = null,
+    @SerialName("card_calls") val cardCalls: CardCalls = CardCalls(),
 ) {
+    @Serializable
+    data class CardCalls(
+        val targets: List<String> = emptyList(),
+        @SerialName("allowed_callers") val allowedCallers: List<String> = emptyList(),
+    ) {
+        companion object {
+            val CHILD_BRIDGES = setOf("card", "json", "time", "i18n")
+            val NAME_PATTERN = Regex("^[a-z][a-z0-9_]{1,63}$")
+        }
+    }
+
     @Serializable
     data class Entry(
         val lua: String? = null,

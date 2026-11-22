@@ -40,6 +40,7 @@ class BridgeRegistry(
     private val schedule: ScheduleBridge? = null,
     private val browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
     private val localeTags: () -> List<String> = { listOf(java.util.Locale.getDefault().toLanguageTag()) },
+    private val cardCallHost: CardCallHost? = null,
 ) {
     /**
      * 运行期动态注册的 bridge（原生依赖包加载后注册，如 imageToolbox）。
@@ -73,6 +74,7 @@ class BridgeRegistry(
      *    Hub 据此让声明了 `requires.dependencies` 的卡片对 AI 可见（执行前会自动下载）。
      */
     fun availableBridges(): Set<String> = buildSet {
+        if (cardCallHost != null) add("card")
         if (tool != null) add("tool")
         if (net != null) add("net")
         if (fs != null) add("fs")
@@ -137,6 +139,7 @@ class BridgeRegistry(
         locales: List<String>? = null,
         requiredOverride: Set<String>? = null,
         interactionId: String? = null,
+        cardCallChain: CardCallChain? = null,
     ): Boolean {
         val required = requiredOverride ?: manifest.requiredBridges
         require(manifest.requiredBridges.containsAll(required))
@@ -159,6 +162,7 @@ class BridgeRegistry(
         engine.define("i18n", scopedBridge(context, "i18n", CardI18nBridge(strings)))
         required.filterNot { it == "i18n" }.forEach { name ->
             val impl: Any = when (name) {
+                "card" -> cardCallHost?.bind(manifest, context, cardCallChain)
                 "tool" -> tool
                 "net" -> net
                 "fs" -> when (fs) {

@@ -20,6 +20,7 @@ class BridgeApiDocTest {
 
     /** 接口声明 → 脚本侧 bridge 名（动态依赖包注入的 bridge 不在此列）。 */
     private val bridges = mapOf(
+        CardCallBridge::class.java to "card",
         ToolBridge::class.java to "tool",
         NetBridge::class.java to "net",
         FsBridge::class.java to "fs",

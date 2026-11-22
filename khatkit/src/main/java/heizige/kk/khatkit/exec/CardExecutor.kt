@@ -2,6 +2,7 @@ package heizige.kk.khatkit.exec
 
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.ApprovalGate
+import heizige.kk.khatkit.bridge.CardCallChain
 import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.engine.EngineFactory
@@ -45,6 +46,7 @@ data class CardExecutionOptions(
      * 弹出自动化审批；AI 工具调用保留默认的 [CardApprovalMode.DEFAULT]。
      */
     val approvalMode: CardApprovalMode = CardApprovalMode.DEFAULT,
+    val cardCallChain: CardCallChain? = null,
 )
 
 enum class CardApprovalMode {
@@ -173,6 +175,7 @@ class CardExecutor(
                     uiOverride = options.ui, uiMode = options.uiMode,
                     locales = options.locales, deadlineAt = options.deadlineAt,
                     requiredOverride = card.bridgeSubset, interactionId = options.interactionId,
+                    cardCallChain = options.cardCallChain,
                 )
             ) {
                 EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")

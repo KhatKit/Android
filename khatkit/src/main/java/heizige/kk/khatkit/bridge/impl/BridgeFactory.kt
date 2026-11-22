@@ -4,6 +4,7 @@ import android.content.Context
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.BridgeContext
 import heizige.kk.khatkit.bridge.CardApiObservation
+import heizige.kk.khatkit.bridge.CardCallHost
 import heizige.kk.khatkit.bridge.BrowserBridge
 import heizige.kk.khatkit.bridge.AiBridge
 import heizige.kk.khatkit.bridge.ApprovalGate
@@ -60,6 +61,7 @@ object BridgeFactory {
         browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
         mediaDownloadHandler: MediaDownloadHandler? = null,
         onCardApiObservation: ((CardApiObservation) -> Unit)? = null,
+        cardCallHost: CardCallHost? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -106,6 +108,7 @@ object BridgeFactory {
             accessibility = accessibilityBridge,
             schedule = schedule ?: UnavailableScheduleBridge(),
             browserProvider = browserProvider,
+            cardCallHost = cardCallHost,
             localeTags = {
                 val locales = appContext.resources.configuration.locales
                 (0 until locales.size()).map { locales[it].toLanguageTag() }
