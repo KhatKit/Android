@@ -79,5 +79,6 @@ class UsageRecorder @Inject constructor(
         const val SOURCE_MEMORY = "MEMORY"
         const val SOURCE_OCR = "OCR"
         const val SOURCE_CARD = "CARD"
+        const val SOURCE_SUBAGENT = "SUBAGENT"
     }
 }

@@ -211,6 +211,16 @@ internal fun AssistantBasicContent(
                         )
                     },
                 )
+                MochiListRow(
+                    title = "子代理团队",
+                    onClick = { onUpdate(assistant.copy(enableSubagentTeam = !assistant.enableSubagentTeam)) },
+                    trailing = {
+                        MochiSwitch(
+                            checked = assistant.enableSubagentTeam,
+                            onCheckedChange = { onUpdate(assistant.copy(enableSubagentTeam = it)) },
+                        )
+                    },
+                )
             }
         }
 

@@ -60,6 +60,7 @@ data class Assistant(
     val allowConversationPromptInjection: Boolean = false, // 允许对话单独绑定提示词注入
     // 导入的酒馆角色卡原文。导出时以此回写，超集字段只透传。
     val tavernCardJson: String? = null,
+    val enableSubagentTeam: Boolean = false,
 )
 
 @Serializable

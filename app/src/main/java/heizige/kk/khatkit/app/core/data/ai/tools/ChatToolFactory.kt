@@ -21,6 +21,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.feature.chat.helper.SubagentTeamManager
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 
 private const val TAG = "ChatToolFactory"
@@ -101,6 +102,7 @@ class ChatToolFactory(
     private val khatKitToolProvider: KhatKitToolProvider? = null,
     private val settingsRepository: SettingsRepository? = null,
     private val roleMemoryRepository: RoleMemoryRepository? = null,
+    private val subagentTeamManager: SubagentTeamManager? = null,
 ) {
     suspend fun createTools(
         settings: Settings,
@@ -125,6 +127,9 @@ class ChatToolFactory(
                     settings = { repository.settingsFlow.value },
                     update = { change -> repository.update(change) },
                 ))
+                if (assistant.enableSubagentTeam) {
+                    subagentTeamManager?.let { add(it.tool(assistant.id, { repository.settingsFlow.value }, conversationId)) }
+                }
             }
         }
         if (assistant.enableMemory && roleMemoryRepository != null) {

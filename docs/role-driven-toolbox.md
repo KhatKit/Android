@@ -40,9 +40,22 @@ The template focuses on existing cards, tools, device automation and result
 verification. Roles created by AI are ordinary roles; only the user can grant
 them supervisor authority.
 
-An independent AI coding workspace and autonomous inter-role task delegation are
-not part of this change. Independent role conversations can run concurrently;
-leaving a chat does not cancel its job.
+Independent role conversations can run concurrently; leaving a chat does not
+cancel its job.
+
+## Subagent Team
+
+The **子代理团队** switch in a role's **基础设定** is off by default. In a
+direct chat where that role has enabled it, `delegate_team_tasks` accepts up to
+three text assignments for distinct roles from `role_directory`. The user must
+approve the batch before any requests are made. This is independent of the
+permission to create, edit or delete role definitions.
+
+Each worker uses its configured chat model and role prompt with the explicit
+task text only. Chat history, presets, memory, attachments and application
+tools are not attached. The supervisor receives the results or individual
+errors and can summarize them in the current chat. Workers can't delegate
+again, create chats or keep running after the parent generation is cancelled.
 
 ## Role Navigation
 
@@ -61,9 +74,8 @@ disabled, including pending tool approvals; HTTP message operations return
 409. Group records are not converted to direct chats or deleted. Legacy schema,
 speaker rendering and privacy filtering remain for compatibility.
 
-Supervisor tools manage role definitions, not task delegation. Dispatching,
-waiting for or cancelling another role's work is not implemented by removing
-group chats. Independent direct role chats can still run concurrently.
+The subagent team tool is separate from group chats and has no access to their
+archived messages.
 
 ## Local Markdown Memory
 

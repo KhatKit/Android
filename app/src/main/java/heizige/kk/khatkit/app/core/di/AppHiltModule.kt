@@ -222,6 +222,7 @@ object AppHiltModule {
         khatKitToolProvider: KhatKitToolProvider,
         settingsRepository: SettingsRepository,
         roleMemoryRepository: RoleMemoryRepository,
+        subagentTeamManager: heizige.kk.khatkit.app.feature.chat.helper.SubagentTeamManager,
     ): ChatToolFactory = ChatToolFactory(
         context = context,
         json = json,
@@ -235,6 +236,7 @@ object AppHiltModule {
         khatKitToolProvider = khatKitToolProvider,
         settingsRepository = settingsRepository,
         roleMemoryRepository = roleMemoryRepository,
+        subagentTeamManager = subagentTeamManager,
     )
 
     /**
