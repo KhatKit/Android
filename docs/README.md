@@ -2,6 +2,7 @@
 
 ## 当前规划
 
+- [任务清单与交付状态](task-tracker.md)：汇总对话 Todo、已合入修复、部分完成和暂缓项。
 - [Toolbox Agent 易用性提升规划](toolbox-agent-usability-plan.md)：按工具箱定位规划发现、直接运行、agent 执行、任务状态、结果与复用，包含两端职责、依赖和验收。
 - [市场探索页调整](market-exploration-adjustment-plan.md)：市场协议、配置、图标和来源同步。
 - [工作区模板与备份](workspace-templates-and-backup-design.md)、[唤醒词](wakeword-design.md)、[体积优化](apk-size-reduction.md)：仍含待实施或待决策内容。
