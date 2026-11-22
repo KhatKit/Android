@@ -324,13 +324,14 @@ class KhatKitToolProvider(
 
     fun detachCardPage(name: String) = _pageCards.update { it - name }
 
-    /** 请求属于哪张卡片：runId 经续跑上下文换回卡片名，否则交互 id 本身就是卡片名。 */
-    fun uiRequestCard(request: UiRequest): String? =
+    /** Host schema forms have no script interaction ID, but still need a page owner. */
+    internal fun uiRequestPage(request: UiRequest): String =
         uiHost.interactionOf(request)?.let { pendingInteractions[it]?.cardName ?: it }
+            ?: "__card_interaction"
 
     /** 这条请求该不该交给 [cards] 里某张卡片的整页。 */
     fun isPageHosted(request: UiRequest, cards: Set<String>): Boolean =
-        request.pageHostable && uiRequestCard(request)?.let { it in cards } == true
+        request.pageHostable && uiRequestPage(request) in cards
     override val uiProgress = uiHost.progress
 
     override val mediaPickRequest = mediaPickerHost.request
@@ -791,7 +792,7 @@ class KhatKitToolProvider(
             recordCardRunException(runId, e)
             throw e
         }
-        if (trigger == "用户") {
+        if (trigger == CardRunEntity.USER_TRIGGER) {
             runCatching { cardRunDao.updateArgsTemplate(runId, encode(reusableCardArgs(arguments))) }
                 .onFailure { Log.w(TAG, "任务参数模板写入失败：$runId", it) }
         }
@@ -2287,13 +2288,17 @@ class KhatKitToolProvider(
         name: String,
         args: Map<String, Any?>,
         parentRunId: String?,
+        expectedVersion: String? = null,
     ): CardRunResult = withContext(Dispatchers.IO) {
         val card = loadInstalledCards().firstOrNull { it.manifest.name == name }
             ?: return@withContext CardRunResult(false, "卡片未安装：$name")
+        if (expectedVersion != null && card.manifest.version != expectedVersion) {
+            return@withContext CardRunResult(false, "卡片版本已变更，请重新填写参数：$name")
+        }
         if (!card.manifest.supportsUser()) {
             return@withContext CardRunResult(false, "卡片未启用用户触发：$name")
         }
-        when (val result = runCardWithStatus(card, args, trigger = "用户", parentRunId = parentRunId)) {
+        when (val result = runCardWithStatus(card, args, trigger = CardRunEntity.USER_TRIGGER, parentRunId = parentRunId)) {
             is EngineResult.Ok -> {
                 // 脚本约定 return { error = "..." } 表示失败，宿主侧转成错误提示
                 val error = result.value["error"]?.toString()

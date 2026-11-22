@@ -56,4 +56,15 @@ interface CardRunDAO {
 
     @Query("SELECT * FROM card_runs WHERE id = :id")
     suspend fun get(id: String): CardRunEntity?
+
+    @Query(
+        """
+        SELECT * FROM card_runs
+        WHERE card_name = :cardName AND trigger = :trigger
+            AND status IN ('succeeded', 'failed', 'cancelled', 'interrupted')
+            AND args_template NOT IN ('', '{}')
+        ORDER BY started_at DESC, id DESC LIMIT :limit
+        """
+    )
+    fun observeInputHistory(cardName: String, trigger: String, limit: Int): Flow<List<CardRunEntity>>
 }

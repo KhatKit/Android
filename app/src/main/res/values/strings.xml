@@ -66,6 +66,10 @@
   <string name="card_runs_title">Tasks</string>
   <string name="card_runs_empty">No card runs yet</string>
   <string name="card_runs_rerun">Run again</string>
+  <string name="card_runs_input_history">Input history</string>
+  <string name="card_runs_input_history_empty">No saved inputs</string>
+  <string name="card_runs_input_reuse">Reuse inputs</string>
+  <string name="card_runs_close">Close</string>
   <string name="card_runs_artifacts">%1$d artifact(s)</string>
   <string name="card_runs_artifact_open">Open</string>
   <string name="card_runs_artifact_copy">Copy</string>

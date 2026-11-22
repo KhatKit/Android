@@ -50,7 +50,13 @@ data class CardRunEntity(
     @ColumnInfo(name = "error_message")
     val errorMessage: String? = null,
 ) {
+    fun canRerun(): Boolean = trigger == USER_TRIGGER && when (status) {
+        SUCCEEDED, FAILED, CANCELLED, INTERRUPTED -> true
+        else -> false
+    }
+
     companion object {
+        const val USER_TRIGGER = "用户"
         const val QUEUED = "queued"
         const val PREPARING = "preparing"
         const val RUNNING = "running"

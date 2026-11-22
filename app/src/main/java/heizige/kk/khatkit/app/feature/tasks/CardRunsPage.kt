@@ -43,6 +43,7 @@ import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.tasks.data.savedInputs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -61,6 +62,7 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
     val rerunFailed = stringResource(R.string.card_runs_rerun_failed)
     val scope = rememberCoroutineScope()
     var pendingRerun by remember { mutableStateOf<CardRunEntity?>(null) }
+    var historyCard by remember { mutableStateOf<String?>(null) }
     var pendingText by remember { mutableStateOf<CardArtifactEntity?>(null) }
     MochiSettingsPageScaffold(title = stringResource(R.string.card_runs_title)) { padding ->
         if (runs.isEmpty()) {
@@ -97,16 +99,39 @@ fun CardRunsPage(vm: CardRunsViewModel = hiltViewModel()) {
                             }
                         },
                         onRerun = { pendingRerun = run },
+                        onViewInputHistory = { historyCard = run.cardName },
                     )
                 }
             }
         }
     }
+    historyCard?.let { cardName ->
+        val historyFlow = remember(vm, cardName) { vm.observeInputHistory(cardName) }
+        val history by historyFlow.collectAsStateWithLifecycle(initialValue = null)
+        CardInputHistoryDialog(
+            cardName = cardName,
+            history = history,
+            onDismiss = { historyCard = null },
+            onReuse = { run ->
+                historyCard = null
+                pendingRerun = run
+            },
+        )
+    }
     pendingRerun?.let { run ->
+        val inputs = remember(run) { run.savedInputs() }
         AppDialog(
             onDismissRequest = { pendingRerun = null },
             title = { Text(stringResource(R.string.card_runs_rerun_confirm_title)) },
-            text = { Text(stringResource(R.string.card_runs_rerun_confirm_message, run.cardName)) },
+            text = {
+                Column(
+                    modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(stringResource(R.string.card_runs_rerun_confirm_message, run.cardName))
+                    if (inputs.isNotEmpty()) CardInputValues(inputs)
+                }
+            },
             confirmButton = {
                 MochiTextButton(onClick = {
                     pendingRerun = null
@@ -158,11 +183,8 @@ private fun CardRunRow(
     onOpenArtifact: (CardArtifactEntity) -> Unit,
     onShareArtifact: (CardArtifactEntity) -> Unit,
     onRerun: () -> Unit,
+    onViewInputHistory: () -> Unit,
 ) {
-    val terminal = run.status == CardRunEntity.SUCCEEDED ||
-        run.status == CardRunEntity.FAILED ||
-        run.status == CardRunEntity.CANCELLED ||
-        run.status == CardRunEntity.INTERRUPTED
     MochiOptionItem(
         modifier = Modifier.fillMaxWidth(),
         onClick = {},
@@ -170,6 +192,11 @@ private fun CardRunRow(
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("${cardRunStatusLabel(run.status)} · ${run.trigger} · ${DateFormat.getDateTimeInstance().format(Date(run.startedAt))}")
+                if (run.trigger == CardRunEntity.USER_TRIGGER) {
+                    MochiTextButton(onClick = onViewInputHistory) {
+                        Text(stringResource(R.string.card_runs_input_history))
+                    }
+                }
                 if (artifacts.isNotEmpty()) {
                     Text(stringResource(R.string.card_runs_artifacts, artifacts.size))
                     artifacts.forEach { artifact ->
@@ -212,7 +239,7 @@ private fun CardRunRow(
             }
         },
         trailingContent = {
-            if (terminal && run.trigger == "用户") {
+            if (run.canRerun()) {
                 MochiTextButton(onClick = onRerun) { Text(stringResource(R.string.card_runs_rerun)) }
             }
         },

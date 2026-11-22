@@ -66,6 +66,10 @@
   <string name="card_runs_title">任务</string>
   <string name="card_runs_empty">还没有运行记录</string>
   <string name="card_runs_rerun">再次运行</string>
+  <string name="card_runs_input_history">输入历史</string>
+  <string name="card_runs_input_history_empty">没有已保存的输入</string>
+  <string name="card_runs_input_reuse">复用输入</string>
+  <string name="card_runs_close">关闭</string>
   <string name="card_runs_artifacts">%1$d 个产物</string>
   <string name="card_runs_artifact_open">打开</string>
   <string name="card_runs_artifact_copy">复制</string>

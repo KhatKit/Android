@@ -147,7 +147,7 @@ fun KhatKitUiHost() {
     val nav = LocalKkNavController.current
     LaunchedEffect(request, pageCards) {
         val current = request?.takeIf { it.pageHostable } ?: return@LaunchedEffect
-        val name = provider.uiRequestCard(current) ?: CARD_INTERACTION_FALLBACK
+        val name = provider.uiRequestPage(current)
         val route = Screen.CardInteraction(name)
         // Existing card pages own subsequent form/login/result requests too.
         if (name !in pageCards && nav?.current != route) nav?.navigate(route)
@@ -192,8 +192,6 @@ fun KhatKitUiHost() {
         // 媒体 / 目录选择器：与表单弹层并列挂载，独立于 ui request 生命周期
         KhatKitPickerHost(provider)
 }
-
-internal const val CARD_INTERACTION_FALLBACK = "__card_interaction"
 
 /** Render all legacy and node-tree bridge requests in the enclosing Mochi route. */
 @Composable

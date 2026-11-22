@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import heizige.kk.khatkit.app.AppScope
-import heizige.kk.khatkit.app.core.data.ai.tools.jsonToMap
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
 import heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO
 import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.data.db.entity.CardRunEntity
+import heizige.kk.khatkit.app.feature.tasks.data.savedInputs
 import heizige.kk.khatkit.uikit.CardRunResult
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,17 +30,18 @@ class CardRunsViewModel @Inject constructor(
     val artifacts: StateFlow<List<CardArtifactEntity>> = artifactDao.observeForRecentRuns(100)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    fun observeInputHistory(cardName: String) = dao.observeInputHistory(cardName, CardRunEntity.USER_TRIGGER, 30)
+
     fun rerun(run: CardRunEntity, onResult: (CardRunResult) -> Unit = {}) {
-        val args = run.argsTemplate
-            .takeIf { it.isNotBlank() && it != "{}" }
-            ?.let { raw ->
-                runCatching { kotlinx.serialization.json.Json.parseToJsonElement(raw) }
-                    .getOrNull()
-                    ?.let { jsonToMap(it) }
-            }
-            .orEmpty()
+        if (!run.canRerun()) return
+        val args = run.savedInputs()
         appScope.launch {
-            onResult(provider.runCard(run.cardName, args, run.id))
+            onResult(provider.runCard(
+                run.cardName,
+                args,
+                parentRunId = run.id,
+                expectedVersion = run.cardVersion.takeIf { args.isNotEmpty() },
+            ))
         }
     }
 }
