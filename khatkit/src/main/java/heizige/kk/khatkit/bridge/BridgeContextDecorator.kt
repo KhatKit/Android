@@ -21,10 +21,7 @@ class ScopedNetBridge(
     delegate: NetBridge,
 ) : NetBridge by delegate, ContextAwareBridge {
     private val scoped = if (delegate is heizige.kk.khatkit.bridge.impl.AndroidNetBridge) {
-        heizige.kk.khatkit.bridge.impl.AndroidNetBridge(
-            httpClient = delegate.httpClient(),
-            allow = context.networkAllow,
-        )
+        delegate.forCard(context.cardName, context.networkAllow)
     } else {
         delegate
     }

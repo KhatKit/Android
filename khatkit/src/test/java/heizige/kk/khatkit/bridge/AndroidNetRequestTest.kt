@@ -93,4 +93,17 @@ class AndroidNetRequestTest {
             AndroidNetBridge(client, setOf("*")).request("file:///tmp/private", "GET", "", emptyMap())
         }
     }
+
+    @Test
+    fun observationsCaptureStatusWithoutRequestDetailsOrBlockedAttempts() = withServer { server, client, base ->
+        server.createContext("/status") { it.sendResponseHeaders(503, -1); it.close() }
+        val seen = mutableListOf<CardApiObservation>()
+        val bridge = AndroidNetBridge(client, onObservation = { seen.add(it) })
+        val allowed = bridge.forCard("sample", setOf("127.0.0.1"))
+        val denied = bridge.forCard("denied", emptySet())
+        allowed.request("$base/status?test=private", "GET", "", mapOf("Authorization" to "example"))
+        assertThrows(SecurityException::class.java) { denied.get("$base/status", emptyMap()) }
+        val observed = seen.single()
+        assertEquals(CardApiObservation("sample", "127.0.0.1", "GET", 503, observed.timeMillis), observed)
+    }
 }

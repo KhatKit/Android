@@ -191,6 +191,11 @@ internal fun ToolCataloguePage() {
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
                     MochiBarIconButton(
+                        onClick = { nav?.navigate(Screen.ToolApiHealth) },
+                        navId = "tools.api-health",
+                        colors = kkBarButtonColors(),
+                    ) { MochiIonicon("pulse", contentDescription = "卡片 API 状态") }
+                    MochiBarIconButton(
                         onClick = { nav?.navigate(Screen.LanShare) },
                         navId = "tools.lan-share",
                         contentKey = "wifi",

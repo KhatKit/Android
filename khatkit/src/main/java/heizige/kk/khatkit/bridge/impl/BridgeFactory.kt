@@ -3,6 +3,7 @@ package heizige.kk.khatkit.bridge.impl
 import android.content.Context
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.BridgeContext
+import heizige.kk.khatkit.bridge.CardApiObservation
 import heizige.kk.khatkit.bridge.BrowserBridge
 import heizige.kk.khatkit.bridge.AiBridge
 import heizige.kk.khatkit.bridge.ApprovalGate
@@ -58,6 +59,7 @@ object BridgeFactory {
         schedule: ScheduleBridge? = null,
         browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
         mediaDownloadHandler: MediaDownloadHandler? = null,
+        onCardApiObservation: ((CardApiObservation) -> Unit)? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -71,7 +73,7 @@ object BridgeFactory {
         val host = HostBridgeImpl(appContext, { registry })
         registry = BridgeRegistry(
             tool = AndroidToolBridge(appContext),
-            net = AndroidNetBridge(http),
+            net = AndroidNetBridge(http, onObservation = onCardApiObservation),
             fs = ScopedFsBridgeImpl(appContext, "", emptySet()),
             json = JsonBridgeImpl(),
             crypto = CryptoBridgeImpl(),

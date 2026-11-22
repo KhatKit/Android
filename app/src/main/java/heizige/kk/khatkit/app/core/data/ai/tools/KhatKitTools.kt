@@ -223,6 +223,7 @@ class KhatKitToolProvider(
     private val cardArtifactDao: CardArtifactDAO,
 ) : KhatKitController {
     private val appContext = context.applicationContext
+    internal val apiHealth = heizige.kk.khatkit.app.feature.tools.data.ToolApiHealthRepository(appContext)
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
     private val cache = CardCache(rootDir)
     private val uiHost = UiBridgeHost(
@@ -494,6 +495,7 @@ class KhatKitToolProvider(
                 schedule = scheduleImpl,
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
                 mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
+                onCardApiObservation = apiHealth::record,
             ).also {
                 it.bridges.registerDynamic("yunx", heizige.kk.khatkit.app.feature.yunx.YunxCardBridge(appContext))
                 executor = it

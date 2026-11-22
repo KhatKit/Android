@@ -31,7 +31,7 @@ object ScreenRoutes {
         "setting-preferences-network", "setting-provider", "setting-provider-detail",
         "setting-models", "setting-about", "about-terminal", "setting-search", "setting-feature-search", "setting-search-detail",
         "setting-speech", "setting-mcp", "explore-market", "explore-cards", "explore-local", "explore-card-detail", "card-widget", "card-interaction",
-        "tool-catalogue", "lan-share", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
+        "tool-catalogue", "lan-share", "tool-api-health", "card-runs", "setting-donate", "setting-files", "setting-memory", "setting-web",
         "setting-triggers", "create-workflow", "debug", "log", "extensions",
         "plugin",
         "quick-messages", "prompts", "skills", "workspaces", "workspace-detail",
@@ -101,6 +101,7 @@ object ScreenRoutes {
         Screen.ExploreMarket -> "explore-market"
         Screen.ToolCatalogue -> "tool-catalogue"
         Screen.LanShare -> "lan-share"
+        Screen.ToolApiHealth -> "tool-api-health"
         is Screen.ExploreCards -> Route("explore-cards").str("initialQuery", screen.initialQuery).build()
         Screen.ExploreLocal -> "explore-local"
         is Screen.ExploreCardDetail -> Route("explore-card-detail").str("name", screen.name).build()
@@ -201,6 +202,7 @@ object ScreenRoutes {
             "explore-market" -> Screen.ExploreMarket
             "tool-catalogue" -> Screen.ToolCatalogue
             "lan-share" -> Screen.LanShare
+            "tool-api-health" -> Screen.ToolApiHealth
             "explore-cards" -> Screen.ExploreCards(initialQuery = params.str("initialQuery") ?: return null)
             "explore-local" -> Screen.ExploreLocal
             "explore-card-detail" -> Screen.ExploreCardDetail(name = params.str("name") ?: return null)
