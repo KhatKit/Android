@@ -16,7 +16,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -178,21 +177,10 @@ internal fun MediaPickerRootContent(
     Scaffold(
         modifier = modifier,
         topBar = {
-            // 顶栏与相册行共用一块渐隐底色；不再包一层 MochiGlassSurface，
-            // 避免玻璃材质在顶栏边缘画出一圈边框。顶栏按钮仍由 MochiTitleBar
-            // 通过 backdrop 走透明玻璃。
             val hasAlbums = albumsState.albums.size > 1
             val isRefreshing = mediaState.isLoading && mediaState.media.isNotEmpty()
-            // 顶栏和设置页共用 MochiTitleBar；按钮通过 contentBackdrop 取样网格，
-            // 保持透明玻璃效果。标题栏自身的 scroll-edge fade 仍由 barProgress 控制：
-            // 停在顶部透明，内容滚入栏下方后渐进铺底。
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        MochiTheme.colorScheme.background.copy(alpha = barProgress.coerceIn(0f, 1f))
-                    ),
-            ) {
+            // 只用 MochiTitleBar 的渐隐底色，避免实色底板盖住网格的渐进模糊。
+            Column(modifier = Modifier.fillMaxWidth()) {
                 MochiTitleBar(
                     title = title ?: stringResource(
                         if (allowMultiple) R.string.media_picker_pick_multiple

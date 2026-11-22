@@ -217,6 +217,7 @@ import heizige.kk.khatkit.app.core.ui.icons.edit
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import com.mohamedrejeb.richeditor.model.RichTextState
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -272,6 +273,7 @@ fun ChatInput(
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val composerFieldColor = MochiTextFieldDefaults.colors().container.compositeOver(CustomColors.pageContainerColor)
+    val composerBackdrop = hazeState.takeIf { settings.displaySetting.effectsEnabled }
     val inputHazeStyle = HazeBlurStyle.Material3 {
         blurRadius(20.dp)
     }
@@ -774,8 +776,7 @@ fun ChatInput(
                     }
 
 
-                    // 照 Mochi 的输入栏（demo 的 DemoComposerRow）：＋ 圆按钮 + 胶囊输入框，发送键是胶囊里同心的实心圆，
-                    // 空 / 有字 / 停止之间模糊替换。胶囊压在消息上面，底色取 Mochi 输入框的填充叠在页面底色上（不透字）。
+                    // 悬浮输入栏：＋ 圆按钮 + 胶囊输入框，发送键在胶囊里同心排布。
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -795,10 +796,10 @@ fun ChatInput(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        MochiRealIconButton(
+                        MochiBarIconButton(
                             onClick = onMoreClick,
-                            // 与顶栏按钮同一套：设置里选玻璃就画玻璃，选实心时库退回 Tonal
-                            style = MochiButtonStyle.Glass,
+                            // 栏按钮取样页面；普通 Glass 样式只取样纯色画布。
+                            modifier = Modifier.size(MochiTextFieldDefaults.Height),
                         ) {
                             Icon(
                                 imageVector = add,
@@ -811,7 +812,18 @@ fun ChatInput(
                             modifier = Modifier
                                 .weight(1f)
                                 .heightIn(min = MochiTextFieldDefaults.Height)
-                                .background(composerFieldColor, MochiTextFieldDefaults.Shape),
+                                .clip(MochiTextFieldDefaults.Shape)
+                                .then(
+                                    if (composerBackdrop != null) {
+                                        Modifier.composerGlass(
+                                            composerBackdrop,
+                                            hazeTintColor,
+                                            RoundedCornerShape(MochiTextFieldDefaults.Height / 2),
+                                        )
+                                    } else {
+                                        Modifier.background(composerFieldColor)
+                                    },
+                                ),
                             verticalAlignment = Alignment.Bottom,
                         ) {
                             TextInputRow(
@@ -848,6 +860,7 @@ fun ChatInput(
                                     state.isEmpty() -> SendButtonState.Idle
                                     else -> SendButtonState.Send
                                 },
+                                backdrop = composerBackdrop,
                                 onClick = {
                                     if (asrState.isRecording) asr.stop() else sendMessage()
                                 },
@@ -939,6 +952,7 @@ private fun SendButton(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    backdrop: HazeState? = null,
 ) {
     val cs = MochiTheme.colorScheme
     Box(
@@ -965,10 +979,16 @@ private fun SendButton(
                 SendButtonState.Send -> cs.onPrimary
                 SendButtonState.Stop, SendButtonState.Recording -> cs.surface
             }
+            val surfaceModifier = if (backdrop != null) {
+                val glassColor = if (s == SendButtonState.Idle) cs.surfaceContainerHigh else container
+                Modifier.composerGlass(backdrop, glassColor, CircleShape)
+            } else {
+                Modifier.background(container, CircleShape)
+            }
             Box(
                 Modifier
                     .size(MochiTextFieldDefaults.TrailingButtonSize)
-                    .background(container, CircleShape),
+                    .then(surfaceModifier),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -987,6 +1007,20 @@ private fun SendButton(
         }
     }
 }
+
+@Composable
+private fun Modifier.composerGlass(backdrop: HazeState, color: Color, shape: RoundedCornerShape): Modifier = hazeGlass(
+    input = HazeInput.Sources(backdrop),
+    style = GlassStyle.Material3(containerColor = color, tint = color.copy(alpha = 0.3f)) {
+        optics(
+            GlassDefaults.optics.copy(
+                blurRadius = OpticalSizeValue.Fixed(16.dp),
+                depth = OpticalSizeValue.Fixed(0.5f),
+            ),
+        )
+        shape(shape)
+    },
+)
 
 @Composable
 private fun TextInputRow(

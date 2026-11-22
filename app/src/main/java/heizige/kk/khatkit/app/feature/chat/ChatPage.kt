@@ -18,6 +18,7 @@ import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.effect.glass.LocalMochiBackdrop
 
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.search
@@ -66,6 +67,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -548,7 +550,6 @@ internal fun ChatScaffold(
         }
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         val inputBarHeight = with(LocalDensity.current) { inputBarHeightPx.toDp() }
-        Box(modifier = Modifier.fillMaxSize()) {
         MochiPageScaffold(
             modifier = activeNestedScroll,
             topBar = {
@@ -579,6 +580,19 @@ internal fun ChatScaffold(
                             showRolePicker = true
                         },
                     )
+            },
+            // 输入栏在正文录制层外，玻璃按钮可以安全复用顶栏的取样源。
+            floatingActionButton = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .onSizeChanged { inputBarHeightPx = it.height },
+                ) {
+                    CompositionLocalProvider(LocalMochiBackdrop provides LocalKkBarBackdrop.current) {
+                        inputBarOverlay()
+                    }
+                }
             },
             containerColor = Color.Transparent,
             // 页面底色是透明的（正文铺助手背景图/渐变），但栏玻璃取样必须垫一层不透明页面底色，
@@ -685,19 +699,6 @@ internal fun ChatScaffold(
                         .fillMaxSize()
                         .padding(innerPadding),
                 )
-            }
-        }
-
-            // 悬浮输入栏：作为兄弟节点画在列表之上（不占纵向布局）；
-            // navigationBarsPadding 让它跟随导航栏/IME，高度回灌给列表 contentPadding。
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .onSizeChanged { inputBarHeightPx = it.height },
-            ) {
-                inputBarOverlay()
             }
         }
 

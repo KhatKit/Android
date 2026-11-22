@@ -99,7 +99,6 @@ internal fun MediaAlbumRow(
     val hasAlbums = albumsState.albums.size > 1
     val isRefreshing = mediaState.isLoading && mediaState.media.isNotEmpty()
 
-    // 底色与发丝线由根内容的外层 Column 统一负责，这里只管内容
     Column(modifier = modifier) {
         AnimatedVisibility(
             visible = hasAlbums && !collapsed,
