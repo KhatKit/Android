@@ -191,6 +191,12 @@ internal fun ToolCataloguePage() {
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
                     MochiBarIconButton(
+                        onClick = { nav?.navigate(Screen.LanShare) },
+                        navId = "tools.lan-share",
+                        contentKey = "wifi",
+                        colors = kkBarButtonColors(),
+                    ) { MochiIonicon("wifi", contentDescription = "局域网共享") }
+                    MochiBarIconButton(
                         onClick = {
                             grid = !grid
                         },

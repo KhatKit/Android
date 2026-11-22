@@ -454,6 +454,7 @@ class RouteActivity : ComponentActivity() {
                             is Screen.SettingMcp -> SettingMcpPage()
                             is Screen.ExploreMarket -> ExploreMarketPage()
                             is Screen.ToolCatalogue -> heizige.kk.khatkit.app.feature.tools.ToolCataloguePage()
+                            Screen.LanShare -> heizige.kk.khatkit.app.feature.lanshare.LanSharePage()
                             is Screen.ExploreCards -> ExploreCardsPage(initialQuery = screen.initialQuery)
                             is Screen.ExploreLocal -> ExploreLocalPage()
                             is Screen.ExploreCardDetail -> ExploreCardDetailPage(name = screen.name)
@@ -776,6 +777,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object ToolCatalogue : Screen
+
+    @Serializable
+    data object LanShare : Screen
 
     /** 卡片市场二级页：[initialQuery] 从一级页带过来，保住已经输入的关键词。 */
     @Serializable
