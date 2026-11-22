@@ -181,6 +181,9 @@ import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionCon
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionItem
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionList
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
+import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatInputCommand
+import heizige.kk.khatkit.app.core.ui.components.ai.completion.findCommand
+import heizige.kk.khatkit.app.core.ui.components.ai.completion.suggestCommands
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.components.ui.KeepScreenOn
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
@@ -250,6 +253,7 @@ fun ChatInput(
     onUpdateSearchMode: (SearchMode) -> Unit,
     modifier: Modifier = Modifier,
     completionProviders: List<ChatCompletionProvider> = emptyList(),
+    commands: List<ChatInputCommand> = emptyList(),
     onUpdateAssistant: (Assistant) -> Unit,
     onUpdateSearchRepository: (Int) -> Unit,
     onMoreClick: () -> Unit,
@@ -392,13 +396,29 @@ fun ChatInput(
     val outerRadiusPx = collapsedOuterRadiusPx
     val outerRadiusDp = with(densityLocal) { outerRadiusPx.toDp().value }
     val containerShape = RoundedCornerShape(outerRadiusDp.dp)
+    fun runCommand(command: ChatInputCommand) {
+        state.setMessageText("")
+        focusManager.clearFocus(force = true)
+        keyboardController?.hide()
+        command.onRun()
+    }
+
+    fun runTypedCommand(): Boolean {
+        if (state.isEditing()) return false
+        val command = commands.findCommand(state.textContent.text.toString()) ?: return false
+        runCommand(command)
+        return true
+    }
+
     fun sendMessage() {
+        if (runTypedCommand()) return
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
         if (loading && state.isEmpty()) onCancelClick() else onSendClick()
     }
 
     fun sendMessageWithoutAnswer() {
+        if (runTypedCommand()) return
         focusManager.clearFocus(force = true)
         keyboardController?.hide()
         if (loading && state.isEmpty()) onCancelClick() else onLongSendClick()
@@ -829,6 +849,8 @@ fun ChatInput(
                             TextInputRow(
                                 state = state,
                                 completionProviders = completionProviders,
+                                commands = commands,
+                                onRunCommand = ::runCommand,
                                 onSendMessage = { sendMessage() },
                                 isFullScreen = editorOpen,
                                 editorRevealProgress = editorReveal,
@@ -1026,6 +1048,8 @@ private fun Modifier.composerGlass(backdrop: HazeState, color: Color, shape: Rou
 private fun TextInputRow(
     state: ChatInputState,
     completionProviders: List<ChatCompletionProvider>,
+    commands: List<ChatInputCommand>,
+    onRunCommand: (ChatInputCommand) -> Unit,
     onSendMessage: () -> Unit,
     isFullScreen: Boolean,
     editorRevealProgress: Float = 0f,
@@ -1148,9 +1172,24 @@ private fun TextInputRow(
             }
         }
 
-        completionList?.takeIf { it.items.isNotEmpty() }?.let { list ->
+        fun commandContext() = ChatCompletionContext(state.textContent.text.toString(), state.textContent.selection)
+        val commandMatches = if (isFocused && !isFullScreen && !state.isEditing() && commands.isNotEmpty()) {
+            commands.suggestCommands(commandContext())
+        } else emptyList()
+        if (commandMatches.isNotEmpty()) {
             CompletionPopup(
-                completionList = list,
+                items = commandMatches.map { ChatCompletionItem("/${it.name}", it.name, detail = it.label) },
+                onItemClick = { item ->
+                    // Validate against the live text before replacing what may now be a different draft.
+                    if (!state.isEditing()) {
+                        commands.suggestCommands(commandContext()).firstOrNull { it.name == item.insertText }
+                            ?.let(onRunCommand)
+                    }
+                },
+            )
+        } else completionList?.takeIf { it.items.isNotEmpty() }?.let { list ->
+            CompletionPopup(
+                items = list.items,
                 onItemClick = { item ->
                     state.applyCompletion(list.replacementRange, item)
                     completionList = null
@@ -1291,7 +1330,7 @@ private fun ChatInputTextField(
 
 @Composable
 private fun CompletionPopup(
-    completionList: ChatCompletionList,
+    items: List<ChatCompletionItem>,
     onItemClick: (ChatCompletionItem) -> Unit,
 ) {
     KkSurface(
@@ -1309,7 +1348,7 @@ private fun CompletionPopup(
                 .padding(vertical = 4.dp),
         ) {
             items(
-                items = completionList.items,
+                items = items,
                 key = { item -> "${item.label}:${item.insertText}" },
             ) { item ->
                 KkSurface(

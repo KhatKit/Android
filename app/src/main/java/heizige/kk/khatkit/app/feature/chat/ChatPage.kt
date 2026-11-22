@@ -132,6 +132,8 @@ import heizige.kk.khatkit.app.core.ui.components.ai.FilesPicker
 import heizige.kk.khatkit.app.core.ui.components.ai.SearchMode
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
 import heizige.kk.khatkit.app.core.ui.components.ai.completion.WorkspaceCompletionProvider
+import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatInputCommand
+import heizige.kk.khatkit.app.core.ui.components.ai.CompressContextDialog
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
@@ -363,6 +365,7 @@ internal fun ChatScaffold(
     val assistant = setting.getAssistantById(conversation.assistantId) ?: setting.getCurrentAssistant()
     var showRolePicker by remember { mutableStateOf(false) }
     var showFilesSheet by remember { mutableStateOf(false) }
+    var showCompressDialog by remember { mutableStateOf(false) }
     // U7b-2d：附件选择面板宿主接收 sheetState（退出动画），打开/关闭仍由 showFilesSheet 驱动。
     val filesSheet = rememberMochiSheetState()
     // U7b-6：state 由这里持有，去 if 门控。
@@ -452,6 +455,14 @@ internal fun ChatScaffold(
                 settings = setting,
                 hazeState = hazeState,
                 completionProviders = completionProviders,
+                commands = listOf(
+                    ChatInputCommand("compress", stringResource(R.string.chat_page_compress_context)) {
+                        showCompressDialog = true
+                    },
+                    ChatInputCommand("skills", stringResource(R.string.skills_page_title)) {
+                        navController.navigate(Screen.Skills)
+                    },
+                ),
                 onCancelClick = {
                     vm.stopGeneration()
                 },
@@ -709,6 +720,10 @@ internal fun ChatScaffold(
                 vm = vm,
                 attachmentPickerActions = attachmentPickerActions,
                 onStartVoiceMode = onStartVoiceMode,
+                onOpenCompress = {
+                    showFilesSheet = false
+                    showCompressDialog = true
+                },
                 onDuplicateConversation = if (!archived && loadingJob == null && processingStatus == null) ({
                     scope.launch {
                         try {
@@ -724,6 +739,12 @@ internal fun ChatScaffold(
                 }) else null,
                 onDismiss = { showFilesSheet = false },
             )
+        if (showCompressDialog) {
+            CompressContextDialog(
+                onDismiss = { showCompressDialog = false },
+                onConfirm = vm::handleCompressContext,
+            )
+        }
     }
 }
 
@@ -737,6 +758,7 @@ private fun ChatFilesPickerSheet(
     vm: ChatViewModel,
     attachmentPickerActions: ChatAttachmentPickerActions,
     onStartVoiceMode: () -> Unit,
+    onOpenCompress: () -> Unit,
     onDuplicateConversation: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
@@ -744,11 +766,9 @@ private fun ChatFilesPickerSheet(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var showInjectionSheet by remember { mutableStateOf(false) }
-    var showCompressDialog by remember { mutableStateOf(false) }
 
     fun dismissAll() {
         showInjectionSheet = false
-        showCompressDialog = false
         onDismiss()
     }
 
@@ -784,9 +804,7 @@ private fun ChatFilesPickerSheet(
             state = inputState,
             assistant = assistant,
             mcpManager = vm.mcpManager,
-            onCompressContext = { additionalPrompt, targetTokens, keepRecentMessages ->
-                vm.handleCompressContext(additionalPrompt, targetTokens, keepRecentMessages)
-            },
+            onOpenCompress = onOpenCompress,
             onUpdateAssistant = {
                 vm.updateSettings(
                     setting.copy(
@@ -806,8 +824,6 @@ private fun ChatFilesPickerSheet(
             },
             showInjectionSheet = showInjectionSheet,
             onShowInjectionSheetChange = { showInjectionSheet = it },
-            showCompressDialog = showCompressDialog,
-            onShowCompressDialogChange = { showCompressDialog = it },
             onDismiss = { dismissAll() },
             onTakePic = attachmentPickerActions.onTakePicture,
             onPickImage = attachmentPickerActions.onPickImage,
