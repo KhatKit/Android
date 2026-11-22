@@ -22,6 +22,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.automation.TriggerController
+import heizige.kk.khatkit.app.feature.tools.data.ToolIconRepository
 import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.EmojiData
@@ -70,6 +71,7 @@ interface AppEntryPoint {
     fun emojiData(): EmojiData
     fun skillManager(): SkillManager
     fun khatKitToolProvider(): KhatKitToolProvider
+    fun toolIconRepository(): ToolIconRepository
     fun updateChecker(): UpdateChecker
     fun hubAccountRepository(): HubAccountRepository
     fun ttsManager(): TTSManager

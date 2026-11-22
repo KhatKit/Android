@@ -36,6 +36,7 @@ import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitTreeRequest
 import heizige.kk.khatkit.app.core.ui.components.khatkit.isCardPage
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.tools.helper.toolHeaderIcon
 import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.uikit.CardRunResult
@@ -58,12 +59,20 @@ import ui.feice.mochi.theme.MochiTheme
  */
 @Composable
 internal fun CardWidgetPage(name: String, title: String) {
-    val provider = rememberAppEntryPoint().khatKitToolProvider()
+    val entryPoint = rememberAppEntryPoint()
+    val provider = entryPoint.khatKitToolProvider()
     val nav = LocalKkNavController.current
     val queued by provider.uiRequest.collectAsStateWithLifecycle()
     val owned = queued?.takeIf { provider.isPageHosted(it, setOf(name)) }
     var shown by remember { mutableStateOf<UiRequest?>(null) }
     val active = nav?.current == Screen.CardWidget(name, title)
+    var recordedHeader by remember(name) { mutableStateOf(false) }
+    LaunchedEffect(active, owned) {
+        if (active && !recordedHeader) owned?.toolHeaderIcon()?.let { icon ->
+            entryPoint.toolIconRepository().rememberHeader(name, icon)
+            recordedHeader = true
+        }
+    }
     SideEffect { if (active && owned != null) shown = owned }
     var result by remember { mutableStateOf<CardRunResult?>(null) }
     var started by rememberSaveable(name) { mutableStateOf(false) }

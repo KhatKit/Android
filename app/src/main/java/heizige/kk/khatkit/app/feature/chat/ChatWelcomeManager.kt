@@ -33,21 +33,14 @@ internal data class ChatWelcomeState(
     val terminalAvailable: Boolean = false,
     val terminalEnabled: Boolean = false,
     val terminalSize: WidgetCells = WidgetSizeLimits.TERMINAL.default,
-    /** AI 生成的开场提示（标题 + 说明）；空表示还没拿到（UI 退回内置静态提示）。 */
-    val ideas: List<WelcomeIdeas.Idea> = emptyList(),
-    val ideasLoading: Boolean = false,
 )
 
 /**
  * Keeps completed widgets across recomposition/rotation; owns only foreground welcome runs.
- *
- * [loadIdeas] 是「生成开场提示」这一层注入口：manager 不碰模型/设置，只负责缓存与并发，
- * 于是同一个会话里转屏、返回、重新可见都不会重复请求模型。
  */
 internal class ChatWelcomeManager(
     private val scope: CoroutineScope,
     val provider: KhatKitToolProvider,
-    private val loadIdeas: suspend (localeTags: List<String>, count: Int) -> List<WelcomeIdeas.Idea> = { _, _ -> emptyList() },
 ) {
     private var itemOrder: List<String> = emptyList()
     private val _state = MutableStateFlow(ChatWelcomeState())
@@ -57,15 +50,11 @@ internal class ChatWelcomeManager(
     private var nextRunToken = 0L
     private var locales = emptyList<String>()
     private var revision = -1L
-    private var ideasJob: Job? = null
-    /** 只自动试一次：快速模型没配/网络抖动时不要每次可见都再打一次请求。 */
-    private var ideasAsked = false
 
     suspend fun prepare(localeTags: List<String>, catalogueRevision: Long) {
         if (locales != localeTags || revision != catalogueRevision) {
             val cards = provider.chatCards()
             val terminalAvailable = provider.terminalPluginAvailable()
-            // 语言变了：人设没变，但提示要按新语言重写，所以旧的一批必须丢掉并允许再请求一次。
             val languageChanged = locales != localeTags
             val previous = if (!languageChanged) _state.value.widgets.associateBy { it.card.manifest.name } else emptyMap()
             locales = localeTags
@@ -90,36 +79,10 @@ internal class ChatWelcomeManager(
                 terminalSize = provider.widgetSize(TERMINAL_WIDGET)?.let {
                     WidgetSizeLimits.TERMINAL.clamp(WidgetCells(it.first, it.second))
                 } ?: WidgetSizeLimits.TERMINAL.default,
-                ideas = if (languageChanged) emptyList() else _state.value.ideas,
             )
-            if (languageChanged) ideasAsked = false
         }
         _state.value.widgets.filter { it.enabled && it.content == null && it.error == null }.forEach {
             refresh(it.card.manifest.name)
-        }
-        requestIdeas(localeTags, force = false)
-    }
-
-    /** 「换一换」：丢掉上一批提示，重新向模型要一次。 */
-    fun regenerateIdeas(localeTags: List<String>) {
-        requestIdeas(localeTags, force = true)
-    }
-
-    private fun requestIdeas(localeTags: List<String>, force: Boolean) {
-        if (!force) {
-            if (ideasAsked || _state.value.ideas.isNotEmpty()) return
-        }
-        ideasAsked = true
-        ideasJob?.cancel()
-        _state.update { it.copy(ideasLoading = true) }
-        ideasJob = scope.launch {
-            val ideas = runCatching { loadIdeas(localeTags, WelcomeIdeas.COUNT) }.getOrDefault(emptyList())
-            _state.update { state ->
-                state.copy(
-                    ideas = ideas.ifEmpty { state.ideas },
-                    ideasLoading = false,
-                )
-            }
         }
     }
 
@@ -239,10 +202,8 @@ internal class ChatWelcomeManager(
         runTokens.clear()
         jobs.values.forEach(Job::cancel)
         jobs.clear()
-        ideasJob?.cancel()
-        ideasJob = null
         _state.update { state ->
-            state.copy(widgets = state.widgets.map { it.copy(loading = false) }, ideasLoading = false)
+            state.copy(widgets = state.widgets.map { it.copy(loading = false) })
         }
     }
 

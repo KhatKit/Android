@@ -438,7 +438,7 @@ fun UiNode.Render(
             }
         }
         "Icon" -> {
-            val vector = UiIconVectors.vector(text("name"))
+            val vector = rememberCardIconVector(text("name"))
             if (vector != null) {
                 Icon(
                     imageVector = vector,

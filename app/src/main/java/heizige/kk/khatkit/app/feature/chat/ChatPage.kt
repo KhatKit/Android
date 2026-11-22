@@ -692,9 +692,6 @@ internal fun ChatScaffold(
                     visible = !archived && !previewMode && conversation.messageNodes.isEmpty(),
                     sessionKey = conversation.id.toString(),
                     manager = vm.welcome,
-                    // 只填输入框，不代发：发送路径上还有「角色没配模型」等守卫，
-                    // 欢迎层不该替用户跨过去。
-                    onSuggestionClick = { inputState.setMessageText(it) },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),

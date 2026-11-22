@@ -93,6 +93,7 @@ import heizige.kk.khatkit.app.feature.backup.BackupPage
 import heizige.kk.khatkit.app.feature.chat.ChatPage
 import heizige.kk.khatkit.app.feature.chat.ChatRolePanelPage
 import heizige.kk.khatkit.app.feature.chat.CardWidgetPage
+import heizige.kk.khatkit.app.feature.tools.helper.ToolShortcutHelper
 import heizige.kk.khatkit.app.feature.chat.CardInteractionPage
 import heizige.kk.khatkit.app.feature.debug.DebugPage
 import heizige.kk.khatkit.app.feature.extensions.ExtensionsPage
@@ -261,6 +262,10 @@ class RouteActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent) {
         val action = intent.action
+        if (action == ToolShortcutHelper.ACTION) {
+            ToolShortcutHelper.resolve(this, intent)?.let { pendingScreenRoute.value = ScreenRoutes.routeOf(it) }
+            return
+        }
         // 映射走 KkDeepLinkRoutes（逐条等价于迁移前的 when，单测覆盖 TRANSLATE / SEND / PROCESS_TEXT / conversationId）。
         val route = KkDeepLinkRoutes.routeOfIntentAction(
             action = action,

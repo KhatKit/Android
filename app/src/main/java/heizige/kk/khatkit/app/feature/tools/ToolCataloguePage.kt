@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.tools
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -48,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -61,6 +64,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.feature.tools.helper.ToolCategory
 import heizige.kk.khatkit.app.feature.tools.helper.ToolGridZoom
+import heizige.kk.khatkit.app.feature.tools.helper.ToolShortcutHelper
 import heizige.kk.khatkit.app.feature.tools.helper.matchesToolQuery
 import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
 import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
@@ -70,6 +74,8 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.hub.CardIndexEntry
 import ui.feice.mochi.basic.MochiActivityIndicator
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
+import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
+import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiButton
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -125,6 +131,7 @@ private fun toolSource(name: String) = "tool-catalogue:$name"
 internal fun ToolCataloguePage() {
     val vm = hiltViewModel<ToolCatalogueViewModel>()
     val state by vm.state.collectAsStateWithLifecycle()
+    val headerIcons by vm.headerIcons.collectAsStateWithLifecycle()
     val nav = LocalKkNavController.current
     val configuration = LocalConfiguration.current
     val locales = remember(configuration) {
@@ -275,7 +282,8 @@ internal fun ToolCataloguePage() {
                             modifier = Modifier.weight(1f).fillMaxSize(),
                         ) { view ->
                             ToolResults(
-                                cards = scoped, state = state, locales = locales, query = query, scope = scope,
+                                cards = scoped, state = state, headerIcons = headerIcons,
+                                locales = locales, query = query, scope = scope,
                                 view = view, selectedCategory = selectedCategory,
                                 gridColumnOffset = gridColumnOffset,
                                 onGridColumnOffsetChange = { gridColumnOffset = it },
@@ -334,6 +342,7 @@ private fun RailCategory(title: String, icon: String, selected: Boolean, count: 
 private fun ToolResults(
     cards: List<CardIndexEntry>,
     state: ToolCatalogueState,
+    headerIcons: Map<String, String>,
     locales: List<String>,
     query: String,
     scope: ToolScope,
@@ -494,7 +503,7 @@ private fun ToolResults(
                         ToolCategoryHeader(group.category, group.cards.size, Modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp))
                     }
                     items(group.cards, key = { it.name }, contentType = { "tool" }) { entry ->
-                        ToolGridCard(entry, state, locales, onOpen, onFavorite, Modifier.animateItem())
+                        ToolGridCard(entry, state, headerIcons[entry.name], locales, onOpen, onFavorite, Modifier.animateItem())
                     }
                 }
                 if (!state.complete) {
@@ -562,10 +571,10 @@ private fun ToolResults(
                                 subtitle = entry.toolDescription(locales).ifBlank { entry.name },
                                 onClick = { if (state.opening == null) onOpen(entry) },
                                 modifier = Modifier.mochiNavSource(toolSource(entry.name), MochiListDefaults.SectionCorner, MochiDefaults.groupedContainer()),
-                                leading = { MochiIonicon(entry.toolCategory().icon, tint = MochiTheme.colorScheme.primary) },
+                                leading = { ToolEntryIcon(entry, headerIcons[entry.name], 24.dp, MochiTheme.colorScheme.primary) },
                                 leadingStyle = MochiListLeadingStyle.Symbol,
                                 loading = state.opening == entry.name,
-                                trailing = { FavoriteButton(entry.name, entry.name in state.favorites, onFavorite) },
+                                trailing = { ToolCardActions(entry, state, locales, onFavorite) },
                             )
                         }
                     }
@@ -608,6 +617,7 @@ private fun ToolCategoryHeader(category: ToolCategory, count: Int, modifier: Mod
 private fun ToolGridCard(
     entry: CardIndexEntry,
     state: ToolCatalogueState,
+    headerIcon: String?,
     locales: List<String>,
     onOpen: (CardIndexEntry) -> Unit,
     onFavorite: (String) -> Unit,
@@ -629,9 +639,9 @@ private fun ToolGridCard(
                 Box(
                     Modifier.size(36.dp).background(MochiTheme.colorScheme.primaryContainer, MochiTheme.shapes.small),
                     contentAlignment = Alignment.Center,
-                ) { MochiIonicon(entry.toolCategory().icon, size = 23.dp, tint = MochiTheme.colorScheme.onPrimaryContainer) }
+                ) { ToolEntryIcon(entry, headerIcon, 23.dp, MochiTheme.colorScheme.onPrimaryContainer) }
                 Spacer(Modifier.weight(1f))
-                FavoriteButton(entry.name, entry.name in state.favorites, onFavorite)
+                ToolCardActions(entry, state, locales, onFavorite)
             }
             Text(entry.toolTitle(locales), style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -652,6 +662,39 @@ private fun ToolGridCard(
                     color = if (busy || entry.name !in state.installed) MochiTheme.colorScheme.primary else MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, locales: List<String>, onFavorite: (String) -> Unit) {
+    val favorite = entry.name in state.favorites
+    if (entry.name !in state.installed) {
+        FavoriteButton(entry.name, favorite, onFavorite)
+        return
+    }
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        MochiIconButton(onClick = { expanded = true }, size = 44.dp, style = MochiButtonStyle.Text) {
+            MochiIonicon("ellipsis-horizontal", size = 19.dp, contentDescription = "${entry.toolTitle(locales)}的操作")
+        }
+        MochiMenuPopup(expanded, onDismissRequest = { expanded = false }, modifier = Modifier.widthIn(max = 220.dp)) {
+            MochiMenuRow(
+                onClick = { expanded = false; onFavorite(entry.name) },
+                text = { Text(if (favorite) "取消收藏" else "收藏工具") },
+                leadingIcon = { MochiIonicon("star", size = 20.dp) },
+            )
+            MochiMenuRow(
+                onClick = {
+                    expanded = false
+                    if (!ToolShortcutHelper.pin(context, entry.name, entry.toolTitle(locales))) {
+                        Toast.makeText(context, "无法添加桌面快捷方式", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                text = { Text("添加到桌面") },
+                leadingIcon = { MochiIonicon("add-circle", size = 20.dp) },
+            )
         }
     }
 }

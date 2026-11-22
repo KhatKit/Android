@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.feature.tools.helper
 
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.LocaleMapResolver
+import kotlin.random.Random
 
 internal enum class ToolCategory(val title: String, val icon: String) {
     IMAGE("图片处理", "image"),
@@ -56,3 +57,11 @@ internal fun CardIndexEntry.matchesToolQuery(query: String, locales: List<String
 }
 
 internal fun CardIndexEntry.isUserTool(): Boolean = hasWidget && "user" in triggers
+
+internal fun recommendedTools(cards: List<CardIndexEntry>, seed: Int, page: Int): List<CardIndexEntry> {
+    val ordered = cards.distinctBy { it.name }.shuffled(Random(seed))
+    val count = minOf(3, ordered.size)
+    if (count == ordered.size) return ordered
+    val start = ((page.toLong() * count).mod(ordered.size.toLong())).toInt()
+    return List(count) { ordered[(start + it) % ordered.size] }
+}

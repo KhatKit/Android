@@ -30,6 +30,7 @@ dependencies {
 
     // mochi-compose：P4 起 UI 组件由 Mochi 提供（api：app 侧页面直接用同一套）
     api(libs.mochi.compose)
+    implementation(libs.mochi.icons)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

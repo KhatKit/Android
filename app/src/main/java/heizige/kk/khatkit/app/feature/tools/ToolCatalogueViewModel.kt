@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogueRepository
+import heizige.kk.khatkit.app.feature.tools.data.ToolIconRepository
 import heizige.kk.khatkit.app.feature.tools.helper.isUserTool
 import heizige.kk.khatkit.hub.CardIndexEntry
 import kotlinx.coroutines.CancellationException
@@ -30,9 +31,11 @@ internal data class ToolCatalogueState(
 internal class ToolCatalogueViewModel @Inject constructor(
     private val repository: ToolCatalogueRepository,
     private val provider: KhatKitToolProvider,
+    iconRepository: ToolIconRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ToolCatalogueState())
     val state = _state.asStateFlow()
+    val headerIcons = iconRepository.icons
     private var refreshJob: Job? = null
     private var loadMoreJob: Job? = null
     private var openJob: Job? = null

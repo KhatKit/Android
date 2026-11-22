@@ -66,8 +66,35 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import heizige.kk.khatkit.ui.UiIcons
+import ui.feice.mochi.icons.rememberMochiIonicon
+
+/** Prefer the matching Mochi symbol; keep existing card icon names and custom logos valid. */
+@Composable
+fun rememberCardIconVector(name: String): ImageVector? {
+    if (name !in UiIcons.names) return null
+    val mochiName = when (name) {
+        "account_circle" -> "person-circle"
+        "bolt" -> "flash"
+        "calendar_month", "event", "schedule" -> "calendar"
+        "delete" -> "trash"
+        "email" -> "mail"
+        "error", "info" -> "information-circle"
+        "expand_more" -> "chevron-down"
+        "favorite", "favorite_border" -> "heart"
+        "history" -> "time"
+        "hourglass_top" -> "hourglass"
+        "insert_drive_file" -> "document"
+        "more_vert" -> "ellipsis-vertical"
+        "open_in_new" -> "open"
+        "public" -> "globe"
+        "visibility" -> "eye"
+        else -> name.replace('_', '-')
+    }
+    return rememberMochiIonicon(mochiName) ?: UiIconVectors.vector(name)
+}
 
 /** `Icon.name` / `Button.icon` 的名字到 Material 图标的映射，名单由 [UiIcons] 校验。 */
 object UiIconVectors {

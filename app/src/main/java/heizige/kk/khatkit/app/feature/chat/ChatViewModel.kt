@@ -69,16 +69,7 @@ class ChatViewModel @AssistedInject constructor(
     private val filesManager: FilesManager,
     cardProvider: KhatKitToolProvider,
 ) : ViewModel() {
-    internal val welcome = ChatWelcomeManager(viewModelScope, cardProvider) { localeTags, count ->
-        // 开场提示按「当前会话的助手」写：顶栏显示谁，提示就替谁说话。
-        // 快速模型没配 / 请求失败时返回空列表，欢迎页回退到内置静态提示。
-        chatService.generateWelcomeIdeas(
-            assistant = settingsStore.settingsFlow.value.assistants
-                .firstOrNull { it.id == conversation.value.assistantId },
-            localeTag = localeTags.firstOrNull().orEmpty(),
-            count = count,
-        )
-    }
+    internal val welcome = ChatWelcomeManager(viewModelScope, cardProvider)
 
     @AssistedFactory
     interface Factory {
