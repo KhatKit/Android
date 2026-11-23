@@ -564,8 +564,11 @@ internal fun ChatScaffold(
         }
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         val inputBarHeight = with(LocalDensity.current) { inputBarHeightPx.toDp() }
+        val previewListState = rememberLazyListState()
+        val topBarProgress = MochiScrollEdgeDefaults.progress(if (previewMode) previewListState else chatListState)
         MochiPageScaffold(
             modifier = activeNestedScroll,
+            scrollUnderTopBar = topBarProgress,
             topBar = {
                     TopBar(
                         settings = setting,
@@ -586,7 +589,7 @@ internal fun ChatScaffold(
                             previewSearchQuery = ""
                         },
                         scrollBehavior = scrollBehavior,
-                        listState = chatListState,
+                        edgeProgress = topBarProgress,
                         onClickMenu = {
                             previewMode = !previewMode
                         },
@@ -633,6 +636,7 @@ internal fun ChatScaffold(
                 ),
                 conversation = conversation,
                 state = chatListState,
+                previewState = previewListState,
                 loading = loadingJob != null,
                 processingStatus = processingStatus,
                 previewMode = previewMode,
@@ -927,7 +931,7 @@ private fun TopBar(
     onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     /** 消息列表：顶栏底色 / 渐隐跟着它是否滚进栏下面（照 Mochi demo 的聊天页）。 */
-    listState: LazyListState,
+    edgeProgress: () -> Float,
     onClickMenu: () -> Unit,
     onRoleClick: () -> Unit,
 ) {
@@ -979,7 +983,6 @@ private fun TopBar(
     // 栏按钮配色照 Mochi 实例（demo 的聊天页/目录页）：白胶囊（浅色）/ 深胶囊（深色）+ 深色图标。
     // 按设置里的按钮样式：玻璃或实心，见 uikit 的 kkBarButtonColors。
     val barColors = kkBarButtonColors()
-    val edgeProgress = MochiScrollEdgeDefaults.progress(listState)
 
     Box(barModifier.fillMaxWidth()) {
         // 标题区的点击（切换角色）与搜索框，放在 MochiTitleBar **下面**画：

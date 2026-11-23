@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
@@ -30,7 +33,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaff
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,7 +98,7 @@ import heizige.kk.khatkit.app.core.ui.icons.inventory2
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val gridState = rememberLazyGridState()
     val navController = LocalNavController.current
     // 设置里的子页一律普通压栈（侧滑推入），不再用共享元素整页形变：
     // 这里都是一层层的同类设置列表，没有「从卡片长成页面」的物体可跟，
@@ -114,9 +116,10 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 
     MochiSettingsPageScaffold(
         title = stringResource(R.string.settings),
-        scrollBehavior = scrollBehavior,
+        titleProgress = { 1f },
+        backgroundProgress = MochiScrollEdgeDefaults.progress(gridState),
     ) { innerPadding ->
-        SettingsGroupGrid(innerPadding) {
+        SettingsGroupGrid(innerPadding, gridState) {
             item("settingsSearch", span = { GridItemSpan(maxLineSpan) }) {
                 MochiSearchBar(
                     query = searchQuery,
@@ -454,10 +457,11 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun SettingsGroupGrid(insets: PaddingValues, content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit) {
+private fun SettingsGroupGrid(insets: PaddingValues, state: LazyGridState, content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (maxWidth >= 840.dp) 2 else 1),
+            state = state,
             modifier = Modifier.fillMaxSize(),
             contentPadding = insets + PaddingValues(
                 start = 8.dp, end = 8.dp, top = PageMetrics.TopContentPadding,

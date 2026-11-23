@@ -197,18 +197,18 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
             }
         },
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
             val contentPadding = PaddingValues(
                 start = MochiPageContentPadding.calculateStartPadding(LayoutDirection.Ltr),
                 end = MochiPageContentPadding.calculateEndPadding(LayoutDirection.Ltr),
-                top = 16.dp,
-                bottom = 16.dp,
+                top = innerPadding.calculateTopPadding() + 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 16.dp,
             )
 
             when {
                 tasks.isEmpty() -> {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().padding(innerPadding),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -222,6 +222,7 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                 filtered.isEmpty() -> {
                     MochiEmptyState(
                         title = "没有匹配的下载任务",
+                        modifier = Modifier.padding(innerPadding),
                         message = "换个文件名或地址试试。",
                         icon = { MochiIonicon("search", size = 36.dp) },
                     )

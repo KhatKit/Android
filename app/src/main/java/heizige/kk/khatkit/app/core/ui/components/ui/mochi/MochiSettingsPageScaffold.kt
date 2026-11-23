@@ -57,7 +57,8 @@ fun MochiSettingsPageScaffold(
      * 顶栏底色的渐显进度（0 = 透明，1 = 完全显示）。
      *
      * 标题常显、但栏底要在正文滚进栏下面时才淡入（iOS 的栏渐显）时传它；
-     * 不传 = 跟 [titleProgress] 一致（既有调用点行为不变）。
+     * 显式提供时正文从顶栏后滚过，列表应把传入的顶部留白用作 contentPadding。
+     * 不传时保留固定顶栏，底色跟 [titleProgress] 一致。
      */
     backgroundProgress: (() -> Float)? = null,
     /**
@@ -113,6 +114,7 @@ fun MochiSettingsPageScaffold(
         // 分组卡片仍用更亮一档的 groupedContainer()，层级关系不变。
         containerColor = MochiTheme.colorScheme.background,
         edgeFade = edgeFade,
+        scrollUnderTopBar = backgroundProgress.takeIf { showTopBar },
     ) { innerPadding ->
         // 设置搜索定位：搜索页在 navigate 之前请求「本页的哪一行」，这里消费掉并下发给组内的行。
         // 锚点由行自己声明（CardGroup 的 anchor / settingItem 的标题资源派生），未命中的页

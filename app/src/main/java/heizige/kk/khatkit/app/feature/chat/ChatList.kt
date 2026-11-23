@@ -123,6 +123,7 @@ fun ChatList(
     innerPadding: PaddingValues,
     conversation: Conversation,
     state: LazyListState,
+    previewState: LazyListState,
     loading: Boolean,
     processingStatus: String? = null,
     previewMode: Boolean,
@@ -158,6 +159,7 @@ fun ChatList(
         if (target) {
             ChatListPreview(
                 innerPadding = innerPadding,
+                state = previewState,
                 conversation = conversation,
                 settings = settings,
                 hazeState = hazeState,
@@ -461,17 +463,16 @@ private fun ChatListNormal(
         ChatFontProvider(displaySetting = settings.displaySetting) {
             LazyColumn(
                 state = state,
-                contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = innerPadding.calculateBottomPadding()),
+                contentPadding = PaddingValues(16.dp) + innerPadding,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = innerPadding.calculateTopPadding())
-                    // 顶栏 / 悬浮输入栏交界处的 Mochi 滚动边缘过渡：底边从输入栏顶上 24dp 一直渐隐到屏幕底，
+                    // 顶栏过渡由页面骨架绘制。底边从悬浮输入栏顶上 24dp 一直渐隐到屏幕底，
                     // 滚到最新一条时底边是实的。放在 hazeSource 外面：输入栏的毛玻璃仍取样没被遮的内容
                     .kkScrollEdgeFade(
                         state = state,
-                        top = KkScrollEdgeExtent,
+                        top = 0.dp,
                         bottom = innerPadding.calculateBottomPadding() + KkScrollEdgeExtent,
                     )
                     .hazeSource(state = hazeState),
@@ -756,6 +757,7 @@ private fun buildHighlightedText(
 @Composable
 private fun ChatListPreview(
     innerPadding: PaddingValues,
+    state: LazyListState,
     conversation: Conversation,
     settings: Settings,
     hazeState: HazeState,
@@ -790,13 +792,13 @@ private fun ChatListPreview(
 
     Column(
         modifier = Modifier
-            .padding(top = innerPadding.calculateTopPadding())
             .fillMaxSize()
             .hazeSource(state = hazeState),
     ) {
         // 消息预览
         LazyColumn(
-            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = innerPadding.calculateBottomPadding()),
+            contentPadding = PaddingValues(16.dp) + innerPadding,
+            state = state,
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()

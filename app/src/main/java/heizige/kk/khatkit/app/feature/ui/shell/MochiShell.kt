@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.SubcomposeLayout
 import heizige.kk.khatkit.app.core.ui.components.ui.KkScrollEdgeExtent
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ import ui.feice.mochi.navigation.MochiLargeTitleScaffold
 import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.effect.glass.mochiBackdropSource
 import ui.feice.mochi.effect.glass.rememberMochiBarBackdrop
+import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
 import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import ui.feice.mochi.theme.MochiTheme
@@ -204,8 +206,7 @@ fun MochiNavBottomBar(
 /**
  * 页面骨架（Mochi 底色 + 顶栏/底栏槽位）。
  *
- * 槽位形状与旧 MochiPageScaffold 对齐：内容拿到的是 [PaddingValues.Zero]，因为顶/底栏
- * 现在参与流式布局（不再叠加在内容上），页面里的 `padding(innerPadding)` 自然变成 0 成本。
+ * 默认顶栏参与流式布局。选择 scrollUnderTopBar 的页面使用实际栏高作为列表的顶部 contentPadding。
  *
  * @param md3ScrollBehavior 仅为兼容旧调用点保留，Mochi 侧不使用（P4 删）。
  *
@@ -267,38 +268,57 @@ fun MochiSettingsPageScaffold(
 /** 浮动底栏的滚动收起（往下滚收成小圆、往上滚展开）；只在 [MochiPageScaffold] 的底部 rail 里有。 */
 private val LocalKkNavBarScrollBehavior = staticCompositionLocalOf<MochiTabBarScrollBehavior?> { null }
 
-/** 正文录制一层玻璃取样源；[backdrop] 为 null（材质没开玻璃）时是空操作。 */
-@Composable
-private fun BackdropContent(backdrop: MochiBackdrop?, content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().mochiBackdropSource(backdrop)) { content() }
-}
-
 /** 量一下栏的高度（空槽是 0），按原样摆放。 */
 @Composable
 private fun MeasuredBar(onHeight: (Int) -> Unit, bar: @Composable () -> Unit) {
     Column(modifier = Modifier.onSizeChanged { onHeight(it.height) }) { bar() }
 }
 
-/** 正文：有栏的那一边贴着栏渐隐 + 渐进模糊（见 kkScrollEdgeFade），[enabled] 为 false 时原样。 */
+/** Fixed-header pages keep their layout; scroll-under pages measure the bar before laying out the list. */
 @Composable
-private fun EdgeFadedContent(
-    enabled: Boolean,
-    top: Boolean,
-    bottom: Boolean,
+private fun PageTopBarLayout(
+    topBar: @Composable () -> Unit,
+    backdrop: MochiBackdrop?,
+    scrollUnderProgress: (() -> Float)?,
+    edgeFade: Boolean,
+    bottomEdge: Boolean,
+    bottomInset: Dp = 0.dp,
+    bodyModifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    if (!enabled || (!top && !bottom)) {
-        content(PaddingValues.Zero)
+    if (scrollUnderProgress == null) {
+        var barHeight by remember { mutableIntStateOf(0) }
+        Column(Modifier.fillMaxSize()) {
+            MeasuredBar(onHeight = { barHeight = it }, bar = topBar)
+            val fadeTop = edgeFade && barHeight > 0
+            val fadeBottom = edgeFade && bottomEdge
+            val fade = if (fadeTop || fadeBottom) Modifier.kkScrollEdgeFade(
+                top = if (fadeTop) KkScrollEdgeExtent else 0.dp,
+                bottom = if (fadeBottom) KkScrollEdgeExtent else 0.dp,
+            ) else Modifier
+            Box(Modifier.fillMaxSize().then(bodyModifier).mochiBackdropSource(backdrop).then(fade)) {
+                content(PaddingValues(bottom = bottomInset))
+            }
+        }
         return
     }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .kkScrollEdgeFade(
-                top = if (top) KkScrollEdgeExtent else 0.dp,
-                bottom = if (bottom) KkScrollEdgeExtent else 0.dp,
-            ),
-    ) { content(PaddingValues.Zero) }
+    SubcomposeLayout(Modifier.fillMaxSize()) { constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val bar = subcompose("bar") { Column { topBar() } }.single().measure(loose)
+        val topInset = bar.height.toDp()
+        val body = subcompose("body") {
+            val blur = if (topInset > 0.dp) Modifier.mochiScrollEdgeBlur(topInset, scrollUnderProgress) else Modifier
+            val fade = if (edgeFade && bottomEdge) Modifier.kkScrollEdgeFade(top = 0.dp) else Modifier
+            // Record the softened body for the glass buttons. The bar itself stays outside both effects.
+            Box(Modifier.fillMaxSize().then(bodyModifier).mochiBackdropSource(backdrop).then(blur).then(fade)) {
+                content(PaddingValues(top = topInset, bottom = bottomInset))
+            }
+        }.single().measure(loose)
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            body.place(0, 0)
+            bar.place(0, 0)
+        }
+    }
 }
 
 @Composable
@@ -337,6 +357,8 @@ fun MochiPageScaffold(
      * 由页面把 kkScrollEdgeFade 加在真正滚动的那个容器上。
      */
     edgeFade: Boolean = true,
+    /** Opt in only if the scroll container consumes top padding as contentPadding, not outer padding. */
+    scrollUnderTopBar: (() -> Float)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     if (title != null) {
@@ -368,7 +390,6 @@ fun MochiPageScaffold(
     // 所有走本骨架的页面（设置、列表、工具页……）因此共用同一套栏材质，不再有的页有模糊、有的没有。
     val barBackdrop = rememberMochiBarBackdrop(background = barBackdropColor)
     // 栏量出来高度为 0 = 这一页没有那条栏，那一边就没有交界、不遮
-    var topBarHeight by remember { mutableIntStateOf(0) }
     var bottomBarHeight by remember { mutableIntStateOf(0) }
     CompositionLocalProvider(LocalKkBarBackdrop provides barBackdrop) {
         BoxWithConstraints(modifier = modifier.fillMaxSize().background(containerColor)) {
@@ -379,11 +400,8 @@ fun MochiPageScaffold(
                     Box(modifier = Modifier.width(sideWidth).fillMaxHeight()) {
                         CompositionLocalProvider(LocalTabPlacement provides placement, content = rail)
                     }
-                    Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        MeasuredBar(onHeight = { topBarHeight = it }, bar = topBar)
-                        Box(modifier = Modifier.weight(1f)) {
-                            BackdropContent(barBackdrop) { EdgeFadedContent(edgeFade, topBarHeight > 0, false, content) }
-                        }
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = false, content = content)
                     }
                 }
             } else if (rail != null) {
@@ -391,18 +409,15 @@ fun MochiPageScaffold(
                     barBackdrop = barBackdrop,
                     background = containerColor,
                     topBar = topBar,
-                    onTopBarHeight = { topBarHeight = it },
-                    edgeFade = edgeFade && topBarHeight > 0,
+                    scrollUnderTopBar = scrollUnderTopBar,
+                    edgeFade = edgeFade,
                     rail = rail,
                     content = content,
                 )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    MeasuredBar(onHeight = { topBarHeight = it }, bar = topBar)
                     Box(modifier = Modifier.weight(1f)) {
-                        BackdropContent(barBackdrop) {
-                            EdgeFadedContent(edgeFade, topBarHeight > 0, bottomBarHeight > 0, content)
-                        }
+                        PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = bottomBarHeight > 0, content = content)
                     }
                     MeasuredBar(onHeight = { bottomBarHeight = it }, bar = bottomBar)
                 }
@@ -427,7 +442,7 @@ private fun FloatingRailLayout(
     barBackdrop: MochiBackdrop?,
     background: Color,
     topBar: @Composable () -> Unit,
-    onTopBarHeight: (Int) -> Unit,
+    scrollUnderTopBar: (() -> Float)?,
     edgeFade: Boolean,
     rail: @Composable () -> Unit,
     content: @Composable (PaddingValues) -> Unit,
@@ -437,21 +452,9 @@ private fun FloatingRailLayout(
     var railPx by remember { mutableIntStateOf(0) }
     val railInset = with(density) { railPx.toDp() }
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            MeasuredBar(onHeight = onTopBarHeight, bar = topBar)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-            ) {
-                CompositionLocalProvider(LocalMochiBottomBarInset provides railInset) {
-                    BackdropContent(barBackdrop) {
-                        EdgeFadedContent(edgeFade, top = true, bottom = false) {
-                            content(PaddingValues(bottom = railInset))
-                        }
-                    }
-                }
-            }
+        CompositionLocalProvider(LocalMochiBottomBarInset provides railInset) {
+            PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = false,
+                bottomInset = railInset, bodyModifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), content = content)
         }
         if (MochiTheme.materials.bar == null) {
             Spacer(
