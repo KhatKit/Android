@@ -85,6 +85,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -101,7 +103,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -228,6 +229,12 @@ import ui.feice.mochi.effect.glass.MochiNoGlassShadow
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.basic.MochiButtonStyle
+import kotlinx.collections.immutable.toPersistentList
+import ui.feice.mochi.basic.MochiAlign
+import ui.feice.mochi.basic.MochiDropdownDefaults
+import ui.feice.mochi.basic.MochiIconDropdown
+import ui.feice.mochi.basic.MochiItem
+import ui.feice.mochi.basic.MochiPopoverButton
 import ui.feice.mochi.effect.content.MochiBlurCrossfade
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.focus.FocusRequester
@@ -242,7 +249,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.clipPath
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -1409,55 +1415,51 @@ private fun QuickMessageButton(
     state: ChatInputState,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    MochiIconButton(
-        onClick = {
-            expanded = !expanded
-        },
-             shapes = IconButtonDefaults.shapes(),) {
-        Icon(bolt, null)
-        // U6d 保留 MochiMenuPopup（第 1/3 处）：菜单行是富内容卡片（KkSurface + 标题/正文/图标 + 每行独立点击区），
-        // MochiItem 只有 label/icon/trailing 三个槽，表达不了这种整行自绘卡片；且这里要固定宽度 200–360dp。
-        MochiMenuPopup(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .widthIn(min = 200.dp, max = 360.dp)
-        ) {
+    val colors = MochiTheme.colorScheme
+    MochiPopoverButton(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        width = 280.dp,
+        buttonMinHeight = 40.dp,
+        buttonPadding = PaddingValues(horizontal = 8.dp),
+        contentPadding = PaddingValues(6.dp),
+        colors = MochiDropdownDefaults.iconDropdownColors(buttonColor = Color.Transparent),
+        behavior = MochiDropdownDefaults.iconBehavior(),
+        popover = {
             quickMessages.forEach { quickMessage ->
-                KkSurface(
-                    color = Color.Transparent,
+                val interaction = remember { MutableInteractionSource() }
+                val haptics = rememberKkHaptics()
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .kkPressState(interaction)
+                        .clip(MochiTheme.shapes.medium)
                         .combinedClickable(
+                            interactionSource = interaction,
+                            indication = null,
+                            onClickLabel = "追加到输入框",
+                            onLongClickLabel = "替换输入框内容",
                             onClick = {
+                                haptics.confirm()
                                 state.appendText(quickMessage.content)
                                 expanded = false
                             },
                             onLongClick = {
+                                haptics.confirm()
                                 state.replaceText(quickMessage.content)
                                 expanded = false
                             },
-                        ),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
                 ) {
-                    Column(
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Text(
-                            text = quickMessage.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = quickMessage.content,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    Text(quickMessage.title, style = MochiTheme.textStyles.body, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(quickMessage.content, style = MochiTheme.textStyles.footnote, color = colors.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-        }
+        },
+    ) {
+        Icon(bolt, "快捷消息")
     }
 }
 
@@ -1978,202 +1980,46 @@ private val EditorHeadingOptions = listOf(
     com.mohamedrejeb.richeditor.model.HeadingStyle.H4 to "四级标题",
 )
 
-/**
- * 「标题」工具：点开在按钮正上方弹出一张 Mochi 小卡片（正文 / H1–H4），以按钮为原点按弹簧长出、
- * 各行错开浮入，当前段落的级别高亮打勾；按钮本身在非正文段落里显示成 H1/H2… 字形。
- * 弹层 focusable = false：不抢编辑器焦点，键盘不会被收起。
- */
+/** Mochi's in-window menu leaves the editor and its keyboard in the same window. */
 @Composable
 private fun EditorHeadingTool(
     richState: RichTextState,
     modifier: Modifier = Modifier,
 ) {
-    val cs = MochiTheme.colorScheme
-    val haptics = rememberKkHaptics()
-    val reduceMotion = heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion()
-    val density = LocalDensity.current
     val current = richState.currentHeadingStyle
+    val active = current.level > 0
+    val colors = MochiTheme.colorScheme
     var open by remember { mutableStateOf(false) }
-    val reveal = remember { Animatable(0f) }
-    LaunchedEffect(open, reduceMotion) {
-        val target = if (open) 1f else 0f
-        if (reduceMotion) {
-            reveal.snapTo(target)
-        } else {
-            reveal.animateTo(
-                targetValue = target,
-                animationSpec = if (open) {
-                    spring(dampingRatio = 0.72f, stiffness = MochiMotions.stiffnessFor(0.32f))
-                } else {
-                    spring(dampingRatio = 1f, stiffness = MochiMotions.stiffnessFor(0.2f))
-                },
-            )
-        }
+    LaunchedEffect(richState.selection) { open = false }
+    val items = remember {
+        EditorHeadingOptions.map { (style, label) ->
+            MochiItem(label, icon = { tint ->
+                EditorToolGlyph(if (style.level == 0) "T" else "H${style.level}", tint, fontWeight = FontWeight.Bold)
+            })
+        }.toPersistentList()
     }
-    // 光标挪到别处就收起，卡片不再指着一个不相干的段落
-    val selection = richState.selection
-    LaunchedEffect(selection) { open = false }
-
-    Box(modifier = modifier) {
-        EditorToolButton(
-            description = "标题",
-            active = current != com.mohamedrejeb.richeditor.model.HeadingStyle.Normal || open,
-            onClick = { open = !open },
-        ) { tint ->
-            if (current == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) {
-                Icon(title, null, tint = tint, modifier = Modifier.size(20.dp))
-            } else {
-                EditorToolGlyph("H${current.level}", tint, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        if (open || reveal.value > 0.001f) {
-            // 卡片外圈留了 8dp 给阴影，视觉上离按钮 6dp：整体往下压 8 - 6 = 2dp
-            val overlapPx = with(density) { 2.dp.roundToPx() }
-            androidx.compose.ui.window.Popup(
-                popupPositionProvider = remember(overlapPx) { AboveAnchorPopupPosition(overlapPx) },
-                onDismissRequest = { open = false },
-                properties = androidx.compose.ui.window.PopupProperties(focusable = false),
-            ) {
-                val cardShape = RoundedCornerShape(20.dp)
-                Column(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            val p = reveal.value
-                            alpha = p.coerceIn(0f, 1f)
-                            val s = 0.72f + 0.28f * p
-                            scaleX = s
-                            scaleY = s
-                            // 从卡片底边中点（正对按钮）长出来
-                            transformOrigin = TransformOrigin(0.5f, 1f)
-                            translationY = (1f - p) * 12.dp.toPx()
-                        }
-                        .padding(8.dp)
-                        .shadow(
-                            elevation = 12.dp,
-                            shape = cardShape,
-                            ambientColor = Color.Black.copy(alpha = 0.12f),
-                            spotColor = Color.Black.copy(alpha = 0.18f),
-                        )
-                        .background(cs.surfaceContainerHigh, cardShape)
-                        .border(0.5.dp, cs.outlineVariant.copy(alpha = 0.6f), cardShape)
-                        .width(208.dp)
-                        .padding(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    EditorHeadingOptions.forEachIndexed { index, (style, label) ->
-                        EditorHeadingRow(
-                            style = style,
-                            label = label,
-                            selected = current == style,
-                            modifier = Modifier.graphicsLayer {
-                                val t = ((reveal.value - 0.12f - index * 0.07f) / 0.5f).coerceIn(0f, 1f)
-                                val eased = FastOutSlowInEasing.transform(t)
-                                alpha = eased
-                                translationY = (1f - eased) * 8.dp.toPx()
-                            },
-                            onClick = {
-                                haptics.confirm()
-                                richState.setHeadingStyle(style)
-                                open = false
-                            },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditorHeadingRow(
-    style: com.mohamedrejeb.richeditor.model.HeadingStyle,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val cs = MochiTheme.colorScheme
-    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val rowShape = RoundedCornerShape(14.dp)
-    // 标签按对应级别的字号预览：一眼看出 H1 比 H3 大多少
-    val previewSize = when (style) {
-        com.mohamedrejeb.richeditor.model.HeadingStyle.H1 -> 20f
-        com.mohamedrejeb.richeditor.model.HeadingStyle.H2 -> 18f
-        com.mohamedrejeb.richeditor.model.HeadingStyle.H3 -> 16.5f
-        com.mohamedrejeb.richeditor.model.HeadingStyle.H4 -> 15.5f
-        else -> 15f
-    }
-    val badge = if (style == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) "T" else "H${style.level}"
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .kkPressState(interaction, pressedScale = 0.96f)
-            .clip(rowShape)
-            .background(if (selected) cs.primary.copy(alpha = 0.12f) else Color.Transparent)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                role = androidx.compose.ui.semantics.Role.Button,
-                onClick = onClick,
-            )
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    MochiIconDropdown(
+        expanded = open,
+        onExpandedChange = { open = it },
+        items = items,
+        selectedIndex = EditorHeadingOptions.indexOfFirst { it.first == current },
+        onItemClick = { index -> richState.setHeadingStyle(EditorHeadingOptions[index].first) },
+        modifier = modifier,
+        size = 40.dp,
+        menuWidth = 208.dp,
+        colors = MochiDropdownDefaults.iconDropdownColors(
+            buttonColor = if (active) colors.primary.copy(alpha = 0.14f) else Color.Transparent,
+            buttonContentColor = if (active) colors.primary else colors.onSurfaceVariant,
+        ),
+        behavior = MochiDropdownDefaults.behavior(align = MochiAlign.Center),
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .background(
-                    if (selected) cs.primary.copy(alpha = 0.18f) else cs.surfaceContainerHighest,
-                    RoundedCornerShape(10.dp),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            ui.feice.mochi.basic.Text(
-                text = badge,
-                color = if (selected) cs.primary else cs.onSurfaceVariant,
-                style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.Bold),
-            )
+        if (active) {
+            Box(Modifier.semantics { contentDescription = "标题" }) {
+                EditorToolGlyph("H${current.level}", colors.primary, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Icon(title, "标题", modifier = Modifier.size(20.dp))
         }
-        ui.feice.mochi.basic.Text(
-            text = label,
-            color = if (selected) cs.primary else cs.onSurface,
-            style = MochiTheme.textStyles.body.copy(
-                fontSize = androidx.compose.ui.unit.TextUnit(previewSize, androidx.compose.ui.unit.TextUnitType.Sp),
-                fontWeight = if (style == com.mohamedrejeb.richeditor.model.HeadingStyle.Normal) {
-                    FontWeight.Normal
-                } else {
-                    FontWeight.SemiBold
-                },
-            ),
-            modifier = Modifier.weight(1f),
-        )
-        if (selected) {
-            Icon(
-                imageVector = heizige.kk.khatkit.app.core.ui.icons.check,
-                contentDescription = null,
-                tint = cs.primary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
-/** 弹层放在锚点正上方、水平居中，左右夹在窗口内；上方放不下时贴顶。[overlapPx] 是往锚点压回去的距离（抵掉阴影留白）。 */
-private class AboveAnchorPopupPosition(
-    private val overlapPx: Int,
-) : androidx.compose.ui.window.PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: androidx.compose.ui.unit.IntRect,
-        windowSize: IntSize,
-        layoutDirection: androidx.compose.ui.unit.LayoutDirection,
-        popupContentSize: IntSize,
-    ): androidx.compose.ui.unit.IntOffset {
-        val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
-        val x = (anchorBounds.center.x - popupContentSize.width / 2).coerceIn(0, maxX)
-        val y = (anchorBounds.top - popupContentSize.height + overlapPx).coerceAtLeast(0)
-        return androidx.compose.ui.unit.IntOffset(x, y)
     }
 }
 
