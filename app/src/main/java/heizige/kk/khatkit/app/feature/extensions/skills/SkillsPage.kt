@@ -4,6 +4,10 @@ import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
+import ui.feice.mochi.basic.MochiBarIconButton
+import ui.feice.mochi.basic.MochiSheetState
+import ui.feice.mochi.basic.rememberMochiSheetState
+import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import ui.feice.mochi.basic.MochiSearchBar
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -86,7 +90,7 @@ fun SkillsPage() {
     val skillsPageImportSuccess = stringResource(R.string.skills_page_import_success)
     val skillsPageImportFailed = stringResource(R.string.skills_page_import_failed)
     val skillsPageSaveFailed = stringResource(R.string.skills_page_save_failed)
-    var showImportSheet by rememberSaveable { mutableStateOf(false) }
+    val importSheet = rememberMochiSheetState()
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showImportDialog by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
@@ -165,6 +169,11 @@ fun SkillsPage() {
         edgeFade = false,
         title = stringResource(R.string.skills_page_title),
         scrollBehavior = scrollBehavior,
+        actions = {
+            MochiBarIconButton(onClick = importSheet::show, navId = "skills.add", colors = kkBarButtonColors()) {
+                Icon(add, contentDescription = stringResource(R.string.skills_page_add_title))
+            }
+        },
     ) { innerPadding ->
         // Scaffold 的 innerPadding 挂在**整列**上（助手列表 / 提供商列表 / 搜索页同款），
         // 不再塞进列表自己的 padding：以前搜索框留在 y=0 被顶栏压住，列表却整体下移了
@@ -200,29 +209,14 @@ fun SkillsPage() {
         }
     }
 
-    if (showImportSheet) {
-        SkillImportSheet(
-            onDismiss = { showImportSheet = false },
-            onAddManually = {
-                showImportSheet = false
-                showAddDialog = true
-            },
-            onImportFromFile = {
-                showImportSheet = false
-                fileImportLauncher.launch(
-                    arrayOf(
-                        "text/*",
-                        "application/zip",
-                        "application/x-zip-compressed",
-                        "application/octet-stream",
-                    )
-                )
-            },
-            onImportFromGitHub = {
-                showImportSheet = false
-                showImportDialog = true
-            },
-        )
+    SkillImportSheet(importSheet) { source ->
+        when (source) {
+            SkillImportSource.Manual -> showAddDialog = true
+            SkillImportSource.File -> fileImportLauncher.launch(
+                arrayOf("text/*", "application/zip", "application/x-zip-compressed", "application/octet-stream")
+            )
+            SkillImportSource.GitHub -> showImportDialog = true
+        }
     }
 
     if (showAddDialog) {
@@ -472,19 +466,30 @@ private fun InvalidSkillDirCard(
     )
 }
 
+private enum class SkillImportSource { Manual, File, GitHub }
+
 @Composable
 private fun SkillImportSheet(
-    onDismiss: () -> Unit,
-    onAddManually: () -> Unit,
-    onImportFromFile: () -> Unit,
-    onImportFromGitHub: () -> Unit,
+    state: MochiSheetState,
+    onSelected: (SkillImportSource) -> Unit,
 ) {
+    var pending by remember { mutableStateOf<SkillImportSource?>(null) }
+    fun choose(source: SkillImportSource) {
+        if (!state.isVisible || pending != null) return
+        pending = source
+        state.hide()
+    }
     PrimaryBottomSheet(
-        visible = true,
+        state = state,
         title = stringResource(R.string.skills_page_add_title),
         imageVector = extension,
-        onDismiss = onDismiss,
-    ) { dismiss ->
+        // Native dismissal runs after the exit. Back/outside leaves pending empty.
+        onDismiss = {
+            val selected = pending
+            pending = null
+            if (selected != null) onSelected(selected)
+        },
+    ) {
         // 弹窗里这三个入口同属一组「选项行」：项间距与逐项圆角走全局列表卡片样式
         // （首项只圆上边、末项只圆下边），与页面里的技能卡片同一套口径。
         val cards = listCardStyle()
@@ -498,28 +503,19 @@ private fun SkillImportSheet(
                 shape = cards.indexedShape(0, count),
                 icon = { Icon(add, contentDescription = null) },
                 text = stringResource(R.string.skills_page_add_manually),
-                onClick = {
-                    dismiss()
-                    onAddManually()
-                },
+                onClick = { choose(SkillImportSource.Manual) },
             )
             SkillImportSheetItem(
                 shape = cards.indexedShape(1, count),
                 icon = { Icon(uploadFile, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_file),
-                onClick = {
-                    dismiss()
-                    onImportFromFile()
-                },
+                onClick = { choose(SkillImportSource.File) },
             )
             SkillImportSheetItem(
                 shape = cards.indexedShape(2, count),
                 icon = { Icon(download, contentDescription = null) },
                 text = stringResource(R.string.skills_page_import_from_github),
-                onClick = {
-                    dismiss()
-                    onImportFromGitHub()
-                },
+                onClick = { choose(SkillImportSource.GitHub) },
             )
         }
     }
