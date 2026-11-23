@@ -41,7 +41,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.StickyHeader
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import java.io.File
 import java.io.FileInputStream
@@ -61,7 +60,7 @@ fun ImportExportTab(
     vm: BackupViewModel,
     onShowRestartDialog: () -> Unit
 ) {
-    val toaster = LocalToaster.current
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 

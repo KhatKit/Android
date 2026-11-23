@@ -94,7 +94,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.rememberShareSheetState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomBodies
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
@@ -166,7 +165,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
 
     val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     val context = LocalContext.current
 
     val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)

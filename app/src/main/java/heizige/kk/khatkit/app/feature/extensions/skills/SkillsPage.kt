@@ -61,7 +61,6 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -82,7 +81,7 @@ fun SkillsPage() {
     val invalidSkillDirs by vm.invalidSkillDirs.collectAsStateWithLifecycle()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val toaster = LocalToaster.current
+
 
     val skillsPageImportSuccess = stringResource(R.string.skills_page_import_success)
     val skillsPageImportFailed = stringResource(R.string.skills_page_import_failed)

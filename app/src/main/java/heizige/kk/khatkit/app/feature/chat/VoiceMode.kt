@@ -32,7 +32,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionRecordA
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.extractQuotedContentAsText
 import heizige.kk.khatkit.app.core.util.removeBracketedContent
 import heizige.kk.khatkit.app.core.util.stripMarkdown
@@ -46,7 +45,7 @@ fun rememberVoiceModeStarter(vm: ChatViewModel, settings: Settings): () -> Unit 
     val client = rememberAppEntryPoint().okHttpClient()
     val asr = LocalASRState.current
     val tts = LocalTTSState.current
-    val toaster = LocalToaster.current
+
     val permission = rememberPermissionState(PermissionRecordAudio)
     PermissionManager(permission)
     val voice = vm.voiceSession

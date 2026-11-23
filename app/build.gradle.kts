@@ -306,7 +306,6 @@ dependencies {
     implementation(libs.commons.text)
 
     // Toast (Sonner)
-    implementation(libs.sonner)
 
     // Reorderable (https://github.com/Calvin-LL/Reorderable/)
     implementation(libs.reorderable)

@@ -105,7 +105,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UpdateCard
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
 import androidx.compose.ui.draw.clip
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsPlayStoreVersion
@@ -150,7 +149,7 @@ fun ChatDrawerContent(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val toaster = LocalToaster.current
+
     val isPlayStore = rememberIsPlayStoreVersion()
     val repo = rememberAppEntryPoint().conversationRepository()
 

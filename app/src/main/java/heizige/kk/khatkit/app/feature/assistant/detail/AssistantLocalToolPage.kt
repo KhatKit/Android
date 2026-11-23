@@ -23,7 +23,6 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionInfo
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -60,7 +59,7 @@ private fun AssistantLocalToolContent(
     onUpdate: (Assistant) -> Unit
 ) {
     val context = LocalContext.current
-    val toaster = LocalToaster.current
+
     val permissionRequiredText =
         stringResource(R.string.assistant_page_local_tools_screen_time_permission_required)
 

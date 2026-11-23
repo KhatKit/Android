@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.feature.tools
 
-import android.widget.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -721,7 +721,7 @@ private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, lo
             when (index) {
                 0 -> onFavorite(entry.name)
                 1 -> if (!ToolShortcutHelper.pin(context, entry.name, title)) {
-                    Toast.makeText(context, "无法添加桌面快捷方式", Toast.LENGTH_SHORT).show()
+                    Toast.show("无法添加桌面快捷方式", isError = true)
                 }
             }
         },

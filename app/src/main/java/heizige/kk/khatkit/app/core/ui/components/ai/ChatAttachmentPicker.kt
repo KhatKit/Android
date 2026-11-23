@@ -22,7 +22,6 @@ import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionCamera
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.ImageHelper
 import heizige.kk.khatkit.mediapicker.domain.AllowedMedia
@@ -48,7 +47,7 @@ internal fun rememberChatAttachmentPickerActions(
 ): ChatAttachmentPickerActions {
     val context = LocalContext.current
     val resources = LocalResources.current
-    val toaster = LocalToaster.current
+
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val cameraPermission = rememberPermissionState(PermissionCamera)
     PermissionManager(permissionState = cameraPermission)

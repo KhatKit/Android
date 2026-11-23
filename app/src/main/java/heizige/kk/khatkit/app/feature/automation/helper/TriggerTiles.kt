@@ -5,7 +5,7 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
+import heizige.kk.khatkit.app.core.util.showTransientNotice
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.automation.TriggerTileService
 import heizige.kk.khatkit.app.feature.automation.TriggerTileService2
@@ -120,6 +120,6 @@ object TriggerTilePublisher {
     }
 
     private fun toast(context: Context, message: String) {
-        runCatching { Toast.makeText(context.applicationContext, message, Toast.LENGTH_SHORT).show() }
+        context.showTransientNotice(message)
     }
 }

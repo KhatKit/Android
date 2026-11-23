@@ -4,7 +4,6 @@ import android.app.DownloadManager
 import android.content.Context
 import android.os.Build
 import android.os.Environment
-import android.widget.Toast
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -92,7 +91,7 @@ class UpdateChecker(
             // 统一进 KhatKit 下载中心（可暂停/续传/查看进度）
             controller.enqueueDownloadAsync(url, fileName)
         }.onFailure {
-            Toast.makeText(context, "Failed to update", Toast.LENGTH_SHORT).show()
+            context.showTransientNotice("Failed to update", isError = true)
         }
     }
 

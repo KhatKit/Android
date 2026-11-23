@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.CustomTtsState
 import heizige.kk.khatkit.tts.model.PlaybackState
 import heizige.kk.khatkit.tts.model.PlaybackStatus
@@ -43,12 +42,12 @@ import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 @Composable
 fun TTSController() {
     val ttsState = LocalTTSState.current
-    val toaster = LocalToaster.current
+
 
     val isSpeaking by ttsState.isSpeaking.collectAsState()
     var isVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(ttsState, toaster) {
+    LaunchedEffect(ttsState) {
         ttsState.error.collect { error ->
             if (error != null) {
                 Toast.show(message = error, isError = true)

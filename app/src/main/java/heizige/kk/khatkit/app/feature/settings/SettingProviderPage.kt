@@ -75,7 +75,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
@@ -289,7 +288,7 @@ private fun ProviderList(
 private fun RecommendProviderButton(
     onAdd: (ProviderSetting) -> Unit
 ) {
-    val toaster = LocalToaster.current
+
     var showSheet by remember { mutableStateOf(false) }
     val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
 
@@ -373,7 +372,7 @@ private fun RecommendProviderItem(
 private fun ImportProviderButton(
     onAdd: (ProviderSetting) -> Unit
 ) {
-    val toaster = LocalToaster.current
+
     val context = LocalContext.current
     var showImportDialog by remember { mutableStateOf(false) }
     // 扫码导入：CameraX 取景 + zxing 解码（上游 d8ba9cf67；不再依赖 ML Kit barhopper）
@@ -383,7 +382,7 @@ private fun ImportProviderButton(
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         uri?.let {
-            handleImageQRCode(it, onAdd, toaster, context)
+            handleImageQRCode(it, onAdd, context)
         }
     }
 
@@ -535,7 +534,6 @@ private fun ImportProviderButton(
 private fun handleImageQRCode(
     uri: Uri,
     onAdd: (ProviderSetting) -> Unit,
-    toaster: com.dokar.sonner.ToasterState,
     context: android.content.Context
 ) {
     runCatching {

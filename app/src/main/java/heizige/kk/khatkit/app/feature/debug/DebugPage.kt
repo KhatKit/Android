@@ -55,7 +55,6 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.richtext.MathBlock
 import heizige.kk.khatkit.app.core.ui.components.richtext.Mermaid
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.random.Random
@@ -172,7 +171,7 @@ private fun MainPage(vm: DebugViewModel) {
         var counter by remember {
             mutableIntStateOf(0)
         }
-        val toaster = LocalToaster.current
+
         MochiButton(
             onClick = {
                 Toast.show("测试 ${counter++}")

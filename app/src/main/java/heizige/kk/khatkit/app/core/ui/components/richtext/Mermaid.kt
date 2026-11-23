@@ -32,7 +32,6 @@ import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.WebViewContentCache
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.escapeHtml
 import heizige.kk.khatkit.app.core.util.exportImage
@@ -52,7 +51,7 @@ fun Mermaid(
     val mermaidExportSuccess = stringResource(R.string.mermaid_export_success)
     val mermaidExportFailed = stringResource(R.string.mermaid_export_failed)
     val activity = LocalActivity.current
-    val toaster = LocalToaster.current
+
     val navController = LocalNavController.current
 
     val jsInterface = remember {

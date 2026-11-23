@@ -67,8 +67,6 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import heizige.kk.khatkit.app.core.ui.components.charts.ChartCard
 import heizige.kk.khatkit.app.core.ui.components.charts.ChartSpec
-import com.dokar.sonner.rememberToasterState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.data.ai.tools.ConversationCardFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
@@ -92,7 +90,6 @@ import heizige.kk.khatkit.app.core.ui.icons.iosShare
 import heizige.kk.khatkit.app.core.ui.icons.public
 import heizige.kk.khatkit.app.core.ui.icons.search
 import androidx.compose.material3.ListItem
-import com.dokar.sonner.ToastType
 import heizige.kk.khatkit.app.core.ui.icons.psychology
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.khatkit.ai.core.MessageRole
@@ -128,7 +125,7 @@ fun ChatExportSheet(
     selectedMessages: List<UIMessage>
 ) {
     val context = LocalContext.current
-    val toaster = LocalToaster.current
+
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val settings = LocalSettings.current
@@ -250,10 +247,7 @@ fun ChatExportSheet(
                                                 options = exportOptions
                                             )
                                         }.onSuccess {
-                                            toaster.show(
-                                                imageSuccessMessage,
-                                                type = ToastType.Success
-                                            )
+                                            KhromiaToast.show(imageSuccessMessage)
                                         }.onFailure {
                                             it.printStackTrace()
                                             KhromiaToast.show(
@@ -486,11 +480,9 @@ private fun ExportedChatImage(
 ) {
     val navBackStack = remember { mutableStateListOf<NavKey>() }
     val navigator = Navigator(navBackStack)
-    val toasterState = rememberToasterState()
-    KhatKitTheme {
+    KhatKitTheme(hostNotices = false) {
         CompositionLocalProvider(
             LocalNavController provides navigator,
-            LocalToaster provides toasterState
         ) {
             KkSurface(
                 modifier = Modifier.width(540.dp) // like 1080p but with density independence

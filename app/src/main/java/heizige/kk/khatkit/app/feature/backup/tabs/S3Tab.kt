@@ -56,7 +56,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.sync.S3BackupItem
 import heizige.kk.khatkit.app.core.data.sync.s3.S3Config
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.fileSizeToString
@@ -84,7 +83,7 @@ fun S3Tab(
     val settings by vm.settings.collectAsStateWithLifecycle()
     val s3Config = settings.s3Config
     val backupItemsState by vm.s3BackupItems.collectAsStateWithLifecycle()
-    val toaster = LocalToaster.current
+
     val context = LocalContext.current
 
     val backupPageConnectionSuccess = stringResource(R.string.backup_page_connection_success)

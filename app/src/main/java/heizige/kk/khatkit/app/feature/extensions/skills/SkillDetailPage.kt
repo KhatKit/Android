@@ -50,7 +50,6 @@ import heizige.kk.khatkit.app.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -74,7 +73,7 @@ fun SkillDetailPage(skillName: String) {
     val tree by vm.tree.collectAsStateWithLifecycle()
     val readOnly by vm.readOnly.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val toaster = LocalToaster.current
+
 
     var editingFile by remember { mutableStateOf<SkillFile?>(null) }
     var showAddDialog by rememberSaveable { mutableStateOf(false) }

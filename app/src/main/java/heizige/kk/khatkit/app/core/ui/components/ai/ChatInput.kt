@@ -194,7 +194,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissio
 import heizige.kk.khatkit.app.core.ui.context.LocalASRState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -283,7 +282,7 @@ fun ChatInput(
     voiceState: VoiceSessionState = VoiceSessionState(),
     onStopVoiceMode: () -> Unit = {},
 ) {
-    val toaster = LocalToaster.current
+
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val composerFieldColor = MochiTextFieldDefaults.colors().container.compositeOver(CustomColors.pageContainerColor)

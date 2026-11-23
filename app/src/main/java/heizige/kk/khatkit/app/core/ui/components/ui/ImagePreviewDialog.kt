@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.download
 
@@ -38,7 +37,7 @@ fun ImagePreviewDialog(
     val context = LocalContext.current
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val state = rememberZoomablePagerState { images.size }
-    val toaster = LocalToaster.current
+
     val lifecycleOwner = LocalLifecycleOwner.current
     Dialog(
         onDismissRequest = onDismissRequest,

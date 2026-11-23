@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.data.ai.tools
 
+import heizige.kk.khatkit.app.core.util.showTransientNotice
+
 import android.app.KeyguardManager
 import android.content.Context
 import android.graphics.Bitmap
@@ -498,6 +500,7 @@ class KhatKitToolProvider(
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
                 mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
                 onCardApiObservation = apiHealth::record,
+                onToast = { appContext.showTransientNotice(it) },
                 cardCallHost = CardCallHost(
                     findInstalled = { name -> cache.findInstalled(name) },
                     run = { child, input, parent, chain, deadline ->

@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
-import com.dokar.sonner.ToasterState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,7 +33,6 @@ import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.data.ai.tavern.CharacterCardCodec
 import heizige.kk.khatkit.app.core.data.ai.tavern.CharacterCardException
 import heizige.kk.khatkit.app.core.data.ai.tavern.PngCharacterCard
@@ -68,7 +66,7 @@ private fun SillyTavernImporter(
     val importFailed = stringResource(R.string.assistant_importer_import_failed)
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     var isLoading by remember { mutableStateOf(false) }
 
     val jsonPickerLauncher = rememberLauncherForActivityResult(
@@ -83,7 +81,6 @@ private fun SillyTavernImporter(
                             context = context,
                             uri = uri,
                             onImport = onImport,
-                            toaster = toaster,
                             filesManager = filesManager,
                         )
                     }.onFailure { exception ->
@@ -109,7 +106,6 @@ private fun SillyTavernImporter(
                             context = context,
                             uri = uri,
                             onImport = onImport,
-                            toaster = toaster,
                             filesManager = filesManager,
                         )
                     }.onFailure { exception ->
@@ -225,7 +221,6 @@ private suspend fun importAssistantFromUri(
     context: Context,
     uri: Uri,
     onImport: (Assistant) -> Unit,
-    toaster: ToasterState,
     filesManager: FilesManager,
 ) {
     try {

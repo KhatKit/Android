@@ -62,6 +62,7 @@ object BridgeFactory {
         mediaDownloadHandler: MediaDownloadHandler? = null,
         onCardApiObservation: ((CardApiObservation) -> Unit)? = null,
         cardCallHost: CardCallHost? = null,
+        onToast: ((String) -> Unit)? = null,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -80,7 +81,7 @@ object BridgeFactory {
             json = JsonBridgeImpl(),
             crypto = CryptoBridgeImpl(),
             time = TimeBridgeImpl(),
-            system = SystemBridgeImpl(appContext),
+            system = if (onToast == null) SystemBridgeImpl(appContext) else SystemBridgeImpl(appContext, onToast),
             ai = ai ?: UnavailableAiBridge(),
             mediaPicker = mediaPicker ?: UnavailableMediaPickerBridge(),
             host = host,

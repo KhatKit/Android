@@ -59,7 +59,6 @@ import heizige.kk.khatkit.app.core.data.db.entity.ManagedFileEntity
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.fileSizeToString
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -77,7 +76,7 @@ fun SettingFilesPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val gridState = rememberLazyStaggeredGridState()
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     val folders = remember { listOf(FileFolders.UPLOAD) }
 
     // 预先获取字符串资源

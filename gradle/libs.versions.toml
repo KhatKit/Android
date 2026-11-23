@@ -50,7 +50,6 @@ zxing = "3.5.4"
 # 版本锁定说明：本地 Gradle 缓存里 camera-* 只有 1.6.2 有 .aar 实体
 # （1.4.2 / 1.6.1 仅 .pom+.module），故必须锁 1.6.2 否则 --offline 会解析失败。
 camerax = "1.6.2"
-sonner = "0.4.0"
 leakcanary = "2.14"
 workmanager = "2.11.2"
 reorderable = "3.1.0"
@@ -159,7 +158,6 @@ camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "
 camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
-sonner = { module = "io.github.dokar3:sonner", version.ref = "sonner" }
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 commons-text = { module = "org.apache.commons:commons-text", version.ref = "commons-text" }

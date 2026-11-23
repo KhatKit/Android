@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.atomic.AtomicLong
 import ui.feice.mochi.basic.MochiToastHost
 import ui.feice.mochi.basic.rememberMochiToastState
+import ui.feice.mochi.icons.MochiIonicon
 
 /**
  * U4f1：替代 Khromia `Toast`。**调用点 API 保持 `Toast.show(...)` 不变**，只换 import。
@@ -96,7 +97,8 @@ object Toast {
 
     /** 按 id 收：只有当前那条还是它时才清队列（结果提示已经顶上来时不要被后到的句柄收掉）。 */
     internal fun dismiss(id: Long) {
-        if (queue.value?.id == id) queue.value = null
+        val current = queue.value ?: return
+        if (current.id == id) queue.compareAndSet(current, null)
     }
 
     /** 根 host 用：把最新一条转成 Mochi 的 show 调用。 */
@@ -125,9 +127,15 @@ fun KkToastHost(modifier: Modifier = Modifier) {
             return@LaunchedEffect
         }
         progressShown = m.durationMillis == Toast.INFINITE_DURATION
+        val icon: (@Composable (Color) -> Unit)? = when {
+            m.iconVector != null -> { tint -> Icon(m.iconVector, contentDescription = null, tint = tint) }
+            m.iconPainter != null -> { tint -> Icon(m.iconPainter, contentDescription = null, tint = tint) }
+            m.isError -> { tint -> MochiIonicon("alert-circle", tint = tint) }
+            else -> null
+        }
         state.show(
             title = m.message,
-            icon = m.iconVector?.let { vec -> { tint: Color -> Icon(vec, contentDescription = null, tint = tint) } },
+            icon = icon,
             durationMillis = m.durationMillis,
         )
         // 定时提示立刻从队列消费掉，让位给下一条；进行中的提示留在队里，等句柄收起

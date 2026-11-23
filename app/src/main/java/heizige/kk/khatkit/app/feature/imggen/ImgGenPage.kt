@@ -95,7 +95,6 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.ImagePreviewDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.OutlinedNumberInput
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.ImageHelper
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
@@ -257,7 +256,7 @@ private fun ImageGenScreen(
     val error by vm.error.collectAsStateWithLifecycle()
     val settings by vm.settingsStore.settingsFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     var showSettingsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(error) {
@@ -547,7 +546,7 @@ private fun ImageGalleryScreen(
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     val pullToRefreshState = rememberPullToRefreshState()
     var selectionMode by remember { mutableStateOf(false) }
     var selectedImages by remember { mutableStateOf<Map<Int, GeneratedImage>>(emptyMap()) }

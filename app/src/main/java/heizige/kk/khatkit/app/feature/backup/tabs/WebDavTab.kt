@@ -55,7 +55,6 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavBackupItem
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.fileSizeToString
@@ -83,7 +82,7 @@ fun WebDavTab(
     val settings by vm.settings.collectAsStateWithLifecycle()
     val webDavConfig = settings.webDavConfig
     val backupItemsState by vm.webDavBackupItems.collectAsStateWithLifecycle()
-    val toaster = LocalToaster.current
+
     val context = LocalContext.current
 
     val backupPageConnectionSuccess = stringResource(R.string.backup_page_connection_success)

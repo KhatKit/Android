@@ -50,7 +50,6 @@ import heizige.kk.khatkit.app.core.data.network.toProxyOrNull
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
 import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
@@ -91,7 +90,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
     val resources = LocalResources.current
-    val toaster = LocalToaster.current
+
     var proxyTesting by remember { mutableStateOf(false) }
 
     fun updateUserAgent(value: String) {

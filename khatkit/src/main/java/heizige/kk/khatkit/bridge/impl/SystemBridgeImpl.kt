@@ -16,11 +16,17 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import heizige.kk.khatkit.bridge.SystemBridge
 
 class SystemBridgeImpl(
     private val context: Context,
+    private val onToast: (String) -> Unit = { text ->
+        ContextCompat.getMainExecutor(context).execute {
+            Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        }
+    },
 ) : SystemBridge {
     override fun openUrl(url: String): Boolean {
         val uri = runCatching { url.toUri() }.getOrNull() ?: return false
@@ -44,7 +50,7 @@ class SystemBridgeImpl(
     }.getOrDefault(false)
 
     override fun toast(text: String) {
-        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        onToast(text)
     }
 
     override fun vibrate(durationMs: Int) {

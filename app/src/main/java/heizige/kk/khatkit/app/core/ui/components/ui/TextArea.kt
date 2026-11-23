@@ -46,7 +46,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.core.ui.icons.fullscreen
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
@@ -85,7 +84,7 @@ fun TextArea(
     val textAreaImportSuccess = stringResource(R.string.text_area_import_success)
     val textAreaImportFailed = stringResource(R.string.text_area_import_failed)
     val scope = rememberCoroutineScope()
-    val toaster = LocalToaster.current
+
     var isFullScreen by remember { mutableStateOf(false) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(

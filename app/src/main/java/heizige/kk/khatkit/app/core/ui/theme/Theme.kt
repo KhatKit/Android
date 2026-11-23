@@ -88,6 +88,7 @@ enum class ColorMode {
 @Composable
 fun KhatKitTheme(
     colorMode: ColorMode = rememberCurrentColorMode(),
+    hostNotices: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val settings by rememberUserSettingsState()
@@ -245,9 +246,7 @@ fun KhatKitTheme(
                     // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
                     androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
                         content()
-                        heizige.kk.khatkit.uikit.mochi.KkToastHost(
-                            modifier = androidx.compose.ui.Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
-                        )
+                        if (outerReveal == null && hostNotices) heizige.kk.khatkit.uikit.mochi.KkToastHost()
                     }
                 }
             }

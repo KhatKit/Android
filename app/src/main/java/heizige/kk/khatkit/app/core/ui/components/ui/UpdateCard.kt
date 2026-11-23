@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useThrottle
 import heizige.kk.khatkit.app.feature.chat.ChatViewModel
 import heizige.kk.khatkit.app.core.util.UpdateCheckResponse
@@ -47,7 +46,7 @@ fun UpdateCard(vm: ChatViewModel) {
     val context = LocalContext.current
 
     val updateCardDownloading = stringResource(R.string.update_card_downloading)
-    val toaster = LocalToaster.current
+
     state.onError {
         KkCard {
             Column(

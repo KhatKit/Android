@@ -38,7 +38,6 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.webview.WebView
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
@@ -57,7 +56,7 @@ fun WorkspaceFileEditorPage(
     path: String,
 ) {
     val repository = rememberAppEntryPoint().workspaceRepository()
-    val toaster = LocalToaster.current
+
     val scope = rememberCoroutineScope()
     val editable = area == WorkspaceStorageArea.FILES
     val fileName = path.substringAfterLast('/').ifBlank { path }

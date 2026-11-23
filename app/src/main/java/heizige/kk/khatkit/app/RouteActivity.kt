@@ -51,8 +51,6 @@ import heizige.kk.khatkit.app.navigation.ScreenRoutes
 import kotlin.coroutines.cancellation.CancellationException
 import ui.feice.mochi.navigation.MochiNavHost
 import ui.feice.mochi.navigation.rememberMochiNavigator
-import com.dokar.sonner.Toaster
-import com.dokar.sonner.rememberToasterState
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.Serializable
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
@@ -71,7 +69,6 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.context.LocalSharedTransitionScope
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.readStringPreference
@@ -150,7 +147,6 @@ import heizige.kk.khatkit.app.feature.splash.SplashIntroHost
 import heizige.kk.khatkit.app.feature.splash.SplashIntroState
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 import heizige.kk.khatkit.app.feature.automation.AutomationInAppHost
-import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.util.CrashHandler
 import heizige.kk.khatkit.app.core.util.openUsageAccessSettings
@@ -283,7 +279,6 @@ class RouteActivity : ComponentActivity() {
     @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun AppRoutes() {
-        val toastState = rememberToasterState()
         val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()
         val tts = rememberCustomTtsState()
         val asr = rememberCustomAsrState()
@@ -331,19 +326,11 @@ class RouteActivity : ComponentActivity() {
                 LocalKkNavController provides kkNav,
                 LocalSharedTransitionScope provides this,
                 LocalSettings provides settings,
-                LocalToaster provides toastState,
                 LocalTTSState provides tts,
                 LocalASRState provides asr,
             ) {
-                Toaster(
-                    state = toastState,
-                    darkTheme = LocalDarkMode.current,
-                    richColors = true,
-                    alignment = Alignment.TopCenter,
-                    showCloseButton = true,
-                )
                 TTSController()
-                // Card Markdown and forms need the same settings/toaster/nav
+                // Card Markdown and forms need the same settings/nav
                 // locals as pages, including when hosted in a FullscreenPopup.
                 KhatKitUiHost()
                 Box(

@@ -51,7 +51,6 @@ import heizige.kk.khatkit.ai.provider.ModelType
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.util.getText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
@@ -81,7 +80,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
     val targetLanguage by vm.targetLanguage.collectAsStateWithLifecycle()
     val translating by vm.translating.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current
-    val toaster = LocalToaster.current
+
     val scope = rememberCoroutineScope()
 
     // 处理错误

@@ -17,18 +17,33 @@ import android.os.Process
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
+import android.widget.Toast as PlatformToast
 import androidx.activity.ComponentActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
+import heizige.kk.khatkit.uikit.mochi.Toast
 
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
 private const val TAG = "ContextUtil"
+
+/** Card and system callbacks can arrive on a worker with no visible app window. */
+internal fun Context.showTransientNotice(message: String, isError: Boolean = false) {
+    val app = applicationContext
+    ContextCompat.getMainExecutor(app).execute {
+        if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            Toast.show(message, isError = isError)
+        } else {
+            PlatformToast.makeText(app, message, PlatformToast.LENGTH_SHORT).show()
+        }
+    }
+}
 
 /**
  * Read clipboard data as text
@@ -63,17 +78,14 @@ fun Context.joinQQGroup(key: String?): Boolean {
 /**
  * Write text into clipboard
  */
-fun Context.writeClipboardText(text: String) {
-    val clipboardManager =
-        getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+fun Context.writeClipboardText(text: String): Boolean =
     runCatching {
+        val clipboardManager = checkNotNull(getSystemService(android.content.ClipboardManager::class.java))
         clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("text", text))
-        Log.i(TAG, "writeClipboardText: $text")
     }.onFailure {
-        Log.e(TAG, "writeClipboardText: $text", it)
-        Toast.makeText(this, "Failed to write text into clipboard", Toast.LENGTH_SHORT).show()
-    }
-}
+        Log.e(TAG, "writeClipboardText failed", it)
+        showTransientNotice("Failed to write text into clipboard", isError = true)
+    }.isSuccess
 
 /**
  * Whether the app has been granted the "Usage access" special permission
@@ -124,7 +136,7 @@ fun Context.openUrl(url: String) {
         intent.launchUrl(this, url.toUri())
     }.onFailure {
         it.printStackTrace()
-        Toast.makeText(this, "Failed to open URL: $url", Toast.LENGTH_SHORT).show()
+        showTransientNotice("Failed to open URL: $url", isError = true)
     }
 }
 

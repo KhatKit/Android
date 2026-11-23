@@ -5,7 +5,7 @@ import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.net.Uri
 import android.Manifest
 import android.content.pm.PackageManager
-import android.widget.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -203,7 +203,7 @@ fun UIAvatar(
         if (granted) {
             launchCameraCapture()
         } else {
-            Toast.makeText(context, cameraDeniedMsg, Toast.LENGTH_SHORT).show()
+            Toast.show(cameraDeniedMsg, isError = true)
         }
     }
 

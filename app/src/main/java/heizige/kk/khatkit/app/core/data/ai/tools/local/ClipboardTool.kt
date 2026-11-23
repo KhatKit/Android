@@ -56,9 +56,9 @@ internal fun buildClipboardTool(context: Context): Tool = Tool(
 
             "write" -> {
                 val text = params["text"]?.jsonPrimitive?.contentOrNull ?: error("text is required")
-                context.writeClipboardText(text)
+                val written = context.writeClipboardText(text)
                 val payload = buildJsonObject {
-                    put("success", true)
+                    put("success", written)
                     put("text", text)
                 }
                 listOf(UIMessagePart.Text(payload.toString()))

@@ -87,7 +87,6 @@ import heizige.kk.khatkit.app.core.ui.components.ui.ExportDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
-import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
@@ -176,7 +175,7 @@ private fun ModeInjectionTab(
     onUpdate: (List<PromptInjection.ModeInjection>) -> Unit
 ) {
     val lazyListState = rememberLazyListState()
-    val toaster = LocalToaster.current
+
     val currentModeInjections by rememberUpdatedState(modeInjections)
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val newList = modeInjections.toMutableList()
@@ -552,7 +551,7 @@ private fun LorebookTab(
     onUpdate: (List<Lorebook>) -> Unit
 ) {
     val lazyListState = rememberLazyListState()
-    val toaster = LocalToaster.current
+
     val currentLorebooks by rememberUpdatedState(lorebooks)
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val newList = lorebooks.toMutableList()

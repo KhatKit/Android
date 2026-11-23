@@ -7,7 +7,7 @@ import heizige.kk.khatkit.uikit.mochi.KkCard
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.widget.Toast
+import heizige.kk.khatkit.uikit.mochi.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
@@ -439,7 +439,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                             try {
                                 context.startActivity(Intent.createChooser(intent, share))
                             } catch (e: ActivityNotFoundException) {
-                                Toast.makeText(context, noShareApp, Toast.LENGTH_SHORT).show()
+                                Toast.show(noShareApp, isError = true)
                             }
                         },
                         leadingContent = { Icon(shareIcon, null) },
@@ -537,8 +537,7 @@ internal fun QQGroupBottomSheet(
                     shape = cards.indexedShape(index, QQ_GROUPS.size),
                     onClick = {
                         if (group.number != null) {
-                            context.writeClipboardText(group.number)
-                            Toast.makeText(context, "群号已复制", Toast.LENGTH_SHORT).show()
+                            if (context.writeClipboardText(group.number)) Toast.show("群号已复制")
                         } else {
                             context.joinQQGroup(group.key)
                         }
