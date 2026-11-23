@@ -3,8 +3,13 @@ package heizige.kk.khatkit.uikit.mochi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -29,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -224,22 +230,41 @@ fun MochiListPopup(
     }
 }
 
-/** 菜单容器（槽位版）：Popup + 自定义内容。 */
+/** 系统悬浮窗里的菜单。Activity 内优先用 Mochi 的同窗口菜单。 */
 @Composable
 fun MochiMenuPopup(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    /** 不要求 ColumnScope 接收者：旧 Kedge 调用点有传普通 lambda 的写法。 */
+    containerColor: Color = MochiTheme.colorScheme.surfaceContainerHigh,
     content: @Composable () -> Unit,
 ) {
-    if (!expanded) return
-    Popup(onDismissRequest = onDismissRequest, properties = PopupProperties(focusable = true)) {
-        Column(
-            modifier = modifier
-                .background(MochiTheme.colorScheme.surfaceContainerHigh, MochiTheme.shapes.large)
-                .padding(vertical = 6.dp),
-        ) { content() }
+    val visibility = remember { MutableTransitionState(false) }.apply { targetState = expanded }
+    if (!visibility.currentState && !visibility.targetState && visibility.isIdle) return
+    val motion = MochiTheme.motionScheme.menu
+    val reduceMotion = rememberKkReduceMotion()
+    Popup(
+        alignment = Alignment.TopEnd,
+        onDismissRequest = { if (expanded) onDismissRequest() },
+        properties = PopupProperties(focusable = expanded),
+    ) {
+        AnimatedVisibility(
+            visibleState = visibility,
+            enter = if (reduceMotion) androidx.compose.animation.EnterTransition.None else
+                scaleIn(motion.openSpatial as? FiniteAnimationSpec<Float> ?: spring(),
+                    initialScale = 0.9f, transformOrigin = TransformOrigin(1f, 0f)) +
+                    fadeIn(motion.openEffects as? FiniteAnimationSpec<Float> ?: spring()),
+            exit = if (reduceMotion) androidx.compose.animation.ExitTransition.None else
+                scaleOut(motion.closeSpatial as? FiniteAnimationSpec<Float> ?: spring(),
+                    targetScale = 0.94f, transformOrigin = TransformOrigin(1f, 0f)) +
+                    fadeOut(motion.closeEffects as? FiniteAnimationSpec<Float> ?: spring()),
+        ) {
+            Column(
+                modifier = modifier
+                    .background(containerColor, MochiTheme.shapes.large)
+                    .padding(vertical = 6.dp),
+            ) { content() }
+        }
     }
 }
 

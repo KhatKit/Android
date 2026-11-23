@@ -49,7 +49,6 @@ import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -778,7 +777,7 @@ private fun ApprovalButtonGroup(
 /**
  * ✓ 允许按钮：外观沿用 MD3 [ToggleButton]（connected trailing 形状、primary 配色及
  * 按压形变/涟漪），指针事件交给上层透明 [Box] 的 combinedClickable：单击允许本次，
- * 长按弹出与 Toast 深色反色底一致的 [DropdownMenu]；两者共享 interactionSource 且
+ * 长按弹出与 Toast 深色反色底一致的 Mochi 菜单；两者共享 interactionSource 且
  * combinedClickable 不附带 indication，避免双层涟漪。
  */
 @Composable
@@ -789,14 +788,6 @@ private fun ApproveButton(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
-    // 菜单沿用卡片同款反色底与文字规格（同一份 KkToastDefaults 来源）。
-    val menuContainerColor = KkToastDefaults.color
-    val menuContentColor = KkToastDefaults.contentColor
-    val itemColors = MenuDefaults.itemColors(
-        textColor = menuContentColor,
-        leadingIconColor = menuContentColor,
-        trailingIconColor = menuContentColor,
-    )
 
     Box(modifier = Modifier.size(ApprovalButtonSize)) {
         ToggleButton(
@@ -832,11 +823,11 @@ private fun ApproveButton(
                     onClick = onApprove,
                 ),
         ) {
-            // U6d 保留 MochiMenuPopup（第 3/3 处）：浮层按钮是「单击=本次允许、长按=更多选项」的组合语义，
-            // MochiContextMenu 没有 onClick 槽，套上去会把单击批准吃掉；这里只做长按弹出的行列表。
+            // 系统悬浮看板是 wrap-content 窗口，不具备 Mochi 原生菜单需要的全屏 Activity 宿主。
             MochiMenuPopup(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
+                containerColor = KkToastDefaults.color,
             ) {
                 MochiMenuRow(
                     text = { Text(text = "仅本次允许", color = KkToastDefaults.contentColor, maxLines = 1) },
