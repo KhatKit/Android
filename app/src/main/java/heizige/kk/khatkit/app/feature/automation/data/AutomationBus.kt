@@ -119,6 +119,7 @@ object AutomationBus {
     /** 通知回退的广播动作：点击通知上的「允许 / 拒绝」按钮。 */
     const val ACTION_APPROVAL_ALLOW = "heizige.kk.khatkit.app.action.APPROVAL_ALLOW"
     const val ACTION_APPROVAL_DENY = "heizige.kk.khatkit.app.action.APPROVAL_DENY"
+    const val EXTRA_APPROVAL_ID = "approval_request_id"
 
     /** 看板按钮决议：✓ / ✗ / 记住 10 分钟（仅 ✓ 提升为整个会话放行）。 */
     private enum class ApprovalOutcome { APPROVED, DENIED, REMEMBERED }
@@ -181,8 +182,10 @@ object AutomationBus {
     @Volatile
     private var sessionHeldAt = 0L
 
+    private data class PendingDecision(val id: String, val result: CompletableDeferred<ApprovalOutcome>)
+
     @Volatile
-    private var approvalDeferred: CompletableDeferred<ApprovalOutcome>? = null
+    private var pendingDecision: PendingDecision? = null
     private val approvalMutex = Mutex()
 
     /** 按类别的持久化审批策略存储（安装时注入）。 */
@@ -306,7 +309,7 @@ object AutomationBus {
                 detail = detail,
                 category = category,
             )
-            approvalDeferred = deferred
+            pendingDecision = PendingDecision(request.id, deferred)
             _pendingApproval.value = request
             // 前台 Activity 已经挂载 AutomationInAppHost，不需要悬浮窗权限或通知权限；
             // 这是用户手动点卡片、欢迎页小组件运行卡片时的主要审批入口。
@@ -323,7 +326,7 @@ object AutomationBus {
             }
             if (!posted) {
                 // 无悬浮窗也无通知权限：保持现状直接拒绝，不阻塞
-                approvalDeferred = null
+                pendingDecision = null
                 _pendingApproval.value = null
                 return@withLock false
             }
@@ -331,33 +334,33 @@ object AutomationBus {
                 withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { deferred.await() } ?: ApprovalOutcome.DENIED
             } finally {
                 deferred.complete(ApprovalOutcome.DENIED)
-                if (approvalDeferred === deferred) approvalDeferred = null
+                pendingDecision = null
                 _pendingApproval.value = null
                 cancelApprovalNotification()
             }
             if (outcome == ApprovalOutcome.APPROVED && grantSession) sessionApproved = true
+            if (outcome == ApprovalOutcome.REMEMBERED) {
+                rememberedUntil[category] = System.currentTimeMillis() + APPROVAL_REMEMBER_MS
+            }
             outcome != ApprovalOutcome.DENIED
         }
     }
 
     /** 看板「允许」：放行当前授权请求，本次运行后续操作不再询问。 */
-    fun approve() {
-        approvalDeferred?.complete(ApprovalOutcome.APPROVED)
-    }
+    fun approve(id: String) = resolve(id, ApprovalOutcome.APPROVED)
 
     /** 看板「拒绝」：拒绝当前授权请求，调用方应终止本次操作。 */
-    fun deny() {
-        approvalDeferred?.complete(ApprovalOutcome.DENIED)
-    }
+    fun deny(id: String) = resolve(id, ApprovalOutcome.DENIED)
 
     /**
      * 看板「记住 10 分钟」：放行当前请求，并让同类请求在 [APPROVAL_REMEMBER_MS] 内
      * 自动放行；不提升为整个会话放行（✓ 的语义保持不变）。
      */
-    fun approveAndRemember() {
-        val request = _pendingApproval.value ?: return
-        rememberedUntil[request.category] = System.currentTimeMillis() + APPROVAL_REMEMBER_MS
-        approvalDeferred?.complete(ApprovalOutcome.REMEMBERED)
+    fun approveAndRemember(id: String) = resolve(id, ApprovalOutcome.REMEMBERED)
+
+    private fun resolve(id: String, outcome: ApprovalOutcome) {
+        // Keep the ID and deferred together: a retiring button/notification cannot resolve its successor.
+        pendingDecision?.takeIf { it.id == id }?.result?.complete(outcome)
     }
 
     private fun isRemembered(category: ApprovalCategory): Boolean =
@@ -369,7 +372,7 @@ object AutomationBus {
 
     /**
      * 无悬浮窗能力时的回退：发一条高优先级通知，带「允许 / 拒绝」两个广播按钮，
-     * 等待期间与看板共用同一 [approvalDeferred]，60s 超时由调用方按拒绝处理。
+     * 等待期间与看板共用同一 [pendingDecision]，60s 超时由调用方按拒绝处理。
      * @return 通知是否成功发出；没有 POST_NOTIFICATIONS / 通知被关闭时返回 false。
      */
     private fun postApprovalNotification(context: Context, request: ApprovalRequest): Boolean {
@@ -430,6 +433,8 @@ object AutomationBus {
         val intent = Intent(context, ApprovalActionReceiver::class.java)
             .setAction(action)
             .setPackage(context.packageName)
+            .setData(android.net.Uri.fromParts("khatkit-approval", request.id, null))
+            .putExtra(EXTRA_APPROVAL_ID, request.id)
         return PendingIntent.getBroadcast(
             context,
             request.id.hashCode() + offset,

@@ -12,9 +12,10 @@ import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
 class ApprovalActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        val id = intent.getStringExtra(AutomationBus.EXTRA_APPROVAL_ID) ?: return
         when (intent.action) {
-            AutomationBus.ACTION_APPROVAL_ALLOW -> AutomationBus.approve()
-            AutomationBus.ACTION_APPROVAL_DENY -> AutomationBus.deny()
+            AutomationBus.ACTION_APPROVAL_ALLOW -> AutomationBus.approve(id)
+            AutomationBus.ACTION_APPROVAL_DENY -> AutomationBus.deny(id)
         }
     }
 }

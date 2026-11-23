@@ -1,7 +1,5 @@
 package heizige.kk.khatkit.app.feature.automation
 
-import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
-import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -29,54 +27,29 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonGroup
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonDefaults
-import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
-import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme as AppTheme
-import heizige.kk.khatkit.uikit.KhatKitUiStyle
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -93,11 +66,12 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.mochi.KkToastDefaults
+import heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion
+import ui.feice.mochi.basic.MochiToastDefaults
+import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -123,7 +97,7 @@ private const val EXIT_SETTLE_MS = 200L
 
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
- * 仅显示当前步骤；授权请求期间显示请求文本 + 倒计时与 MD3 ButtonGroup（✓ / ✗）。
+ * 仅显示当前步骤；授权请求期间显示请求文本、倒计时与 Mochi 审批按钮。
  * 一次运行结束（[AutomationBus.finish]）
  * 后先展示「任务完成」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast（ImageToolbox 规格）同款
  * 退场动画并等待 [EXIT_SETTLE_MS] 后移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
@@ -247,9 +221,10 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         approval = overlayApproval.value,
                         visible = overlayVisible.value,
                         hidden = overlayHidden.value,
-                        onApprove = { AutomationBus.approve() },
-                        onDeny = { AutomationBus.deny() },
-                        onRemember = { AutomationBus.approveAndRemember() },
+                        onApprove = AutomationBus::approve,
+                        onDeny = AutomationBus::deny,
+                        onRemember = AutomationBus::approveAndRemember,
+                        systemWindow = true,
                         onDismiss = { AutomationBus.hideOverlayTemporarily() },
                     )
                 }
@@ -502,7 +477,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
 /** 后台独立 Compose 根也读取应用选择的风格、深浅色和主题配色。 */
 @Composable
 internal fun AutomationOverlayTheme(content: @Composable () -> Unit) {
-    AppTheme {
+    AppTheme(compactWindow = true, hostNotices = false) {
         content()
     }
 }
@@ -513,22 +488,24 @@ internal fun AutomationStatusBoard(
     approval: AutomationBus.ApprovalRequest?,
     visible: Boolean,
     hidden: Boolean,
-    onApprove: () -> Unit,
-    onDeny: () -> Unit,
-    onRemember: () -> Unit,
+    onApprove: (String) -> Unit,
+    onDeny: (String) -> Unit,
+    onRemember: (String) -> Unit,
     onDismiss: () -> Unit,
+    systemWindow: Boolean = false,
 ) {
     val boardVisible = visible && !hidden && (status != null || approval != null)
 
     val visibleState = remember { MutableTransitionState(false) }
+    val reduceMotion = rememberKkReduceMotion()
     LaunchedEffect(boardVisible) {
         visibleState.targetState = boardVisible
     }
     // 原位缩放不需要为移动动画扩大可触摸的窗口。
     AnimatedVisibility(
         visibleState = visibleState,
-        enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.96f),
-        exit = fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.96f),
+        enter = if (reduceMotion) androidx.compose.animation.EnterTransition.None else fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.96f),
+        exit = if (reduceMotion) androidx.compose.animation.ExitTransition.None else fadeOut(tween(150)) + scaleOut(tween(150), targetScale = 0.96f),
     ) {
         if (status != null || approval != null) {
             AutomationToast(
@@ -538,6 +515,7 @@ internal fun AutomationStatusBoard(
                 onDeny = onDeny,
                 onRemember = onRemember,
                 onDismiss = onDismiss,
+                systemWindow = systemWindow,
             )
         }
     }
@@ -588,7 +566,7 @@ private sealed interface BoardContent {
 }
 
 /**
- * 看板容器：应用内外共用按内容测量的胶囊，Miuix 使用原生 secondaryContainer 配色。
+ * 看板容器：应用内外共用 Mochi toast 的反色胶囊。
  * 定位在宿主完成，点击区域只覆盖胶囊；长文案最多占屏幕短边的 85%。
  *
  * 内容由 [AnimatedContent] 承载：尺寸变化交给 [SizeTransform] 做容器动画，子内容
@@ -599,11 +577,12 @@ private sealed interface BoardContent {
 internal fun AutomationToast(
     status: AutomationBus.AutomationStatus?,
     approval: AutomationBus.ApprovalRequest?,
-    onApprove: () -> Unit,
-    onDeny: () -> Unit,
-    onRemember: () -> Unit,
+    onApprove: (String) -> Unit,
+    onDeny: (String) -> Unit,
+    onRemember: (String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    systemWindow: Boolean = false,
 ) {
     val finished = status?.finished == true && approval == null
     val content: BoardContent = when {
@@ -612,11 +591,11 @@ internal fun AutomationToast(
         else -> BoardContent.Status
     }
 
-    val miuix = false
+    val colors = MochiToastDefaults.colors()
     Surface(
-        color = if (miuix) MaterialTheme.colorScheme.secondaryContainer else KkToastDefaults.color,
-        contentColor = if (miuix) MaterialTheme.colorScheme.onSecondaryContainer else KkToastDefaults.contentColor,
-        shape = RoundedCornerShape(24.dp),
+        color = colors.container,
+        contentColor = colors.content,
+        shape = MochiTheme.shapes.full,
         modifier = modifier
             .widthIn(max = heizige.kk.khatkit.uikit.mochi.screenSizeMin * 0.85f)
             .heightIn(min = 48.dp)
@@ -632,7 +611,8 @@ internal fun AutomationToast(
             label = "automationToastContent",
         ) { target ->
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = if (target is BoardContent.Approval) Modifier.padding(start = 16.dp, end = 4.dp)
+                    else Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {
@@ -673,11 +653,11 @@ internal fun AutomationToast(
                             )
                         }
                         Spacer(Modifier.width(8.dp))
-                        ApprovalButtonGroup(
-                            onApprove = onApprove,
-                            onDeny = onDeny,
-                            onRemember = onRemember,
-                        )
+                        // Never leave an actionable menu attached to a request that is animating out.
+                        if (target.request.id == approval?.id) {
+                            val id = target.request.id
+                            ApprovalButtons(systemWindow, { onApprove(id) }, { onDeny(id) }, { onRemember(id) })
+                        }
                     }
 
                     BoardContent.Status -> {
@@ -708,141 +688,6 @@ internal fun AutomationToast(
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-/** 授权按钮尺寸：紧凑适配 Toast（32dp 触摸区，16dp 图标）。 */
-private val ApprovalButtonSize = 32.dp
-
-/**
- * 授权操作组：官方 MD3 [ButtonGroup] + connected 形状，固定 2 项：
- * ✗（拒绝，leading）/ ✓（允许，trailing）。✓ 单击即允许本次，长按弹出
- * 「仅本次允许 / 10 分钟内自动允许」菜单；关闭最小交互尺寸约束以保持
- * Toast 紧凑（按钮与图标均为小尺寸）。
- */
-@Composable
-private fun ApprovalButtonGroup(
-    onApprove: () -> Unit,
-    onDeny: () -> Unit,
-    onRemember: () -> Unit,
-) {
-    
-    val leadingShapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
-    val trailingShapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
-    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-        ButtonGroup(
-            overflowIndicator = { menuState ->
-                ButtonGroupDefaults.OverflowIndicator(menuState = menuState)
-            },
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-        ) {
-            customItem(
-                buttonGroupContent = {
-                    ToggleButton(
-                        checked = false,
-                        onCheckedChange = { onDeny() },
-                        shapes = leadingShapes,
-                        colors = ToggleButtonDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError,
-                        ),
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(ApprovalButtonSize),
-                    ) {
-                        Icon(
-                            imageVector = close,
-                            contentDescription = "拒绝",
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                },
-                menuContent = { },
-            )
-            customItem(
-                buttonGroupContent = {
-                    ApproveButton(
-                        shapes = trailingShapes,
-                        onApprove = onApprove,
-                        onRemember = onRemember,
-                    )
-                },
-                menuContent = { },
-            )
-        }
-    }
-}
-
-/**
- * ✓ 允许按钮：外观沿用 MD3 [ToggleButton]（connected trailing 形状、primary 配色及
- * 按压形变/涟漪），指针事件交给上层透明 [Box] 的 combinedClickable：单击允许本次，
- * 长按弹出与 Toast 深色反色底一致的 Mochi 菜单；两者共享 interactionSource 且
- * combinedClickable 不附带 indication，避免双层涟漪。
- */
-@Composable
-private fun ApproveButton(
-    shapes: ToggleButtonShapes,
-    onApprove: () -> Unit,
-    onRemember: () -> Unit,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Box(modifier = Modifier.size(ApprovalButtonSize)) {
-        ToggleButton(
-            checked = false,
-            onCheckedChange = { },
-            shapes = shapes,
-            colors = ToggleButtonDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            contentPadding = PaddingValues(0.dp),
-            interactionSource = interactionSource,
-            modifier = Modifier
-                .size(ApprovalButtonSize)
-                .clearAndSetSemantics { },
-        ) {
-            Icon(
-                imageVector = check,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .semantics { contentDescription = "允许" }
-                .combinedClickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClickLabel = "仅本次允许",
-                    onLongClickLabel = "更多允许选项",
-                    onLongClick = { menuExpanded = true },
-                    onClick = onApprove,
-                ),
-        ) {
-            // 系统悬浮看板是 wrap-content 窗口，不具备 Mochi 原生菜单需要的全屏 Activity 宿主。
-            MochiMenuPopup(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                containerColor = KkToastDefaults.color,
-            ) {
-                MochiMenuRow(
-                    text = { Text(text = "仅本次允许", color = KkToastDefaults.contentColor, maxLines = 1) },
-                    onClick = {
-                        menuExpanded = false
-                        onApprove()
-                    },
-                )
-                MochiMenuRow(
-                    text = { Text(text = "10 分钟内自动允许", color = KkToastDefaults.contentColor, maxLines = 1) },
-                    onClick = {
-                        menuExpanded = false
-                        onRemember()
-                    },
-                )
             }
         }
     }

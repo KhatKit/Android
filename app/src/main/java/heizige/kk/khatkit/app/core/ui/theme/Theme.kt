@@ -89,6 +89,7 @@ enum class ColorMode {
 fun KhatKitTheme(
     colorMode: ColorMode = rememberCurrentColorMode(),
     hostNotices: Boolean = true,
+    compactWindow: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val settings by rememberUserSettingsState()
@@ -244,7 +245,7 @@ fun KhatKitTheme(
                 ) {
                     // U4f1：全局 Toast 宿主（Mochi 胶囊）。Toast.show() 的跨页面提示都落在这里，
                     // 新的提示替换旧的，不堆叠；host 只吃胶囊区域的触摸。
-                    androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.layout.Box(modifier = if (compactWindow) androidx.compose.ui.Modifier else androidx.compose.ui.Modifier.fillMaxSize()) {
                         content()
                         if (outerReveal == null && hostNotices) heizige.kk.khatkit.uikit.mochi.KkToastHost()
                     }
@@ -254,7 +255,7 @@ fun KhatKitTheme(
     }
     }
     CompositionLocalProvider(LocalKkThemeReveal provides reveal) {
-        if (outerReveal == null) {
+        if (outerReveal == null && !compactWindow) {
             MochiThemeRevealHost(reveal, androidx.compose.ui.Modifier.fillMaxSize(), themed)
         } else {
             themed()
