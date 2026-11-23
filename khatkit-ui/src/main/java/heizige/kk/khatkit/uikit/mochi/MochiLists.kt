@@ -42,13 +42,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import kotlinx.collections.immutable.persistentListOf
+import ui.feice.mochi.basic.MochiDialog as NativeMochiDialog
 
 /**
  * P4c：Kedge 列表行 / 弹层 / 菜单 / 反馈族的 Mochi 版。
  *
  * 参数名沿用旧 Kedge 组件，调用点只改名字。弹层用 androidx.compose.ui.window.Popup
  * （不是 material3 Dialog/ModalBottomSheet，也不是 Kedge 的 Miuix sheet）：
- *  - [MochiModalBottomSheet] / [MochiDialog]：Popup + Mochi 表面色 + 圆角，点外部关闭；
+ *  - [MochiDialog]：保留旧内容槽，由 Mochi 对话框渲染；
  *  - [MochiMenuPopup] / [MochiMenuRow]：Popup 内的菜单列表；
  *  - [MochiSnackbarHost]：底部 Mochi 胶囊条。
  * 弹层里的滚动容器一律由调用方给（BottomSheetScrollSourceGuardTest 仍按原约束校验）。
@@ -120,7 +122,7 @@ fun MochiModalBottomSheet(
     }
 }
 
-/** 对话框（Popup + Mochi 表面）。 */
+/** 自带操作按钮的旧内容槽，使用 Mochi 的窗口、遮罩和开关动效。 */
 @Composable
 fun MochiDialog(
     show: Boolean,
@@ -130,22 +132,16 @@ fun MochiDialog(
     summary: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (!show) return
-    Popup(onDismissRequest = onDismissRequest, properties = PopupProperties(focusable = true)) {
-        Column(
-            modifier = modifier
-                .background(MochiTheme.colorScheme.surfaceContainer, MochiTheme.shapes.extraLarge)
-                .padding(20.dp),
-        ) {
-            title?.let {
-                Text(text = it, color = MochiTheme.colorScheme.onSurface, style = MochiTheme.textStyles.titleLarge)
-            }
-            summary?.let {
-                Text(text = it, color = MochiTheme.colorScheme.onSurfaceVariant, style = MochiTheme.textStyles.body)
-            }
-            content()
-        }
-    }
+    NativeMochiDialog(
+        visible = show,
+        title = title.orEmpty(),
+        message = summary,
+        actions = persistentListOf(),
+        modifier = modifier,
+        dismissOnOutsideTap = true,
+        onDismissRequest = onDismissRequest,
+        content = content,
+    )
 }
 
 /** 菜单项数据。 */
