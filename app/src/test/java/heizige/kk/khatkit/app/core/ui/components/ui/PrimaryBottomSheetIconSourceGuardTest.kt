@@ -286,7 +286,8 @@ class PrimaryBottomSheetIconSourceGuardTest {
             // U7b-5：ReasoningPicker:143 与 ChatInput ASR 提示改成 MochiDialog（短提示语义），62 → 60。
             // U7b-6：八处 + LanguageSelectionDialog + AssistantPickerSheet 双实现直连 MochiSheet，60 → 49。
             // C2：删除 KhatKitPermissionSheet/RecordCardSheet（无调用点死代码），调用点 49 → 47。
-            47,
+            // 之后「更多选项」和 UiRequest.Confirm 移出，终端设置新增一处：47 - 2 + 1。
+            46,
             sites.size,
         )
         assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })

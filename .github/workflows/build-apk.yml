@@ -69,7 +69,7 @@ jobs:
           # CI 里 publish 的版本漂移（之前手写的 0.2.0/0.3.0 不一致导致 jitpack 401）。
           MOCHI_VERSION="$(sed -nE 's/^mochi[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -1)"
           [ -n "$MOCHI_VERSION" ] || { echo "::error::mochi version not found in gradle/libs.versions.toml"; exit 1; }
-          BASE="${MOCHI_VERSION%-khatkit}"
+          BASE="${MOCHI_VERSION%%-khatkit*}"
           CLONE_ARGS=(--depth 1)
           if git ls-remote --tags https://github.com/feice11/mochi-compose.git "refs/tags/v$BASE" | grep -q .; then
             CLONE_ARGS+=(--branch "v$BASE")
@@ -134,7 +134,7 @@ jobs:
           # CI 里 publish 的版本漂移（之前手写的 0.2.0/0.3.0 不一致导致 jitpack 401）。
           MOCHI_VERSION="$(sed -nE 's/^mochi[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -1)"
           [ -n "$MOCHI_VERSION" ] || { echo "::error::mochi version not found in gradle/libs.versions.toml"; exit 1; }
-          BASE="${MOCHI_VERSION%-khatkit}"
+          BASE="${MOCHI_VERSION%%-khatkit*}"
           CLONE_ARGS=(--depth 1)
           if git ls-remote --tags https://github.com/feice11/mochi-compose.git "refs/tags/v$BASE" | grep -q .; then
             CLONE_ARGS+=(--branch "v$BASE")

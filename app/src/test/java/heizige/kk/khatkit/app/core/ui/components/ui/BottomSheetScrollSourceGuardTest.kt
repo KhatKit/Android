@@ -327,7 +327,8 @@ class BottomSheetScrollSourceGuardTest {
                 "新增调用点请确认它在扫描范围内，然后更新本数字并说明新增位置",
             // ChatWelcome adds a bounded, self-scrolling widget manager (scrollable = false).
             // C2：删除 KhatKitPermissionSheet/RecordCardSheet（无调用点死代码），调用点 49 → 47。
-            47,
+            // 之后「更多选项」和 UiRequest.Confirm 移出，终端设置新增一处：47 - 2 + 1。
+            46,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }

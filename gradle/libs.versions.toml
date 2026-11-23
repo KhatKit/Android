@@ -75,7 +75,7 @@ diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
 # 本地源码库产物（mavenLocal，由 mochi-compose main + .github/scripts/patch-mochi.py 生成；见 docs/mochi-migration-plan.md §12）
-mochi = "0.2.0-khatkit"
+mochi = "0.2.0-khatkit.1"
 richeditorCompose = "1.0.0"
 
 [libraries]

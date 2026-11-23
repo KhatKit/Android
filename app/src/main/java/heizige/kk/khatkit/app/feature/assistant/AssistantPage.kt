@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -521,28 +519,29 @@ private fun AssistantCreationSheet(
         confirmText = stringResource(R.string.assistant_page_save),
         onConfirm = state::confirm,
         onDismiss = state::dismiss,
-        scrollable = false,
     ) {
         state.EditStateContent { assistant, update ->
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 520.dp)
-                    .verticalScroll(rememberScrollState())
-                    .imePadding()
-                    // UI-1：PrimarySheetShell 已经给了 16dp 左右 + 16dp 上下内边距，这里再给
-                    // 16/32 会让内容和面板边距变成 32/48dp（按钮因此比内容区宽、被面板裁掉）。
-                    .padding(horizontal = 0.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                val templates = listOf("自定义角色", "Kitty")
+                val kitty = RoleTemplates.kitty(modelId = assistant.chatModelId, id = assistant.id)
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    // 模板胶囊 → 头像 → 表单行的间距统一到 Mochi 的 16dp
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    val templates = listOf("自定义角色", "Kitty")
-                    val kitty = RoleTemplates.kitty(modelId = assistant.chatModelId, id = assistant.id)
+                    UIAvatar(
+                        value = assistant.avatar,
+                        name = assistant.name,
+                        avatarShape = assistant.avatarShape,
+                        defaultIconName = settings.findModelProviderName(assistant.chatModelId ?: settings.chatModelId),
+                        avatarColor = assistant.avatarColor,
+                        onUpdate = { update(assistant.copy(avatar = it)) },
+                        modifier = Modifier.size(64.dp),
+                    )
                     Select(
                         options = templates,
                         selectedOption = if (assistant.systemPrompt == kitty.systemPrompt) templates[1] else templates[0],
@@ -555,72 +554,60 @@ private fun AssistantCreationSheet(
                                 enableRecentChatsReference = true,
                             ))
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    UIAvatar(
-                        value = assistant.avatar,
-                        name = assistant.name,
-                        avatarShape = assistant.avatarShape,
-                        defaultIconName = settings.findModelProviderName(
-                            assistant.chatModelId ?: settings.chatModelId
-                        ),
-                        avatarColor = assistant.avatarColor,
-                        onUpdate = { update(assistant.copy(avatar = it)) },
-                        // UI-1：表单里的头像按 Mochi 表单尺度给 96dp（原来 64dp，比标题还小一圈）
-                        modifier = Modifier.size(96.dp),
-                    )
-                    // UI-1：角色名称原来套了一层「卡片里放标题 + 一个没有 label 的空框」，
-                    // 屏幕上就是「角色名称」四个字下面再一个空框，而且框高被压到 56dp 以下。
-                    // 现在和「职责描述」同一套：单行 outlined field，label + placeholder 都在框内，
-                    // 高度走 MD3 的 56dp 最小高。
-                    Md3OutlinedTextField(
-                        value = assistant.name,
-                        onValueChange = {
-                            update(
-                                assistant.copy(
-                                    name = it
-                                )
-                            )
-                        },
-                        label = stringResource(R.string.assistant_page_name),
-                        placeholder = "输入角色名称",
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                    )
-
-                    Md3OutlinedTextField(
-                        value = assistant.description,
-                        onValueChange = { update(assistant.copy(description = it)) },
-                        label = "职责描述",
-                        placeholder = "输入职责描述",
-                        minLines = 1,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                    )
-                    ModelSelector(
-                        modelId = assistant.chatModelId,
-                        providers = settings.providers,
-                        type = ModelType.CHAT,
-                        onSelect = { update(assistant.copy(chatModelId = it.id)) },
-                    )
-                    ReasoningButton(
-                        reasoningLevel = assistant.reasoningLevel,
-                        onUpdateReasoningLevel = { update(assistant.copy(reasoningLevel = it)) },
-                    )
-                    AssistantImporter(
-                        assistant = assistant,
-                        onUpdate = {
-                            update(it)
-                            state.confirm()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                     )
                 }
+                // UI-1：角色名称原来套了一层「卡片里放标题 + 一个没有 label 的空框」，
+                // 屏幕上就是「角色名称」四个字下面再一个空框，而且框高被压到 56dp 以下。
+                // 现在和「职责描述」同一套：单行 outlined field，label + placeholder 都在框内，
+                // 高度走 MD3 的 56dp 最小高。
+                Md3OutlinedTextField(
+                    value = assistant.name,
+                    onValueChange = {
+                        update(
+                            assistant.copy(
+                                name = it
+                            )
+                        )
+                    },
+                    label = stringResource(R.string.assistant_page_name),
+                    placeholder = "输入角色名称",
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                )
+
+                Md3OutlinedTextField(
+                    value = assistant.description,
+                    onValueChange = { update(assistant.copy(description = it)) },
+                    label = "职责描述",
+                    placeholder = "输入职责描述",
+                    minLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                ModelSelector(
+                    modelId = assistant.chatModelId,
+                    providers = settings.providers,
+                    type = ModelType.CHAT,
+                    onSelect = { update(assistant.copy(chatModelId = it.id)) },
+                )
+                ReasoningButton(
+                    reasoningLevel = assistant.reasoningLevel,
+                    onUpdateReasoningLevel = { update(assistant.copy(reasoningLevel = it)) },
+                )
+                AssistantImporter(
+                    assistant = assistant,
+                    onUpdate = {
+                        update(it)
+                        state.confirm()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }

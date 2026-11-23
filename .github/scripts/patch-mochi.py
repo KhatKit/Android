@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Patch upstream Mochi v0.2.0 sources with the small API additions that the
-KhatKit app was built against (local `0.2.0-khatkit` artifact):
+KhatKit app was built against (see the version catalog for the local artifact):
   1. MochiChip: `labelContent` / `trailingContent` slots
   2. MochiItem: `enabled` flag (+ dimmed/disabled rendering in MenuList)
   3. MochiButton: 不再吞掉拖动事件 —— 否则按在 chip 上左右拖不会滚动 MochiChipGroup 的横向分类栏
      （只能抓 chip 之间的空隙），同时把「拖过 touchSlop 就不算点击」补上，避免滚动时误选中 chip
   4. Dropdown/popover placement respects the IME as well as the navigation bar.
+  5. Sheet lists and nested navigation measure the visible detent, not the tallest one.
 
 Usage: python3 .github/scripts/patch-mochi.py <mochi-checkout-dir>
 """
@@ -167,5 +168,47 @@ for rel in ("menu/DropdownOverlay.kt", "MochiPopover.kt"):
             WindowInsets.ime.getBottom(density),
         ).toFloat()""",
     )
+
+# Medium and Large share a surface, not a viewport height. Keep Mochi's clipping,
+# overscroll and navigation bar treatment; use the same surface bounds for layout.
+sheet = "mochi-compose/src/main/java/ui/feice/mochi/basic/MochiSheet.kt"
+patch(
+    sheet,
+    """                height = {
+                    val frame = sheetFrame(state.width, state.height.roundToInt(), state.top.value, state.largeness, inset)
+                    val highest = state.detents.minOf { state.topOf(it) }
+                    val fixedHeight = (state.height - highest).coerceAtLeast(0f).roundToInt()
+                    sheetSurfaceHeight(frame, fixedHeight, state.fillsBottom)
+                },
+                contentHeight = {
+                    val highest = state.detents.minOf { state.topOf(it) }
+                    val bottomGap = if (MochiSheetDetent.Large in state.detents) 0f else inset
+                    ((state.height - highest - bottomGap).coerceAtLeast(0f).roundToInt() - navigationBottom).coerceAtLeast(0)
+                },""",
+    """                height = surfaceHeight,
+                contentHeight = { (surfaceHeight() - navigationBottom).coerceAtLeast(0) },""",
+)
+patch(
+    sheet,
+    """            MochiNavSurface(""",
+    """            val surfaceHeight = {
+                val frame = sheetFrame(state.width, state.height.roundToInt(), state.top.value, state.largeness, inset)
+                val highest = state.detents.minOf { state.topOf(it) }
+                sheetSurfaceHeight(frame, (state.height - highest).coerceAtLeast(0f).roundToInt(), state.fillsBottom)
+            }
+            MochiNavSurface(""",
+)
+patch(
+    sheet,
+    """                                .layout { m, c ->
+                                    // 内容沿用原来的固定测量高度；底部补齐仅由表面在停稳后处理。
+                                    val highest = state.detents.minOf { state.topOf(it) }
+                                    val bottomGap = if (MochiSheetDetent.Large in state.detents) 0f else inset
+                                    val h = (state.height - highest - bottomGap).coerceAtLeast(0f).roundToInt()
+                                    val p = m.measure(Constraints.fixed(c.maxWidth, h))
+                                    layout(c.maxWidth, c.maxHeight) { p.place(0, 0) }
+                                }""",
+    """                                .fillMaxSize()""",
+)
 
 print("mochi patched OK")
