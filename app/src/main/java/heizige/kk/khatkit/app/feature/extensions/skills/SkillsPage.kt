@@ -39,6 +39,8 @@ import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -91,8 +93,9 @@ fun SkillsPage() {
     val skillsPageImportFailed = stringResource(R.string.skills_page_import_failed)
     val skillsPageSaveFailed = stringResource(R.string.skills_page_save_failed)
     val importSheet = rememberMochiSheetState()
-    var showAddDialog by rememberSaveable { mutableStateOf(false) }
-    var showImportDialog by rememberSaveable { mutableStateOf(false) }
+    var form by rememberSaveable { mutableStateOf<SkillImportSource?>(null) }
+    var formVisible by rememberSaveable { mutableStateOf(false) }
+    var formSession by rememberSaveable { mutableIntStateOf(0) }
     var deleteTarget by remember { mutableStateOf<SkillMetadata?>(null) }
     var invalidDeleteTarget by remember { mutableStateOf<InvalidSkillDir?>(null) }
     val fileImportLauncher = rememberLauncherForActivityResult(
@@ -211,42 +214,43 @@ fun SkillsPage() {
 
     SkillImportSheet(importSheet) { source ->
         when (source) {
-            SkillImportSource.Manual -> showAddDialog = true
             SkillImportSource.File -> fileImportLauncher.launch(
                 arrayOf("text/*", "application/zip", "application/x-zip-compressed", "application/octet-stream")
             )
-            SkillImportSource.GitHub -> showImportDialog = true
+            SkillImportSource.Manual, SkillImportSource.GitHub -> {
+                formSession++
+                form = source
+                formVisible = true
+            }
         }
     }
 
-    if (showAddDialog) {
-        AddSkillDialog(
-            onDismiss = { showAddDialog = false },
-            onConfirm = { name, content ->
-                vm.saveSkill(name, content) { success ->
-                    showAddDialog = false
-                    if (!success) {
-                        Toast.show(skillsPageSaveFailed)
+    // Keep the outgoing form/draft for Mochi's exit. Even the same source gets a fresh session on reopen.
+    key(formSession) {
+        val session = formSession
+        when (form) {
+            SkillImportSource.Manual -> AddSkillDialog(
+                visible = formVisible, onDismiss = { formVisible = false },
+                onConfirm = { name, content, done ->
+                    vm.saveSkill(name, content) { success ->
+                        done()
+                        if (success && formSession == session) formVisible = false
+                        if (!success) Toast.show(skillsPageSaveFailed)
                     }
-                }
-            },
-        )
-    }
-
-    if (showImportDialog) {
-        ImportSkillDialog(
-            onDismiss = { showImportDialog = false },
-            onConfirm = { repoUrl ->
-                vm.importSkillFromGitHub(repoUrl) { success, message ->
-                    showImportDialog = false
-                    if (success) {
-                        Toast.show(String.format(skillsPageImportSuccess, message))
-                    } else {
-                        Toast.show(String.format(skillsPageImportFailed, message))
+                },
+            )
+            SkillImportSource.GitHub -> ImportSkillDialog(
+                visible = formVisible, onDismiss = { formVisible = false },
+                onConfirm = { url, done ->
+                    vm.importSkillFromGitHub(url) { success, message ->
+                        done()
+                        if (success && formSession == session) formVisible = false
+                        Toast.show(String.format(if (success) skillsPageImportSuccess else skillsPageImportFailed, message))
                     }
-                }
-            },
-        )
+                },
+            )
+            else -> Unit
+        }
     }
 
     RikkaConfirmDialog(
@@ -541,10 +545,12 @@ private fun SkillImportSheetItem(
 
 @Composable
 private fun AddSkillDialog(
+    visible: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (name: String, content: String) -> Unit,
+    onConfirm: (name: String, content: String, done: () -> Unit) -> Unit,
 ) {
     var content by rememberSaveable { mutableStateOf("") }
+    var saving by remember { mutableStateOf(false) }
 
     // 目录名直接取 name，所以这里用 SkillValidator 校验它能不能原样当目录名
     val validation = remember(content) { SkillValidator.validate(content) }
@@ -553,11 +559,13 @@ private fun AddSkillDialog(
     val nameError = content.isNotBlank() && name == null
 
     AppDialog(
-        onDismissRequest = onDismiss,
+        visible = visible,
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(stringResource(R.string.skills_page_add_title)) },
         text = {
             Md3OutlinedTextFieldWithSlots(
                 value = content,
+                enabled = !saving,
                 onValueChange = { content = it },
                 label = { Text(stringResource(R.string.skills_page_skill_content_label)) },
                 placeholder = {
@@ -586,28 +594,30 @@ private fun AddSkillDialog(
         },
         confirmButton = {
             MochiTextButton(
-                onClick = { name?.let { onConfirm(it, content) } },
-                enabled = name != null,
+                onClick = { if (name != null && !saving) { saving = true; onConfirm(name, content) { saving = false } } },
+                enabled = visible && name != null && !saving,
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.skills_page_save))
             }
         },
         dismissButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
+            MochiTextButton(onClick = onDismiss, enabled = !saving, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.cancel)) }
         },
     )
 }
 
 @Composable
 private fun ImportSkillDialog(
+    visible: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (repoUrl: String) -> Unit,
+    onConfirm: (repoUrl: String, done: () -> Unit) -> Unit,
 ) {
     var url by rememberSaveable { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
 
     AppDialog(
+        visible = visible,
         onDismissRequest = { if (!loading) onDismiss() },
         title = { Text(stringResource(R.string.skills_page_import_from_github)) },
         text = {
@@ -646,10 +656,12 @@ private fun ImportSkillDialog(
         confirmButton = {
             MochiTextButton(
                 onClick = {
-                    loading = true
-                    onConfirm(url)
+                    if (!loading) {
+                        loading = true
+                        onConfirm(url) { loading = false }
+                    }
                 },
-                enabled = url.isNotBlank() && !loading,
+                enabled = visible && url.isNotBlank() && !loading,
                 shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.skills_page_import_confirm))

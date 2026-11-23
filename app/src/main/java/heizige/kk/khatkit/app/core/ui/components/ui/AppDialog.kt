@@ -51,10 +51,11 @@ fun AppDialog(
     containerColor: Color? = null,
     tonalElevation: Dp = 0.dp,
     properties: DialogProperties = DialogProperties(),
+    visible: Boolean = true,
 ) {
     // 点外面等同取消：与旧弹窗一致；标题走 content（宿主签名收的是 composable）
     MochiDialog(
-        visible = true,
+        visible = visible,
         onDismissRequest = onDismissRequest,
         title = "",
         actions = persistentListOf(),
