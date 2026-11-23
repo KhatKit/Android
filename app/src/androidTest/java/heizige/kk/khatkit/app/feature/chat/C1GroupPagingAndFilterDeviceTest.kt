@@ -18,6 +18,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
@@ -1162,6 +1163,7 @@ class C1GroupPagingAndFilterDeviceTest {
         val entry = appEntryPoint(appContext)
         val json = JsonInstant
         val memoryRepository = entry.memoryRepository()
+        val usageRecorder = UsageRecorder(database.usageRecordDao())
         return ChatManager(
             context = appContext,
             appScope = AppScope(),
@@ -1169,12 +1171,13 @@ class C1GroupPagingAndFilterDeviceTest {
             settingsStore = settingsStore,
             conversationRepo = repository,
             memoryRepository = memoryRepository,
-            memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), json),
-            generationLoop = GenerationLoop(appContext, entry.providerManager(), json),
-            translationHandler = TranslationHandler(entry.providerManager()),
+            memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), usageRecorder, json),
+            generationLoop = GenerationLoop(appContext, entry.providerManager(), usageRecorder, json),
+            translationHandler = TranslationHandler(entry.providerManager(), usageRecorder),
             templateTransformer = entry.templateTransformer(),
             providerManager = entry.providerManager(),
             chatToolFactory = ChatToolFactory(
+                context = appContext,
                 json = json,
                 memoryRepository = memoryRepository,
                 conversationRepository = repository,
@@ -1190,7 +1193,7 @@ class C1GroupPagingAndFilterDeviceTest {
             workspaceRepository = entry.workspaceRepository(),
             folderRepository = FolderRepository(database.folderDao(), database.conversationDao()),
             placeholderTransformer = PlaceholderTransformer(settingsStore),
-            ocrTransformer = OcrTransformer(appContext, settingsStore, entry.providerManager()),
+            ocrTransformer = OcrTransformer(appContext, settingsStore, entry.providerManager(), usageRecorder),
             base64ImageToLocalFileTransformer = Base64ImageToLocalFileTransformer(entry.filesManager()),
         )
     }

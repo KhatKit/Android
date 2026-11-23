@@ -12,6 +12,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
@@ -192,6 +193,7 @@ class C1GroupRetryResumeDeviceTest {
         val providerManager = entry.providerManager()
         val json = JsonInstant
         val memoryRepository = entry.memoryRepository()
+        val usageRecorder = UsageRecorder(evidenceDatabase.usageRecordDao())
 
         chatManager = ChatManager(
             context = appContext,
@@ -200,12 +202,13 @@ class C1GroupRetryResumeDeviceTest {
             settingsStore = settingsStore,
             conversationRepo = repository,
             memoryRepository = memoryRepository,
-            memoryExtractor = MemoryExtractor(memoryRepository, providerManager, json),
-            generationLoop = GenerationLoop(appContext, providerManager, json),
-            translationHandler = TranslationHandler(providerManager),
+            memoryExtractor = MemoryExtractor(memoryRepository, providerManager, usageRecorder, json),
+            generationLoop = GenerationLoop(appContext, providerManager, usageRecorder, json),
+            translationHandler = TranslationHandler(providerManager, usageRecorder),
             templateTransformer = entry.templateTransformer(),
             providerManager = providerManager,
             chatToolFactory = ChatToolFactory(
+                context = appContext,
                 json = json,
                 memoryRepository = memoryRepository,
                 conversationRepository = repository,
@@ -229,7 +232,7 @@ class C1GroupRetryResumeDeviceTest {
                 evidenceDatabase.conversationDao(),
             ),
             placeholderTransformer = PlaceholderTransformer(settingsStore),
-            ocrTransformer = OcrTransformer(appContext, settingsStore, providerManager),
+            ocrTransformer = OcrTransformer(appContext, settingsStore, providerManager, usageRecorder),
             base64ImageToLocalFileTransformer = Base64ImageToLocalFileTransformer(entry.filesManager()),
         )
         trace("setUp:chatManager-constructed")

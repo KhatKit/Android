@@ -20,6 +20,7 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
 import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
@@ -724,6 +725,7 @@ class C1LiveModelSequenceTest {
         val providerManager = entry.providerManager()
         val json = JsonInstant
         val memoryRepository = entry.memoryRepository()
+        val usageRecorder = UsageRecorder(evidenceDatabase.usageRecordDao())
 
         chatManager = ChatManager(
             context = appContext,
@@ -732,12 +734,13 @@ class C1LiveModelSequenceTest {
             settingsStore = settingsStore,
             conversationRepo = repository,
             memoryRepository = memoryRepository,
-            memoryExtractor = MemoryExtractor(memoryRepository, providerManager, json),
-            generationLoop = GenerationLoop(appContext, providerManager, json),
-            translationHandler = TranslationHandler(providerManager),
+            memoryExtractor = MemoryExtractor(memoryRepository, providerManager, usageRecorder, json),
+            generationLoop = GenerationLoop(appContext, providerManager, usageRecorder, json),
+            translationHandler = TranslationHandler(providerManager, usageRecorder),
             templateTransformer = entry.templateTransformer(),
             providerManager = providerManager,
             chatToolFactory = ChatToolFactory(
+                context = appContext,
                 json = json,
                 memoryRepository = memoryRepository,
                 conversationRepository = repository,
@@ -761,7 +764,7 @@ class C1LiveModelSequenceTest {
                 evidenceDatabase.conversationDao(),
             ),
             placeholderTransformer = PlaceholderTransformer(settingsStore),
-            ocrTransformer = OcrTransformer(appContext, settingsStore, providerManager),
+            ocrTransformer = OcrTransformer(appContext, settingsStore, providerManager, usageRecorder),
             base64ImageToLocalFileTransformer = Base64ImageToLocalFileTransformer(entry.filesManager()),
         )
         trace("setUp:chatManager-constructed")
@@ -2688,7 +2691,7 @@ class C1LiveModelSequenceTest {
         val caseName = "real-memory-isolation"
         val entry = appEntryPoint(appContext)
         val memoryRepository = entry.memoryRepository()
-        val memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), JsonInstant)
+        val memoryExtractor = MemoryExtractor(memoryRepository, entry.providerManager(), UsageRecorder(evidenceDatabase.usageRecordDao()), JsonInstant)
 
         val config = realProviderConfig(caseName, mainBudget)
         val conversationId = insertGroup(caseName, config)
@@ -3109,7 +3112,7 @@ class C1LiveModelSequenceTest {
         val typedOpenAi = rawOpenAi as Provider<ProviderSetting.OpenAI>
         val recordingManager = ProviderManager(client = entry.okHttpClient(), context = appContext)
         recordingManager.registerProvider("openai", RealGatewayRecordingProvider(typedOpenAi, calls))
-        val extractor = MemoryExtractor(memoryRepository, recordingManager, JsonInstant)
+        val extractor = MemoryExtractor(memoryRepository, recordingManager, UsageRecorder(evidenceDatabase.usageRecordDao()), JsonInstant)
 
         val viewerWindows = roles.associateWith { role -> GroupChat.buildContext(role, messages, config) }
         val viewerIds = viewerWindows.mapValues { (_, msgs) -> msgs.map { it.id.toString() }.toSet() }
