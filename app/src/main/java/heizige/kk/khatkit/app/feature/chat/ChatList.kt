@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.ui.components.ui.KkScrollEdgeExtent
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTooltipIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -42,7 +42,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
+import ui.feice.mochi.basic.MochiButtonStyle
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.compose.runtime.Composable
@@ -98,7 +98,6 @@ import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
 import heizige.kk.khatkit.app.core.ui.components.ui.ErrorCardsDisplay
 import heizige.kk.khatkit.app.core.ui.components.ui.ListSelectableItem
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
-import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.hooks.ImeLazyListAutoScroller
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
 import kotlin.math.roundToInt
@@ -110,7 +109,6 @@ import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
 import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
-import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
@@ -637,54 +635,30 @@ private fun ChatListNormal(
                 KkFloatingToolbar(
                     expanded = true,
                 ) {
-                    Tooltip(
+                    MochiTooltipIconButton(
                         text = "Clear selection",
-                    ) {
-                        MochiIconButton(
-                            variant = MochiIconButtonVariant.Filled,
-                            onClick = {
-                                selecting = false
-                                selectedItems.clear()
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(close, null)
-                        }
-                    }
-                    Tooltip(
-                        text = "Select all",
-                    ) {
-                        MochiIconButton(
-                            variant = MochiIconButtonVariant.Filled,
-                            onClick = {
-                                if (selectedItems.isNotEmpty()) {
-                                    selectedItems.clear()
-                                } else {
-                                    selectedItems.addAll(conversation.messageNodes.map { it.id })
-                                }
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(adsClick, null)
-                        }
-                    }
-                    Tooltip(
-                        text = "Confirm",
-                    ) {
-                        MochiIconButton(
-                            variant = MochiIconButtonVariant.Filled,
-                            onClick = {
-                                selecting = false
-                                val messages = conversation.messageNodes.filter { it.id in selectedItems }
-                                if (messages.isNotEmpty()) {
-                                    showExportSheet = true
-                                }
-                            },
-                            shapes = IconButtonDefaults.shapes(),
-                        ) {
-                            Icon(check, null)
-                        }
-                    }
+                        style = MochiButtonStyle.Filled,
+                        onClick = {
+                            selecting = false
+                            selectedItems.clear()
+                        },
+                    ) { Icon(close, null) }
+                    MochiTooltipIconButton(
+                        text = if (selectedItems.isEmpty()) "Select all" else "Deselect all",
+                        style = MochiButtonStyle.Filled,
+                        onClick = {
+                            if (selectedItems.isNotEmpty()) selectedItems.clear()
+                            else selectedItems.addAll(conversation.messageNodes.map { it.id })
+                        },
+                    ) { Icon(adsClick, null) }
+                    MochiTooltipIconButton(
+                        text = stringResource(R.string.confirm),
+                        style = MochiButtonStyle.Filled,
+                        onClick = {
+                            selecting = false
+                            if (conversation.messageNodes.any { it.id in selectedItems }) showExportSheet = true
+                        },
+                    ) { Icon(check, null) }
                 }
             }
 

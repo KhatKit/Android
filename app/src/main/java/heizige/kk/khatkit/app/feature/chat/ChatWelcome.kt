@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import ui.feice.mochi.theme.MochiTheme
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.MochiTooltipIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import androidx.compose.animation.AnimatedVisibility
@@ -30,7 +30,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,8 +48,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,7 +64,6 @@ import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
-import heizige.kk.khatkit.app.core.ui.components.ui.Tooltip
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.check
@@ -307,22 +303,12 @@ private fun ChatWelcome(
  * 语气层级现在只靠字号和留白拉开。
  */
 /**
- * 分区标题行：左边标题，右边一颗 Kedge 图标按钮。
+ * 分区标题行：左边标题，右边一颗长按显示提示的 Mochi 图标按钮。
  *
  * 标题字号刻意抬到 OptionItem 的标题档（`title()` + Medium + onSurface）：
  * 以前用小字号的 footnote + onSurfaceVariant，和下面整组选项行不像同一套东西。
  *
- * 按钮统一走 [MochiIconButton] 并传 `shapes`（与侧边栏、设置页同一口径）：
- * 两级回弹/圆角由组件自己叠，不在这里写死尺寸，免得 Miuix / MD3 两套皮肤
- * 里出现一颗「方角」的按钮。[loading] 时换成转圈，避免「换一换」像没反应。
- *
- * 外边距：按钮本身的最小触摸区是 48dp（Miuix / MD3 的 minimumInteractiveComponentSize），
- * 而标题行只有 24dp 高。若让按钮按 48dp 参与测量，这一行会被撑高 —— 标题上下各多出
- * 12dp，看上去「标题」和下面第一条 item 的间距比 item 之间（12dp）大一倍。
- * 这里用 `Modifier.size(24.dp)` 把**布局高度**压回标题行高：内层 48dp 触摸区不缩
- * （用户要求的「不改内边距」就是这层），只是居中溢出到行外 —— 上下各 12dp 正好落进
- * LazyColumn 的 12dp 间隔里，既不裁切也不吃掉相邻 item 的命中区。
- * 因此标题到第一条 item 的距离 = item 间距 = 12dp。
+ * 保留 24dp 标题布局高度；[loading] 只替换图标，不移动锚点。
  */
 @Composable
 private fun WelcomeSection(
@@ -358,18 +344,11 @@ internal fun WelcomeRefreshButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Tooltip(label) {
-        MochiIconButton(
-            onClick = { if (!loading) onClick() },
-            modifier = modifier.semantics { contentDescription = label },
-            shapes = IconButtonDefaults.shapes(),
-        ) {
-            if (loading) {
-                KkProgressIndicator(modifier = Modifier.size(20.dp))
-            } else {
-                // 编辑 ↔ 完成 这类换图标走 Mochi 的形变图标，不是硬切。
-                MochiMorphIcon(icon, tint = MochiTheme.colorScheme.onSurfaceVariant, size = 20.dp)
-            }
+    MochiTooltipIconButton(label, onClick = onClick, modifier = modifier, enabled = !loading) {
+        if (loading) {
+            KkProgressIndicator(modifier = Modifier.size(20.dp))
+        } else {
+            MochiMorphIcon(icon, tint = MochiTheme.colorScheme.onSurfaceVariant, size = 20.dp)
         }
     }
 }

@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.uikit.mochi.MochiTextTooltipBox
+import heizige.kk.khatkit.uikit.mochi.MochiTooltipIconButton
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryConflict
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryDocument
@@ -147,26 +147,22 @@ internal fun RoleMemoryPanel(
             }, enabled = !busy) { Icon(arrowBack, "返回") }
         },
         actions = {
-                MochiTextTooltipBox("新建主题笔记") {
-                    MochiIconButton(onClick = { newTopic = "" }, enabled = !busy) { Icon(add, "新建主题笔记") }
+            MochiTooltipIconButton("新建主题笔记", onClick = { newTopic = "" }, enabled = !busy) { Icon(add, null) }
+            MochiTooltipIconButton("打开记忆文件夹", onClick = {
+                val uri = DocumentsContract.buildDocumentUri(context.packageName + ".memory.documents", assistant.id.toString())
+                val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                try {
+                    context.startActivity(intent)
+                } catch (_: android.content.ActivityNotFoundException) {
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                            .putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri))
+                    } catch (_: android.content.ActivityNotFoundException) {
+                        Toast.show("未找到系统文件管理器")
+                    }
                 }
-                MochiTextTooltipBox("打开记忆文件夹") {
-                    MochiIconButton(onClick = {
-                        val uri = DocumentsContract.buildDocumentUri(context.packageName + ".memory.documents", assistant.id.toString())
-                        val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: android.content.ActivityNotFoundException) {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                                    .putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri))
-                            } catch (_: android.content.ActivityNotFoundException) {
-                                Toast.show("未找到系统文件管理器")
-                            }
-                        }
-                    }) { Icon(folder, "打开记忆文件夹") }
-                }
+            }) { Icon(folder, null) }
         },
     ) { innerPadding ->
         val current = document

@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -43,6 +45,10 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.basic.MochiActivityIndicator
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiDropdownDefaults
+import ui.feice.mochi.basic.MochiTipPopover
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -309,29 +315,30 @@ fun MochiMenuRow(
     }
 }
 
-/** 文本气泡提示：Mochi 侧退化为「内容 + 长按时的文本气泡」；P6 接 MochiPopover。 */
+/** 短按执行按钮操作，长按展开提示；两种手势由同一颗 Mochi 按钮处理。 */
 @Composable
-fun MochiTextTooltipBox(
+fun MochiTooltipIconButton(
     text: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    style: MochiButtonStyle = MochiButtonStyle.Text,
     content: @Composable () -> Unit,
 ) {
-    var visible by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        Box(modifier = Modifier.clickable(onClick = { visible = !visible })) { content() }
-        if (visible) {
-            Popup(onDismissRequest = { visible = false }, properties = PopupProperties(focusable = false)) {
-                Text(
-                    text = text,
-                    color = MochiTheme.colorScheme.onSurface,
-                    style = MochiTheme.textStyles.footnote,
-                    modifier = Modifier
-                        .background(MochiTheme.colorScheme.surfaceContainerHighest, MochiTheme.shapes.small)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-        }
-    }
+    var visible by remember(enabled) { mutableStateOf(false) }
+    val inBar = LocalKkBarIconButton.current
+    val colors = if (inBar) kkBarButtonColors() else MochiButtonDefaults.colors(style)
+    MochiTipPopover(
+        title = text,
+        visible = visible,
+        onVisibleChange = { visible = it },
+        onClick = onClick,
+        modifier = modifier.semantics { contentDescription = text },
+        enabled = enabled,
+        size = if (inBar) MochiButtonDefaults.BarItemSize else MochiButtonDefaults.IconSize,
+        colors = MochiDropdownDefaults.iconDropdownColors(colors.container, colors.content),
+        buttonContent = content,
+    )
 }
 
 /** Mochi 风格的下拉刷新容器，保留 Material3 的手势状态但替换默认指示器。 */

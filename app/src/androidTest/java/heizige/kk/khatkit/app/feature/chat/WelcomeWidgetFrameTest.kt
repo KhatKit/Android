@@ -18,6 +18,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
@@ -46,6 +51,22 @@ class WelcomeWidgetFrameTest {
 
     @Test fun miuixHeaderRefreshAndAnimatedHeight() = checkFrame(KhatKitUiStyle.MIUIX)
     @Test fun materialHeaderRefreshAndAnimatedHeight() = checkFrame(KhatKitUiStyle.MATERIAL)
+
+    @Test fun longPressOpensTipWithoutRefreshing() {
+        val label = "Refresh widgets"
+        var refreshes = 0
+        compose.setContent {
+            KhatKitTheme {
+                WelcomeRefreshButton(label, heizige.kk.khatkit.app.core.ui.icons.add, false, { refreshes++ })
+            }
+        }
+        val button = compose.onNodeWithContentDescription(label)
+        button.performTouchInput { click() }
+        compose.runOnIdle { assertEquals(1, refreshes) }
+        button.performTouchInput { longClick() }
+        compose.onNodeWithText(label).assertExists()
+        compose.runOnIdle { assertEquals(1, refreshes) }
+    }
 
     @Test fun miuixSpinnerDrawsWithinItsSmallIconSlot() {
         var progress by mutableStateOf<Float?>(null)
@@ -162,7 +183,7 @@ class WelcomeWidgetFrameTest {
         val buttonDuring = refresh.fetchSemanticsNode().boundsInRoot
         assertEquals(buttonBefore, buttonDuring)
         assertEquals(end, compose.onNodeWithTag("widget").fetchSemanticsNode().boundsInRoot.height, 0.5f)
-        refresh.performSemanticsAction(SemanticsActions.OnClick) { it() }
+        refresh.assertIsNotEnabled().performTouchInput { click() }
         compose.runOnIdle { assertEquals("Loading must not submit another refresh", 1, refreshes) }
     }
 }
