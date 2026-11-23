@@ -6,7 +6,6 @@ import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichInputChip
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
-import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.animation.AnimatedVisibility
@@ -35,8 +34,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
-import androidx.compose.material3.ButtonDefaults
+import ui.feice.mochi.basic.MochiDialog
+import ui.feice.mochi.basic.MochiDialogAction
+import ui.feice.mochi.basic.MochiDialogActionRole
+import kotlinx.collections.immutable.persistentListOf
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
@@ -88,6 +89,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -286,16 +289,7 @@ private fun ModeInjectionTab(
         }
     }
 
-    if (editState.isEditing) {
-        editState.currentState?.let { state ->
-            ModeInjectionEditSheet(
-                injection = state,
-                onDismiss = { editState.dismiss() },
-                onConfirm = { editState.confirm() },
-                onEdit = { editState.currentState = it }
-            )
-        }
-    }
+    ModeInjectionEditSheet(editState)
 }
 
 @Composable
@@ -397,104 +391,102 @@ private fun ModeInjectionCard(
 }
 
 @Composable
-private fun ModeInjectionEditSheet(
-    injection: PromptInjection.ModeInjection,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    onEdit: (PromptInjection.ModeInjection) -> Unit
-) {
+private fun ModeInjectionEditSheet(state: EditState<PromptInjection.ModeInjection>) {
     PrimaryBottomSheet(
-        visible = true,
+        visible = state.isEditing,
         title = stringResource(R.string.prompt_page_edit_mode_injection),
         imageVector = editNote,
         confirmText = stringResource(R.string.prompt_page_confirm),
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
+        onConfirm = state::confirm,
+        onDismiss = state::dismiss,
         scrollable = false,
-    ) { _ ->
+    ) { state.EditStateContent { injection, edit -> ModeInjectionFields(injection, edit) } }
+}
+
+@Composable
+private fun ModeInjectionFields(injection: PromptInjection.ModeInjection, onEdit: (PromptInjection.ModeInjection) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.9f),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f),
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Md3OutlinedTextFieldWithSlots(
-                    value = injection.name,
-                    onValueChange = { onEdit(injection.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
+            Md3OutlinedTextFieldWithSlots(
+                value = injection.name,
+                onValueChange = { onEdit(injection.copy(name = it)) },
+                label = { Text(stringResource(R.string.prompt_page_name)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            )
 
-                MochiSwitchFormRow(
-                    checked = injection.enabled,
-                    onCheckedChange = { onEdit(injection.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                )
+            MochiSwitchFormRow(
+                checked = injection.enabled,
+                onCheckedChange = { onEdit(injection.copy(enabled = it)) },
+                label = { Text(stringResource(R.string.prompt_page_enabled)) },
+            )
 
+            Md3OutlinedTextFieldWithSlots(
+                value = injection.priority.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
+                },
+                label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            Text(
+                stringResource(R.string.prompt_page_injection_position),
+                style = MochiTheme.textStyles.titleMedium
+            )
+            InjectionPositionSelector(
+                position = injection.position,
+                onSelect = { onEdit(injection.copy(position = it)) }
+            )
+
+            AnimatedVisibility(visible = injection.position == InjectionPosition.AT_DEPTH) {
                 Md3OutlinedTextFieldWithSlots(
-                    value = injection.priority.toString(),
+                    value = injection.injectDepth.toString(),
                     onValueChange = {
-                        it.toIntOrNull()?.let { p -> onEdit(injection.copy(priority = p)) }
+                        it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
                     },
-                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+                    label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(16.dp)
                 )
+            }
 
-                Text(
-                    stringResource(R.string.prompt_page_injection_position),
-                    style = MochiTheme.textStyles.titleMedium
-                )
-                InjectionPositionSelector(
-                    position = injection.position,
-                    onSelect = { onEdit(injection.copy(position = it)) }
-                )
-
-                AnimatedVisibility(visible = injection.position == InjectionPosition.AT_DEPTH) {
-                    Md3OutlinedTextFieldWithSlots(
-                        value = injection.injectDepth.toString(),
-                        onValueChange = {
-                            it.toIntOrNull()?.let { d -> onEdit(injection.copy(injectDepth = d)) }
-                        },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(16.dp)
+            AnimatedVisibility(visible = injection.position.usesStandaloneMessage()) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        stringResource(R.string.prompt_page_injection_role),
+                        style = MochiTheme.textStyles.titleMedium
+                    )
+                    InjectionRoleSelector(
+                        role = injection.role,
+                        onSelect = { onEdit(injection.copy(role = it)) }
                     )
                 }
-
-                AnimatedVisibility(visible = injection.position.usesStandaloneMessage()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(
-                            stringResource(R.string.prompt_page_injection_role),
-                            style = MochiTheme.textStyles.titleMedium
-                        )
-                        InjectionRoleSelector(
-                            role = injection.role,
-                            onSelect = { onEdit(injection.copy(role = it)) }
-                        )
-                    }
-                }
-
-                Md3OutlinedTextFieldWithSlots(
-                    value = injection.content,
-                    onValueChange = { onEdit(injection.copy(content = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    minLines = 5,
-                    shape = RoundedCornerShape(16.dp)
-                )
             }
+
+            Md3OutlinedTextFieldWithSlots(
+                value = injection.content,
+                onValueChange = { onEdit(injection.copy(content = it)) },
+                label = { Text(stringResource(R.string.prompt_page_injection_content)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                minLines = 5,
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }
@@ -673,16 +665,7 @@ private fun LorebookTab(
         }
     }
 
-    if (editState.isEditing) {
-        editState.currentState?.let { state ->
-            LorebookEditSheet(
-                book = state,
-                onDismiss = { editState.dismiss() },
-                onConfirm = { editState.confirm() },
-                onEdit = { editState.currentState = it }
-            )
-        }
-    }
+    LorebookEditSheet(editState)
 }
 
 @Composable
@@ -797,12 +780,20 @@ private fun LorebookCard(
 }
 
 @Composable
-private fun LorebookEditSheet(
-    book: Lorebook,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    onEdit: (Lorebook) -> Unit
-) {
+private fun LorebookEditSheet(state: EditState<Lorebook>) {
+    PrimaryBottomSheet(
+        visible = state.isEditing,
+        title = stringResource(R.string.prompt_page_edit_lorebook),
+        imageVector = menuBook,
+        confirmText = stringResource(R.string.prompt_page_confirm),
+        onConfirm = state::confirm,
+        onDismiss = state::dismiss,
+        scrollable = false,
+    ) { state.EditStateContent { book, edit -> LorebookFields(book, edit) } }
+}
+
+@Composable
+private fun LorebookFields(book: Lorebook, onEdit: (Lorebook) -> Unit) {
     val entryEditState = useEditState<PromptInjection.RegexInjection> { edited ->
         val index = book.entries.indexOfFirst { it.id == edited.id }
         if (index >= 0) {
@@ -812,90 +803,71 @@ private fun LorebookEditSheet(
         }
     }
 
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.prompt_page_edit_lorebook),
-        imageVector = menuBook,
-        confirmText = stringResource(R.string.prompt_page_confirm),
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
-        scrollable = false,
-    ) { _ ->
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.95f),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.95f),
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Md3OutlinedTextFieldWithSlots(
+                value = book.name,
+                onValueChange = { onEdit(book.copy(name = it)) },
+                label = { Text(stringResource(R.string.prompt_page_name)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            Md3OutlinedTextFieldWithSlots(
+                value = book.description,
+                onValueChange = { onEdit(book.copy(description = it)) },
+                label = { Text(stringResource(R.string.prompt_page_description)) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            )
+
+            MochiSwitchFormRow(
+                checked = book.enabled,
+                onCheckedChange = { onEdit(book.copy(enabled = it)) },
+                label = { Text(stringResource(R.string.prompt_page_enabled)) },
+            )
+
+            // 条目列表
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Md3OutlinedTextFieldWithSlots(
-                    value = book.name,
-                    onValueChange = { onEdit(book.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                Text(
+                    stringResource(R.string.prompt_page_entries_format, book.entries.size),
+                    style = MochiTheme.textStyles.titleMedium
                 )
+                MochiIconButton(onClick = {
+                    entryEditState.open(PromptInjection.RegexInjection())
+                },
+                     shapes = IconButtonDefaults.shapes(),) {
+                    Icon(add, stringResource(R.string.prompt_page_add_entry))
+                }
+            }
 
-                Md3OutlinedTextFieldWithSlots(
-                    value = book.description,
-                    onValueChange = { onEdit(book.copy(description = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_description)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                MochiSwitchFormRow(
-                    checked = book.enabled,
-                    onCheckedChange = { onEdit(book.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                )
-
-                // 条目列表
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.prompt_page_entries_format, book.entries.size),
-                        style = MochiTheme.textStyles.titleMedium
-                    )
-                    MochiIconButton(onClick = {
-                        entryEditState.open(PromptInjection.RegexInjection())
-                    },
-                         shapes = IconButtonDefaults.shapes(),) {
-                        Icon(add, stringResource(R.string.prompt_page_add_entry))
+            book.entries.forEach { entry ->
+                RegexInjectionEntryCard(
+                    entry = entry,
+                    onEdit = { entryEditState.open(entry) },
+                    onDelete = {
+                        onEdit(book.copy(entries = book.entries - entry))
                     }
-                }
-
-                book.entries.forEach { entry ->
-                    RegexInjectionEntryCard(
-                        entry = entry,
-                        onEdit = { entryEditState.open(entry) },
-                        onDelete = {
-                            onEdit(book.copy(entries = book.entries - entry))
-                        }
-                    )
-                }
+                )
             }
         }
     }
 
-    if (entryEditState.isEditing) {
-        entryEditState.currentState?.let { state ->
-            RegexInjectionEditDialog(
-                entry = state,
-                onDismiss = { entryEditState.dismiss() },
-                onConfirm = { entryEditState.confirm() },
-                onEdit = { entryEditState.currentState = it }
-            )
-        }
-    }
+    RegexInjectionEditDialog(entryEditState)
 }
 
 @Composable
@@ -949,194 +921,183 @@ private fun RegexInjectionEntryCard(
     }
 }
 
+@Composable
+private fun RegexInjectionEditDialog(state: EditState<PromptInjection.RegexInjection>) {
+    val canSave = state.currentState?.let { it.keywords.isNotEmpty() || it.constantActive } == true
+    MochiDialog(
+        visible = state.isEditing,
+        onDismissRequest = state::dismiss,
+        dismissOnOutsideTap = true,
+        title = stringResource(R.string.prompt_page_edit_entry),
+        actions = persistentListOf(
+            MochiDialogAction(stringResource(R.string.prompt_page_cancel), role = MochiDialogActionRole.Cancel),
+            MochiDialogAction(stringResource(R.string.prompt_page_confirm), role = MochiDialogActionRole.Primary,
+                enabled = canSave, onClick = state::confirm),
+        ),
+    ) { state.EditStateContent { entry, edit -> RegexInjectionFields(entry, edit) } }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RegexInjectionEditDialog(
-    entry: PromptInjection.RegexInjection,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    onEdit: (PromptInjection.RegexInjection) -> Unit
-) {
+private fun RegexInjectionFields(entry: PromptInjection.RegexInjection, onEdit: (PromptInjection.RegexInjection) -> Unit) {
     var newKeyword by remember { mutableStateOf("") }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .imePadding(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Md3OutlinedTextFieldWithSlots(
+            value = entry.name,
+            onValueChange = { onEdit(entry.copy(name = it)) },
+            label = { Text(stringResource(R.string.prompt_page_name)) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
 
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.prompt_page_edit_entry)) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .imePadding(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Md3OutlinedTextFieldWithSlots(
-                    value = entry.name,
-                    onValueChange = { onEdit(entry.copy(name = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                )
+        MochiSwitchFormRow(
+            checked = entry.enabled,
+            onCheckedChange = { onEdit(entry.copy(enabled = it)) },
+            label = { Text(stringResource(R.string.prompt_page_enabled)) },
+        )
 
-                MochiSwitchFormRow(
-                    checked = entry.enabled,
-                    onCheckedChange = { onEdit(entry.copy(enabled = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_enabled)) },
-                )
+        Md3OutlinedTextFieldWithSlots(
+            value = entry.priority.toString(),
+            onValueChange = {
+                it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
+            },
+            label = { Text(stringResource(R.string.prompt_page_priority_label)) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(16.dp)
+        )
 
-                Md3OutlinedTextFieldWithSlots(
-                    value = entry.priority.toString(),
-                    onValueChange = {
-                        it.toIntOrNull()?.let { p -> onEdit(entry.copy(priority = p)) }
-                    },
-                    label = { Text(stringResource(R.string.prompt_page_priority_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(16.dp)
-                )
+        Text(
+            stringResource(R.string.prompt_page_injection_position),
+            style = MochiTheme.textStyles.titleMedium
+        )
+        InjectionPositionSelector(
+            position = entry.position,
+            onSelect = { onEdit(entry.copy(position = it)) }
+        )
 
-                Text(
-                    stringResource(R.string.prompt_page_injection_position),
-                    style = MochiTheme.textStyles.titleMedium
-                )
-                InjectionPositionSelector(
-                    position = entry.position,
-                    onSelect = { onEdit(entry.copy(position = it)) }
-                )
+        AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
+            Md3OutlinedTextFieldWithSlots(
+                value = entry.injectDepth.toString(),
+                onValueChange = {
+                    it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
+                },
+                label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
 
-                AnimatedVisibility(visible = entry.position == InjectionPosition.AT_DEPTH) {
-                    Md3OutlinedTextFieldWithSlots(
-                        value = entry.injectDepth.toString(),
-                        onValueChange = {
-                            it.toIntOrNull()?.let { d -> onEdit(entry.copy(injectDepth = d)) }
-                        },
-                        label = { Text(stringResource(R.string.prompt_page_inject_depth)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                }
-
-                // 关键词
-                Text(stringResource(R.string.prompt_page_keywords_label), style = MochiTheme.textStyles.titleMedium)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    entry.keywords.forEach { keyword ->
-                        KkRichInputChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(keyword) },
-                            trailingIcon = {
-                                MochiIconButton(
-                                    onClick = {
-                                        onEdit(entry.copy(keywords = entry.keywords - keyword))
-                                    },
-                                    modifier = Modifier.size(16.dp),
-                                    shapes = IconButtonDefaults.shapes(),
-                                ) {
-                                    Icon(close, null, modifier = Modifier.size(12.dp))
-                                }
-                            }
-                        )
+        // 关键词
+        Text(stringResource(R.string.prompt_page_keywords_label), style = MochiTheme.textStyles.titleMedium)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            entry.keywords.forEach { keyword ->
+                KkRichInputChip(
+                    selected = false,
+                    onClick = {},
+                    label = { Text(keyword) },
+                    trailingIcon = {
+                        MochiIconButton(
+                            onClick = {
+                                onEdit(entry.copy(keywords = entry.keywords - keyword))
+                            },
+                            modifier = Modifier.size(16.dp),
+                            shapes = IconButtonDefaults.shapes(),
+                        ) {
+                            Icon(close, null, modifier = Modifier.size(12.dp))
+                        }
                     }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Md3OutlinedTextFieldWithSlots(
-                        value = newKeyword,
-                        onValueChange = { newKeyword = it },
-                        label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    MochiIconButton(
-                        onClick = {
-                            if (newKeyword.isNotBlank()) {
-                                onEdit(entry.copy(keywords = entry.keywords + newKeyword.trim()))
-                                newKeyword = ""
-                            }
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                    ) {
-                        Icon(add, stringResource(R.string.prompt_page_add))
-                    }
-                }
-
-                MochiSwitchFormRow(
-                    checked = entry.useRegex,
-                    onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_use_regex)) },
                 )
-
-                MochiSwitchFormRow(
-                    checked = entry.caseSensitive,
-                    onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
-                )
-
-                MochiSwitchFormRow(
-                    checked = entry.constantActive,
-                    onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_constant_active)) },
-                    description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
-                )
-
-                Md3OutlinedTextFieldWithSlots(
-                    value = entry.scanDepth.toString(),
-                    onValueChange = {
-                        it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
-                    },
-                    label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(16.dp)
-                )
-
-                AnimatedVisibility(visible = entry.position.usesStandaloneMessage()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            stringResource(R.string.prompt_page_injection_role),
-                            style = MochiTheme.textStyles.titleMedium
-                        )
-                        InjectionRoleSelector(
-                            role = entry.role,
-                            onSelect = { onEdit(entry.copy(role = it)) }
-                        )
-                    }
-                }
-
-                Md3OutlinedTextFieldWithSlots(
-                    value = entry.content,
-                    onValueChange = { onEdit(entry.copy(content = it)) },
-                    label = { Text(stringResource(R.string.prompt_page_injection_content)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    minLines = 4,
-                    shape = RoundedCornerShape(16.dp)
-                )
-            }
-        },
-        confirmButton = {
-            val canSave = entry.keywords.isNotEmpty() || entry.constantActive
-            MochiTextButton(
-                onClick = onConfirm,
-                enabled = canSave,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.prompt_page_confirm))
-            }
-        },
-        dismissButton = {
-            MochiTextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.prompt_page_cancel))
             }
         }
-    )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Md3OutlinedTextFieldWithSlots(
+                value = newKeyword,
+                onValueChange = { newKeyword = it },
+                label = { Text(stringResource(R.string.prompt_page_new_keyword)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp)
+            )
+            MochiIconButton(
+                onClick = {
+                    if (newKeyword.isNotBlank()) {
+                        onEdit(entry.copy(keywords = entry.keywords + newKeyword.trim()))
+                        newKeyword = ""
+                    }
+                },
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                Icon(add, stringResource(R.string.prompt_page_add))
+            }
+        }
+
+        MochiSwitchFormRow(
+            checked = entry.useRegex,
+            onCheckedChange = { onEdit(entry.copy(useRegex = it)) },
+            label = { Text(stringResource(R.string.prompt_page_use_regex)) },
+        )
+
+        MochiSwitchFormRow(
+            checked = entry.caseSensitive,
+            onCheckedChange = { onEdit(entry.copy(caseSensitive = it)) },
+            label = { Text(stringResource(R.string.prompt_page_case_sensitive)) },
+        )
+
+        MochiSwitchFormRow(
+            checked = entry.constantActive,
+            onCheckedChange = { onEdit(entry.copy(constantActive = it)) },
+            label = { Text(stringResource(R.string.prompt_page_constant_active)) },
+            description = { Text(stringResource(R.string.prompt_page_constant_active_desc)) },
+        )
+
+        Md3OutlinedTextFieldWithSlots(
+            value = entry.scanDepth.toString(),
+            onValueChange = {
+                it.toIntOrNull()?.let { d -> onEdit(entry.copy(scanDepth = d)) }
+            },
+            label = { Text(stringResource(R.string.prompt_page_scan_depth)) },
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        AnimatedVisibility(visible = entry.position.usesStandaloneMessage()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(R.string.prompt_page_injection_role),
+                    style = MochiTheme.textStyles.titleMedium
+                )
+                InjectionRoleSelector(
+                    role = entry.role,
+                    onSelect = { onEdit(entry.copy(role = it)) }
+                )
+            }
+        }
+
+        Md3OutlinedTextFieldWithSlots(
+            value = entry.content,
+            onValueChange = { onEdit(entry.copy(content = it)) },
+            label = { Text(stringResource(R.string.prompt_page_injection_content)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp),
+            minLines = 4,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }
