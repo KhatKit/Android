@@ -340,9 +340,20 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
 3. **大屏适配**：全仓仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize()`；Mochi 无
    WindowSizeClass/adaptive。建议后续 slice 引 `material3-adaptive` `AdaptiveScaffold`：
    ≥840dp 侧栏+双栏 / 600–840dp 导航轨 / <600dp `MochiTabBar`；先做设置与探索。
-4. **MochiItem 能力缺口**：无 enabled/trailing/长按菜单；长按/富行/组合语义仍用
-   `MochiMenuPopup`/`MochiMenuRow`。复算：`MochiMenuPopup(` = **4**、`MochiMenuRow(` = **4**
-   （合计 8 处调用；全量引用 23 处）。⚠️ 任务书「14 处」是更早快照，以命令为准。
+4. **菜单迁移跟踪**（2026-11-23，vivo V2166BA / Android 13）：
+
+   | 范围 | 当前实现 | 真机验收 / 限制 |
+   |---|---|---|
+   | 工具台顶栏 | `MochiIconDropdown` | Debug：标题不遮挡、API 状态和局域网共享均能打开、外部点击/返回关闭、网格切列表。Release：API 状态可打开 |
+   | 已安装卡片操作 | `MochiIconDropdown` | 收藏和桌面快捷方式已迁移，未实测这两项 |
+   | 聊天快捷消息 | `MochiPopoverButton` | 保留标题/正文、短按追加、长按替换；未配置测试模板，未逐项实测 |
+   | 全屏编辑器标题级别 | `MochiIconDropdown`，构建脚本补上 IME 避让 | Debug/Release：键盘开启时选中标题、关闭菜单，键盘保持打开 |
+   | 旧 `MochiDialog` 内容槽 | 委托原生 `MochiDialog` | Debug：长按发送弹出 ASR 提示、「配置」能跳转。调用方条件卸载时仍无退场动画 |
+   | 系统悬浮审批长按菜单 | Android 窗口 + Mochi 菜单外观、开合动效 | 保留单击放行与长按选项；未单独触发跨应用悬浮窗口验证 |
+   | 通用提示气泡、表单和大屏布局 | 未在本批迁移 | 继续按用途审计；平台 IME、权限窗口、系统选择器不替换 |
+
+   验证：两种隔离 APK 均构建成功，未覆盖正式版。全量 App JVM 单测运行 1139 项、失败 17 项；
+   失败涉及 Windows 路径/符号链接、外置卡片示例缺失，以及数据库版本、弹层数量和图标资源断言。
 5. **预设主题中间态**：`PresetTheme` 仍有 48 处引用，入口已删、运行期不注入；旧数据不崩。
 6. **三库删除结论（可复算）**：
    ```bash
