@@ -1,106 +1,55 @@
 package heizige.kk.khatkit.app.core.ui.hooks
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import ui.feice.mochi.basic.MochiSheetState
 
 @Composable
-fun <T> useEditState(
-    onUpdate: (T) -> Unit
-): EditState<T> {
-    var isEditing by remember { mutableStateOf(false) }
-    var currentState by remember { mutableStateOf<T?>(null) }
-
-    return object : EditState<T> {
-        override var isEditing: Boolean
-            get() = isEditing
-            set(value) {
-                isEditing = value
-            }
-
-        override var currentState: T?
-            get() = currentState
-            set(value) {
-                currentState = value
-            }
-
-        override fun open(initialState: T) {
-            isEditing = true
-            currentState = initialState
-        }
-
-        override fun confirm() {
-            if (currentState != null) {
-                onUpdate(currentState!!)
-                isEditing = false
-                currentState = null
-            }
-        }
-
-        override fun dismiss() {
-            isEditing = false
-            currentState = null
-        }
-    }
+fun <T : Any> useEditState(onUpdate: (T) -> Unit): EditState<T> {
+    val latestUpdate by rememberUpdatedState(onUpdate)
+    return remember { EditState { latestUpdate(it) } }
 }
 
-interface EditState<T> {
-    var isEditing: Boolean
+internal class EditDraft<T : Any>(initial: T) {
+    var value by mutableStateOf(initial)
+}
+
+class EditState<T : Any> internal constructor(private val onUpdate: (T) -> Unit) {
+    internal var draft by mutableStateOf<EditDraft<T>?>(null)
+        private set
+
+    val isEditing: Boolean get() = draft != null
     var currentState: T?
-
-    fun open(initialState: T)
-
-    fun confirm()
-
-    fun dismiss()
-}
-
-@Composable
-fun <T> EditState<T>.EditStateContent(
-    content: @Composable (value: T, updateValue: (T) -> Unit) -> Unit
-) {
-    if (this.isEditing) {
-        this.currentState?.let {
-            content(it) { newState ->
-                this.currentState = newState
-            }
+        get() = draft?.value
+        set(value) {
+            if (value == null) dismiss() else draft?.value = value
         }
+
+    fun open(initialState: T) { draft = EditDraft(initialState) }
+    fun dismiss() { draft = null }
+    fun confirm() {
+        val value = currentState ?: return
+        dismiss()
+        onUpdate(value)
+    }
+
+    internal fun update(session: EditDraft<T>, value: T) {
+        if (draft === session) session.value = value
     }
 }
 
-/**
- * U7b-5：编辑面板的 state 驱动版本。
- *
- * [EditStateContent] 只在 isEditing 时组合内容 —— 这样面板没有收起动画、也拿不到 [MochiSheetState]
- * 去做页根 backdrop。这里把「最后一份待编辑对象」留成快照：isEditing 为真时 show() 并刷新快照，
- * 为假时只 hide()，面板在收起动画期间继续渲染快照内容，不会解引用空值。
- * 旧调用点（另外 3 个页面）继续用 [EditStateContent]，行为不变。
- */
+/** Compose inside the native overlay: retain its draft until the exit finishes, not for the page lifetime. */
 @Composable
-fun <T> EditState<T>.EditStateSheetHost(
-    sheetState: MochiSheetState,
-    content: @Composable (value: T, updateValue: (T) -> Unit) -> Unit,
-) {
-    var lastValue by remember { mutableStateOf(this.currentState) }
-    // LaunchedEffect 的块 receiver 是 CoroutineScope，会遮蔽 EditState 扩展接收者；
-    // 先进组合作用域取好值，块内只用捕获值（不能用 this.isEditing）。
-    val editing = this.isEditing
-    val editingValue = this.currentState
-    LaunchedEffect(editing) {
-        if (editing) {
-            editingValue?.let { lastValue = it }
-            sheetState.show()
-        } else {
-            sheetState.hide()
-        }
-    }
-    lastValue?.let { value ->
-        content(value) { newState ->
-            this.currentState = newState
-        }
-    }
+fun <T : Any> EditState<T>.EditStateContent(content: @Composable (T, (T) -> Unit) -> Unit) {
+    val active = draft
+    var last by remember(this) { mutableStateOf(active) }
+    if (active != null && active !== last) SideEffect { last = active }
+    val displayed = active ?: last ?: return
+    // A new opening (even for the same value) must not inherit field state or a pager from the old one.
+    key(displayed) { content(displayed.value) { update(displayed, it) } }
 }

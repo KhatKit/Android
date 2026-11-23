@@ -145,25 +145,24 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
             renameTarget = renameTarget?.copy(title = title.trim())
         }
     }
-    renameState.EditStateContent { value, onUpdate ->
-        // DG1：material3 AlertDialog → MochiDialog（重命名输入框作为内容）
-        MochiDialog(
-            visible = true,
-            onDismissRequest = { renameState.dismiss() },
-            title = stringResource(R.string.chat_page_edit_title),
-            actions = persistentListOf(
-                MochiDialogAction(
-                    label = stringResource(R.string.chat_page_cancel),
-                    role = MochiDialogActionRole.Cancel,
-                ),
-                MochiDialogAction(
-                    label = stringResource(R.string.chat_page_save),
-                    role = MochiDialogActionRole.Primary,
-                    onClick = { renameState.confirm() },
-                ),
+    MochiDialog(
+        visible = renameState.isEditing,
+        onDismissRequest = renameState::dismiss,
+        title = stringResource(R.string.chat_page_edit_title),
+        actions = persistentListOf(
+            MochiDialogAction(
+                label = stringResource(R.string.chat_page_cancel),
+                role = MochiDialogActionRole.Cancel,
             ),
-            dismissOnOutsideTap = true,
-        ) {
+            MochiDialogAction(
+                label = stringResource(R.string.chat_page_save),
+                role = MochiDialogActionRole.Primary,
+                onClick = renameState::confirm,
+            ),
+        ),
+        dismissOnOutsideTap = true,
+    ) {
+        renameState.EditStateContent { value, onUpdate ->
             Md3OutlinedTextField(
                 value = value,
                 onValueChange = onUpdate,

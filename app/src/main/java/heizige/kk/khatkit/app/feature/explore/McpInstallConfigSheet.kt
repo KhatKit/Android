@@ -7,10 +7,7 @@ import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,22 +32,9 @@ fun McpInstallConfigSheet(
     onConfirm: (McpServerConfig) -> Unit,
 ) {
     val state = useEditState<McpServerConfig> { onConfirm(it) }
-    var opened by remember(initial) { mutableStateOf(false) }
-
-    // 打开一次即可：用 opened 门控，避免重组时反复 open 把用户的输入冲掉。
-    LaunchedEffect(initial) {
-        if (!opened) {
-            opened = true
-            state.open(initial)
-        }
-    }
-    // 表单自己 dismiss 时（返回 / 下滑 / 取消）把宿主的 target 一起清掉。
-    LaunchedEffect(state.isEditing) {
-        if (opened && !state.isEditing) onDismiss()
-    }
-    if (!opened) return
-
-    McpServerConfigModal(state) {
+    LaunchedEffect(initial) { state.open(initial) }
+    // Both save and cancel release the market target after the native sheet has finished closing.
+    McpServerConfigModal(state, onClosed = onDismiss) {
         McpInstallConfigHeader(initial = initial, missingRequired = missingRequired)
     }
 }

@@ -81,6 +81,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
@@ -111,26 +113,30 @@ import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
 @Composable
 internal fun McpServerConfigModal(
     state: EditState<McpServerConfig>,
+    onClosed: () -> Unit = {},
     header: (@Composable () -> Unit)? = null,
 ) {
-    state.EditStateContent { config, updateValue ->
-        val pagerState = rememberPagerState { 2 }
-        val scope = rememberCoroutineScope()
-        PrimaryBottomSheet(
-            visible = true,
-            title = stringResource(R.string.setting_mcp_page_title),
-            imageVector = extension,
-            confirmText = stringResource(R.string.setting_mcp_page_save),
-            onConfirm = {
-                if (config.commonOptions.name.isNotBlank() && isValidMcpName(config.commonOptions.name)) {
-                    state.confirm()
-                }
-            },
-            onDismiss = {
-                state.dismiss()
-            },
-            scrollable = false,
-        ) { _ ->
+    val sheet = rememberMochiSheetState()
+    val editing = state.isEditing
+    LaunchedEffect(editing) { if (editing) sheet.show() else sheet.hide() }
+    PrimaryBottomSheet(
+        state = sheet,
+        title = stringResource(R.string.setting_mcp_page_title),
+        imageVector = extension,
+        confirmText = stringResource(R.string.setting_mcp_page_save),
+        onConfirm = {
+            val name = state.currentState?.commonOptions?.name
+            if (!name.isNullOrBlank() && isValidMcpName(name)) state.confirm()
+        },
+        onDismiss = {
+            state.dismiss()
+            onClosed()
+        },
+        scrollable = false,
+    ) {
+        state.EditStateContent { config, updateValue ->
+            val pagerState = rememberPagerState { 2 }
+            val scope = rememberCoroutineScope()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

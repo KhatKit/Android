@@ -1133,7 +1133,6 @@ fun ExploreMarketPage() {
             missingRequired = plan.missingRequired,
             onDismiss = { mcpConfigTarget = null },
             onConfirm = { config ->
-                mcpConfigTarget = null
                 vm.saveMcpServerConfig(config) { message ->
                     scope.launch { Toast.show(message) }
                 }
@@ -2995,7 +2994,6 @@ fun ExploreLocalPage() {
             missingRequired = plan.missingRequired,
             onDismiss = { mcpConfigTarget = null },
             onConfirm = { config ->
-                mcpConfigTarget = null
                 vm.saveMcpServerConfig(config) { message ->
                     scope.launch { Toast.show(message) }
                 }
