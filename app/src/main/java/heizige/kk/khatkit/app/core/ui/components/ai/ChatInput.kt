@@ -133,6 +133,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.SpanStyle
@@ -1253,9 +1254,14 @@ private fun ChatInputTextField(
         // 输入栏里的那一个：照 MochiTextField 的度量（单行 48dp 高、文字离边 16dp、正文字阶、主题色光标），
         // 胶囊底色由外层画；不发送即换行时随内容长高，最多 5 行。
         val cs = MochiTheme.colorScheme
-        val inputMotionEnabled = !rememberKkReduceMotion() && LocalKkEffectsEnabled.current
+        val fieldScroll = rememberScrollState()
+        val text = state.textContent.text
+        // A decorative copy cannot follow the editable field's scroll or single-line transformation.
+        val inputMotionEnabled = !rememberKkReduceMotion() && LocalKkEffectsEnabled.current &&
+            text.length in 1..256 && fieldScroll.maxValue == 0 && (!sendOnEnter || '\n' !in text)
         BasicTextField(
             state = state.textContent,
+            scrollState = fieldScroll,
             modifier = modifier,
             // 文字由 KkGrowRiseText 绘制，BasicTextField 只保留光标、选区和输入行为。
             textStyle = MochiTheme.textStyles.body.copy(
@@ -1291,11 +1297,11 @@ private fun ChatInputTextField(
                             )
                         }
                         if (inputMotionEnabled) {
-                            KkGrowRiseText(
-                                text = state.textContent.text.toString(),
-                                style = MochiTheme.textStyles.body,
-                                color = cs.onSurface,
-                            )
+                            // Only the native text field may measure this box (one to five lines).
+                            Box(Modifier.matchParentSize().clipToBounds().clearAndSetSemantics {},
+                                contentAlignment = Alignment.CenterStart) {
+                                KkGrowRiseText(text = text.toString(), style = MochiTheme.textStyles.body, color = cs.onSurface)
+                            }
                         }
                         innerTextField()
                     }
