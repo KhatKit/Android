@@ -1,0 +1,15 @@
+{
+  "name": "recipe_book", "version": "1.0.0", "runtime": "wasm", "abi_version": 1,
+  "entry": {"wasm": "card.wasm"},
+  "default_locale": "zh", "i18n": {"zh": {"name": "家常菜谱"}, "en": {"name": "Home Cookbook"}},
+  "description": "离线按菜名或食材查家常菜，按人数换算材料并查看做法。",
+  "triggers": ["user", "ai"], "capabilities": ["ui:render"], "requires": {"bridges": ["ui"]},
+  "widget": {"entry": {"wasm": "card.wasm"}, "autostart": false, "bridges": ["ui"]},
+  "tags": {"domain": "life", "action": "lookup", "scene": "cooking"},
+  "limits": {"memory_mb": 16, "timeout_ms": 5000, "output_bytes": 262144},
+  "parameters": {"type": "object", "properties": {
+    "query": {"type": "string", "description": "按菜名或食材搜索。空串列出内置菜谱；不传参数则打开界面。"},
+    "recipe_id": {"type": "string", "description": "查询结果中的菜谱 ID，用于读取材料和步骤；不与 query 同传。"},
+    "servings": {"type": "integer", "minimum": 1, "maximum": 4, "description": "与 recipe_id 一起使用，默认 2 人。"}
+  }}
+}
