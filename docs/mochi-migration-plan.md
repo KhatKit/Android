@@ -334,12 +334,9 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
 
 ## 15. 遗留清单（下一会话按此接）
 
-1. **EditState**：已新增 `EditStateSheetHost`（快照 + state 驱动），`EditState` 接口未改；
-   其余 `EditStateContent` 调用点（3 处）行为不变、尚未迁移；全仓 `EditState` 引用 59 处。
-2. **弹层动画覆盖**：退场动画仅「直连 MochiSheet 11 处 + if→visible 状态 7 处 + PrimaryBottomSheet(state) 17 处 + EditStateSheetHost」生效；visible 兼容层 25 个调用点（15 恒定 true + 10 动态布尔）仍为即时消失，属保留项（逐条 file:line 与原因见 §14.2.1）。
-3. **大屏适配**：全仓仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize()`；Mochi 无
-   WindowSizeClass/adaptive。建议后续 slice 引 `material3-adaptive` `AdaptiveScaffold`：
-   ≥840dp 侧栏+双栏 / 600–840dp 导航轨 / <600dp `MochiTabBar`；先做设置与探索。
+1. **编辑表单**：`2a15b77d2`、`d7b5edf10`、`c809c4a26` 已将 MCP、世界书、模式注入、模型和提供商等表单迁到实时草稿。关闭时保留最后一帧，重新打开时重建草稿，不沿用上次未保存的输入。MCP 保存/取消有 Debug 真机测试；不是每个编辑器都做了真机验收。
+2. **弹层动画覆盖**：`PrimaryBottomSheet(visible=...)` 只要宿主常驻，就能在 `false` 时播放退场；调用方用 `if` 直接卸载时才会跳过退场。§14.2.1 和下文第 9 条是历史盘点，不是当前剩余数量。
+3. **大屏适配**：`48839678e` 让接入 `rail` 的页面按可用宽度放置导航：小于 600dp 用底栏、600 至不足 840dp 用导航轨、840dp 起用侧栏（纯图标样式仍保持窄轨）。宽屏设置分组排为两列。vivo R8 Release 验证了单栏、双栏和导航切换；其余页面不能据此算作已适配。
 4. **菜单迁移跟踪**（2026-11-23，vivo V2166BA / Android 13）：
 
    | 范围 | 当前实现 | 真机验收 / 限制 |
@@ -350,7 +347,11 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    | 全屏编辑器标题级别 | `MochiIconDropdown`，构建脚本补上 IME 避让 | Debug/Release：键盘开启时选中标题、关闭菜单，键盘保持打开 |
    | 旧 `MochiDialog` 内容槽 | 委托原生 `MochiDialog` | Debug：长按发送弹出 ASR 提示、「配置」能跳转。调用方条件卸载时仍无退场动画 |
    | 系统悬浮审批长按菜单 | Android 窗口 + Mochi 菜单外观、开合动效 | 保留单击放行与长按选项；未单独触发跨应用悬浮窗口验证 |
-   | 通用提示气泡、表单和大屏布局 | 未在本批迁移 | 继续按用途审计；平台 IME、权限窗口、系统选择器不替换 |
+   | 图标长按提示 | `f0e96563a`，短按执行、长按显示 Mochi 提示 | 欢迎页 Debug / R8 Release：长按不会误入编辑，Release 另验了点外关闭与短按编辑 |
+   | 应用前台短提示 | `b1c27348a`，统一 Mochi 胶囊，移除 Sonner；错误提示支持图标 | Release 真机：复制群号后胶囊显示在页面顶部；后台、启动前恢复备份仍用系统提示 |
+   | 编辑表单与大屏导航 | 见本节第 1、3 条 | 世界书编辑器在宽屏真机打开；系统 IME、权限窗口和文件选择器保留平台交互 |
+   | 技能添加与导入 | `67c91f98e` 恢复顶栏操作；来源面板常驻，等 Mochi 退场后再打开所选表单或系统选择器 | Debug：手动、文件、GitHub 三个入口以及取消；R8 Release：从 `/skills` 进入并取消 GitHub 表单。未联网导入 |
+   | 聊天技能和玻璃输入栏 | `aff74008b` 的 `/skill` 用 Mochi 面板选技能，`6f33832f8` 让原生输入框独占测量与滚动，短文本保留动效 | 两种构建：5,876 字符完整进入未发送草稿，紧凑栏高 372px；Debug：全屏编辑往返后原文保留 |
 
    验证：两种隔离 APK 均构建成功，未覆盖正式版。全量 App JVM 单测运行 1139 项、失败 17 项；
    失败涉及 Windows 路径/符号链接、外置卡片示例缺失，以及数据库版本、弹层数量和图标资源断言。
@@ -364,7 +365,7 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
 7. **死代码（C2 已清）**：删除 `RecordCardSheet.kt` 与 `KhatKitPermissionSheet.kt`（全仓零调用，含测试）；
    `QrScannerSheet` 仍被 `SettingProviderPage.kt:491` 使用，**保留**。
 8. **对话框底部留白（候选）**：`AppDialog.kt:60` 的 actions 为空时，MochiDialog 底部可能多出约 34dp 留白；属视觉差异候选，待主人确认是否需要在宿主层补 padding 处理。
-9. **visible 兼容层明细（C2 收尾，实测 26 处 visible = true）**（grep -rn 'visible = true' --include=*.kt app/src/main | wc -l = 26）：
+9. **visible 兼容层历史快照（C2 收尾时的 26 处）**：以下为当时的路径与行号，已迁移的编辑器以本节第 1 条为准。
    - core/ui/components/ai/CompressContextDialog.kt:66（MochiDialog，压缩中不可关）
    - core/ui/components/ai/MessageQueuePanel.kt:167 / :204（MochiDialog，队列编辑 / 确认框）
    - core/ui/components/ai/ModelList.kt:132（可见性由调用方布尔驱动）
@@ -377,7 +378,7 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    - core/ui/components/khatkit/KhatKitUiHost.kt:184（Lua 卡片 UiRequest.Confirm 分支）
    - feature/assistant/AssistantPage.kt:626（同页多 sheet 共用 visible，:499 已 state 化）
    - feature/chat/ChatSizeChecker.kt:67、feature/chat/ChatRolePanelPage.kt:147（MochiDialog）
-   - feature/extensions/skills/SkillsPage.kt:509（导入技能 URL + 校验流程）
+   - feature/extensions/skills/SkillsPage.kt（历史：技能来源选择面板；已改状态驱动，见上表。URL 输入仍为对话框）
    - feature/extensions/PromptPage.kt:406 / :821（正则 / 注入两个编辑表单）
    - feature/imggen/ImgGenPage.kt:825（生成参数面板）
    - feature/log/LogPage.kt:130（长文本详情，两档可拖全屏）
