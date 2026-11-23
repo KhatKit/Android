@@ -77,6 +77,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
@@ -579,38 +580,25 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
         Icon(add, "Add")
     }
 
-    if (dialogState.isEditing) {
-        // 与顶栏「推荐提供商」同一套弹层：图标 + 标题 + 底部「添加 / 取消」按钮行。
-        // 表单本身不重写，仍是双风格化的 ProviderConfigure。
-        //
-        // scrollable = false + 内容自带 verticalScroll：表单 7 行在 Miuix 下会顶破弹层高度，
-        // 而 Kedge 的 Miuix 分支不提供滚动容器，只能内容自己滚；MD3 分支按该参数不叠第二层
-        // 滚动（叠了会在 measure 期抛 infinity maximum height constraints，见
-        // BottomSheetScrollSourceGuardTest）。
-        PrimaryBottomSheet(
-            visible = true,
-            title = stringResource(R.string.setting_provider_page_add_provider),
-            imageVector = add,
-            confirmText = stringResource(R.string.setting_provider_page_add),
-            onConfirm = { dialogState.confirm() },
-            dismissText = stringResource(R.string.cancel),
-            onDismiss = { dialogState.dismiss() },
-            scrollable = false,
-        ) { _ ->
+    PrimaryBottomSheet(
+        visible = dialogState.isEditing,
+        title = stringResource(R.string.setting_provider_page_add_provider),
+        imageVector = add,
+        confirmText = stringResource(R.string.setting_provider_page_add),
+        onConfirm = dialogState::confirm,
+        dismissText = stringResource(R.string.cancel),
+        onDismiss = dialogState::dismiss,
+        scrollable = false,
+    ) {
+        dialogState.EditStateContent { current, update ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // 键盘弹起时把表单顶上来；insets 会被消费，Miuix 分支自己那层 imePadding
-                    // 不会与本行叠加成两倍位移。
                     .imePadding()
                     .padding(bottom = 16.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
-                dialogState.currentState?.let { current ->
-                    ProviderConfigure(current) { newState ->
-                        dialogState.currentState = newState
-                    }
-                }
+                ProviderConfigure(current, onEdit = update)
             }
         }
     }

@@ -112,6 +112,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.rememberShareSheetState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.LocalToaster
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomBodies
 import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
@@ -651,47 +652,39 @@ internal fun AddModelButton(
         )
     }
 
-    // U7b-2e：最后一份 currentState 快照 + LaunchedEffect 驱动；退出动画期间读快照不 NPE。
     // 表单直接开到大档：半屏放不下三页签内容，打开即所见
     val addModelSheet = rememberMochiSheetState(detents = listOf(MochiSheetDetent.Large))
-    var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
     LaunchedEffect(dialogState.isEditing) {
-        if (dialogState.isEditing) {
-            lastEditingModel = dialogState.currentState
-            addModelSheet.show()
-        } else {
-            addModelSheet.hide()
+        if (dialogState.isEditing) addModelSheet.show() else addModelSheet.hide()
+    }
+    PrimaryBottomSheet(
+        state = addModelSheet,
+        title = stringResource(R.string.setting_provider_page_add_model),
+        imageVector = memory,
+        confirmText = stringResource(R.string.setting_provider_page_add),
+        onConfirm = {
+            val model = dialogState.currentState
+            if (model != null && model.modelId.isNotBlank() && model.displayName.isNotBlank()) {
+                // Trim on save so an in-progress IME composition is never rewritten.
+                dialogState.currentState = model.copy(
+                    modelId = model.modelId.trim(),
+                    displayName = model.displayName.trim(),
+                )
+                dialogState.confirm()
+            }
+        },
+        onDismiss = dialogState::dismiss,
+        scrollable = false,
+        floatingHeader = true,
+    ) {
+        dialogState.EditStateContent { model, update ->
+            ModelSettingsForm(
+                model = model,
+                onModelChange = update,
+                isEdit = false,
+                parentProvider = parentProvider,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
-    lastEditingModel?.let { modelState ->
-            PrimaryBottomSheet(
-                state = addModelSheet,
-                title = stringResource(R.string.setting_provider_page_add_model),
-                imageVector = memory,
-                confirmText = stringResource(R.string.setting_provider_page_add),
-                onConfirm = {
-                    // 首尾空格留到这里再收拾，不在输入过程中改写 value（会打断 IME 合成）。
-                    val trimmedId = modelState.modelId.trim()
-                    if (trimmedId.isNotBlank() && modelState.displayName.isNotBlank()) {
-                        dialogState.currentState =
-                            modelState.copy(modelId = trimmedId, displayName = modelState.displayName.trim())
-                        dialogState.confirm()
-                    }
-                },
-                onDismiss = {
-                    dialogState.dismiss()
-                },
-                scrollable = false,
-                // 顶栏浮在正文上：标题/添加不再占一行把内容挤下去，正文铺满面板
-                floatingHeader = true,
-            ) { _ ->
-                ModelSettingsForm(
-                    model = modelState,
-                    onModelChange = { dialogState.currentState = it },
-                    isEdit = false,
-                    parentProvider = parentProvider,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
 }

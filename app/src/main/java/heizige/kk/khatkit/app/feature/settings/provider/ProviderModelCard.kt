@@ -56,6 +56,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.add
@@ -85,45 +86,33 @@ internal fun ModelCard(
     val swipeToDismissBoxState = rememberKkSwipeToDismissState()
     val scope = rememberCoroutineScope()
 
-    // U7b-2e：保留最后一份 currentState 快照，LaunchedEffect 驱动 show/hide；退出动画期间读快照不 NPE。
     // 表单直接开到大档：半屏放不下三页签内容，打开即所见
     val editModelSheet = rememberMochiSheetState(detents = listOf(MochiSheetDetent.Large))
-    var lastEditingModel by remember { mutableStateOf(dialogState.currentState) }
     LaunchedEffect(dialogState.isEditing) {
-        if (dialogState.isEditing) {
-            lastEditingModel = dialogState.currentState
-            editModelSheet.show()
-        } else {
-            editModelSheet.hide()
+        if (dialogState.isEditing) editModelSheet.show() else editModelSheet.hide()
+    }
+    PrimaryBottomSheet(
+        state = editModelSheet,
+        title = stringResource(R.string.setting_provider_page_edit_model),
+        imageVector = memory,
+        confirmText = stringResource(R.string.confirm),
+        onConfirm = {
+            if (!dialogState.currentState?.displayName.isNullOrBlank()) dialogState.confirm()
+        },
+        onDismiss = dialogState::dismiss,
+        scrollable = false,
+        floatingHeader = true,
+    ) {
+        dialogState.EditStateContent { current, update ->
+            ModelSettingsForm(
+                model = current,
+                onModelChange = update,
+                isEdit = true,
+                parentProvider = parentProvider,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
-    lastEditingModel?.let { editingModel ->
-            PrimaryBottomSheet(
-                state = editModelSheet,
-                title = stringResource(R.string.setting_provider_page_edit_model),
-                imageVector = memory,
-                confirmText = stringResource(R.string.confirm),
-                onConfirm = {
-                    if (editingModel.displayName.isNotBlank()) {
-                        dialogState.confirm()
-                    }
-                },
-                onDismiss = {
-                    dialogState.dismiss()
-                },
-                scrollable = false,
-                // 同添加模型：顶栏浮在正文上，正文铺满面板
-                floatingHeader = true,
-            ) { _ ->
-                ModelSettingsForm(
-                    model = editingModel,
-                    onModelChange = { dialogState.currentState = it },
-                    isEdit = true,
-                    parentProvider = parentProvider,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        }
 
     KkSwipeToDismissBox(
         state = swipeToDismissBoxState,
