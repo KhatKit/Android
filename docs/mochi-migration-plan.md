@@ -347,10 +347,11 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    | 全屏编辑器标题级别 | `MochiIconDropdown`，构建脚本补上 IME 避让 | Debug/Release：键盘开启时选中标题、关闭菜单，键盘保持打开 |
    | 旧 `MochiDialog` 内容槽 | 委托原生 `MochiDialog` | Debug：长按发送弹出 ASR 提示、「配置」能跳转。调用方条件卸载时仍无退场动画 |
    | 系统悬浮审批长按菜单 | Android 窗口 + Mochi 菜单外观、开合动效 | 保留单击放行与长按选项；未单独触发跨应用悬浮窗口验证 |
+   | 应用内权限审批 | `9badfdc3e`：Mochi 审批胶囊在卡片弹窗上方，胶囊外的触摸传给底层，决定只对当前请求有效 | Debug / R8 Release：拒绝、仅本次、记忆十分钟、长按不误放行、点外/返回只关菜单。Debug 另有两项定向仪器测试：弹窗上方审批及过期决定、胶囊外触摸穿透。不是跨应用悬浮验收 |
    | 图标长按提示 | `f0e96563a`，短按执行、长按显示 Mochi 提示 | 欢迎页 Debug / R8 Release：长按不会误入编辑，Release 另验了点外关闭与短按编辑 |
    | 应用前台短提示 | `b1c27348a`，统一 Mochi 胶囊，移除 Sonner；错误提示支持图标 | Release 真机：复制群号后胶囊显示在页面顶部；后台、启动前恢复备份仍用系统提示 |
    | 编辑表单与大屏导航 | 见本节第 1、3 条 | 世界书编辑器在宽屏真机打开；系统 IME、权限窗口和文件选择器保留平台交互 |
-   | 技能添加与导入 | `67c91f98e` 恢复顶栏操作；来源面板常驻，等 Mochi 退场后再打开所选表单或系统选择器 | Debug：手动、文件、GitHub 三个入口以及取消；R8 Release：从 `/skills` 进入并取消 GitHub 表单。未联网导入 |
+   | 技能添加与导入 | `67c91f98e` 恢复三种来源；`91eaec214` 让手动添加、GitHub 导入表单走 Mochi 退场，关闭后丢弃草稿，提交失败不清空 | Debug：手动、文件、GitHub 入口及取消。R8 Release：手动和 GitHub 表单取消后重开为空；无效 URL 保留原文，可重试。未联网导入 |
    | 聊天技能和玻璃输入栏 | `aff74008b` 的 `/skill` 用 Mochi 面板选技能，`6f33832f8` 让原生输入框独占测量与滚动，短文本保留动效 | 两种构建：5,876 字符完整进入未发送草稿，紧凑栏高 372px；Debug：全屏编辑往返后原文保留 |
 
    验证：两种隔离 APK 均构建成功，未覆盖正式版。全量 App JVM 单测运行 1139 项、失败 17 项；
@@ -378,7 +379,7 @@ grep -rn 'navController.navigate(Screen' --include=*.kt app/src/main | wc -l  # 
    - core/ui/components/khatkit/KhatKitUiHost.kt:184（Lua 卡片 UiRequest.Confirm 分支）
    - feature/assistant/AssistantPage.kt:626（同页多 sheet 共用 visible，:499 已 state 化）
    - feature/chat/ChatSizeChecker.kt:67、feature/chat/ChatRolePanelPage.kt:147（MochiDialog）
-   - feature/extensions/skills/SkillsPage.kt（历史：技能来源选择面板；已改状态驱动，见上表。URL 输入仍为对话框）
+   - feature/extensions/skills/SkillsPage.kt（历史：来源面板、手动添加和 GitHub URL 表单均已改为状态驱动，见上表）
    - feature/extensions/PromptPage.kt:406 / :821（正则 / 注入两个编辑表单）
    - feature/imggen/ImgGenPage.kt:825（生成参数面板）
    - feature/log/LogPage.kt:130（长文本详情，两档可拖全屏）
