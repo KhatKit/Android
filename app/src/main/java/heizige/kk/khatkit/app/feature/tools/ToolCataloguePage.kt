@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -47,6 +46,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -74,8 +74,6 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.hub.CardIndexEntry
 import ui.feice.mochi.basic.MochiActivityIndicator
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
-import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
-import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiButton
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -83,6 +81,9 @@ import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.basic.MochiChipGroup
 import ui.feice.mochi.basic.MochiEmptyState
 import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.MochiIconDropdown
+import ui.feice.mochi.basic.MochiDropdownDefaults
+import ui.feice.mochi.basic.MochiItem
 import ui.feice.mochi.basic.MochiRefreshIndicator
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.basic.MochiSearchBar
@@ -110,6 +111,7 @@ import ui.feice.mochi.navigation.mochiNavSource
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.collections.immutable.persistentListOf
 
 private enum class ToolScope(val title: String, val icon: String) {
     ALL("全部", "apps"),
@@ -190,17 +192,7 @@ internal fun ToolCataloguePage() {
                 navigationIcon = { BackButton() },
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
-                    MochiBarIconButton(
-                        onClick = { nav?.navigate(Screen.ToolApiHealth) },
-                        navId = "tools.api-health",
-                        colors = kkBarButtonColors(),
-                    ) { MochiIonicon("pulse", contentDescription = "卡片 API 状态") }
-                    MochiBarIconButton(
-                        onClick = { nav?.navigate(Screen.LanShare) },
-                        navId = "tools.lan-share",
-                        contentKey = "wifi",
-                        colors = kkBarButtonColors(),
-                    ) { MochiIonicon("wifi", contentDescription = "局域网共享") }
+                    ToolCatalogueMenu(onNavigate = { nav?.navigate(it) })
                     MochiBarIconButton(
                         onClick = {
                             grid = !grid
@@ -318,6 +310,32 @@ internal fun ToolCataloguePage() {
             }
         }
     }
+}
+
+@Composable
+private fun ToolCatalogueMenu(onNavigate: (Screen) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val colors = kkBarButtonColors()
+    MochiIconDropdown(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        items = persistentListOf(
+            MochiItem("卡片 API 状态", icon = { tint -> MochiIonicon("pulse", size = 20.dp, tint = tint) }),
+            MochiItem("局域网共享", icon = { tint -> MochiIonicon("wifi", size = 20.dp, tint = tint) }),
+        ),
+        onItemClick = { index ->
+            expanded = false
+            when (index) {
+                0 -> onNavigate(Screen.ToolApiHealth)
+                1 -> onNavigate(Screen.LanShare)
+            }
+        },
+        colors = MochiDropdownDefaults.iconDropdownColors(
+            buttonColor = colors.container,
+            buttonContentColor = colors.content,
+        ),
+        size = 44.dp,
+    ) { MochiIonicon("ellipsis-horizontal", contentDescription = "工具台更多操作") }
 }
 
 @Composable
@@ -686,27 +704,32 @@ private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, lo
     }
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        MochiIconButton(onClick = { expanded = true }, size = 44.dp, style = MochiButtonStyle.Text) {
-            MochiIonicon("ellipsis-horizontal", size = 19.dp, contentDescription = "${entry.toolTitle(locales)}的操作")
-        }
-        MochiMenuPopup(expanded, onDismissRequest = { expanded = false }, modifier = Modifier.widthIn(max = 220.dp)) {
-            MochiMenuRow(
-                onClick = { expanded = false; onFavorite(entry.name) },
-                text = { Text(if (favorite) "取消收藏" else "收藏工具") },
-                leadingIcon = { MochiIonicon("star", size = 20.dp) },
-            )
-            MochiMenuRow(
-                onClick = {
-                    expanded = false
-                    if (!ToolShortcutHelper.pin(context, entry.name, entry.toolTitle(locales))) {
-                        Toast.makeText(context, "无法添加桌面快捷方式", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                text = { Text("添加到桌面") },
-                leadingIcon = { MochiIonicon("add-circle", size = 20.dp) },
-            )
-        }
+    val title = entry.toolTitle(locales)
+    MochiIconDropdown(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        items = persistentListOf(
+            MochiItem(if (favorite) "取消收藏" else "收藏工具", icon = { tint ->
+                MochiIonicon("star", size = 20.dp, tint = tint)
+            }),
+            MochiItem("添加到桌面", icon = { tint ->
+                MochiIonicon("add-circle", size = 20.dp, tint = tint)
+            }),
+        ),
+        onItemClick = { index ->
+            expanded = false
+            when (index) {
+                0 -> onFavorite(entry.name)
+                1 -> if (!ToolShortcutHelper.pin(context, entry.name, title)) {
+                    Toast.makeText(context, "无法添加桌面快捷方式", Toast.LENGTH_SHORT).show()
+                }
+            }
+        },
+        colors = MochiDropdownDefaults.iconDropdownColors(buttonColor = Color.Transparent),
+        menuWidth = 220.dp,
+        size = 44.dp,
+    ) {
+        MochiIonicon("ellipsis-horizontal", size = 19.dp, contentDescription = "${title}的操作")
     }
 }
 
