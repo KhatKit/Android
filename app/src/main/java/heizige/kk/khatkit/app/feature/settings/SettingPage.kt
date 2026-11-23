@@ -9,6 +9,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
@@ -113,17 +116,8 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
         title = stringResource(R.string.settings),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(
-                start = 8.dp,
-                top = PageMetrics.TopContentPadding,
-                end = 8.dp,
-                bottom = 8.dp + PageMetrics.BottomContentPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item("settingsSearch") {
+        SettingsGroupGrid(innerPadding) {
+            item("settingsSearch", span = { GridItemSpan(maxLineSpan) }) {
                 MochiSearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
@@ -132,7 +126,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                 )
             }
             if (searchQuery.isNotBlank()) {
-                item("settingsSearchResults") {
+                item("settingsSearchResults", span = { GridItemSpan(maxLineSpan) }) {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = 8.dp),
                     ) {
@@ -163,7 +157,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             } else {
             if (settings.isNotConfigured()) {
-                item {
+                item("providerWarning", span = { GridItemSpan(maxLineSpan) }) {
                     ProviderConfigWarningCard(navController)
                 }
             }
@@ -456,6 +450,22 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
             }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsGroupGrid(insets: PaddingValues, content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(if (maxWidth >= 840.dp) 2 else 1),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = insets + PaddingValues(
+                start = 8.dp, end = 8.dp, top = PageMetrics.TopContentPadding,
+                bottom = 8.dp + PageMetrics.BottomContentPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            content = content,
+        )
     }
 }
 

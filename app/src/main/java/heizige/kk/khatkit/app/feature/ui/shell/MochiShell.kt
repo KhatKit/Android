@@ -48,7 +48,12 @@ import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import ui.feice.mochi.theme.MochiTheme
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -56,10 +61,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.currentWindowDpSize
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
+import ui.feice.mochi.navigation.MochiSidebarItem
 import androidx.compose.material3.TopAppBarScrollBehavior
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import ui.feice.mochi.navigation.MochiTitleBar
@@ -81,6 +89,16 @@ class MochiNavTab(
     val onClick: () -> Unit,
 )
 
+internal enum class TabPlacement(val sideWidth: Dp) { Bottom(0.dp), Rail(96.dp), Sidebar(216.dp) }
+
+internal fun tabPlacement(available: Dp) = when {
+    available >= 840.dp -> TabPlacement.Sidebar
+    available >= 600.dp -> TabPlacement.Rail
+    else -> TabPlacement.Bottom
+}
+
+private val LocalTabPlacement = staticCompositionLocalOf { TabPlacement.Bottom }
+
 /**
  * 底部导航栏：Mochi 的 `MochiTabBar`（胶囊 / 毛玻璃条），样式全部来自 MochiTheme。
  *
@@ -100,40 +118,53 @@ fun MochiNavBottomBar(
         NavBarLabelStyle.SELECTED -> MochiTabBarDefaults.iconOnlyBehavior(selectedLabelOnly = true)
         NavBarLabelStyle.ICONS -> MochiTabBarDefaults.iconOnlyBehavior()
     }
-    val windowWidth = currentWindowDpSize().width
-    if (windowWidth >= 600.dp && windowWidth < 840.dp) {
-        // C1：600-840dp 用左侧导航轨代替底部 TabBar（只换形状，选中/点击语义不变）
+    val placement = LocalTabPlacement.current
+    if (placement != TabPlacement.Bottom) {
         Column(
             modifier = modifier
                 .fillMaxHeight()
+                .safeDrawingPadding()
+                .verticalScroll(rememberScrollState())
+                .selectableGroup()
                 .padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             items.forEachIndexed { index, tab ->
                 val active = index == selected
+                val showLabel = navStyle.labelStyle == NavBarLabelStyle.LABELS ||
+                    (navStyle.labelStyle == NavBarLabelStyle.SELECTED && active)
+                if (placement == TabPlacement.Sidebar && showLabel) {
+                    MochiSidebarItem(
+                        title = tab.label,
+                        selected = active,
+                        onClick = tab.onClick,
+                        leading = { Icon(tab.icon, null, Modifier.size(24.dp)) },
+                    )
+                    return@forEachIndexed
+                }
+                val tint = if (active) MochiTheme.colorScheme.primary else MochiTheme.colorScheme.onSurfaceVariant
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { tab.onClick() }
+                        .selectable(selected = active, role = Role.Tab, onClick = tab.onClick)
+                        .semantics { if (!showLabel) contentDescription = tab.label }
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label,
+                        contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = tint,
                     )
                     // 和底部标签栏同一套标签样式：仅图标 / 仅选中项显示文字 / 都显示
-                    val showLabel = navStyle.labelStyle == NavBarLabelStyle.LABELS ||
-                        (navStyle.labelStyle == NavBarLabelStyle.SELECTED && active)
                     if (showLabel) {
                         Text(
                             text = tab.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MochiTheme.textStyles.labelSmall,
+                            color = tint,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                         )
@@ -276,7 +307,7 @@ fun MochiPageScaffold(
     topBar: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
     /**
-     * C1：导航条槽。宽度 600-840dp 时放到左侧当导航轨，其它宽度仍放底部（页面不用关心方向）。
+     * 自适应导航槽：窄布局用底栏，中宽用侧轨，展开时用带标签的 Mochi 侧栏。
      * 传了 rail 就别再传 bottomBar。
      */
     rail: (@Composable () -> Unit)? = null,
@@ -340,12 +371,14 @@ fun MochiPageScaffold(
     var topBarHeight by remember { mutableIntStateOf(0) }
     var bottomBarHeight by remember { mutableIntStateOf(0) }
     CompositionLocalProvider(LocalKkBarBackdrop provides barBackdrop) {
-        Box(modifier = modifier.fillMaxSize().background(containerColor)) {
-            val windowWidth = currentWindowDpSize().width
-            val railOnSide = rail != null && windowWidth >= 600.dp && windowWidth < 840.dp
-            if (railOnSide) {
+        BoxWithConstraints(modifier = modifier.fillMaxSize().background(containerColor)) {
+            val placement = tabPlacement(maxWidth)
+            if (rail != null && placement != TabPlacement.Bottom) {
                 androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.width(96.dp).fillMaxHeight()) { rail?.invoke() }
+                    val sideWidth = if (LocalKkNavBarStyle.current.labelStyle == NavBarLabelStyle.ICONS) TabPlacement.Rail.sideWidth else placement.sideWidth
+                    Box(modifier = Modifier.width(sideWidth).fillMaxHeight()) {
+                        CompositionLocalProvider(LocalTabPlacement provides placement, content = rail)
+                    }
                     Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                         MeasuredBar(onHeight = { topBarHeight = it }, bar = topBar)
                         Box(modifier = Modifier.weight(1f)) {

@@ -179,7 +179,7 @@ fun ImageGenPage(
                 }
             )
         },
-        bottomBar = {
+        rail = {
             BottomBar(pagerState, scope)
         },
     
