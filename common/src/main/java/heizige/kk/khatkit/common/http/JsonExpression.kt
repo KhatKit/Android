@@ -5,6 +5,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import java.math.BigDecimal
+import java.math.MathContext
 
 // Public API
 
@@ -53,14 +55,25 @@ fun isJsonExprValid(input: String): Boolean = parseExpression(input).success
  * @return 作为字符串的评估值。
  */
 fun evaluateJsonExpr(input: String, root: JsonObject): String {
-    val lexer = Lexer(input)
-    val parser = Parser(lexer)
-    val expr = parser.parse()
-    val value = Evaluator(root).eval(expr)
+    val value = Evaluator(root).eval(parseExpr(input))
     return when (value) {
         is Value.Str -> value.value
         is Value.Num -> formatNumber(value.value)
     }
+}
+
+/** Exact numeric evaluation for API balances; malformed/missing arithmetic operands fail closed. */
+fun evaluateJsonExprStrict(input: String, root: JsonObject): String {
+    val value = StrictEvaluator(root).eval(parseExpr(input))
+    return when (value) {
+        is StrictValue.Str -> value.value
+        is StrictValue.Num -> formatNumber(value.value)
+    }
+}
+
+private fun parseExpr(input: String): Expr {
+    val lexer = Lexer(input)
+    return Parser(lexer).parse()
 }
 
 // Lexer
@@ -170,7 +183,7 @@ private class ParseException(message: String) : RuntimeException(message)
 sealed interface Expr
 private data class Binary(val left: Expr, val op: Token, val right: Expr) : Expr
 private data class Unary(val op: Token, val expr: Expr) : Expr
-private data class NumberLiteral(val value: Double) : Expr
+private data class NumberLiteral(val value: BigDecimal) : Expr
 private data class StringLiteral(val value: String) : Expr
 private data class PathExpr(val parts: List<PathPart>) : Expr
 
@@ -232,7 +245,7 @@ private class Parser(private val lexer: Lexer) {
             TokenType.NUMBER -> {
                 val n = current
                 advance()
-                NumberLiteral(n.lexeme.toDouble())
+                NumberLiteral(n.lexeme.toBigDecimal())
             }
             TokenType.STRING -> {
                 val s = current
@@ -300,7 +313,7 @@ private sealed interface Value {
 
 private class Evaluator(private val root: JsonObject) {
     fun eval(expr: Expr): Value = when (expr) {
-        is NumberLiteral -> Value.Num(expr.value)
+        is NumberLiteral -> Value.Num(expr.value.toDouble())
         is StringLiteral -> Value.Str(expr.value)
         is Unary -> evalUnary(expr)
         is Binary -> evalBinary(expr)
@@ -371,6 +384,71 @@ private class Evaluator(private val root: JsonObject) {
     }
 }
 
+private sealed interface StrictValue {
+    data class Str(val value: String) : StrictValue
+    data class Num(val value: BigDecimal) : StrictValue
+}
+
+private class StrictEvaluator(private val root: JsonObject) {
+    fun eval(expr: Expr): StrictValue = when (expr) {
+        is NumberLiteral -> StrictValue.Num(expr.value)
+        is StringLiteral -> StrictValue.Str(expr.value)
+        is Unary -> {
+            val value = number(eval(expr.expr))
+            when (expr.op.type) {
+                TokenType.MINUS -> StrictValue.Num(value.negate())
+                TokenType.PLUS -> StrictValue.Num(value)
+                else -> throw ParseException("Unsupported unary operator ${expr.op.lexeme}")
+            }
+        }
+        is Binary -> {
+            val left = eval(expr.left)
+            val right = eval(expr.right)
+            when (expr.op.type) {
+                TokenType.CONCAT -> StrictValue.Str(string(left) + string(right))
+                TokenType.PLUS -> StrictValue.Num(number(left).add(number(right), MathContext.DECIMAL128))
+                TokenType.MINUS -> StrictValue.Num(number(left).subtract(number(right), MathContext.DECIMAL128))
+                TokenType.STAR -> StrictValue.Num(number(left).multiply(number(right), MathContext.DECIMAL128))
+                TokenType.SLASH -> StrictValue.Num(number(left).divide(number(right), MathContext.DECIMAL128))
+                else -> throw ParseException("Unsupported binary operator ${expr.op.lexeme}")
+            }
+        }
+        is PathExpr -> fromJson(resolvePath(expr))
+    }
+
+    private fun resolvePath(path: PathExpr): JsonElement? {
+        var current: JsonElement = root
+        for (part in path.parts) {
+            current = when (part) {
+                is Field -> (current as? JsonObject)?.get(part.name) ?: return null
+                is Index -> (current as? JsonArray)?.getOrNull(part.index) ?: return null
+            }
+        }
+        return current
+    }
+
+    private fun fromJson(element: JsonElement?): StrictValue = when (element) {
+        null, JsonNull -> StrictValue.Str("")
+        is JsonPrimitive -> if (element.isString) {
+            StrictValue.Str(element.content)
+        } else {
+            element.content.toBigDecimalOrNull()?.let { StrictValue.Num(it) } ?: StrictValue.Str(element.content)
+        }
+        else -> StrictValue.Str(element.toString())
+    }
+
+    private fun number(value: StrictValue): BigDecimal = when (value) {
+        is StrictValue.Num -> value.value
+        is StrictValue.Str -> value.value.trim().toBigDecimalOrNull()
+            ?: throw ParseException("Expected a numeric operand")
+    }
+
+    private fun string(value: StrictValue): String = when (value) {
+        is StrictValue.Str -> value.value
+        is StrictValue.Num -> formatNumber(value.value)
+    }
+}
+
 private fun JsonPrimitive.doubleOrNull(): Double? = try {
     this.content.toDouble()
 } catch (_: Exception) { null }
@@ -379,4 +457,9 @@ private fun formatNumber(d: Double): String {
     if (d.isNaN() || d.isInfinite()) return d.toString()
     val asLong = d.toLong()
     return if (d == asLong.toDouble()) asLong.toString() else d.toString()
+}
+
+private fun formatNumber(value: BigDecimal): String {
+    val n = value.stripTrailingZeros()
+    return if (n.scale() in -16..16) n.toPlainString() else n.toString()
 }

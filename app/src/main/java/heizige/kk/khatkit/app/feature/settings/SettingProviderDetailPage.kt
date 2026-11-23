@@ -361,9 +361,10 @@ internal fun SettingProviderConfigPage(
                 balanceOption = internalProvider.balanceOption,
                 balance = {
                     ProviderBalanceText(
-                        providerSetting = provider,
+                        providerSetting = currentProvider,
                         style = MochiTheme.textStyles.body,
                         color = MochiTheme.colorScheme.onSurfaceVariant,
+                        showRefresh = true,
                     )
                 },
                 onEdit = { commit(internalProvider.copyProvider(balanceOption = it)) }

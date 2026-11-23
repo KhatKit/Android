@@ -21,3 +21,6 @@ fun JsonObject.stringOrNull(key: String): String? = this[key]?.jsonPrimitiveOrNu
 fun JsonObject.getByKey(key: String): String {
     return evaluateJsonExpr(key, this)
 }
+
+/** Strict exact-number variant for values used in low-balance calculations. */
+fun JsonObject.getByKeyStrict(key: String): String = evaluateJsonExprStrict(key, this)

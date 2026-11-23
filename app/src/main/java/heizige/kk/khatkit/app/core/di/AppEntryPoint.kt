@@ -22,6 +22,7 @@ import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.automation.TriggerController
+import heizige.kk.khatkit.app.feature.balance.data.ProviderBalanceRepository
 import heizige.kk.khatkit.app.feature.tools.data.ToolIconRepository
 import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
@@ -60,6 +61,7 @@ interface AppEntryPoint {
     fun filesManager(): FilesManager
     fun mcpManager(): McpManager
     fun providerManager(): ProviderManager
+    fun providerBalanceRepository(): ProviderBalanceRepository
     fun soundEffectPlayer(): SoundEffectPlayer
     fun memoryRepository(): MemoryRepository
     fun conversationRepository(): ConversationRepository

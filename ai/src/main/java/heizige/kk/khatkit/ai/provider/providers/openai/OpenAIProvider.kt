@@ -33,7 +33,7 @@ import heizige.kk.khatkit.ai.util.json
 import heizige.kk.khatkit.ai.util.mergeCustomBody
 import heizige.kk.khatkit.ai.util.toHeaders
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrlOrNull
-import heizige.kk.khatkit.common.http.getByKey
+import heizige.kk.khatkit.common.http.getByKeyStrict
 import heizige.kk.khatkit.common.http.okhttp.MultipartBody
 import heizige.kk.khatkit.common.http.okhttp.toMediaType
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
@@ -99,19 +99,10 @@ class OpenAIProvider(
             .addHeader("Authorization", "Bearer $key")
             .get()
             .build()
-        val response = client.newCall(request).await()
-        if (!response.isSuccessful) {
-            error("Failed to get balance: ${response.code} ${response.body?.string()}")
-        }
-
-        val bodyStr = response.body.string()
-        val bodyJson = json.parseToJsonElement(bodyStr).jsonObject
-        val value = bodyJson.getByKey(providerSetting.balanceOption.resultPath)
-        val digitalValue = value.toFloatOrNull()
-        if(digitalValue != null) {
-            "%.2f".format(digitalValue)
-        } else {
-            value
+        client.newCall(request).await().use { response ->
+            check(response.isSuccessful) { "Failed to get balance: HTTP ${response.code}" }
+            val bodyJson = json.parseToJsonElement(response.body.string()).jsonObject
+            bodyJson.getByKeyStrict(providerSetting.balanceOption.resultPath)
         }
     }
 
