@@ -5,6 +5,7 @@ KhatKit app was built against (local `0.2.0-khatkit` artifact):
   2. MochiItem: `enabled` flag (+ dimmed/disabled rendering in MenuList)
   3. MochiButton: 不再吞掉拖动事件 —— 否则按在 chip 上左右拖不会滚动 MochiChipGroup 的横向分类栏
      （只能抓 chip 之间的空隙），同时把「拖过 touchSlop 就不算点击」补上，避免滚动时误选中 chip
+  4. Dropdown/popover placement respects the IME as well as the navigation bar.
 
 Usage: python3 .github/scripts/patch-mochi.py <mochi-checkout-dir>
 """
@@ -147,5 +148,24 @@ patch(
                                 if (!moved) c.consume()
                                 break""",
 )
+
+# The menu lives in an edge-to-edge overlay; its layout size does not shrink
+# when the editor is focused. Limit placement to the area above the keyboard.
+for rel in ("menu/DropdownOverlay.kt", "MochiPopover.kt"):
+    source = f"mochi-compose/src/main/java/ui/feice/mochi/basic/{rel}"
+    patch(
+        source,
+        "import androidx.compose.foundation.layout.navigationBars\n",
+        "import androidx.compose.foundation.layout.ime\n"
+        "import androidx.compose.foundation.layout.navigationBars\n",
+    )
+    patch(
+        source,
+        "val safeBottom = WindowInsets.navigationBars.getBottom(density).toFloat()",
+        """val safeBottom = maxOf(
+            WindowInsets.navigationBars.getBottom(density),
+            WindowInsets.ime.getBottom(density),
+        ).toFloat()""",
+    )
 
 print("mochi patched OK")
