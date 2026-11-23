@@ -370,6 +370,8 @@ internal fun ChatScaffold(
     val filesSheet = rememberMochiSheetState()
     // U7b-6：state 由这里持有，去 if 门控。
     val roleSheet = rememberMochiSheetState()
+    val skillSheet = rememberMochiSheetState()
+    androidx.compose.runtime.key(inputState) { ChatSkillSheet(skillSheet, inputState::appendText) }
     LaunchedEffect(showRolePicker) { if (showRolePicker) roleSheet.show() else roleSheet.hide() }
     AssistantPickerSheet(
             sheetState = roleSheet,
@@ -459,6 +461,7 @@ internal fun ChatScaffold(
                     ChatInputCommand("compress", stringResource(R.string.chat_page_compress_context)) {
                         showCompressDialog = true
                     },
+                    ChatInputCommand("skill", "载入技能到草稿") { skillSheet.show() },
                     ChatInputCommand("skills", stringResource(R.string.skills_page_title)) {
                         navController.navigate(Screen.Skills)
                     },

@@ -9,12 +9,14 @@ import org.junit.Test
 class ChatInputCommandTest {
     private val compress = ChatInputCommand("compress", "Compress") {}
     private val skills = ChatInputCommand("skills", "Skills") {}
-    private val commands = listOf(compress, skills)
+    private val skill = ChatInputCommand("skill", "Load skill") {}
+    private val commands = listOf(compress, skill, skills)
 
     @Test
     fun suggestsCommandsAtTheEndOfStandalonePrefix() {
         assertEquals(commands, suggest("/"))
         assertEquals(listOf(compress), suggest("/Co"))
+        assertEquals(listOf(skill, skills), suggest("/skill"))
         assertEquals(listOf(skills), suggest("/skills"))
     }
 
@@ -31,6 +33,7 @@ class ChatInputCommandTest {
     fun submitRequiresExactStandaloneCommand() {
         assertEquals(compress, commands.findCommand("/COMPRESS "))
         assertEquals(skills, commands.findCommand("/skills"))
+        assertEquals(skill, commands.findCommand("/skill"))
         listOf("/", "/ski", "hello /skills", "/skills file", "/skills\n", "/skills/path", "/unknown").forEach {
             assertNull(it, commands.findCommand(it))
         }
