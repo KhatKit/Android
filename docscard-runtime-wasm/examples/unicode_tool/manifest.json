@@ -1,0 +1,21 @@
+{
+  "name": "unicode_tool",
+  "version": "1.0.0",
+  "runtime": "wasm",
+  "abi_version": 1,
+  "entry": {"wasm": "card.wasm"},
+  "description": "离线转换 Unicode 码点和 UTF-16 转义。",
+  "default_locale": "zh",
+  "i18n": {"zh": {"name": "Unicode 工具"}, "en": {"name": "Unicode Tools"}},
+  "capabilities": ["ui:render"],
+  "requires": {"bridges": ["ui"]},
+  "tags": {"domain": "text", "action": "convert", "scene": "dev"},
+  "limits": {"memory_mb": 16, "timeout_ms": 5000, "output_bytes": 262144},
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "mode": {"type": "string", "enum": ["encode", "decode"], "default": "encode"},
+      "text": {"type": "string", "description": "Text, hexadecimal code points, or UTF-16 escapes. Omit to open the form."}
+    }
+  }
+}
