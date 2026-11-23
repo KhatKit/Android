@@ -1,22 +1,40 @@
 mod codec;
+mod glyph;
 mod ui;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 pub fn run(
     event: Value,
-    screen: impl FnMut(Value) -> Result<Value, String>,
+    mut screen: impl FnMut(Value) -> Result<Value, String>,
 ) -> Result<Value, String> {
+    if event["type"] == "widget" {
+        screen(
+            json!({"method":"ui.show","args":[{"kind":"Text","text":"A · U+0041","style":"code"}, {"frame":"header"}]}),
+        )?;
+        return Ok(json!({"ok":true}));
+    }
     if event["type"] != "run" {
         return Err("不支持的卡片事件".into());
     }
     let args = &event["payload"];
     if let Some(input) = args.get("text") {
-        return codec::convert(
+        let mut result = codec::convert(
             args["mode"].as_str().unwrap_or("encode"),
             input.as_str().ok_or("text 必须是字符串")?,
         )
-        .map_err(str::to_owned);
+        .map_err(str::to_owned)?;
+        if args["glyphs"] == true {
+            result["glyphs"] = Value::Array(
+                result["text"]
+                    .as_str()
+                    .unwrap_or("")
+                    .chars()
+                    .map(glyph::describe)
+                    .collect(),
+            );
+        }
+        return Ok(result);
     }
     ui::interactive(screen)
 }
@@ -89,6 +107,42 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result["text"], "😀");
+    }
+
+    #[test]
+    fn widget_renders_inline_without_opening_the_form() {
+        let result = run(json!({"type":"widget","payload":{}}), |request| {
+            assert_eq!(request["method"], "ui.show");
+            Ok(Value::Null)
+        })
+        .unwrap();
+        assert_eq!(result["ok"], true);
+    }
+
+    #[test]
+    fn paging_reuses_the_glyph_layer_and_back_restores_the_input() {
+        let text = format!("{}😀", "a".repeat(24));
+        let replies = [
+            json!({"event":"glyphs","values":{"text":text}}),
+            json!({"event":"next"}),
+            json!({"event":"prev"}),
+            json!({"event":"glyph_close"}),
+            json!({"event":"card_close"}),
+        ];
+        let mut pages = Vec::new();
+        let result = run(json!({"type":"run","payload":{}}), |page| {
+            pages.push(page);
+            Ok(replies[pages.len() - 1].clone())
+        })
+        .unwrap();
+        assert_eq!(result["closed"], true);
+        assert_eq!(pages.len(), 5);
+        assert_eq!(pages[1]["args"][2]["push"], true);
+        assert_eq!(pages[2]["args"][2]["push"], false);
+        assert_eq!(pages[3]["args"][2]["push"], false);
+        assert_eq!(pages[1]["args"][1], pages[3]["args"][1]);
+        assert!(pages[2]["args"][1].to_string().contains("GRINNING FACE"));
+        assert!(pages[4]["args"][1].to_string().contains(&text));
     }
 
     #[test]

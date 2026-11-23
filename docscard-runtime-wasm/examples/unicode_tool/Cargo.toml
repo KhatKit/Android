@@ -1,6 +1,6 @@
 [package]
 name = "unicode_tool"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 publish = false
 
@@ -9,6 +9,9 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde_json = "1"
+unicode-general-category = "1.1"
+# Keep character names on Unicode 16.0, matching unicode-general-category 1.1.
+unicode_names2 = "=2.0.0"
 
 [profile.release]
 opt-level = "s"

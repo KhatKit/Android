@@ -8,6 +8,22 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 
 
+def notices():
+    metadata = json.loads(subprocess.check_output(
+        ["cargo", "metadata", "--format-version", "1", "--locked", "--filter-platform", "wasm32-unknown-unknown"],
+        cwd=ROOT, encoding="utf-8",
+    ))
+    entries = []
+    for pkg in sorted(metadata["packages"], key=lambda x: (x["name"], x["version"])):
+        if not pkg["source"]:
+            continue
+        base = Path(pkg["manifest_path"]).parent
+        files = sorted(p for p in [*base.glob("LICENSE*"), *base.glob("COPYING*"), *base.glob("data/LICENSE*")] if p.is_file())
+        entries.append(f'{pkg["name"]} {pkg["version"]} ({pkg["license"]})')
+        entries.extend(p.read_text(encoding="utf-8") for p in files)
+    return "\n\n".join(entries).encode()
+
+
 def main():
     result = subprocess.run(
         ["cargo", "build", "--release", "--locked", "--target", "wasm32-unknown-unknown", "--message-format=json"],
@@ -19,7 +35,8 @@ def main():
     manifest = (ROOT / "manifest.json").read_text(encoding="utf-8").encode()
     path = ROOT / "unicode_tool.kkcard"
     with zipfile.ZipFile(path, "w") as package:
-        for name, data in [("manifest.json", manifest), ("card.wasm", wasm.read_bytes())]:
+        for name, data in [("manifest.json", manifest), ("card.wasm", wasm.read_bytes()),
+                           ("assets/THIRD-PARTY-NOTICES.txt", notices())]:
             entry = zipfile.ZipInfo(name)  # fixed timestamp and permissions, independent of checkout
             entry.create_system = 3
             entry.external_attr = 0o100644 << 16
