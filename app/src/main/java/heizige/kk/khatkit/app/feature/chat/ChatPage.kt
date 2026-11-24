@@ -710,6 +710,7 @@ internal fun ChatScaffold(
                     visible = !archived && !previewMode && conversation.messageNodes.isEmpty(),
                     sessionKey = conversation.id.toString(),
                     manager = vm.welcome,
+                    inputBarHeight = inputBarHeight,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
