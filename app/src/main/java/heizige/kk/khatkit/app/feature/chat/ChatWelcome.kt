@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -50,6 +51,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -94,6 +96,9 @@ internal fun ChatWelcomeHost(
     visible: Boolean,
     sessionKey: String,
     manager: ChatWelcomeManager,
+    inputBarHeight: Dp,
+    topInset: Dp,
+    listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
     val state by manager.state.collectAsStateWithLifecycle()
@@ -114,7 +119,7 @@ internal fun ChatWelcomeHost(
         }
     }
     AnimatedVisibility(visible = visible, modifier = modifier, enter = fadeIn(), exit = fadeOut()) {
-        ChatWelcome(sessionKey, state, locales, manager)
+        ChatWelcome(sessionKey, state, locales, manager, inputBarHeight, topInset, listState)
     }
 }
 
@@ -124,6 +129,9 @@ private fun ChatWelcome(
     state: ChatWelcomeState,
     locales: List<String>,
     manager: ChatWelcomeManager,
+    inputBarHeight: Dp,
+    topInset: Dp,
+    listState: LazyListState,
 ) {
     var variation by rememberSaveable(sessionKey) { mutableIntStateOf(0) }
     val catalogue: ToolCatalogueViewModel = hiltViewModel(key = "welcome-tool-catalogue")
@@ -144,8 +152,9 @@ private fun ChatWelcome(
     // 编辑态里把最后一个也移除了：没东西可编辑，退回「添加小组件」那一行。
     LaunchedEffect(hasEnabledWidgets) { if (!hasEnabledWidgets) editing = false }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 32.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = topInset + 20.dp, bottom = inputBarHeight + 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // 这一区常驻：没有开着的组件时，标题右侧是管理入口、列表里是全宽「添加小组件」；

@@ -80,7 +80,6 @@ fun SshPluginPage(
                 },
             ) { Text("卸载") }
         },
-        edgeFade = false,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

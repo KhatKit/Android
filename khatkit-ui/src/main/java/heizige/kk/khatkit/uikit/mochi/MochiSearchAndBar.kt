@@ -197,9 +197,9 @@ fun <T> MochiNavigationBar(
                     shadow = Color.Transparent,
                 )
             }
-            else -> MochiTabBarDefaults.colors()
+            else -> MochiTabBarDefaults.colors(shadow = Color.Transparent)
         },
-        material = if (transparentBackground || pageBackground) null else MochiTheme.materials.bar,
+        material = if (transparentBackground || pageBackground) null else rememberNavigationBarMaterial(),
         modifier = if (floating) {
             modifier.padding(horizontal = 24.dp, vertical = 12.dp)
         } else {
