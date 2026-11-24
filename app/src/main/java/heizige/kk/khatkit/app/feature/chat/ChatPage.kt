@@ -565,7 +565,13 @@ internal fun ChatScaffold(
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         val inputBarHeight = with(LocalDensity.current) { inputBarHeightPx.toDp() }
         val previewListState = rememberLazyListState()
-        val topBarProgress = MochiScrollEdgeDefaults.progress(if (previewMode) previewListState else chatListState)
+        val welcomeListState = rememberLazyListState()
+        val showWelcome = !archived && !previewMode && conversation.messageNodes.isEmpty()
+        val topBarProgress = MochiScrollEdgeDefaults.progress(when {
+            previewMode -> previewListState
+            showWelcome -> welcomeListState
+            else -> chatListState
+        })
         MochiPageScaffold(
             modifier = activeNestedScroll,
             scrollUnderTopBar = topBarProgress,
@@ -577,7 +583,7 @@ internal fun ChatScaffold(
                         // 解析过，这里不再让顶栏自己解析一遍（两处各解析一次正是历史 bug 的温床）。
                         role = assistant,
                         // 和下面的欢迎层同一个条件：空会话顶栏显示问候语，发出第一条就换回角色名 + 模型名
-                        welcome = !archived && !previewMode && conversation.messageNodes.isEmpty(),
+                        welcome = showWelcome,
                         hazeState = hazeState,
                         bigScreen = bigScreen,
                         sidebarState = sidebarState,
@@ -603,7 +609,6 @@ internal fun ChatScaffold(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
                         .onSizeChanged { inputBarHeightPx = it.height },
                 ) {
                     CompositionLocalProvider(LocalMochiBackdrop provides LocalKkBarBackdrop.current) {
@@ -707,13 +712,13 @@ internal fun ChatScaffold(
                 // 列表为空时本来没有项，塞进去会让 item 数凭空 +1，滚动条比例、
                 // 「滚到底部」的目标索引、自动跟随这几套算术都得跟着改口径。
                 ChatWelcomeHost(
-                    visible = !archived && !previewMode && conversation.messageNodes.isEmpty(),
+                    visible = showWelcome,
                     sessionKey = conversation.id.toString(),
                     manager = vm.welcome,
                     inputBarHeight = inputBarHeight,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
+                    topInset = innerPadding.calculateTopPadding(),
+                    listState = welcomeListState,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

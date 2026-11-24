@@ -2,25 +2,27 @@ package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,71 +57,50 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
-import kotlinx.collections.immutable.persistentListOf
-import ui.feice.mochi.basic.MochiTabItem
-import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
-import ui.feice.mochi.navigation.MochiTabScaffold
-import ui.feice.mochi.navigation.rememberMochiTabScaffoldState
 import ui.feice.mochi.navigation.MochiTitleBar
-import ui.feice.mochi.navigation.MochiTitleBarDefaults
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
-    val tabState = rememberMochiTabScaffoldState(pagerState.currentPage)
-    LaunchedEffect(pagerState.currentPage) {
-        tabState.select(pagerState.currentPage)
-    }
-
-    // P3a：页面骨架直接换成 Mochi 的 TabScaffold（底部 Tab 栏由 Mochi 自己画），
-    // 固定全屏 Pager 避免放进竖向滚动列；标题栏和底部 Tab 分层浮在页面内容上。
-    val tabItems = persistentListOf(
-        MochiTabItem(
-            label = stringResource(R.string.setting_model_page_tab_model),
-            icon = { tint -> Icon(neurology, contentDescription = null, tint = tint) },
-        ),
-        MochiTabItem(
-            label = stringResource(R.string.setting_model_page_tab_prompt),
-            icon = { tint -> Icon(editNote, contentDescription = null, tint = tint) },
-        ),
-    )
-    MochiTabScaffold(
-        items = tabItems,
-        state = tabState,
-        onSelect = { page -> scope.launch { pagerState.animateScrollToPage(page) } },
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val contentPadding = PaddingValues(
-                bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
-            )
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = topInset + MochiTitleBarDefaults.Height),
-            ) { page ->
-                when (page) {
-                    0 -> ModelSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
-                    1 -> PromptSettingsPage(settings = settings, vm = vm, contentPadding = contentPadding)
-                }
-            }
+    val modelList = rememberLazyListState()
+    val promptList = rememberLazyListState()
+    val progress = MochiScrollEdgeDefaults.progress(if (pagerState.currentPage == 0) modelList else promptList)
+    MochiPageScaffold(
+        scrollUnderTopBar = progress,
+        topBar = {
             MochiTitleBar(
                 title = stringResource(R.string.setting_model_page_title),
-                navigationIcon = { heizige.kk.khatkit.app.core.ui.components.nav.BackButton() },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding(),
+                navigationIcon = { BackButton() },
+                backdrop = LocalKkBarBackdrop.current,
+                backgroundProgress = progress,
             )
+        },
+        rail = {
+            MochiNavBottomBar(listOf(
+                MochiNavTab(neurology, stringResource(R.string.setting_model_page_tab_model), pagerState.currentPage == 0) {
+                    scope.launch { pagerState.animateScrollToPage(0) }
+                },
+                MochiNavTab(editNote, stringResource(R.string.setting_model_page_tab_prompt), pagerState.currentPage == 1) {
+                    scope.launch { pagerState.animateScrollToPage(1) }
+                },
+            ))
+        },
+    ) { padding ->
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            when (page) {
+                0 -> ModelSettingsPage(settings, vm, padding, modelList)
+                1 -> PromptSettingsPage(settings, vm, padding, promptList)
+            }
         }
     }
 }
 
 @Composable
-private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
+private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues, listState: LazyListState) {
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

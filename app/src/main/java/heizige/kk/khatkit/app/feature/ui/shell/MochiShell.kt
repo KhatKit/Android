@@ -1,17 +1,13 @@
 package heizige.kk.khatkit.app.feature.ui.shell
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import ui.feice.mochi.basic.MochiTabBarScrollBehavior
 import ui.feice.mochi.basic.rememberMochiTabBarScrollBehavior
 import ui.feice.mochi.navigation.LocalMochiBottomBarInset
 import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
-import ui.feice.mochi.navigation.mochiScrollEdgeFade
+import heizige.kk.khatkit.uikit.mochi.NavigationBarScrim
+import heizige.kk.khatkit.uikit.mochi.rememberNavigationBarMaterial
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
@@ -185,6 +181,8 @@ fun MochiNavBottomBar(
             items.getOrNull(index)?.onClick?.invoke()
         },
         scrollBehavior = scrollBehavior,
+        colors = MochiTabBarDefaults.colors(shadow = Color.Transparent),
+        material = rememberNavigationBarMaterial(),
         // 标签样式（图标+文字 / 仅选中项文字 / 仅图标）走 Mochi 的 behavior
         behavior = behavior,
         // 玻璃标签栏取样的是骨架录下的正文（栏浮在正文上，透出的就是它）
@@ -430,7 +428,7 @@ fun MochiPageScaffold(
 
 /**
  * 底部 rail（[MochiNavBottomBar]）浮在正文上，和 Mochi 的 [ui.feice.mochi.navigation.MochiTabScaffold] 同一套：
- * - 正文铺到屏幕底，栏下面透出的就是正文（玻璃栏取样它；纯色栏后面垫一层朝上渐隐的底色）
+ * - 正文铺到屏幕底，玻璃栏取样正文，手势区用页面底色向上渐隐
  * - 栏连同留白的整块高度经 [LocalMochiBottomBarInset] 下发，content 拿到的 PaddingValues.bottom 也是它：
  *   页面把它当列表的 contentPadding（或用 [MochiTabScaffoldDefaults.contentBottomPadding]），
  *   最后一项停在栏上面，滚动时内容从栏底下穿过
@@ -456,15 +454,7 @@ private fun FloatingRailLayout(
             PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = false,
                 bottomInset = railInset, bodyModifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), content = content)
         }
-        if (MochiTheme.materials.bar == null) {
-            Spacer(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 36.dp)
-                    .mochiScrollEdgeFade(background, bottom = true, extent = 56.dp),
-            )
-        }
+        NavigationBarScrim(background, Modifier.align(Alignment.BottomCenter))
         CompositionLocalProvider(LocalKkNavBarScrollBehavior provides scrollBehavior) {
             Box(
                 modifier = Modifier

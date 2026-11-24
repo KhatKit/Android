@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -267,8 +269,10 @@ private fun SearchResultSection(
                         CompositionLocalProvider(
                             LocalMochiListItemSpacing provides MochiListDefaults.SectionSpacing,
                         ) {
+                            val resultsState = rememberLazyListState()
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
+                                state = resultsState,
+                                modifier = Modifier.fillMaxSize().kkScrollEdgeFade(resultsState, bottom = 0.dp),
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
                                     end = 16.dp,

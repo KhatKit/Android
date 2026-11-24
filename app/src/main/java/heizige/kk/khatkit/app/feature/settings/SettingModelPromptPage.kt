@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
@@ -36,8 +37,9 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 
 @Composable
-internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues) {
+internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues, listState: LazyListState) {
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

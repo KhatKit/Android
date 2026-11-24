@@ -25,6 +25,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
+import heizige.kk.khatkit.app.core.ui.components.ui.KkScrollEdgeExtent
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -265,8 +269,10 @@ internal fun ToolCataloguePage() {
                     }
                     Row(Modifier.fillMaxSize()) {
                         if (rail) {
+                            val railState = rememberLazyListState()
                             LazyColumn(
-                                modifier = Modifier.width(156.dp),
+                                state = railState,
+                                modifier = Modifier.width(156.dp).kkScrollEdgeFade(railState, bottom = 0.dp),
                                 contentPadding = PaddingValues(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 24.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 flingBehavior = MochiScrollDefaults.flingBehavior(),
@@ -496,6 +502,7 @@ private fun ToolResults(
             LazyVerticalGrid(
                 modifier = Modifier
                     .fillMaxSize()
+                    .mochiScrollEdgeBlur(KkScrollEdgeExtent, MochiScrollEdgeDefaults.progress(gridState))
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -586,7 +593,8 @@ private fun ToolResults(
         }
         Box(Modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
+                modifier = Modifier.fillMaxSize().kkScrollEdgeFade(listState, bottom = 0.dp)
+                    .mochiRefreshHold(refresh).mochiContainedScroll(overscroll),
                 state = listState,
                 overscrollEffect = overscroll,
                 contentPadding = PaddingValues(start = 12.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),

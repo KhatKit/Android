@@ -168,7 +168,7 @@ internal fun NodeTreeContent(
     /** 列表顶部的不可滚动内容（卡片大标题等），只在懒加载列表路径用。 */
     header: (@Composable () -> Unit)? = null,
     /** 折叠顶栏让出的高度：列表顶部留白（懒加载路径）。 */
-    contentTopInset: androidx.compose.ui.unit.Dp = 0.dp,
+    contentTopInset: androidx.compose.ui.unit.Dp = LocalKhatKitContentTopInset.current,
 ) {
     // 底栏浮在内容上时不占布局：滚动内容末尾留出栏高，最后一项仍能滚到栏上方。
     val bottomInset = LocalKhatKitContentBottomInset.current

@@ -27,6 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import ui.feice.mochi.navigation.MochiBackButton
 import ui.feice.mochi.basic.MochiBarIconButton
+import heizige.kk.khatkit.uikit.mochi.NavigationBarScrim
+import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.navigation.MochiTitleBar
 import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTitleTopBar
@@ -88,9 +91,15 @@ fun KhatKitPage(
     var navigationPending by remember(contentKey) { mutableStateOf(false) }
     var barHeight by remember { mutableStateOf(0) }
     var bottomHeight by remember { mutableStateOf(0) }
-    val topInset = with(density) { barHeight.toDp() }
+    val topInset = if (inline || options.hideTopBar) 0.dp else with(density) { barHeight.toDp() }
     val bottomInset = with(density) { bottomHeight.toDp() }
     val paged = pagerState != null
+    val ownsScroll = !paged && lazyListState == null
+    val edgeProgress = backgroundProgress ?: if (lazyListState != null) {
+        MochiScrollEdgeDefaults.progress(lazyListState)
+    } else {
+        MochiScrollEdgeDefaults.progress(scroll)
+    }
     val titleFadePx = with(density) { 72.dp.toPx() }
     // The body owns the scroll container.  Read either its ScrollState or its
     // LazyListState so both regular and lazy card screens can drive the bar.
@@ -137,8 +146,8 @@ fun KhatKitPage(
         Column(
             Modifier.fillMaxSize()
                 .mochiBackdropSource(barBackdrop)
-                .then(if (!paged) Modifier.padding(top = topInset, bottom = bottomInset) else Modifier)
-                .then(if (pagerState == null && lazyListState == null) Modifier.verticalScroll(scroll) else Modifier),
+                .then(if (topInset > 0.dp) Modifier.mochiScrollEdgeBlur(topInset, edgeProgress) else Modifier)
+                .then(if (ownsScroll) Modifier.verticalScroll(scroll).padding(top = topInset, bottom = bottomInset) else Modifier),
         ) {
             // 内联到卡片整页时，把正文的滚动进度报给外层骨架：顶栏小标题只在页内
             // 大标题滚走之后才淡入（分页路径各自按列表算，不进这里）。
@@ -150,8 +159,8 @@ fun KhatKitPage(
                 onDispose { }
             }
             CompositionLocalProvider(
-                LocalKhatKitContentTopInset provides if (paged) topInset else 0.dp,
-                LocalKhatKitContentBottomInset provides if (paged) bottomInset else 0.dp,
+                LocalKhatKitContentTopInset provides if (ownsScroll) 0.dp else topInset,
+                LocalKhatKitContentBottomInset provides if (ownsScroll) 0.dp else bottomInset,
             ) { content(onDismiss) }
         }
         // CardWidgetPage already owns the route title bar; inline content keeps
@@ -221,6 +230,9 @@ fun KhatKitPage(
                 }
             }
             bar()
+        }
+        if (navigation != null) {
+            NavigationBarScrim(MochiDefaults.groupedBackground(), Modifier.align(Alignment.BottomCenter))
         }
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onSizeChanged { bottomHeight = it.height }) {
             if (confirmText != null && onConfirm != null) {
