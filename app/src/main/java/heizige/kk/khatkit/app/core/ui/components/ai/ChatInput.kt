@@ -399,8 +399,9 @@ fun ChatInput(
     // 背景圆角随输入框圆角走：收起时 = 输入框圆角 + 间距（同心），
     // 展开后段用 late-morph 过渡到 24dp。
     val collapsedOuterRadiusPx = with(densityLocal) { (MochiTextFieldDefaults.Height / 2).toPx() } + gapPx
-    // 展开后也保持和输入框一圈同心的大圆角，不做收角
-    val outerRadiusPx = collapsedOuterRadiusPx
+    // 正常输入时保持胶囊圆角；编辑消息时缩小整个输入栏外壳圆角。
+    val editingOuterRadiusPx = with(densityLocal) { 24.dp.toPx() }
+    val outerRadiusPx = if (state.isEditing()) editingOuterRadiusPx else collapsedOuterRadiusPx
     val outerRadiusDp = with(densityLocal) { outerRadiusPx.toDp().value }
     val containerShape = RoundedCornerShape(outerRadiusDp.dp)
     fun runCommand(command: ChatInputCommand) {
