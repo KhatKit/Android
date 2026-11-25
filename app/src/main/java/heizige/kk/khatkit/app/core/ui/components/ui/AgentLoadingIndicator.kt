@@ -80,32 +80,36 @@ fun AgentLoadingIndicator(
     Canvas(
         modifier = modifier.size(size)
     ) {
-        val scale = size.toPx() / 512f // 原始 viewportWidth 是 512
+        // 这些矢量坐标来自 512dp 画布中间的约 130dp 图形，不能直接除以 512，
+        // 否则 48dp 指示器里只会剩一个约 11dp 的小标记。按图形自身边界缩放并居中。
+        val scale = size.toPx() / 160f
+        val origin = size.toPx() / 2f - 252f * scale
+        fun coordinate(value: Float) = value * scale + origin
         val strokeWidth = 12.9705f * scale
 
         // 竖线 |
         drawLine(
             color = color.copy(alpha = barAlpha),
-            start = Offset(193.43f * scale, 193.43f * scale),
-            end = Offset(193.43f * scale, 310.57f * scale),
+            start = Offset(coordinate(193.43f), coordinate(193.43f)),
+            end = Offset(coordinate(193.43f), coordinate(310.57f)),
             strokeWidth = strokeWidth
         )
         drawLine(
             color = color.copy(alpha = barAlpha),
-            start = Offset(206.84f * scale, 193.43f * scale),
-            end = Offset(206.84f * scale, 310.57f * scale),
+            start = Offset(coordinate(206.84f), coordinate(193.43f)),
+            end = Offset(coordinate(206.84f), coordinate(310.57f)),
             strokeWidth = strokeWidth
         )
 
         // 尖括号 <
         val chevronPath = Path().apply {
-            moveTo(310.57f * scale, 197.14f * scale)
-            lineTo(249.78f * scale, 225.95f * scale)
-            lineTo(249.78f * scale, 234.28f * scale)
-            lineTo(310.57f * scale, 259.76f * scale)
-            lineTo(310.57f * scale, 245.83f * scale)
-            lineTo(268.70f * scale, 229.52f * scale)
-            lineTo(310.57f * scale, 211.07f * scale)
+            moveTo(coordinate(310.57f), coordinate(197.14f))
+            lineTo(coordinate(249.78f), coordinate(225.95f))
+            lineTo(coordinate(249.78f), coordinate(234.28f))
+            lineTo(coordinate(310.57f), coordinate(259.76f))
+            lineTo(coordinate(310.57f), coordinate(245.83f))
+            lineTo(coordinate(268.70f), coordinate(229.52f))
+            lineTo(coordinate(310.57f), coordinate(211.07f))
             close()
         }
         drawPath(
@@ -117,8 +121,8 @@ fun AgentLoadingIndicator(
         // 下划线 _
         drawLine(
             color = color.copy(alpha = underscoreAlpha),
-            start = Offset(249.87f * scale, 306.46f * scale),
-            end = Offset(310.48f * scale, 306.46f * scale),
+            start = Offset(coordinate(249.87f), coordinate(306.46f)),
+            end = Offset(coordinate(310.48f), coordinate(306.46f)),
             strokeWidth = 8.04f * scale
         )
     }
