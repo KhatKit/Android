@@ -85,6 +85,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1072,22 +1073,33 @@ private fun TextInputRow(
     ) {
         if (state.isEditing()) {
             KkSurface(
+                modifier = Modifier.wrapContentWidth(Alignment.Start),
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(text = stringResource(R.string.editing))
-                    Spacer(Modifier.weight(1f))
-                    Icon(
-                        imageVector = close,
-                        contentDescription = stringResource(R.string.cancel_edit),
-                        modifier = Modifier.clickable { state.clearInput() }
+                    Text(
+                        text = stringResource(R.string.editing),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MochiTheme.textStyles.footnote,
                     )
+                    MochiRealIconButton(
+                        onClick = state::clearInput,
+                        modifier = Modifier.testTag("chat_cancel_edit"),
+                        size = 40.dp,
+                        style = MochiButtonStyle.Text,
+                    ) {
+                        Icon(
+                            imageVector = close,
+                            contentDescription = stringResource(R.string.cancel_edit),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
         }
