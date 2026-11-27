@@ -3,8 +3,8 @@
 KhatKit app was built against (see the version catalog for the local artifact):
   1. MochiChip: `labelContent` / `trailingContent` slots
   2. MochiItem: `enabled` flag (+ dimmed/disabled rendering in MenuList)
-  3. MochiButton: 不再吞掉拖动事件 —— 否则按在 chip 上左右拖不会滚动 MochiChipGroup 的横向分类栏
-     （只能抓 chip 之间的空隙），同时把「拖过 touchSlop 就不算点击」补上，避免滚动时误选中 chip
+  3. MochiButton / MochiChip: 新增 `yieldToScroll` —— 滚动容器内的 chip 拖动超过 touchSlop 后
+     把这一下手势让给父级（横向 chip 行 / 列表可接管），短按仍触发点击；普通按钮保持整段所有权
   4. Dropdown/popover placement respects the IME as well as the navigation bar.
   5. Sheet lists and nested navigation measure the visible detent, not the tallest one.
 
@@ -125,29 +125,97 @@ patch(
 )
 
 
-# ---- 4. MochiButton: 拖动事件交给外层滚动容器，拖过 touchSlop 不再算点击 ----
+# ---- 4. MochiButton: yieldToScroll —— 可滚动容器内的按钮在 touch slop 后让位 ----
 button = "mochi-compose/src/main/java/ui/feice/mochi/basic/MochiButton.kt"
+patch(
+    button,
+    """                    val down = awaitFirstDown()
+                    // 在 Main 阶段声明点击归属，避免面板的空白点击手势把按钮的按下事件抢走。
+                    down.consume()""",
+    """                    val down = awaitFirstDown()
+                    // 滚动容器里的芯片不预先消费 down，让父级滚动可以观察并接管拖动。
+                    if (!behavior.yieldToScroll) down.consume()""",
+)
+patch(
+    button,
+    """                    val touchSlop = viewConfiguration.touchSlop
+                    var moved = false
+                    var click = false""",
+    """                    val touchSlop = viewConfiguration.touchSlop
+                    var moved = false
+                    var yielded = false
+                    var click = false""",
+)
+patch(
+    button,
+    """                            if (!moved && (c.position - down.position).getDistance() > touchSlop) moved = true
+                            if (moved) {""",
+    """                            if (!moved && ((c.position - down.position).getDistance() > touchSlop || c.isConsumed)) {
+                                moved = true
+                                if (behavior.yieldToScroll) {
+                                    yielded = true
+                                    visual.held = false
+                                    glow.markReleased()
+                                    scope.launch { glow.release() }
+                                    glassGlow?.release()
+                                    groupGlow?.release()
+                                }
+                            }
+                            if (moved && !yielded) {""",
+)
+patch(
+    button,
+    """                                click = p.x > -slop && p.y > -slop && p.x < size.width + slop && p.y < size.height + slop
+                                c.consume()
+                                break""",
+    """                                click = p.x > -slop && p.y > -slop && p.x < size.width + slop && p.y < size.height + slop
+                                if (!yielded) c.consume()
+                                break""",
+)
 patch(
     button,
     """                            // 按在按钮上的这一整下都归按钮：Main 阶段先于外层消费移动，外层的滚动、面板拖动、
                             // 右滑返回都不会接手，按钮一直跟手直到松手（拖出 cancelSlop 外松手不算点击）
                             c.consume()""",
-    """                            // 不吞移动事件：外层的横向 / 纵向滚动容器要靠这些事件接管拖动。
-                            // 以前整下都 consume 掉，导致按在 chip 上左右拖不会滚动 chip 行
-                            // （分类栏只能抓 chip 之间的空隙）；按下与抬起仍由按钮消费，
-                            // 拖动超过 touchSlop 会取消这次点击（见上面 click 判定）。""",
+    """                            // 默认按钮保持整段手势所有权；可滚动 chip 在 touch slop 后释放给父级轨道/列表。
+                            if (!yielded) c.consume()""",
 )
 patch(
     button,
-    """                                val p = c.position
-                                click = p.x > -slop && p.y > -slop && p.x < size.width + slop && p.y < size.height + slop
-                                c.consume()
-                                break""",
-    """                                val p = c.position
-                                // 拖过 touchSlop = 这一下是给外层滚动 / 拖动用的，不算点击
-                                click = !moved && p.x > -slop && p.y > -slop && p.x < size.width + slop && p.y < size.height + slop
-                                if (!moved) c.consume()
-                                break""",
+    "                    if (click) currentOnClick()",
+    "                    if (click && !yielded) currentOnClick()",
+)
+
+# ---- 4b. MochiButtonBehavior / MochiChip: 透出并启用 yieldToScroll ---------
+defaults = "mochi-compose/src/main/java/ui/feice/mochi/basic/MochiButtonDefaults.kt"
+patch(
+    defaults,
+    """    val fuseGroup: Any? = null,
+)""",
+    """    val fuseGroup: Any? = null,
+    /** 芯片等可滚动容器内的按钮：拖动超过 touch slop 后让位给父级滚动，短按仍可点击。 */
+    val yieldToScroll: Boolean = false,
+)""",
+)
+patch(
+    defaults,
+    """        fuseGroup: Any? = null,
+    ): MochiButtonBehavior = MochiButtonBehavior(pressScale, follow, cancelSlop, maxGrow, fuseGroup)""",
+    """        fuseGroup: Any? = null,
+        yieldToScroll: Boolean = false,
+    ): MochiButtonBehavior = MochiButtonBehavior(
+        pressScale = pressScale,
+        follow = follow,
+        cancelSlop = cancelSlop,
+        maxGrow = maxGrow,
+        yieldToScroll = yieldToScroll,
+        fuseGroup = fuseGroup,
+    )""",
+)
+patch(
+    chip,
+    "        behavior = MochiButtonDefaults.behavior(pressScale = 1.06f, maxGrow = 4.dp),",
+    "        behavior = MochiButtonDefaults.behavior(pressScale = 1.06f, maxGrow = 4.dp, yieldToScroll = true),",
 )
 
 # The menu lives in an edge-to-edge overlay; its layout size does not shrink
