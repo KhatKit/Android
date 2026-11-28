@@ -205,6 +205,14 @@ internal fun ToolCataloguePage() {
                 navigationIcon = { BackButton() },
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
+                    // 卡片 API 状态：回到顶栏图标按钮（和旁边栏按钮同一套皮）
+                    MochiBarIconButton(
+                        onClick = { nav?.navigate(Screen.ToolApiHealth) },
+                        navId = "tools.api-health",
+                        colors = kkBarButtonColors(),
+                    ) {
+                        MochiIonicon("pulse", contentDescription = "卡片 API 状态")
+                    }
                     MochiBarIconButton(
                         onClick = {
                             grid = !grid
@@ -590,16 +598,8 @@ private fun ToolCatalogueHeader(
                 }
             }
         }
-        // 原来顶栏「更多」菜单里的两项，改成正文里的卡片行（和工具卡片同一套列表卡）
+        // 局域网共享做成正文里的一张卡片（顶栏「更多」菜单已删）
         MochiListSection(modifier = Modifier.padding(vertical = 4.dp)) {
-            MochiListRow(
-                title = "卡片 API 状态",
-                subtitle = "查看卡片 API 的连通与健康状态",
-                onClick = { onNavigate(Screen.ToolApiHealth) },
-                leading = { MochiIonicon("pulse") },
-                leadingStyle = MochiListLeadingStyle.Symbol,
-                chevron = true,
-            )
             MochiListRow(
                 title = "局域网共享",
                 subtitle = "同一局域网内发现设备、共享文件",
