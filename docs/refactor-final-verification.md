@@ -165,3 +165,46 @@ worktree `/tmp/kv-t54`、HEAD `d5b9ca5ac2e3549f66dcebee640254db91db6855`、tree 
 - 该提交包含合并评审 F1/F2 修复：未提交 chat 文件已入库、DefaultProviders 8 处中文 prose 已资源化（en/zh 各 8 对）
 - 期间修复过本地 .git 对象损坏（31 个 0 字节对象），已通过远端 8ff8360d7 重新 fetch 恢复，远端数据完整
 - 未执行本地 assemble、未操作设备
+
+## t54 attempt7 复核（contract 指向 4b333922d / /tmp/kv2-*）—— **证据缺失，判失败**
+
+- 缺项：`/tmp/kv2-results.txt`、`/tmp/kv2-init.log`、`/tmp/kv2-apptest.log`、`/tmp/kv2-test.log`、`/tmp/kv2-lint.log`
+  全部不存在（`ls /tmp/kv2*` 为空），因此无法核对 compile/apptest/test/lint/diffcheck 五个 exit 与
+  `HEAD=4b333922d`、`TREE=d7c074e0`（该 tree 与 git 中 `4b333922d^{tree}` 一致，但无运行证据）。
+- 当前 HEAD 已不是 4b333922d：`4909f3076`（docs(verify) 记录 8ff8360d7 全绿），其 tree `b2e52a0a…`；
+  与 `8ff8360d7^{tree}` `e8bb2f3a…` 只差 `docs/refactor-final-verification.md` 一个文件（源码完全一致）。
+- 现存可用证据是 `/tmp/kv5`（绑定 `8ff8360d7`），此次复核逐项确认：
+  worktree HEAD `8ff8360d7`、tree `e8bb2f3a…`、dirty=0、`git diff --check` = 0；
+  日志 `/tmp/kv5-compile.log`（BUILD SUCCESSFUL 2m5s）、`-apptest`（32s）、`-test`（12s）、
+  `-lint`（9m11s）+ `/tmp/kv5-lint-result.txt`（lint_exit=0）；lint 报告 **0 errors**/2532 warnings/6 hints；
+  app 测试 1193 tests / **0 failed**；9 项历史类逐条 0 failed（BrowserExampleCards 3 skipped、CardRuns 2/0、
+  ConversationGroupCards 7/0、BottomSheetScroll 3/0、PrimaryBottomSheetIcon 3/0、AIIconAssets 4/0）。
+- 当前 HEAD 静态复算：app en/zh 各 **3050** 条目、唯一名 **3049**、键差集 0、同类型重复 0、87 个 res XML 解析 0 失败；
+  旧符号 AutomationBus/TriggerController/AutomationTracer/UiAutomationSnapshotProvider/WorkflowEngine/TracePlayer = 0。
+- 交付阻塞：主工作树当前有 5 项未提交（M KhatKitTools.kt、M AccessibilityBridgeImpl.kt、
+  ?? BackgroundAppSessionManager.kt、?? VirtualDisplayProtocol.kt、?? .tmp-anchor-check.py），
+  最终交付前须先冻结并以新 commit 复跑五条命令（洁净 worktree 流程，约 13 min）。
+
+## t54 attempt8 放行结论（复核 8ff8360d7 / /tmp/kv5）
+
+> **最终放行 commit 8ff8360d7，代码树与 4909f3076 一致（后者仅文档）。复核由 t54 完成。**
+
+- 证据复核（只读，未重建）：
+  - `/tmp/kv5-lint-result.txt` = `lint_exit=0` + `BUILD SUCCESSFUL in 9m 11s`；
+  - `/tmp/kv5-compile.log` BUILD SUCCESSFUL 2m5s，`/tmp/kv5-apptest.log` 32s，`/tmp/kv5-test.log` 12s；
+  - `/tmp/kv5` worktree：HEAD `8ff8360d756f69ed9e7e5b7b401d38899bc9dbfd`、tree `e8bb2f3a02fd848455aba834b734677a77b1845d`、
+    dirty=0、`git diff --check` exit 0；
+  - lint 报告 `/tmp/kv5/app/build/reports/lint-results-debug.txt`：**0 errors**、2532 warnings、6 hints；
+  - `/tmp/kv5/app/build/test-results`：app 1193 tests / **0 failed**；9 项历史类逐条 0 failed
+    （BrowserExampleCards 3 skipped、CardRuns 2/0、ConversationGroupCards 7/0、BottomSheetScroll 3/0、
+    PrimaryBottomSheetIcon 3/0、AIIconAssets 4/0）。
+- 当前 HEAD 静态复算（commit `4909f3076`，与 8ff8360d7 差异仅 `docs/refactor-final-verification.md`）：
+  app en/zh 各 **3050** 条目、唯一名 **3049**、键差集 0、同类型重复 0、87 个 res XML 解析 0 失败；
+  旧符号 AutomationBus/TriggerController/AutomationTracer/UiAutomationSnapshotProvider/WorkflowEngine/TracePlayer = 0。
+- **未纳入验证的外部在途改动**（不属于基准 8ff8360d7）：主工作树 6 项未提交 ——
+  `M app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tools/KhatKitTools.kt`、
+  `M khatkit/src/main/java/heizige/kk/khatkit/bridge/impl/AccessibilityBridgeImpl.kt`、
+  `?? app/src/main/java/heizige/kk/khatkit/app/feature/automation/helper/BackgroundAppSessionManager.kt`、
+  `?? app/src/main/java/heizige/kk/khatkit/app/feature/automation/helper/VirtualDisplayProtocol.kt`、
+  `M docs/refactor-final-verification.md`（本文件）、`?? .tmp-anchor-check.py`。
+  若这些改动要进入交付，须另行提交并以同一洁净 worktree 流程重跑五条命令后再放行。
