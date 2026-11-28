@@ -1,6 +1,68 @@
 # Repository Guidelines
 
-## Project Overview
+> ⚠️ **本仓是 KhatKit（RikkaHub fork），不是上游原文。动手前先读 §「本地约定」和
+> §「UI 库：mochi-compose」——上面这段上游描述里的包路径、UI 栈、Mochi 之外的组件库都已过期。**
+> 架构规范来源是 `../ARCHITECTURE.md` + `docs/architecture-map.md`；UI 规范来源是
+> `../Mochi/docs/zh_CN/guide/`（接入规范 + 设计规范），示例 demo 在 `../Mochi/example/`。
+
+## 项目介绍（本仓现状）
+
+**KhatKit**（`applicationId = heizige.kk.khatkit`，`:34`）是 [RikkaHub](https://github.com/rikkahub/rikkahub)
+的深度定制 fork：**原生 Android LLM 聊天客户端 + 卡片（Tool）运行时宿主**。上游给「多服务商对话」底座，
+本仓加了卡片系统、Hub 商业化（套餐 / 计费 / 市场）、无障碍自动化、Mochi UI 与自更新通道。
+
+### 四个仓库的分工
+
+| 仓库 | 本地路径 | 角色 |
+|---|---|---|
+| **KhatKit / Android**（本仓） | `~/文档/Android/Project/KhatKit` | 客户端宿主：UI、卡片运行时、AI 接入、自动化、内嵌服务 |
+| **KhatKitCards / Crads** | `~/文档/Android/KhatKitCards` | 卡片仓库：80 个卡目录（77 个已产出 `card.wasm`）+ `moonbit/` 迁移产物 |
+| **KodeHeapServer / KServer**（Hub） | `~/文档/IDEA/Project/KodeHeapServer` | 服务端（Ktor + Exposed + Postgres，默认 `https://heizige.top`）：账户 / 套餐 / 计费 / 市场 / 更新 / AI 网关 |
+| **Mochi**（mochi-compose） | `~/文档/Android/Project/Mochi` | UI 组件库（token / 交互 / 设计规范）；本地补丁版 `*-khatkit` 发布到 mavenLocal |
+
+### 核心能力
+
+- **多服务商对话**：OpenAI / Google / Anthropic 及兼容端点；Assistant 隔离、消息分支、transformers、
+  TTS / ASR、搜索（Exa / Tavily / Zhipu / …）、翻译。
+- **卡片系统**：Lua / JS / WASM 三引擎；`CardRunManager` 并发运行与交互排队；bridge 能力
+  `tool` / `ui` / `download` / `store` / `shizuku` / `root` / `accessibility`；从 Hub 下载、装包哈希与越界校验。
+- **无障碍自动化**：真实 `AccessibilityService` + 触发器 / 工作流，能力暴露给卡片。
+- **内嵌服务**：`:web` 启 Ktor，对外 `/api/**` 与 MCP `/mcp`（vFlow / 外部客户端 / Claude Desktop）。
+- **工作区与插件**：proot 沙箱（`:workspace`）、`:plugins:ssh` / `:terminal` / `:ocr-mlkit`。
+- **UI**：material3 骨架 + Mochi token/组件（唯一外观源，见下节「UI 库」）。
+- **自更新**：`GET /api/khatkit/app/update`，按 ABI + 包名校验分发，支持 stable / beta / force_min。
+
+### 模块地图（`settings.gradle.kts` 21 个 include）
+
+- `:app` —— 业务主体：`feature/` 29 个功能包 + `core/` 5 个子包（见「包放置」）。
+- `:khatkit` —— 卡片运行时 / UI DSL 模型与 bridge 类型（app 与 khatkit-ui 共用）；
+  `:khatkit-ui` —— 卡片 UI 宿主与 Kk 壳，`api(libs.mochi.compose)` 暴露 Mochi。
+- `:ai` SDK 抽象；`:search` / `:speech` / `:document` / `:highlight` / `:common` / `:material3` 基础库。
+- `:web` 内嵌 Ktor；`:workspace` proot 沙箱；`:oauth` 认证。
+- `:mediapicker` 自研媒体选择器；`:card-validator` 卡片校验；`:image-toolbox-dependency` 原生依赖 dex；
+  `:yunx-parser`；`:plugins:*`；`:app:baselineprofile`。
+
+### 一条数据流（卡片）
+
+Hub 市场（`GET /api/items`）→ 客户端下载 / 校验（哈希、名称、版本、WASM 头、8 MiB 限制）
+→ `CardRunManager` 取计算名额 → Lua / JS / WASM 引擎执行 → bridge（工具 / UI / 网络 / 无障碍）
+→ 结果回 AI function-call 或卡片 UI；计费走 Hub `POST /api/tools/authorize`（**失败开放**，只有明确拒绝才拦截）。
+
+## 提交与推送（每次改完都提交）
+
+**规则：一次可独立说明的改动 = 一次提交并推送到 `origin/main`。** 不要攒在本地工作区。
+
+- **只暂存本次文件**：`git add <具体路径>`；**禁止** `git add -A` / `git commit -a` —— 本仓常驻几十个
+  别人未完成的 WIP 文件，一次扫进会把无关改动打包进提交。
+- 提交前 `git status --short` 确认暂存区只有本次文件；改代码时先跑对应测试 / 构建（见「UI 库」§7）。
+- message 照历史风格：`feat(scope): …` / `fix(scope): …` / `docs: …` / `build(mochi): …`，正文中文。
+- 推送 `git push origin main`（远端 `ssh://git@ssh.github.com:443/KhatKit/Android.git`）。
+  推送被拒时**不要**强推（`--force`），先报告冲突与原因。
+- 上游同步走 `upstream`（rikkahub）与 `upstream-ssh`，不要混进 `origin` 的提交历史。
+
+---
+
+## Project Overview（上游原文，路径已过期）
 
 RikkaHub is a native Android LLM chat client that supports switching between different AI providers
 for conversations.
@@ -97,6 +159,22 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 > 本节是本仓库自己的约定，**只约束新写的代码**。完整的现状记账、每一条数字的来源命令、
 > 以及 Nav3 核对结论见 **[docs/architecture-map.md](docs/architecture-map.md)**。
 
+**规范来源（三份，各管一段）**
+
+| 文档 | 管什么 | 本仓落地 |
+|---|---|---|
+| `../ARCHITECTURE.md`（KodeHead 仓根） | 包结构 / 命名 / 图标 / 版本目录 / Nav3 铁律 | 照做；落地见下方「包放置」「命名」「快速决策卡」「版本目录」「Nav3 三条铁律」 |
+| `../Mochi/docs/zh_CN/guide/application-integration.md` | UI 怎么接（主题 / 导航 / 顶栏 / 列表 / 文案） | **UI 唯一规范**，见「UI 库：mochi-compose」§4 |
+| `../Mochi/docs/zh_CN/guide/design-principles.md` | 形状 / 颜色 / 文字 / 动效 / 触感 / 内容变换 | 见同节 §3；规则没写到的按 `philosophy.md` 推 |
+
+KhatKit 相对 `ARCHITECTURE.md` 的四处显式差异（适配，不是偏离）：
+
+1. 功能包是**源码包**（`app/feature/xxx/`），不是 Gradle 模块；模块清单才动 `settings.gradle.kts`。
+2. Android 框架语义组件保留原名（`*Service` / `*Activity` / `*Receiver` / `*Provider`），见下节例外。
+3. 技术栈不按模板 §6 对齐（模板写的是 Cynic 的版本表）；版本以本仓 `libs.versions.toml` 为准，
+   理由见 `docs/architecture-map.md` §6。
+4. 导航已从 Nav3 `NavDisplay` 换成 Mochi 导航；§8 三条铁律仍是原理，落地在 `MochiNavHost`。
+
 ## 包放置
 
 真实路径前缀是 `app/src/main/java/heizige/kk/khatkit/app/`（下面简写为 `app/`）。
@@ -108,9 +186,18 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 | feature 内按 `helper/`、数据、Screen、ViewModel 就近内聚 | 不为了"分层好看"把一个功能拆到 core |
 | 删功能 = 删文件夹 | 不留孤儿代码 |
 
-`app/core/` 现有五个子包：`data`(190 kt) / `network`(17) / `ui`(324，含 `icons/` 152) /
-`util`(24) / `di`(4)。`service` 已删（commit `86da59fa0`）。`auth` 不在这里（认证已切成独立模块 `:oauth`），
-`files` 在 `app/core/data/files/`。`app/feature/` 下现有 23 个功能包、215 kt。
+`app/core/` 现有五个子包（2026-11-28 实测，命令见下）：`data`(216 kt) / `network`(17) /
+`ui`(318，含 `icons/` 153) / `util`(25) / `di`(4)。`service` 已删（commit `86da59fa0`）。
+`auth` 不在这里（认证已切成独立模块 `:oauth`），`files` 在 `app/core/data/files/`。
+`app/feature/` 下现有 29 个功能包、241 kt；`app/src` 共 1035 kt。
+
+```bash
+for s in data network ui util di; do
+  find app/src/main/java/heizige/kk/khatkit/app/core/$s -name '*.kt' | wc -l
+done
+ls -d app/src/main/java/heizige/kk/khatkit/app/feature/*/ | wc -l          # 29
+find app/src/main/java/heizige/kk/khatkit/app/feature -name '*.kt' | wc -l  # 241
+```
 
 **已按 `helper/` + `data/` 细分的功能包（2026-10-17 整理，Page/ViewModel 仍留 feature 根）**：
 
@@ -224,7 +311,7 @@ Composable 页面与 ViewModel 留 feature 根**。新增功能包按同一口�
   打杂无状态 → Helper          纯函数 → Extensions(否则不建类)
   ⚠️ 继承 Android Service/Activity/Receiver → 保留框架名，不套上表
 
-图标? → app/core/ui/icons/ 按语义(150 个 kt，跨功能共享，不拆进 feature)
+图标? → app/core/ui/icons/ 按语义(153 个 kt，跨功能共享，不拆进 feature)
 版本? → gradle/libs.versions.toml（唯一版本来源，模块 build 里不写死版本）
 ```
 
@@ -247,23 +334,160 @@ Composable 页面与 ViewModel 留 feature 根**。新增功能包按同一口�
 
 commit/cancel 由系统阈值判定：业务只在 `onBackCompleted` 里 pop，取消路径不写代码。
 
-⚠️ 当前 `app/RouteActivity.kt` 的 `predictivePopTransitionSpec` 用的是 Compose 默认
-spec（**spring**，不是 tween），且全仓**没有**任何 `transition.animateXxx` 子动画。
-详见 `docs/architecture-map.md` §5，**只记录未改**。
+**落地已经换成 Mochi 导航（U8）**：`RouteActivity` 不再用 `NavDisplay`，改为
+`rememberMochiNavigator` + `MochiNavHost`（`RouteActivity.kt:327`，`predictiveBack` 参数开预测性返回）；
+`ScreenRoutes.routeNames` 74 条由 `KkNavController` / `MochiBackedNavStack` 包进 Mochi 栈。
+预测性返回的动画形状由 Mochi 内部给；本仓仍**没有**挂在 Nav 过渡树上的圆角/位移子动画
+（`transition.animateXxx` 只有弹层/闪烁/关于页 4 处，与返回无关）。
 
-## UI 栈最终形态（2026-11，U7b 后）
+## UI 栈最终形态（2026-11，U8 后）
 
-- **主题**：`MochiTheme` 是唯一 token 源，经 `ProvideMaterial3Theme(amoled)`
-  （`app/themecompat/CompatMaterial3.kt:27`）单一 Bridge 注入；MD3 组件直接用即可拿到 Mochi 外观。
-  颜色 37 角色 / 字阶 15 角色 / AMOLED 表面阶梯重锚 / `fixed*` 12 角色推导，详见
-  `docs/mochi-migration-plan.md` §14.4；明暗唯一真相是 `ColorMode`（SYSTEM/LIGHT/DARK）。
-- **导航**：60 条路由全部由 `MochiNavHost` 渲染；`ScreenRoutes` 守 `Screen`⇄route 互逆；
-  入口 morph 用 `mochiNavSource`（30 处）+ `LocalKkNavController`；返回单点是 `RouteActivity.onBack`。
-- **弹层**：`PrimaryBottomSheet` 已改 MochiSheetState `show()/hide()` 驱动（无 `if (visible)`），
-  源码护栏钉 **60** 个调用点；短提示改 `MochiDialog`（ReasoningPicker / ChatInput ASR）；
-  多字段/列表/网格/长文本的冷门弹层保留 sheet（台账见计划 §14.2）。
+- **主题**：`MochiTheme` 是唯一 token 源（挂载点 `app/core/ui/theme/Theme.kt:269`），经
+  `ProvideMaterial3Theme(amoled)`（`app/themecompat/CompatMaterial3.kt:27`）单一 Bridge 注入；
+  MD3 骨架组件直接用即可拿到 Mochi 外观。颜色 37 角色 / 字阶 15 角色 / AMOLED 表面阶梯重锚 /
+  `fixed*` 12 角色推导，详见 `docs/mochi-migration-plan.md` §14.4；
+  明暗唯一真相是 `ColorMode`（SYSTEM / LIGHT / DARK）。
+- **外观三档**：`MochiAppearance.MOCHI / IOS / NOTHING`（`SettingsRepository.kt:822`；
+  `MOCHI + mochiNothingPalette` 归一成 NOTHING）。三档只换配色/字体/控件配色，几何与交互不变。
+- **导航**：全部路由由 `MochiNavHost` 渲染（`RouteActivity.kt:327`，`ScreenRoutes.routeNames` 74 条）；
+  `KkNavController` + `MochiBackedNavStack` 把 route 包成 Mochi 栈；返回单点是 `MochiNavHost(predictiveBack=…)`；
+  入口 morph 用 `mochiNavSource`（11 处）+ `LocalKkNavController`。
+- **弹层**：`PrimaryBottomSheet` 走 `rememberMochiSheetState` 的 `show()/hide()`（59 处），
+  组合树里没有 `if (visible)`；短提示/确认用 `MochiDialog`（25 处）；多字段/列表/网格/长文本保留 sheet。
 - **交互**：Kk 壳统一 `KkHaptics` / `kkPressState` / `KkMotionSpecs` / `fadingEdge` /
   `rememberKkReduceMotion`，页面不要手写第二套 spring/scale。
-- **遗留**：大屏仅 `ChatPage.kt:52,169` 一处 `currentWindowDpSize`；MochiItem 无
-  enabled/trailing/长按，`MochiMenuPopup`/`MochiMenuRow` 合计 8 处调用；EditState 未全迁；
-  三库（Kedge/Miuix/Khromia）import = 0，**不要重新引入**。详见计划 §15。
+- **三库**（Kedge/Miuix/Khromia）import = 0，**不要重新引入**；`LegacyImportGuardTest` 白名单为空，
+  新增 import 直接测试失败。
+
+## UI 库：mochi-compose（唯一 UI 组件与设计规范来源）
+
+> 本仓**用 Mochi 写界面**，不自己发明样式。写任何 Compose 界面前按顺序读：
+> `../Mochi/llms.txt`（AI 入口）→ `docs/zh_CN/guide/application-integration.md`（接入规范 +
+> 「场景 → 组件对照」）→ `docs/zh_CN/guide/design-principles.md`（设计规范）。
+> 规则没写到的情况按 `docs/zh_CN/guide/philosophy.md` 的判断顺序推。
+
+> 上游 Mochi 的 `AGENTS.md` 自己写明「只作用于读取它的工作区，消费项目要在自己的开发说明里引用」——
+> 本节的 §3/§4 就是那份引用：**别假设依赖里的 AGENTS 会自动生效**。
+
+### 1. 依赖与版本（本地源码库）
+
+- 坐标：`io.github.feice11:mochi-compose`（基础）/ `mochi-ios`（iOS 外观 + 液态玻璃材质）/
+  `mochi-nothing`（Nothing 外观）/ `mochi-icons`（全套 Ionicons）。
+- 版本唯一来源：`gradle/libs.versions.toml` 的 `mochi = "0.4.0-khatkit.2"`（`:78`）。
+  `:khatkit-ui` 用 `api(libs.mochi.compose)` 向上暴露；`:app` 再引 ios / nothing / icons。
+- 后缀 `-khatkit.N` = 上游 pin commit（`.github/scripts/build-mochi.sh` 里 `revision=70636705c…`）
+  + 本仓补丁。构建流程：`build-mochi.sh` 按 toml 版本号 fetch 该 commit → 跑
+  `.github/scripts/patch-mochi.py` → `publishToMavenLocal`。
+- **改库行为的唯一路径**：改 `patch-mochi.py`（每个补丁锚点断言 `count == 1`，不中就退出）
+  → bump toml 版本号 → 跑 `build-mochi.sh`。**不要**手改 `~/.m2` 产物，不要把 Mochi 源码
+  vendored 进本仓，也不要绕过脚本手改依赖。
+- 当前补丁 5 组：overscroll lookahead 视口、`MochiChip` label/trailing 内容槽、
+  `MochiDropdown` 条目 `enabled`、菜单/弹窗 IME 避让、`MochiSheet` 改用可视视口高度
+  （KhatKit 的列表与内嵌导航靠它）。
+- 库侧环境要求：compileSdk 36+、Kotlin 2.3+。换机器/CI **必须先跑** `build-mochi.sh`，
+  否则依赖解析直接失败。
+
+### 2. 分层：什么用 Mochi、什么留 material3
+
+| 需求 | 用什么 |
+|---|---|
+| 主题 / 颜色 / 字阶 / 形状 / 材质 | `MochiTheme`（唯一挂载点 `Theme.kt:269`）+ `MochiDefaults` |
+| 页面骨架 / 顶栏 / 大标题 | `MochiLargeTitleScaffold` / `MochiCompactTitleScaffold` / `MochiLazy*Scaffold` / `MochiTitleBar` |
+| 长页面 | 必须懒加载：每个分组一项 `item { MochiListSection(…) }`；行多的组用 `mochiListSection` |
+| 列表 / 设置项 | `MochiListSection` + `MochiListRow`（当前 31 个文件） |
+| 导航 | `rememberMochiNavigator` + `MochiNavHost`；底部 `MochiTabScaffold` / `MochiNavigationBar` |
+| 弹层 | `MochiSheet`（state 驱动）/ `MochiDialog`（短提示、确认）/ `MochiDropdown`、`MochiIconDropdown`、`MochiPopoverButton`（按钮弹出） |
+| 控件 | `MochiButton` / `MochiIconButton` / `MochiChip` / `MochiSwitch` / `MochiSlider` / `MochiSegmented` / `MochiTextField` / `MochiListTextFieldRow` |
+| 图标 | `mochi-icons` 的 `MochiIonicon` |
+| 内容变换 | `MochiBlurText` / `MochiMorphIcon` / `MochiCounterText` / `MochiBlurVisibility` |
+| 反馈 | 全局 Mochi 胶囊提示（`KkToast` 宿主），不要另引 Sonner 或自绘 Snackbar |
+| 滚动 | 根 `ProvideMochiOverscroll`（`RouteActivity.kt:215`）；自研滚动容器用 `MochiScrollDefaults.flingBehavior()`；横滑两头渐隐用 `mochiScrollFadeMask`（`MochiChipGroup` 自带） |
+| 卡片 UI DSL 节点 | `khatkit-ui` 侧与页面同源（同一套 Mochi 组件与 token） |
+
+**允许留 material3 的只有两类**：① Mochi 没有语义等价组件的骨架（JSON 高亮编辑框、顶部 tab、
+少数自绘统计块）；② `Scaffold` / `LazyColumn` 这类纯骨架。允许的是**骨架**，不是第二套外观。
+
+`khatkit-ui/uikit/mochi/`（21 个 kt，Kk 壳）只在「调用形态要兼容旧页面」或「Mochi 缺等价 API」
+时承接；新增壳必须转发到 Mochi 实现，不许在壳里复制一套样式/动画。
+
+### 3. 设计规范要点（写界面前过一遍）
+
+1. 圆角用 `MochiRoundedRectangle` / `MochiCapsule` / `MochiSuperellipse`，**不用 `RoundedCornerShape`**；
+   半径从 `MochiTheme.shapes`（卡片/面板 28dp `extraLarge`）。存量 82 个文件带 `RoundedCornerShape`，只减不增。
+2. 同心：圆角容器内贴边元素的圆角 = 容器圆角 − 内边距（`MochiConcentric`）；纯文字行从 16dp 起；
+   靠边元素不戳进圆角。
+3. 颜色只从 `MochiTheme.colorScheme` 与 `MochiDefaults`；页面底 `groupedBackground`、卡片 `groupedContainer`；
+   禁用统一 `MochiDefaults.DisabledAlpha`。
+4. 字号只从 `MochiTheme.textStyles`；长标题先缩（`minFontScale`）再省略；大号粗体用 `mochiOpticalLeading`。
+5. 动效以弹簧为主，**从哪来回哪去**，被打断时从当前状态接着走；系统关动画时弹性效果全关。
+6. 内容不瞬切：图标换图标 `MochiMorphIcon`、文字 `MochiBlurText`、出现/消失 `MochiBlurVisibility`、
+   数字 `MochiCounterText`；拖动中逐帧读数直接显示。
+7. 卡片高度**只有一套动画**（`mochiAnimateHeight`），不要再叠 `animateContentSize`。
+8. 按钮弹出的东西一律走菜单引擎（`MochiDropdown` / `MochiPopoverButton` / `MochiConfirmationDialogBox`），
+   不要「普通按钮 + 另画浮层」。
+9. 按压走 `mochiPressGlow` / `mochiPressDeform`（滚动优先，90ms 后才亮），不要自己 `awaitFirstDown`。
+10. 触感少而准：只在状态真的变了才震；用组合原语，不用 `vibrate(ms)`。
+11. 文案说事实：不用「·」把标题和数量拼一行、不写口号副标题（沉浸式/极致/丝滑）、不用 emoji 当图标、
+    不加渐变底色。
+
+### 4. 接入硬性要求（改 UI 时逐项核对）
+
+- **主题只在根部接一次**：`MochiTheme`（颜色/字阶/形状/材质）+ `ProvideMaterial3Theme`；
+  系统栏图标对比度由 `MochiTheme(systemBarAppearance=…)` 接管，页面**禁止**写 `isAppearanceLightStatusBars`
+  （当前全仓 0 处，保持）。
+- **外观开关必须在主题里**：三档 `MochiAppearance` + 玻璃四开关 `effectsEnabled` / `glassTint` /
+  `glassBlurOnly` / `glassButtons` / `mochiGlassStyle`，都在 `Theme.kt` 的 `mochiAppearanceMaterials()`
+  汇成 `MochiMaterials`。页面**不写** `if (glass) / if (ios)` 分支，也不按外观给组件手传颜色。
+- **导航**：单宿主 `MochiNavHost`；侧推页顶栏用库控件 + 稳定语义 `navId`，图标给稳定 `contentKey`；
+  来源打开用 `mochiNavSource` + `push(route, from = sourceKey)` 整页 morph；
+  `mochiSharedElement` **已废弃且无效果**，新代码不要用。
+- **返回单点**：`RouteActivity` 的 `MochiNavHost(predictiveBack = …)`；页内浮层走 `PageBackInterceptor` 先消费。
+  页面不挂 `BackHandler` / `PredictiveBackHandler`。
+- **标题**：正文有卡片外分组小标题时用 `MochiCompactTitleScaffold`（已有滚动容器用 `MochiTitleBar`），
+  删独立大标题；没有分组小标题才保留大标题。
+- **列表**：`MochiListSection` / `MochiListRow`；行高最小 52dp、左右 16dp、卡片圆角 26/28；
+  首末行与中间行同一规则，卡片不给首末行另加白；不用「通用卡片 + 裸 Row + 固定 padding」。
+- **弹层**：`rememberMochiSheetState` 驱动 `show()/hide()`，组合树里不写 `if (visible)`；
+  多页面板用独立导航器，先退子页再关面板。
+- **边缘与遮挡**：优先 `mochiEnableEdgeToEdge()`（当前 `RouteActivity.kt:191` 仍是 `enableEdgeToEdge()`，
+  属待改项）；自定义浮栏用 `mochiNavOccluder` 登记。
+- **动效减弱 / 无障碍**：`rememberKkReduceMotion()`；可点区域 ≥44dp；系统字号放大不裁字。
+- **HDR**：可选，`DisplaySetting.mochiHdrHighlights` 默认关，别默认开。
+
+### 5. 参考实例 demo
+
+- `../Mochi/example/`：53 个 kt 的可跑示例。最小骨架
+  `example/src/main/java/ui/feice/mochi/starter/MochiAppStarter.kt`（Activity + 主题 + 首页/列表/详情 +
+  来源 morph + 共享顶栏，不依赖 demo 私有组件），**新页面直接照它抄结构**。
+- 真实组件用法：`example/.../catalog/Catalog.kt`（组件目录）、`DemoAppearance.kt`（外观切换）、
+  `common/DemoWidgets.kt`（列表行 / 设置分组）。
+- 文档链：`../Mochi/llms.txt` → `docs/zh_CN/guide/application-integration.md` →
+  `design-principles.md` → 组件页 `docs/zh_CN/components/*.md`。
+- 本仓已落地的样板：`ExploreMarketPage.kt` / `ToolCataloguePage.kt`（列表 + 顶栏 + overscroll）、
+  `SettingThemeSubPages.kt`（外观/导航栏设置）、`ChatPage.kt`（玻璃顶栏 backdrop）、
+  `KhatKitBottomSheet.kt`（卡片自绘弹层的顶栏/圆角）、`MochiControls.kt`（Kk 壳控件形态）。
+
+### 6. 禁止事项（评审直接打回）
+
+- 引入 Kedge / Miuix / Khromia（`LegacyImportGuardTest` 白名单为空，新增 import 测试直接失败）。
+- P4 式过度自绘：为「符号归零」把有状态组件换成自绘件（`docs/mochi-migration-plan.md` §6）。
+- 页面里的外观/玻璃分支、按外观手传颜色、自己算明暗。
+- 第二套 spring/scale/按压/触感（统一 `KkMotionSpecs` / `kkPressState` / `KkHaptics`）。
+- 新代码用 `RoundedCornerShape`；Material Icons / 手绘 Path / emoji 当图标。
+- 改 `~/.m2` 产物、把 Mochi 源码 vendored 进本仓、绕过 `patch-mochi.py` 手改依赖。
+- `mochiSharedElement`；页面自挂 `BackHandler` / `PredictiveBackHandler`。
+
+### 7. 提交前检查
+
+```bash
+cd /home/heizige/文档/Android/Project/KhatKit
+./gradlew :app:assembleDebug                 # 0
+./gradlew test                               # 0
+grep -rn 'isAppearanceLightStatusBars' --include=*.kt app/src/main | wc -l        # 0
+grep -rl 'import heizige.kk.kedge'   --include=*.kt . --exclude-dir=build | wc -l # 0
+grep -rl 'import top.yukonga.miuix'  --include=*.kt . --exclude-dir=build | wc -l # 0
+grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -l # 0
+grep -rn 'RoundedCornerShape' --include=*.kt app/src/main | wc -l                 # 只减不增（存量 82 文件）
+```
+
+UI 改动交付时说清「改了哪些页面 + 用了什么组件 + 真机看过哪些交互」；只编译通过不算视觉/交互验证。
