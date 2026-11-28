@@ -12,6 +12,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -208,13 +209,21 @@ private fun ProviderList(
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
-            top = topPadding + 8.dp,
+            top = topPadding + 12.dp,
             bottom = 8.dp,
         ) + PaddingValues(bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(cards.gap),
         state = listState,
     ) {
-        item(key = "provider-search") { header() }
+        // 搜索框和下面那张卡片之间留出其它设置子页的段距（28dp），
+        // 原来这里是 0 段距，搜索框直接贴着第一行卡片
+        item(key = "provider-search") {
+            Box(
+                Modifier.padding(
+                    bottom = (MochiListDefaults.SectionSpacing - cards.gap).coerceAtLeast(0.dp)
+                )
+            ) { header() }
+        }
         lazyItemsIndexed(providers, key = { _, provider -> provider.id }) { index, provider ->
             ReorderableItem(
                 state = reorderableState,
