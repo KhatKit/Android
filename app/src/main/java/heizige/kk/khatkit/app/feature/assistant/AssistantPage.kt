@@ -2,7 +2,7 @@ package heizige.kk.khatkit.app.feature.assistant
 
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import ui.feice.mochi.list.MochiListDefaults
-import ui.feice.mochi.list.MochiListCard
+import ui.feice.mochi.list.MochiListRow
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
 import heizige.kk.khatkit.uikit.mochi.Md3Checkbox
@@ -23,30 +23,29 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
-import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
-import heizige.kk.khatkit.uikit.mochi.MochiListItem
-import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.list.MochiSwipeRow
 import ui.feice.mochi.list.MochiSwipeAction
-import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.LocalMochiListItemSpacing
+import ui.feice.mochi.list.mochiListSection
+import ui.feice.mochi.basic.MochiIconDropdown
+import ui.feice.mochi.basic.MochiItem
+import ui.feice.mochi.effect.mask.mochiScrollFadeMask
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.icons.MochiIonicon
+import kotlinx.collections.immutable.persistentListOf
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,13 +58,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_ASSISTANTS_IDS
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentChatModel
 import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
@@ -76,38 +73,30 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
 import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
+import heizige.kk.khatkit.app.core.ui.icons.utility.editimport heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.EditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.core.ui.modifier.onClick
 import heizige.kk.khatkit.app.feature.assistant.detail.AssistantImporter
-import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.ui.theme.CustomColorsimport androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
 import androidx.compose.foundation.lazy.items as lazyItems
-import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import heizige.kk.khatkit.app.core.ui.icons.utility.add
-import heizige.kk.khatkit.app.core.ui.icons.navigation.close
 import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
 import heizige.kk.khatkit.app.core.ui.icons.utility.delete
 import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.ai.neurology
-import heizige.kk.khatkit.app.core.ui.icons.utility.search
 import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 
 
 
@@ -127,10 +116,8 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
     var searchExpanded by remember { mutableStateOf(false) }
     // 标签过滤状态
     var selectedTagIds by remember { mutableStateOf(emptySet<Uuid>()) }
-    // 操作菜单状态
-    var actionSheetAssistant by remember { mutableStateOf<Assistant?>(null) }
-    var cloneTarget by remember { mutableStateOf<Assistant?>(null) }
-    var cloneWithMemories by remember { mutableStateOf(false) }
+    // 仅删除需要确认；复制与切换当前角色在条目菜单里直接完成。
+    var deleteTarget by remember { mutableStateOf<Assistant?>(null) }
 
     // 根据搜索关键词和选中的标签过滤助手
     val filteredAssistants = remember(settings.assistants, selectedTagIds, searchQuery) {
@@ -192,10 +179,10 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             val lazyListState = rememberLazyListState()
             val isFiltering = selectedTagIds.isNotEmpty() || searchQuery.isNotBlank()
             val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-                if (!isFiltering) {
-                    val newAssistants = settings.assistants.toMutableList().apply {
-                        add(to.index, removeAt(from.index))
-                    }
+                if (!isFiltering && from.index in settings.assistants.indices) {
+                    val newAssistants = settings.assistants.toMutableList()
+                    val moved = newAssistants.removeAt(from.index)
+                    newAssistants.add(to.index.coerceIn(0, newAssistants.size), moved)
                     vm.updateSettings(settings.copy(assistants = newAssistants))
                 }
             }
@@ -204,151 +191,172 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             // 助手列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
             val assistantList: @Composable (Modifier) -> Unit = { listModifier ->
                 val cards = listCardStyle()
-                LazyColumn(
-                    // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-                    modifier = listModifier,
-                    // UI-1：底部留 16dp，最后一行不再贴着导航条/手势区
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    // 项间距取全局列表卡片样式：整列看起来是一张分组卡片，
-                    // 圆角按 index/count 逐项算（首项只圆上边、末项只圆下边）。
-                    // 这里刻意没用 CardGroup：那一版是一次性把所有项收进 Column，
-                    // 会丢掉 ReorderableItem 需要的「每项一个 lazy item」，长按拖拽排序就没了。
-                    verticalArrangement = Arrangement.spacedBy(cards.gap),
-                    state = lazyListState,
-                ) {
-                    lazyItemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
-                        ReorderableItem(
-                            state = reorderableState,
-                            key = assistant.id,
-                        ) { isDragging ->
-                            val memoryCount by remember(assistant.id) { vm.getMemoryCount(assistant) }.collectAsStateWithLifecycle(
-                                initialValue = 0,
-                            )
-                            // 支持行只在真有记忆角标/标签时才占位，空 Row 会在标题下留一道死间距。
-                            val hasSupporting = assistant.canManageRoles || assistant.enableMemory || assistant.tags.isNotEmpty()
-                            MochiListCard(
-                                modifier = Modifier
-                                    .scale(if (isDragging) 0.95f else 1f)
-                                    .animateItem(),
-                            ) {
-                                MochiSwipeRow(
-                                    actions = listOf(
-                                        MochiSwipeAction(
-                                            label = stringResource(R.string.assistant_page_delete),
-                                            color = MaterialTheme.colorScheme.error,
-                                            icon = { tint -> Icon(delete, contentDescription = null, tint = tint) },
-                                            removesRow = true,
-                                            onClick = { vm.removeAssistant(assistant) },
-                                        ),
-                                    ),
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    AssistantItem(
-                                        assistant = assistant,
-                                        defaultAssistantName = stringResource(R.string.assistant_page_default_assistant),
-                                        providerName = settings.findModelProviderName(
-                                            assistant.chatModelId ?: settings.chatModelId
-                                        ),
-                                        shape = cards.indexedShape(index, filteredAssistants.size + 1),
-                                        // 头像 → 详情页的共享元素转场属于本页，不进共享行。
-                                        avatarModifier = Modifier.heroAnimation("assistant_${assistant.id}"),
-                                        supportingContent = if (hasSupporting) {
-                                            {
-                                                Row(
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    if (assistant.canManageRoles) {
-                                                        Tag(type = TagType.SUCCESS) { Text(stringResource(R.string.assistant_page_supervisor)) }
-                                                    }
-                                                    if (assistant.enableMemory) {
-                                                        Tag(type = TagType.SUCCESS) {
-                                                            Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
-                                                        }
-                                                    }
+                CompositionLocalProvider(LocalMochiListItemSpacing provides cards.gap) {
+                    LazyColumn(
+                        modifier = listModifier,
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(cards.gap),
+                        state = lazyListState,
+                    ) {
+                        mochiListSection(key = "assistant-roles") {
+                            rows(
+                                count = filteredAssistants.size + 1,
+                                key = { index ->
+                                    if (index < filteredAssistants.size) {
+                                        filteredAssistants[index].id.toString()
+                                    } else {
+                                        "new_assistant"
+                                    }
+                                },
+                            ) { index ->
+                                if (index == filteredAssistants.size) {
+                                    ReorderableItem(
+                                        state = reorderableState,
+                                        key = "mochi-section:assistant-roles:new_assistant",
+                                    ) {
+                                        MochiListRow(
+                                            title = stringResource(R.string.assistant_page_new),
+                                            leading = { Icon(add, contentDescription = null) },
+                                            onClick = {
+                                                createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id))
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                } else {
+                                    val assistant = filteredAssistants[index]
+                                    ReorderableItem(
+                                        state = reorderableState,
+                                        key = "mochi-section:assistant-roles:${assistant.id}",
+                                    ) { isDragging ->
+                                        val memoryCount by remember(assistant.id) {
+                                            vm.getMemoryCount(assistant)
+                                        }.collectAsStateWithLifecycle(initialValue = 0)
+                                        val isCurrent = assistant.id == settings.assistantId
+                                        val hasSupporting = isCurrent || assistant.canManageRoles ||
+                                            assistant.enableMemory || assistant.tags.isNotEmpty()
 
-                                                    if (assistant.tags.isNotEmpty()) {
-                                                        assistant.tags.take(2).fastForEach { tagId ->
-                                                            val tag = settings.assistantTags.find { it.id == tagId }
-                                                                ?: return@fastForEach
-                                                            KkSurface(
-                                                                shape = RoundedCornerShape(50),
-                                                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                                            ) {
+                                        MochiSwipeRow(
+                                            actions = listOf(
+                                                MochiSwipeAction(
+                                                    label = stringResource(R.string.assistant_page_delete),
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    icon = { tint -> Icon(delete, contentDescription = null, tint = tint) },
+                                                    onClick = { deleteTarget = assistant },
+                                                ),
+                                            ),
+                                            dividerInset = MochiListDefaults.RowPadding +
+                                                MochiListDefaults.LeadingSize + MochiListDefaults.LeadingGap,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .scale(if (isDragging) 0.98f else 1f),
+                                        ) {
+                                            MochiListRow(
+                                                title = assistant.name.ifBlank {
+                                                    stringResource(R.string.assistant_page_default_assistant)
+                                                },
+                                                subtitle = assistant.description.takeIf { it.isNotBlank() },
+                                                leading = {
+                                                    UIAvatar(
+                                                        value = assistant.avatar,
+                                                        name = assistant.name.ifBlank {
+                                                            stringResource(R.string.assistant_page_default_assistant)
+                                                        },
+                                                        avatarShape = assistant.avatarShape,
+                                                        defaultIconName = settings.findModelProviderName(
+                                                            assistant.chatModelId ?: settings.chatModelId
+                                                        ),
+                                                        avatarColor = assistant.avatarColor,
+                                                        modifier = Modifier
+                                                            .size(MochiListDefaults.LeadingSize)
+                                                            .heroAnimation("assistant_${assistant.id}"),
+                                                    )
+                                                },
+                                                status = if (hasSupporting) {
+                                                    {
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                        ) {
+                                                            if (isCurrent) {
+                                                                Tag(type = TagType.INFO) {
+                                                                    Text(stringResource(R.string.assistant_page_current_assistant))
+                                                                }
+                                                            }
+                                                            if (assistant.canManageRoles) {
+                                                                Tag(type = TagType.SUCCESS) {
+                                                                    Text(stringResource(R.string.assistant_page_supervisor))
+                                                                }
+                                                            }
+                                                            if (assistant.enableMemory) {
+                                                                Tag(type = TagType.SUCCESS) {
+                                                                    Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
+                                                                }
+                                                            }
+                                                            assistant.tags.take(2).fastForEach { tagId ->
+                                                                val tag = settings.assistantTags.find { it.id == tagId }
+                                                                    ?: return@fastForEach
+                                                                KkSurface(
+                                                                    shape = RoundedCornerShape(50),
+                                                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                                                ) {
+                                                                    Text(
+                                                                        text = tag.name,
+                                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                                        style = MaterialTheme.typography.labelSmall,
+                                                                    )
+                                                                }
+                                                            }
+                                                            if (assistant.tags.size > 2) {
                                                                 Text(
-                                                                    text = tag.name,
-                                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                                    text = "+${assistant.tags.size - 2}",
                                                                     style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                                 )
                                                             }
                                                         }
-                                                        if (assistant.tags.size > 2) {
-                                                            Text(
-                                                                text = "+${assistant.tags.size - 2}",
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        }
                                                     }
-                                                }
-                                            }
-                                        } else {
-                                            null
-                                        },
-                                        trailingContent = {
-                                            MochiIconButton(
-                                                onClick = { actionSheetAssistant = assistant },
-                                                shapes = IconButtonDefaults.shapes(),
-                                            ) {
-                                                Icon(
-                                                    imageVector = moreVert,
-                                                    contentDescription = stringResource(R.string.assistant_page_actions)
-                                                )
-                                            }
-                                        },
-                                        onClick = {
-                                            navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .then(
-                                                if (!isFiltering) {
-                                                    Modifier.longPressDraggableHandle(
-                                                        onDragStarted = {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                } else null,
+                                                trailing = {
+                                                    AssistantRoleActions(
+                                                        isCurrent = isCurrent,
+                                                        onAction = { action ->
+                                                            when (action) {
+                                                                0 -> if (!isCurrent) vm.setCurrentAssistant(assistant)
+                                                                1 -> navController.navigate(
+                                                                    Screen.AssistantDetail(id = assistant.id.toString())
+                                                                )
+                                                                2 -> vm.copyAssistant(assistant)
+                                                                3 -> vm.copyAssistant(assistant, copyMemories = true)
+                                                                4 -> deleteTarget = assistant
+                                                            }
                                                         },
-                                                        onDragStopped = {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                        }
                                                     )
-                                                } else {
-                                                    Modifier
-                                                }
+                                                },
+                                                onClick = {
+                                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .then(
+                                                        if (!isFiltering) {
+                                                            Modifier.longPressDraggableHandle(
+                                                                onDragStarted = {
+                                                                    haptic.performHapticFeedback(
+                                                                        HapticFeedbackType.GestureThresholdActivate
+                                                                    )
+                                                                },
+                                                                onDragStopped = {
+                                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                                },
+                                                            )
+                                                        } else Modifier,
+                                                    ),
                                             )
-                                    )
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-
-                    item(key = "new_assistant") {
-                        // 「新建角色」是同一个分组的末项（与抽屉里「管理角色」同款）：角色在上时
-                        // 只有下圆角是大圆角，角色为空时它自己就是首末项。行间空隙由 LazyColumn
-                        // 的 spacedBy(cards.gap) 统一给，不再单独留 16dp 自成一张四角全圆的大卡。
-                        // 双风格的容器仍交给 MochiOptionItem 内部分流（MD3Exp / Miuix）。
-                        MochiListCard {
-                            MochiOptionItem(
-                                onClick = { createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = cards.indexedShape(filteredAssistants.size, filteredAssistants.size + 1),
-                                leadingContent = { Icon(add, contentDescription = null) },
-                                titleContent = {
-                                    Text(
-                                        text = stringResource(R.string.assistant_page_new),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                },
-                            )
                         }
                     }
                 }
@@ -398,57 +406,18 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
 
     AssistantCreationSheet(createState, settings)
 
-    // 操作菜单 Bottom Sheet
-    actionSheetAssistant?.let { assistant ->
-        val memoryCount by remember(assistant.id) { vm.getMemoryCount(assistant) }.collectAsStateWithLifecycle(initialValue = 0)
-        AssistantActionSheet(
-            assistant = assistant,
-            providerName = settings.findModelProviderName(
-                assistant.chatModelId ?: settings.chatModelId
-            ),
-            onDismiss = { actionSheetAssistant = null },
-            onCopy = {
-                if (memoryCount > 0) {
-                    cloneWithMemories = false
-                    cloneTarget = assistant
-                    actionSheetAssistant = null
-                } else {
-                    vm.copyAssistant(assistant)
-                    actionSheetAssistant = null
-                }
-            },
-            onDelete = {
-                vm.removeAssistant(assistant)
-                actionSheetAssistant = null
-            }
-        )
-    }
-
     RikkaConfirmDialog(
-        show = cloneTarget != null,
-        title = stringResource(R.string.assistant_page_clone),
+        show = deleteTarget != null,
+        title = stringResource(R.string.assistant_page_delete),
         confirmText = stringResource(R.string.confirm),
         dismissText = stringResource(R.string.cancel),
         onConfirm = {
-            cloneTarget?.let { vm.copyAssistant(it, copyMemories = cloneWithMemories) }
-            cloneTarget = null
+            deleteTarget?.let(vm::removeAssistant)
+            deleteTarget = null
         },
-        onDismiss = { cloneTarget = null },
+        onDismiss = { deleteTarget = null },
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = cloneWithMemories,
-                    role = Role.Checkbox,
-                    onValueChange = { cloneWithMemories = it },
-                ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Md3Checkbox(checked = cloneWithMemories, onCheckedChange = null)
-            Text(stringResource(R.string.assistant_page_clone_with_memories))
-        }
+        Text(stringResource(R.string.assistant_page_delete_dialog_text))
     }
 }
 
@@ -471,8 +440,11 @@ private fun AssistantTagsFilterRow(
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp),
-            state = tagsListState
+            modifier = Modifier
+                .mochiScrollFadeMask(tagsListState, vertical = false)
+                .padding(horizontal = 16.dp),
+            state = tagsListState,
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
         ) {
             lazyItems(items = settings.assistantTags, key = { tag -> tag.id }) { tag ->
                 ReorderableItem(
@@ -482,19 +454,16 @@ private fun AssistantTagsFilterRow(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        KkFilterChip(
-                            onClick = {
-                                onUpdateSelectedTagIds(
-                                    if (tag.id in selectedTagIds) {
-                                        selectedTagIds - tag.id
-                                    } else {
-                                        selectedTagIds + tag.id
-                                    }
-                                )
-                            },
+                        MochiChip(
                             label = tag.name,
                             selected = tag.id in selectedTagIds,
-                            shape = RoundedCornerShape(50),
+                            showCheck = true,
+                            onClick = {
+                                onUpdateSelectedTagIds(
+                                    if (tag.id in selectedTagIds) selectedTagIds - tag.id
+                                    else selectedTagIds + tag.id
+                                )
+                            },
                             modifier = Modifier
                                 .scale(if (isDragging) 0.95f else 1f)
                                 .longPressDraggableHandle(
@@ -504,7 +473,7 @@ private fun AssistantTagsFilterRow(
                                     onDragStopped = {
                                         haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
                                     },
-                                )
+                                ),
                         )
                     }
                 }
@@ -621,91 +590,53 @@ private fun AssistantCreationSheet(
 }
 
 @Composable
-private fun AssistantActionSheet(
-    assistant: Assistant,
-    providerName: String?,
-    onDismiss: () -> Unit,
-    onCopy: () -> Unit,
-    onDelete: () -> Unit
+private fun AssistantRoleActions(
+    isCurrent: Boolean,
+    onAction: (Int) -> Unit,
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
-    PrimaryBottomSheet(
-        visible = true,
-        title = stringResource(R.string.assistant_page_actions),
-        imageVector = moreVert,
-        onDismiss = onDismiss,
-    ) { dismiss ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            // 助手信息头部
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                UIAvatar(
-                    name = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    value = assistant.avatar,
-                    avatarShape = assistant.avatarShape,
-                    defaultIconName = providerName,
-                    avatarColor = assistant.avatarColor,
-                    modifier = Modifier.size(40.dp)
-                )
-                Text(
-                    text = assistant.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) },
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            MochiHorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // 克隆选项
-            MochiListItem(
-                headlineContent = { Text(stringResource(R.string.assistant_page_clone)) },
-                leadingContent = {
-                    Icon(
-                        imageVector = contentCopy,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+    var expanded by remember { mutableStateOf(false) }
+    val currentLabel = stringResource(
+        if (isCurrent) R.string.assistant_page_current_assistant else R.string.assistant_page_set_current
+    )
+    MochiIconDropdown(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        items = persistentListOf(
+            MochiItem(
+                label = currentLabel,
+                enabled = !isCurrent,
+                icon = { tint ->
+                    MochiIonicon(
+                        if (isCurrent) "checkmark-circle" else "person-circle-outline",
+                        size = 20.dp,
+                        tint = tint,
                     )
                 },
-                modifier = Modifier.onClick {
-                    onCopy()
-                    dismiss()
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-            )
-
-            // 删除已移至滑动操作，这里仅保留克隆选项
-        }
-    }
-
-    if (showDeleteDialog) {
-        AppDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text(stringResource(R.string.assistant_page_delete)) },
-            text = { Text(stringResource(R.string.assistant_page_delete_dialog_text)) },
-            confirmButton = {
-                MochiTextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete()
-                    },
-                         shapes = ButtonDefaults.shapes(),) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                MochiTextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_edit_role),
+                icon = { tint -> Icon(edit, contentDescription = null, tint = tint) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_clone),
+                icon = { tint -> Icon(contentCopy, contentDescription = null, tint = tint) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_clone_with_memories_action),
+                icon = { tint -> MochiIonicon("copy-outline", size = 20.dp, tint = tint) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_delete),
+                destructive = true,
+                icon = { tint -> Icon(delete, contentDescription = null, tint = tint) },
+            ),
+        ),
+        onItemClick = { index ->
+            expanded = false
+            onAction(index)
+        },
+        size = 44.dp,
+    ) {
+        Icon(moreVert, contentDescription = stringResource(R.string.assistant_page_actions))
     }
 }
