@@ -1,30 +1,44 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
-import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklistSection
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import kotlinx.collections.immutable.toImmutableList
+import ui.feice.mochi.basic.MochiSegmentedControl
+import ui.feice.mochi.effect.content.MochiBlurCrossfade
+import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 
-/**
- * 权限页：常规权限 / 系统级权限 / 高危权限三组清单 + 实时授权状态。
- *
- * 骨架用 Mochi 大标题脚手架，清单本身也是 Mochi 分组列表（[PermissionChecklist] compact 形态），
- * 与欢迎页整屏授权体验同一套组件；边距由脚手架给，所以这里传零留白。
- */
+/** 权限按常规、系统和高级访问分组切换；授权动作仍由共享清单处理。 */
 @Composable
 fun SettingPermissionsPage() {
+    var selectedSectionIndex by rememberSaveable { mutableIntStateOf(0) }
+    val sectionLabels = listOf(
+        stringResource(R.string.setting_permissions_category_basic),
+        stringResource(R.string.setting_permissions_category_system),
+        stringResource(R.string.setting_permissions_category_advanced),
+    ).toImmutableList()
+    val selectedSection = PermissionChecklistSection.entries[selectedSectionIndex]
+
     MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_permissions),
         navigationIcon = { BackButton() },
+        largeTitle = false,
     ) {
         LazyColumn(
             Modifier.fillMaxSize(),
@@ -32,13 +46,28 @@ fun SettingPermissionsPage() {
                 start = 16.dp, end = 16.dp,
                 bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
             ),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
-            item(key = "checklist") {
-                PermissionChecklist(
+            item(key = "permission-sections") {
+                MochiSegmentedControl(
+                    selectedIndex = selectedSectionIndex,
+                    onSelect = { selectedSectionIndex = it.coerceIn(0, sectionLabels.lastIndex) },
+                    items = sectionLabels,
                     modifier = Modifier.fillMaxWidth(),
-                    compact = true,
-                    contentPadding = PaddingValues(),
                 )
+            }
+            item(key = "permission-checklist") {
+                MochiBlurCrossfade(
+                    targetState = selectedSection,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { section ->
+                    PermissionChecklist(
+                        modifier = Modifier.fillMaxWidth(),
+                        compact = true,
+                        section = section,
+                        contentPadding = PaddingValues(),
+                    )
+                }
             }
         }
     }

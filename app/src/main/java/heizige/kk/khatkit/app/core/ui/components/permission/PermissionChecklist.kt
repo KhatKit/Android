@@ -70,6 +70,12 @@ import ui.feice.mochi.theme.MochiTheme
 
 private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 
+enum class PermissionChecklistSection {
+    BASIC,
+    SYSTEM,
+    ADVANCED,
+}
+
 /**
  * 权限清单：常规权限 / 系统级权限 / 高级权限三组，实时状态 + 授权按钮。
  *
@@ -80,6 +86,7 @@ private const val SHIZUKU_REQUEST_CODE = 0x4B4B
 fun PermissionChecklist(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    section: PermissionChecklistSection? = null,
     /** compact 模式下自带的留白；嵌进 Mochi 脚手架（已带 16dp 边距）时传零值。 */
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
     header: @Composable ColumnScope.() -> Unit = {},
@@ -386,122 +393,128 @@ fun PermissionChecklist(
     ) {
         header()
 
-        // 顶部状态卡：还有缺失就走「一键授权」，全齐就给一行对勾。
-        MochiListSection {
-            if (missingRuntime.isNotEmpty()) {
+        if (section == null || section == PermissionChecklistSection.BASIC) {
+            // 顶部状态卡：还有缺失就走「一键授权」，全齐就给一行对勾。
+            MochiListSection {
+                if (missingRuntime.isNotEmpty()) {
+                    MochiListRow(
+                        title = stringResource(R.string.greeting_permission_grant_all, missingRuntime.size),
+                        subtitle = stringResource(R.string.greeting_permissions_hint),
+                        leading = {
+                            Icon(
+                                imageVector = bolt,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MochiTheme.colorScheme.primary,
+                            )
+                        },
+                        chevron = true,
+                        onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
+                    )
+                } else {
+                    MochiListRow(
+                        title = stringResource(R.string.greeting_permission_all_granted),
+                        checked = true,
+                    )
+                }
+            }
+
+            // 常规权限：运行时权限，点了直接弹系统授权框。
+            MochiListSection(header = stringResource(R.string.greeting_permissions_normal)) {
+                runtimeItems.forEach { item -> PermissionRow(item) }
+                // 剪贴板不是 Android 运行时权限（系统只允许前台读取），放在常规组作为应用级开关
                 MochiListRow(
-                    title = stringResource(R.string.greeting_permission_grant_all, missingRuntime.size),
-                    subtitle = stringResource(R.string.greeting_permissions_hint),
-                    leading = {
-                        Icon(
-                            imageVector = bolt,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MochiTheme.colorScheme.primary,
-                        )
+                    title = "剪贴板读取",
+                    subtitle = if (clipboardEnabled) {
+                        "允许卡片和工具读取剪贴板 · 系统只允许前台读取"
+                    } else {
+                        "已关闭：卡片读取剪贴板会直接报错"
                     },
-                    chevron = true,
-                    onClick = { permissionLauncher.launch(missingRuntime.toTypedArray()) },
-                )
-            } else {
-                MochiListRow(
-                    title = stringResource(R.string.greeting_permission_all_granted),
-                    checked = true,
+                    checked = clipboardEnabled,
+                    onClick = {
+                        val next = !clipboardEnabled
+                        ClipboardAccess.setEnabled(context, next)
+                        clipboardEnabled = next
+                    },
                 )
             }
         }
 
-        // 常规权限：运行时权限，点了直接弹系统授权框。
-        MochiListSection(header = stringResource(R.string.greeting_permissions_normal)) {
-            runtimeItems.forEach { item -> PermissionRow(item) }
-            // 剪贴板不是 Android 运行时权限（系统只允许前台读取），放在常规组作为应用级开关
-            MochiListRow(
-                title = "剪贴板读取",
-                subtitle = if (clipboardEnabled) {
-                    "允许卡片和工具读取剪贴板 · 系统只允许前台读取"
-                } else {
-                    "已关闭：卡片读取剪贴板会直接报错"
-                },
-                checked = clipboardEnabled,
-                onClick = {
-                    val next = !clipboardEnabled
-                    ClipboardAccess.setEnabled(context, next)
-                    clipboardEnabled = next
-                },
-            )
+        if (section == null || section == PermissionChecklistSection.SYSTEM) {
+            // 系统级权限：跳系统设置页授权，回来 LifecycleResumeEffect 自动刷新状态。
+            MochiListSection(
+                header = stringResource(R.string.greeting_permissions_special),
+                footer = stringResource(R.string.greeting_permissions_hint),
+            ) {
+                specialItems.forEach { item -> PermissionRow(item) }
+            }
         }
 
-        // 系统级权限：跳系统设置页授权，回来 LifecycleResumeEffect 自动刷新状态。
-        MochiListSection(
-            header = stringResource(R.string.greeting_permissions_special),
-            footer = stringResource(R.string.greeting_permissions_hint),
-        ) {
-            specialItems.forEach { item -> PermissionRow(item) }
-        }
-
-        // 高危权限：无障碍 / root / Shizuku / 放手模式 / 审批策略。
-        MochiListSection(header = stringResource(R.string.greeting_permissions_dangerous)) {
-            PermissionDangerRow(
-                title = stringResource(R.string.greeting_permission_accessibility_title),
-                subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
-                selected = accessibilityEnabled,
-                onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
-            )
-            PermissionDangerRow(
-                title = stringResource(R.string.greeting_permission_root_title),
-                subtitle = if (rootAvailable) {
-                    stringResource(R.string.greeting_permission_root_desc)
-                } else {
-                    stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
-                },
-                selected = rootAvailable && rootEnabled,
-                enabled = rootAvailable,
-                onClick = {
-                    val next = !rootEnabled
-                    provider.enableRoot = next
-                    provider.applySettings()
-                    rootEnabled = next
-                },
-            )
-            PermissionDangerRow(
-                title = stringResource(R.string.greeting_permission_shizuku_title),
-                subtitle = if (shizukuAvailable) {
-                    stringResource(R.string.greeting_permission_shizuku_desc)
-                } else {
-                    stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
-                },
-                selected = shizukuGranted,
-                enabled = shizukuAvailable,
-                onClick = {
-                    if (!shizukuGranted && shizukuAvailable && activity != null) {
-                        ShizukuPermission.request(activity, SHIZUKU_REQUEST_CODE) { granted ->
-                            shizukuGranted = granted
-                            shizukuAvailable = ShizukuPermission.isAvailable()
-                        }
+        if (section == null || section == PermissionChecklistSection.ADVANCED) {
+            // 高危权限：无障碍 / root / Shizuku / 放手模式 / 审批策略。
+            MochiListSection(header = stringResource(R.string.greeting_permissions_dangerous)) {
+                PermissionDangerRow(
+                    title = stringResource(R.string.greeting_permission_accessibility_title),
+                    subtitle = stringResource(R.string.greeting_permission_accessibility_desc),
+                    selected = accessibilityEnabled,
+                    onClick = { openSettings(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+                )
+                PermissionDangerRow(
+                    title = stringResource(R.string.greeting_permission_root_title),
+                    subtitle = if (rootAvailable) {
+                        stringResource(R.string.greeting_permission_root_desc)
                     } else {
-                        refresh()
-                    }
-                },
-            )
-            PermissionDangerRow(
-                title = stringResource(R.string.approval_hands_off_title),
-                subtitle = stringResource(R.string.approval_hands_off_desc) +
-                    " " + stringResource(
-                        if (handsOff) R.string.approval_status_on else R.string.approval_status_off
-                    ),
-                selected = handsOff,
-                onClick = {
-                    val next = !handsOff
-                    provider.handsOffMode = next
-                    handsOff = next
-                },
-            )
-            MochiListRow(
-                title = stringResource(R.string.approval_sheet_title),
-                subtitle = stringResource(R.string.approval_sheet_desc),
-                chevron = true,
-                onClick = { showApprovalPolicy = true },
-            )
+                        stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
+                    },
+                    selected = rootAvailable && rootEnabled,
+                    enabled = rootAvailable,
+                    onClick = {
+                        val next = !rootEnabled
+                        provider.enableRoot = next
+                        provider.applySettings()
+                        rootEnabled = next
+                    },
+                )
+                PermissionDangerRow(
+                    title = stringResource(R.string.greeting_permission_shizuku_title),
+                    subtitle = if (shizukuAvailable) {
+                        stringResource(R.string.greeting_permission_shizuku_desc)
+                    } else {
+                        stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
+                    },
+                    selected = shizukuGranted,
+                    enabled = shizukuAvailable,
+                    onClick = {
+                        if (!shizukuGranted && shizukuAvailable && activity != null) {
+                            ShizukuPermission.request(activity, SHIZUKU_REQUEST_CODE) { granted ->
+                                shizukuGranted = granted
+                                shizukuAvailable = ShizukuPermission.isAvailable()
+                            }
+                        } else {
+                            refresh()
+                        }
+                    },
+                )
+                PermissionDangerRow(
+                    title = stringResource(R.string.approval_hands_off_title),
+                    subtitle = stringResource(R.string.approval_hands_off_desc) +
+                        " " + stringResource(
+                            if (handsOff) R.string.approval_status_on else R.string.approval_status_off
+                        ),
+                    selected = handsOff,
+                    onClick = {
+                        val next = !handsOff
+                        provider.handsOffMode = next
+                        handsOff = next
+                    },
+                )
+                MochiListRow(
+                    title = stringResource(R.string.approval_sheet_title),
+                    subtitle = stringResource(R.string.approval_sheet_desc),
+                    chevron = true,
+                    onClick = { showApprovalPolicy = true },
+                )
+            }
         }
     }
 
