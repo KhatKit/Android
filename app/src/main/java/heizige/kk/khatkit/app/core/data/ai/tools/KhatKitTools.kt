@@ -229,6 +229,14 @@ class KhatKitToolProvider(
     internal val apiHealth = heizige.kk.khatkit.app.feature.tools.data.ToolApiHealthRepository(appContext)
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
     private val cache = CardCache(rootDir)
+    /** 卡片 lanshare bridge：和「设置 → 局域网共享」页共用同一个单例。 */
+    private val lanShareBridge: heizige.kk.khatkit.bridge.LanShareBridge by lazy {
+        val entry = dagger.hilt.android.EntryPointAccessors.fromApplication(
+            appContext,
+            heizige.kk.khatkit.app.feature.lanshare.LanShareCardEntryPoint::class.java,
+        )
+        heizige.kk.khatkit.app.feature.lanshare.LanShareCardBridge(entry.lanShareManager())
+    }
     private val uiHost = UiBridgeHost(
         onAutomationStatus = { label, detail -> AutomationBus.updateIfRunning(label, detail) },
         onCancelled = { AutomationBus.isCancelRequested() },
@@ -498,6 +506,7 @@ class KhatKitToolProvider(
                 embeddingEngine = CardEmbeddingEngine(providerManager, { settingsRepository.settingsFlow.value }),
                 schedule = scheduleImpl,
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
+                lanShare = lanShareBridge,
                 mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
                 onCardApiObservation = apiHealth::record,
                 onToast = { appContext.showTransientNotice(it) },

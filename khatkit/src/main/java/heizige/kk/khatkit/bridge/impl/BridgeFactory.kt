@@ -59,6 +59,7 @@ object BridgeFactory {
         embeddingEngine: EmbeddingEngine? = null,
         schedule: ScheduleBridge? = null,
         browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
+        lanShare: heizige.kk.khatkit.bridge.LanShareBridge? = null,
         mediaDownloadHandler: MediaDownloadHandler? = null,
         onCardApiObservation: ((CardApiObservation) -> Unit)? = null,
         cardCallHost: CardCallHost? = null,
@@ -109,6 +110,7 @@ object BridgeFactory {
             accessibility = accessibilityBridge,
             schedule = schedule ?: UnavailableScheduleBridge(),
             browserProvider = browserProvider,
+            lanShare = lanShare,
             cardCallHost = cardCallHost,
             localeTags = {
                 val locales = appContext.resources.configuration.locales

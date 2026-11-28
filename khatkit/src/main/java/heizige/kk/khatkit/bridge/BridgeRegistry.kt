@@ -39,6 +39,7 @@ class BridgeRegistry(
     private val accessibility: AccessibilityBridge? = null,
     private val schedule: ScheduleBridge? = null,
     private val browserProvider: ((BridgeContext) -> BrowserBridge)? = null,
+    private val lanShare: LanShareBridge? = null,
     private val localeTags: () -> List<String> = { listOf(java.util.Locale.getDefault().toLanguageTag()) },
     private val cardCallHost: CardCallHost? = null,
 ) {
@@ -94,6 +95,7 @@ class BridgeRegistry(
         if (accessibility != null) add("accessibility")
         if (schedule != null) add("schedule")
         if (browserProvider != null) add("browser")
+        if (lanShare != null) add("lanshare")
         addAll(dynamicBridges.keys)
         add(CAPABILITY_DEPENDENCY)
         add("i18n")
@@ -204,6 +206,7 @@ class BridgeRegistry(
                     LocalizedUiBridge(checked, strings)
                 }
                 "web" -> web
+                "lanshare" -> lanShare
                 "browser" -> browserProvider?.invoke(context)?.also {
                     if (it is AutoCloseable) runResources?.add(it)
                 }
