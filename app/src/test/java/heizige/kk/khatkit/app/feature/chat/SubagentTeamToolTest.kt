@@ -4,7 +4,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.feature.chat.helper.createSubagentTeamTool
-import kotlinx.coroutines.CompletableDeferred
+import heizige.kk.khatkit.app.feature.chat.helper.subagentMessages
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
@@ -52,30 +52,55 @@ class SubagentTeamToolTest {
         val tool = createSubagentTeamTool(lead.id, { current }, Semaphore(2)) { _, _, _ ->
             throw AssertionError("invalid invocation reached worker")
         }
-        assertTrue(runCatching { tool.execute(input(lead to "self")) }.isFailure)
-        assertTrue(runCatching { tool.execute(input(writer to "draft", writer to "again")) }.isFailure)
-        assertTrue(runCatching { tool.execute(input(writer to "  ")) }.isFailure)
-        assertTrue(runCatching { tool.execute(input(Assistant() to "missing")) }.isFailure)
+        suspend fun rejects(vararg tasks: Pair<Assistant?, String>) {
+            val error = runCatching { tool.execute(input(*tasks)) }.exceptionOrNull()
+            assertTrue("Expected validation failure, got $error", error is IllegalArgumentException)
+        }
+        rejects(lead to "self")
+        rejects(writer to "draft", writer to "again")
+        rejects(writer to "  ")
+        rejects(Assistant() to "missing")
+        rejects(null to "valid", Assistant() to "missing")
+        rejects(*Array(4) { null to "extra" })
         current = settings.copy(assistants = settings.assistants.map {
             if (it.id == lead.id) it.copy(enableSubagentTeam = false) else it
         })
-        assertTrue(runCatching { tool.execute(input(reviewer to "review")) }.isFailure)
+        rejects(reviewer to "review")
+        rejects(null to "draft")
+    }
+
+    @Test
+    fun temporaryWorkersNeedOnlyOneConfiguredRoleAndReceiveSeparatePrompts() = runBlocking {
+        val solo = settings.copy(assistants = listOf(lead.copy(systemPrompt = "private supervisor prompt")))
+        val tool = createSubagentTeamTool(lead.id, { solo }, Semaphore(2)) { role, task, _ ->
+            assertEquals(null, role)
+            val messages = subagentMessages(role, task)
+            assertEquals(2, messages.size)
+            assertTrue(!messages.first().toText().contains("private supervisor prompt"))
+            messages.last().toText()
+        }
+        val tasks = input(null to "list the costs", null to "assess the benefits")
+        assertTrue(tool.needsApproval(tasks))
+        val output = tool.execute(tasks).single() as UIMessagePart.Text
+        val results = Json.parseToJsonElement(output.text).jsonObject.getValue("results").jsonArray
+        assertEquals(listOf("list the costs", "assess the benefits"), results.map { it.jsonObject.getValue("text").jsonPrimitive.content })
+        assertEquals(listOf("临时子代理 1", "临时子代理 2"), results.map { it.jsonObject.getValue("role").jsonPrimitive.content })
     }
 
     @Test
     fun limitsParallelWorkAndCancelsEveryStartedChild() = runBlocking {
         val started = Channel<String>(Channel.UNLIMITED)
         val stopped = Channel<String>(Channel.UNLIMITED)
-        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { role, _, _ ->
-            started.send(role.name)
+        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { _, task, _ ->
+            started.send(task)
             try {
                 awaitCancellation()
             } finally {
-                stopped.trySend(role.name)
+                stopped.trySend(task)
             }
         }
         withTimeout(5_000) {
-            val parent = async { tool.execute(input(writer to "one", reviewer to "two", researcher to "three")) }
+            val parent = async { tool.execute(input(null to "one", reviewer to "two", null to "three")) }
             val active = setOf(started.receive(), started.receive())
             assertTrue(started.tryReceive().isFailure)
             parent.cancelAndJoin()
@@ -84,10 +109,10 @@ class SubagentTeamToolTest {
         }
     }
 
-    private fun input(vararg tasks: Pair<Assistant, String>) = buildJsonObject {
+    private fun input(vararg tasks: Pair<Assistant?, String>) = buildJsonObject {
         put("tasks", buildJsonArray {
             tasks.forEach { (role, task) ->
-                add(buildJsonObject { put("role_uid", role.id.toString()); put("task", task) })
+                add(buildJsonObject { put("role_uid", role?.id?.toString() ?: "temporary"); put("task", task) })
             }
         })
     }

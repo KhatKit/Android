@@ -46,16 +46,29 @@ cancel its job.
 ## Subagent Team
 
 The **子代理团队** switch in a role's **基础设定** is off by default. In a
-direct chat where that role has enabled it, `delegate_team_tasks` accepts up to
-three text assignments for distinct roles from `role_directory`. The user must
-approve the batch before any requests are made. This is independent of the
-permission to create, edit or delete role definitions.
+direct chat where that role has enabled it, `delegate_team_tasks` accepts one
+to three text assignments. Each `role_uid` is either a distinct role from
+`role_directory` or the literal `temporary`. Each occurrence of `temporary`
+starts a separate worker on the current chat model. This works with just one
+configured role and needs no role management permission.
 
-Each worker uses its configured chat model and role prompt with the explicit
-task text only. Chat history, presets, memory, attachments and application
-tools are not attached. The supervisor receives the results or individual
-errors and can summarize them in the current chat. Workers can't delegate
-again, create chats or keep running after the parent generation is cancelled.
+The user can open **子代理任务** to read each assignment in full before approving
+the batch. Up to two workers run concurrently. A named worker uses its configured
+model and role prompt. A temporary worker starts with a generic prompt. Both
+receive only their assigned text. The supervisor receives results and individual
+errors in submission order, and the user can open the same step to inspect them.
+Workers have no conversation history, attachments, memory or application tools.
+Cancelling the parent generation cancels running and queued workers.
+
+### 手动验收
+
+- **改动点**　角色基础设定中的「子代理团队」说明支持的两种委派方式。聊天里的「子代理任务」显示任务、接收角色和逐项结果。
+- **复现路径**　选用支持工具调用的模型，在角色的「基础设定」打开「子代理团队」。进入该角色的单聊，发送「请委派两个临时子代理，一个起草读书会议程，一个列讨论问题，然后汇总」。
+- **预期结果**
+  - [ ] 批准前打开「子代理任务」，可以核对两项完整任务。拒绝后能看到拒绝状态。
+  - [ ] 再次委派并批准，可以按原顺序查看两份结果，主助手可据此汇总。角色列表数量保持原值。
+  - [ ] 同批指定一个已有角色和一个临时子代理，分别显示角色名称和临时子代理编号。
+- **边界**　用窄屏和系统大字号检查长任务的完整详情，再用返回手势关闭详情。浅色和深色下均可辨认任务和错误文字。
 
 ## Role Navigation
 

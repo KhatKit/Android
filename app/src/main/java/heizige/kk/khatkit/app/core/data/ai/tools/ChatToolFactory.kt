@@ -128,7 +128,9 @@ class ChatToolFactory(
                     update = { change -> repository.update(change) },
                 ))
                 if (assistant.enableSubagentTeam) {
-                    subagentTeamManager?.let { add(it.tool(assistant.id, { repository.settingsFlow.value }, conversationId)) }
+                    subagentTeamManager?.let { manager ->
+                        add(manager.tool(assistant.id, { repository.settingsFlow.value }, conversationId, model.id))
+                    }
                 }
             }
         }
