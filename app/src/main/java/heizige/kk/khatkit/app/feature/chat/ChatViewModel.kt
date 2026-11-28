@@ -9,9 +9,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.net.toUri
@@ -77,7 +74,6 @@ class ChatViewModel @AssistedInject constructor(
     }
     private val _conversationId: Uuid = Uuid.parse(id)
     val conversation: StateFlow<Conversation> = chatService.getConversationFlow(_conversationId)
-    var chatListInitialized by mutableStateOf(false) // 聊天列表是否已经滚动到底部
 
     fun focusMessage(messageId: Uuid) {
         val current = conversation.value

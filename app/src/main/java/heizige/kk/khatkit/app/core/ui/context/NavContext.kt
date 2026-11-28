@@ -4,7 +4,13 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.navigation3.runtime.NavKey
 import heizige.kk.khatkit.app.Screen
 
-class Navigator(private val backStack: MutableList<NavKey>) {
+class Navigator(
+    private val backStack: MutableList<NavKey>,
+    private val replaceRoot: (Screen) -> Unit = { screen ->
+        backStack.clear()
+        backStack.add(screen)
+    },
+) {
     fun navigate(screen: Screen, builder: NavigateOptionsBuilder.() -> Unit = {}) {
         val options = NavigateOptionsBuilder().apply(builder)
 
@@ -26,8 +32,7 @@ class Navigator(private val backStack: MutableList<NavKey>) {
     }
 
     fun clearAndNavigate(screen: Screen) {
-        backStack.clear()
-        backStack.add(screen)
+        replaceRoot(screen)
     }
 
     fun popBackStack() {

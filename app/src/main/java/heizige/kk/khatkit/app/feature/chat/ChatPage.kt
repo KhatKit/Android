@@ -238,6 +238,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     }
 
     val chatListState = rememberLazyListState()
+    var chatListInitialized by rememberSaveable(id.toString()) { mutableStateOf(false) }
     LaunchedEffect(messageId, conversation.messageNodes.size) {
         val target = messageId ?: return@LaunchedEffect
         if (conversation.messageNodes.isEmpty()) return@LaunchedEffect
@@ -245,7 +246,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
     }
 
     LaunchedEffect(nodeId, conversation.messageNodes.size) {
-        if (!vm.chatListInitialized && conversation.messageNodes.isNotEmpty()) {
+        if (!chatListInitialized && conversation.messageNodes.isNotEmpty()) {
             if (nodeId != null) {
                 val index = conversation.messageNodes.indexOfFirst { it.id == nodeId }
                 if (index >= 0) {
@@ -254,7 +255,7 @@ fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, me
             } else {
                 chatListState.requestScrollToItem(conversation.currentMessages.size + 5)
             }
-            vm.chatListInitialized = true
+            chatListInitialized = true
         }
     }
 

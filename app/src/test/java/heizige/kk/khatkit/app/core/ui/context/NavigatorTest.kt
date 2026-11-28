@@ -7,6 +7,19 @@ import org.junit.Test
 
 class NavigatorTest {
     @Test
+    fun reopeningChatFromHistoryUsesHostReplacementEvenForIdenticalArguments() {
+        val chat = Screen.Chat("chat-1", nodeId = "node", messageId = "message")
+        val previousStack = mutableListOf<NavKey>(chat, Screen.History)
+        val selections = mutableListOf<Screen>()
+        val navigator = Navigator(previousStack) { selections.add(it) }
+
+        repeat(2) { navigator.clearAndNavigate(chat) }
+
+        assertEquals(listOf(chat, chat), selections)
+        assertEquals(listOf(chat, Screen.History), previousStack)
+    }
+
+    @Test
     fun repeatedNavigationToTopDoesNotAddEntries() {
         val stack = mutableListOf<NavKey>(Screen.Chat("chat-1"))
         val navigator = Navigator(stack)

@@ -2,7 +2,13 @@ package heizige.kk.khatkit.app.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import heizige.kk.khatkit.app.Screen
 import ui.feice.mochi.navigation.MochiNavigator
 import ui.feice.mochi.navigation.rememberMochiNavigator
@@ -70,4 +76,23 @@ class KkNavController(private val navigator: MochiNavigator) {
 fun rememberKkNavController(root: Screen = Screen.Greeting): KkNavController {
     val navigator = rememberMochiNavigator(ScreenRoutes.routeOf(root))
     return remember(navigator) { KkNavController(navigator) }
+}
+
+/** 显式换根时一起重建返回栈和宿主的页面图层，同一路由也需要新的页面实例。 */
+@Composable
+internal fun ReplaceableNavigationRoot(
+    initialRoot: () -> Screen,
+    content: @Composable (MochiNavigator, (Screen) -> Unit) -> Unit,
+) {
+    var route by rememberSaveable { mutableStateOf(ScreenRoutes.routeOf(initialRoot())) }
+    var generation by rememberSaveable { mutableIntStateOf(0) }
+    val replaceRoot: (Screen) -> Unit = remember {
+        { screen ->
+            route = ScreenRoutes.routeOf(screen)
+            generation++
+        }
+    }
+    key(generation) {
+        content(rememberMochiNavigator(route), replaceRoot)
+    }
 }

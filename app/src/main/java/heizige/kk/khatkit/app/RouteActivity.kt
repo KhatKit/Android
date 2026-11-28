@@ -47,12 +47,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import heizige.kk.khatkit.app.navigation.KkDeepLinkRoutes
 import heizige.kk.khatkit.app.navigation.KkNavController
+import heizige.kk.khatkit.app.navigation.ReplaceableNavigationRoot
 import heizige.kk.khatkit.app.navigation.ScreenRoutes
 import kotlin.coroutines.cancellation.CancellationException
 import ui.feice.mochi.navigation.MochiNavHost
-import ui.feice.mochi.navigation.rememberMochiNavigator
+import ui.feice.mochi.navigation.MochiNavigator
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.Serializable
+import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.db.DatabaseMigrationTracker
 import heizige.kk.khatkit.app.core.data.db.MigrationState
@@ -73,6 +75,8 @@ import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
 import heizige.kk.khatkit.app.core.ui.hooks.readStringPreference
 import heizige.kk.khatkit.app.core.ui.hooks.writeBooleanPreference
+import heizige.kk.khatkit.app.core.ui.hooks.CustomAsrState
+import heizige.kk.khatkit.app.core.ui.hooks.CustomTtsState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomAsrState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCustomTtsState
 import heizige.kk.khatkit.app.feature.assistant.AssistantPage
@@ -294,21 +298,32 @@ class RouteActivity : ComponentActivity() {
             }
         }
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
+        ReplaceableNavigationRoot(initialRoot = { nextChatScreen(this@RouteActivity) }) { navigator, replaceRoot ->
+            RouteHost(navigator, replaceRoot, settings, tts, asr, migrationState)
+        }
+    }
 
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Composable
+    private fun RouteHost(
+        mochiNavigator: MochiNavigator,
+        replaceRoot: (Screen) -> Unit,
+        settings: Settings,
+        tts: CustomTtsState,
+        asr: CustomAsrState,
+        migrationState: MigrationState,
+    ) {
         // ── U7a-3：导航栈全量交给 Mochi；Nav3 外壳（页面用 Nav3 渲染的那套）已整体移除 ───
         // 所有 Screen 全部由 MochiNavHost 渲染（ScreenRoutes 的 route⇄Screen 映射，单测守互逆）。
         // 页面里 94 处 navController.navigate(Screen.X) 一行未改，仍走 LocalNavController，
         // 但它背后是 MochiBackedNavStack：压栈/弹栈直接落到 KkNavController（Mochi 栈）。
         // 引导页不做根：MochiNavigator 没有 replaceRoot，根固定是会话页，没走过引导页时
         // 把 Greeting 压在上面，完成时 pop 回会话页（进程重建靠 rememberSaveable 恢复整条栈）。
-        val greetingCompleted = remember { readBooleanPreference("greeting_completed", false) }
-        val rootScreen = remember { nextChatScreen(this@RouteActivity) }
-        val mochiNavigator = rememberMochiNavigator(ScreenRoutes.routeOf(rootScreen))
         val kkNav = remember(mochiNavigator) { KkNavController(mochiNavigator) }
         LaunchedEffect(mochiNavigator) {
             // rememberMochiNavigator 自己会从 rememberSaveable 恢复；恢复过就别再压引导页。
             if (mochiNavigator.backStack.size > 1) return@LaunchedEffect
-            if (!greetingCompleted) kkNav.navigate(Screen.Greeting)
+            if (!readBooleanPreference("greeting_completed", false)) kkNav.navigate(Screen.Greeting)
         }
         // 深链 / ACTION_SEND 等 Intent：KkDeepLinkRoutes 只产出 route（单测覆盖），这里解码成 Screen 压栈。
         val pendingRoute = pendingScreenRoute.value
@@ -318,7 +333,9 @@ class RouteActivity : ComponentActivity() {
                 ScreenRoutes.screenOf(pendingRoute)?.let { kkNav.navigate(it) }
             }
         }
-        val mochiBackedNavigator = remember(kkNav) { Navigator(MochiBackedNavStack(kkNav)) }
+        val mochiBackedNavigator = remember(kkNav, replaceRoot) {
+            Navigator(MochiBackedNavStack(kkNav), replaceRoot)
+        }
 
         SharedTransitionLayout {
             CompositionLocalProvider(
@@ -555,8 +572,7 @@ private fun nextChatScreen(context: Context): Screen.Chat = Screen.Chat(
 /**
  * 把 Mochi 栈包成 [MutableList]<[NavKey]>，让页面里既有的 94 处 \`navController.navigate(Screen.X)\`
  * 一行都不用改就落到 Mochi 栈上。只实现 [Navigator] 真正用到的那几个操作：
- * 压栈顶 / 弹栈顶 / 读 size 与元素；\`clearAndNavigate\` 的 \`clear()\` 退到根页为止（根页不删，
- * 与 Mochi「根页不可 pop」的不变量一致）。
+ * 压栈顶 / 弹栈顶 / 读 size 与元素。换根由 [ReplaceableNavigationRoot] 处理。
  */
 private class MochiBackedNavStack(private val kkNav: KkNavController) : AbstractMutableList<NavKey>() {
     override val size: Int get() = kkNav.backStack.size
@@ -582,13 +598,6 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
 
     override fun set(index: Int, element: NavKey): NavKey =
         throw UnsupportedOperationException("Mochi 栈不支持替换栈内页")
-
-    /** [Navigator.clearAndNavigate] 的 clear()：退到根页为止（根页不可 pop，与 Mochi 不变量一致）。 */
-    override fun clear() {
-        while (kkNav.canPop) {
-            kkNav.popBackStack()
-        }
-    }
 }
 
 /**
