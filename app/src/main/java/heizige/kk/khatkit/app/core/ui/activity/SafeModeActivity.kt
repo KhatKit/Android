@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import ui.feice.mochi.utils.mochiEnableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -107,11 +107,11 @@ class SafeModeActivity : ComponentActivity() {
     lateinit var settingsStore: SettingsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        mochiEnableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // 读一次就清：这一页自己再崩，下次仍会重新拿系统记录（不在这里留下「上次崩溃」的死循环）。
         val report = CrashHandler.getReport(this)
         CrashHandler.clearCrashed(this)
-        enableEdgeToEdge()
         setContent {
             KhatKitTheme {
                 val settings by settingsStore.settingsFlow.collectAsStateWithLifecycle()

@@ -5,12 +5,11 @@ import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import ui.feice.mochi.utils.mochiEnableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
@@ -192,8 +191,7 @@ class RouteActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
-        disableNavigationBarContrast()
+        mochiEnableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // OCR2b：把动态 OCR 插件解析器接到 common 的 OcrEngineProvider 上（未装插件时返回 null，自动降级）。
         heizige.kk.khatkit.app.core.di.installOcrPluginResolver(this)
@@ -246,12 +244,6 @@ class RouteActivity : ComponentActivity() {
     override fun onPause() {
         AutomationBus.setAppInForeground(false)
         super.onPause()
-    }
-
-    private fun disableNavigationBarContrast() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
     }
 
     override fun onNewIntent(intent: Intent) {
