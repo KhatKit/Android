@@ -74,8 +74,8 @@ sshj = "0.40.0"
 diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
-# 本地源码库产物（mavenLocal，由 mochi-compose main + .github/scripts/patch-mochi.py 生成；见 docs/mochi-migration-plan.md §12）
-mochi = "0.2.0-khatkit.1"
+# 本地源码库产物（mavenLocal，由 .github/scripts/build-mochi.sh 生成）
+mochi = "0.4.0-khatkit.2"
 richeditorCompose = "1.0.0"
 
 [libraries]
@@ -211,6 +211,7 @@ shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizu
 # mochi-compose：UI 外壳/组件目标库（Maven Central，io.github.feice11）
 mochi-compose = { module = "io.github.feice11:mochi-compose", version.ref = "mochi" }
 mochi-ios = { module = "io.github.feice11:mochi-ios", version.ref = "mochi" }
+mochi-nothing = { module = "io.github.feice11:mochi-nothing", version.ref = "mochi" }
 mochi-icons = { module = "io.github.feice11:mochi-icons", version.ref = "mochi" }
 
 # 依赖分组。只收「同一组 >=2 个 artifact」且「各模块配置名与 api/implementation 语义

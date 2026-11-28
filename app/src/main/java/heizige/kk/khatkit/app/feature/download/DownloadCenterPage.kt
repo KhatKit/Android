@@ -128,7 +128,6 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
         title = "下载中心",
         // 搜索时标题让位给输入框；平时标题常显、底色跟滚动淡入。
         titleProgress = { 1f - searchProgress.value },
-        backgroundProgress = barProgress,
         actions = {
             // 图标变化走 Mochi 的内容变换（MochiMorphIcon 原位变形），不是直接换一张图。
             MochiIconButton(

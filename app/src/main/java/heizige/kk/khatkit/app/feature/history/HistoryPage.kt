@@ -76,7 +76,6 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
             // 正文没有大标题（列表直接从分组卡片开始），栏标题常显；
             // 栏底色仍然跟滚动走：滚动时淡入，停下时透明。
             titleProgress = { 1f },
-            backgroundProgress = barProgress,
             actions = {
                 MochiIconButton(
                     onClick = {

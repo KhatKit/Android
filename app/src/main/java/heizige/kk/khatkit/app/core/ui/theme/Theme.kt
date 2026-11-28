@@ -6,6 +6,7 @@ import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,10 +15,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
-import ui.feice.mochi.ios.iosMaterials
+import ui.feice.mochi.theme.MochiGlass
+import ui.feice.mochi.theme.MochiGlassStyle
+import ui.feice.mochi.theme.mochiGlassMaterials
 import ui.feice.mochi.theme.ColorSchemeMode
 import ui.feice.mochi.theme.DefaultKeyColor
 import ui.feice.mochi.theme.MochiMaterials
+import ui.feice.mochi.theme.MochiHdr
+import ui.feice.mochi.theme.MochiScrollEdge
+import ui.feice.mochi.theme.LocalMochiControlPalette
+import ui.feice.mochi.theme.defaultTextStyles
+import ui.feice.mochi.theme.withSerifDisplay
+import ui.feice.mochi.ios.iosColorScheme
+import ui.feice.mochi.ios.iosControlPalette
+import ui.feice.mochi.nothing.nothingColorScheme
+import ui.feice.mochi.nothing.nothingControlPalette
+import ui.feice.mochi.navigation.LocalMochiPredictiveBack
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.theme.ThemeController
 import ui.feice.mochi.theme.animateMochiColorScheme
@@ -26,6 +39,8 @@ import ui.feice.mochi.effect.content.MochiThemeRevealState
 import ui.feice.mochi.effect.content.rememberMochiThemeRevealState
 import ui.feice.mochi.effect.content.revealIfShadeChanges
 import androidx.compose.runtime.staticCompositionLocalOf
+import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
+import heizige.kk.khatkit.app.core.data.datastore.MochiAppearance
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAmoledDarkMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberCurrentColorMode
 import heizige.kk.khatkit.app.core.ui.hooks.rememberUserSettingsState
@@ -33,6 +48,7 @@ import heizige.kk.khatkit.uikit.mochi.KkNavBarStyle
 import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
 import heizige.kk.khatkit.uikit.mochi.LocalKkGlassButtons
 import heizige.kk.khatkit.uikit.mochi.LocalKkNavBarStyle
+import heizige.kk.khatkit.uikit.mochi.LocalKkNavigationBarMaterial
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchExpressiveEnabled
 import heizige.kk.khatkit.uikit.mochi.LocalOptionSwitchScale
 
@@ -40,6 +56,29 @@ private val ExtendLightColors = lightExtendColors()
 private val ExtendDarkColors = darkExtendColors()
 
 val LocalDarkMode = compositionLocalOf { false }
+
+internal val DisplaySetting.usesMochiSeedPalette: Boolean
+    get() = resolvedMochiAppearance == MochiAppearance.MOCHI
+
+internal val DisplaySetting.resolvedMochiGlassStyle: MochiGlassStyle
+    get() = mochiGlassStyle ?: if (glassBlurOnly) MochiGlassStyle.Frosted else MochiGlassStyle.Regular
+
+internal fun mochiAppearanceMaterials(
+    glassEnabled: Boolean,
+    glassStyle: MochiGlassStyle,
+    tint: Float,
+    dark: Boolean,
+    scrollEdge: MochiScrollEdge,
+): MochiMaterials {
+    if (!glassEnabled) return MochiMaterials(scrollEdge = scrollEdge)
+    val glass = MochiGlass(
+        style = glassStyle,
+        tint = (if (dark) Color.Black else Color.White)
+            .copy(alpha = tint.coerceIn(0f, 1f) * 0.32f)
+            .takeIf { it.alpha > 0f },
+    )
+    return mochiGlassMaterials(glass, scrollEdge = scrollEdge)
+}
 
 /**
  * 本仓 [ColorMode] → mochi 的配色模式：**只换明暗**，不换种子色/取色算法（预设主题运行期不注入）。
@@ -93,6 +132,7 @@ fun KhatKitTheme(
     content: @Composable () -> Unit
 ) {
     val settings by rememberUserSettingsState()
+    val display = settings.displaySetting
 
     // 三态判定只此一处：配色、图标、扩展色都从这里拿同一个 boolean
     val darkTheme = colorMode.resolveDark(isSystemInDarkTheme())
@@ -114,7 +154,8 @@ fun KhatKitTheme(
             ?: settings.customThemes.firstOrNull { it.id == settings.themeId }
                 ?.let { Color(it.primaryColorArgb.toInt()) }
     }
-    val mochiController = remember(colorMode, settings.dynamicColor, themeSeed) {
+    val paletteStyle = display.mochiPaletteStyle
+    val mochiController = remember(colorMode, settings.dynamicColor, themeSeed, paletteStyle) {
         ThemeController(
             colorSchemeMode = if (settings.dynamicColor) {
                 when (colorMode) {
@@ -126,7 +167,25 @@ fun KhatKitTheme(
                 colorMode.toMochiColorSchemeMode()
             },
             keyColor = themeSeed ?: DefaultKeyColor,
+            paletteStyle = paletteStyle,
         )
+    }
+    val appearance = display.resolvedMochiAppearance
+    val colors = when (appearance) {
+        MochiAppearance.IOS -> iosColorScheme(darkTheme)
+        MochiAppearance.NOTHING -> nothingColorScheme(darkTheme)
+        MochiAppearance.MOCHI -> mochiController.currentColorScheme()
+    }
+    val controlPalette = remember(appearance, darkTheme) {
+        when (appearance) {
+            MochiAppearance.IOS -> iosControlPalette(darkTheme)
+            MochiAppearance.NOTHING -> nothingControlPalette(darkTheme)
+            MochiAppearance.MOCHI -> null
+        }
+    }
+    val textStyles = remember(display.mochiSerifTitles) {
+        val defaults = defaultTextStyles()
+        if (display.mochiSerifTitles) defaults.withSerifDisplay() else defaults
     }
 
     val isMiuix = false
@@ -170,33 +229,22 @@ fun KhatKitTheme(
     //  ⇒ 所以「把当前值原样转发下去」就等于本层不 provide，取的正是平台默认工厂。
     val overscrollFactory = LocalOverscrollFactory.current
 
-    // FX1（主人拍板）：液态玻璃 / 光效 / 交互动效**默认开**。
-    //  · 开：mochi-ios 的 iOS 26 玻璃配方（栏 / 菜单 / 面板 / 弹窗），并用 themeAccent = true
-    //    让玻璃里选中的图标/文字用**主题强调色**（本仓调色板不是 iOS 的，不传会用 iOS 蓝）；
-    //    scrollEdge 渐进模糊也一起来。
-    //  · 关：给 MochiMaterials()（全 null）⇒ 上述位置全部退回纯色，glow/模糊一起消失。
-    //  玻璃只作用在 bars / menus / sheets / alerts（MochiMaterials 的语义，§7-4）；
-    //  正文按钮是否玻璃由按钮样式决定，这里不碰，也不在页面里写外观分支。
-    val effectsEnabled = settings.displaySetting.effectsEnabled
-    val glassButtons = settings.displaySetting.glassButtons
-    // 「外观 → 导航栏」页的自定义项：玻璃通透度 / 仅模糊 / 底部导航栏标签样式 / 滚动收起。
-    // 玻璃材质在根部统一组装，页面与组件都只读主题，不写外观分支。
-    val glassTint = settings.displaySetting.glassTint
-    val glassBlurOnly = settings.displaySetting.glassBlurOnly
-    val mochiMaterials = remember(effectsEnabled, glassButtons, darkTheme, glassTint, glassBlurOnly) {
-        if (effectsEnabled) {
-            val ios = iosMaterials(
-                isDark = darkTheme,
-                glassTint = glassTint,
-                themeAccent = true,
-                blurOnly = glassBlurOnly,
-            )
-            // 按钮选实心：按钮的玻璃（control）是从 bar 回退来的，把 bar 一起拿掉；
-            // 警告框原本也跟 bar（「透」档），显式留住，菜单 / 面板本来就是单独的「实」档不受影响
-            if (glassButtons) ios else ios.copy(bar = null, alert = ios.bar, clear = null)
-        } else {
-            MochiMaterials()
-        }
+    val effectsEnabled = display.effectsEnabled
+    val glassButtons = effectsEnabled && display.glassButtons
+    val glassStyle = display.resolvedMochiGlassStyle
+    val mochiMaterials = remember(effectsEnabled, glassStyle, display.glassTint, darkTheme, display.mochiTopBarStyle) {
+        mochiAppearanceMaterials(
+            glassEnabled = effectsEnabled,
+            glassStyle = glassStyle,
+            tint = display.glassTint,
+            dark = darkTheme,
+            scrollEdge = MochiScrollEdge.of(display.mochiTopBarStyle),
+        )
+    }
+    // Mochi falls back from control to bar when control is null. Bottom navigation
+    // receives its material explicitly, so solid buttons can clear both roles.
+    val componentMaterials = remember(mochiMaterials, glassButtons) {
+        if (glassButtons) mochiMaterials else mochiMaterials.copy(bar = null, control = null)
     }
     val navBarStyle = remember(
         settings.displaySetting.navBarLabelStyle,
@@ -208,18 +256,21 @@ fun KhatKitTheme(
         )
     }
 
-    // 2026-10-30 口径：全面切 Mochi，不搬旧色板/字阶 ⇒ 只用 Mochi 默认
-    // colorScheme / textStyles / shapes，由 MochiTheme 独家管理系统栏图标对比度。
     // 换主题的转场照 Mochi demo（MainActivity / DemoTheme）：揭开宿主包在主题外面，只拍画面；
     // 揭开 / 交叉淡化期间配色一步到位，洞里露出来的已经是最终颜色。嵌套的 KhatKitTheme 共用最外层那一个。
     val outerReveal = LocalKkThemeReveal.current
     val ownReveal = rememberMochiThemeRevealState()
     val reveal = outerReveal ?: ownReveal
+    if (outerReveal == null) {
+        SideEffect { MochiHdr.enabled = display.mochiHdrHighlights }
+    }
     val themed: @Composable () -> Unit = {
+    CompositionLocalProvider(LocalMochiControlPalette provides controlPalette) {
     MochiTheme(
-        colors = animateMochiColorScheme(mochiController.currentColorScheme(), animate = !reveal.isRevealing),
+        colors = animateMochiColorScheme(colors, animate = !reveal.isRevealing),
+        textStyles = textStyles,
         systemBarAppearance = !darkTheme,
-        materials = mochiMaterials,
+        materials = componentMaterials,
     ) {
         CompositionLocalProvider(
             LocalDarkMode provides darkTheme,
@@ -227,6 +278,8 @@ fun KhatKitTheme(
             LocalKkEffectsEnabled provides effectsEnabled,
             // 设置里「按钮样式」：栏按钮（返回键 / 顶栏图标按钮）玻璃 or 实心，读它
             LocalKkGlassButtons provides glassButtons,
+            LocalKkNavigationBarMaterial provides mochiMaterials.bar,
+            LocalMochiPredictiveBack provides display.mochiPredictiveBack,
             // 设置里「导航栏样式」：底部导航栏标签样式 / 滚动收起
             LocalKkNavBarStyle provides navBarStyle,
             LocalExtendColors provides extendColors,
@@ -252,6 +305,7 @@ fun KhatKitTheme(
                 }
             }
         }
+    }
     }
     }
     CompositionLocalProvider(LocalKkThemeReveal provides reveal) {

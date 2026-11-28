@@ -86,6 +86,11 @@ fun <T> ChainOfThought(
     optionRowBackground: Color = Color.Unspecified,
     /** 行与行之间画 Mochi 分组卡那种 0.5dp 分隔线（从文字起点开始）。 */
     showRowDivider: Boolean = false,
+    /**
+     * 展开内容的边距。默认左右 16dp（与标题行同宽）；
+     * 聊天页在「整条消息一张卡」的形态里传左右 0，让思考正文和正式回复正文左右对齐、等宽。
+     */
+    expandedContentPadding: PaddingValues = ExpandedContentPadding,
     content: @Composable ChainOfThoughtScope.(T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -217,6 +222,7 @@ fun <T> ChainOfThought(
                     val optionRowPadding = PaddingValues(0.dp)
                     val scope = remember(
                         isFirst, isLast, lineColor, showTimeline, optionRowShape, optionRowPadding, optionRowBackground,
+                        expandedContentPadding,
                     ) {
                         ChainOfThoughtScopeImpl(
                             isFirst = isFirst,
@@ -226,6 +232,7 @@ fun <T> ChainOfThought(
                             optionRowShape = optionRowShape,
                             optionRowPadding = optionRowPadding,
                             optionRowBackground = optionRowBackground,
+                            expandedContentPadding = expandedContentPadding,
                         )
                     }
                     scope.content(step)
@@ -346,7 +353,7 @@ interface ChainOfThoughtScope {
 }
 
 /** 展开内容统一边距：左右 16dp、上 4dp、下 8dp（思考正文与询问表单共用同一份）。 */
-private val ExpandedContentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
+internal val ExpandedContentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
 
 /** 选项行标题是否处于「已展开」高亮态：只给标题文字用，图标/副文本不吃。 */
 internal val LocalChainTitleHighlight = androidx.compose.runtime.staticCompositionLocalOf { false }
@@ -363,6 +370,8 @@ private class ChainOfThoughtScopeImpl(
     private val optionRowPadding: PaddingValues,
     /** 选项行底块颜色；透明 = 透出外层共享卡片的底色 */
     private val optionRowBackground: Color = Color.Unspecified,
+    /** 展开内容边距，见 [ChainOfThought.expandedContentPadding] */
+    private val expandedContentPadding: PaddingValues = ExpandedContentPadding,
 ) : ChainOfThoughtScope {
     @Composable
     override fun ChainOfThoughtStep(
@@ -597,8 +606,9 @@ private class ChainOfThoughtScopeImpl(
                     trailingContent = extra,
                     contentVisible = contentVisible,
                     rowContentPadding = rowPadding,
-                    // 所有可展开内容的统一边距：思考正文 / 工具结果 / 询问表单都用这一套
-                    contentPadding = ExpandedContentPadding,
+                    // 可展开内容的边距：默认思考正文 / 工具结果 / 询问表单共用一套；
+                    // 聊天页「整条一张卡」时传左右 0，思考正文与正式回复等宽
+                    contentPadding = expandedContentPadding,
                     expandedContent = content,
                 )
             }

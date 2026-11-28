@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -17,8 +18,116 @@ import androidx.core.graphics.withMatrix
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.roundToInt
+
+internal data class EditorBackMotion(
+    val direction: Float = 0f,
+    val progress: Float = 0f,
+    val touchY: Float = 0f,
+    val travelX: Float = 0f,
+    val travelY: Float = 0f,
+)
+
+internal data class EditorWarpBand(val left: Offset, val right: Offset)
+
+/**
+ * A horizontal cross-section of the editor. The joined glass bends toward the opening finger
+ * without losing width. Predictive back adds a local pull to the same reversed reveal.
+ */
+internal fun editorWarpBand(
+    y: Float,
+    width: Float,
+    height: Float,
+    window: Rect,
+    reveal: Float,
+    openingAnchorX: Float,
+    back: EditorBackMotion,
+): EditorWarpBand {
+    val t = ((reveal - EditorFusionContact) / (1f - EditorFusionContact)).coerceIn(0f, 1f)
+    val u = ((y - window.top) / window.height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+    val envelope = 16f * t * t * (1f - t) * (1f - t)
+    val anchor = (openingAnchorX / width.coerceAtLeast(1f) * 2f - 1f).coerceIn(-1f, 1f)
+    val shift = width * 0.025f * anchor * envelope * (1f - aiSmootherStep(u))
+    val bend = 4f * u * (1f - u)
+    val openingY = y - window.height * 0.06f * envelope * bend
+    val tilt = minOf(window.height * 0.08f, width * 0.035f) * anchor * envelope * (1f - u)
+    val fingerDistance = (y - back.touchY) / (height * 0.18f).coerceAtLeast(1f)
+    val strength = if (back.direction == 0f) 0f else {
+        back.progress.coerceIn(0f, 1f) * aiSmootherStep((t / 0.3f).coerceAtMost(1f)) *
+            exp(-fingerDistance * fingerDistance)
+    }
+    val pull = (width * 0.14f + back.travelX * 0.55f).coerceIn(0f, width * 0.32f) * strength
+    val drift = back.travelY.coerceIn(-height * 0.12f, height * 0.12f) * strength * 0.55f
+    return EditorWarpBand(
+        left = Offset(shift + if (back.direction > 0f) pull else 0f, openingY + tilt + if (back.direction > 0f) drift else 0f),
+        right = Offset(width + shift - if (back.direction < 0f) pull else 0f, openingY - tilt + if (back.direction < 0f) drift else 0f),
+    )
+}
+
+@Composable
+internal fun Modifier.editorGenieWarp(
+    window: Rect,
+    reveal: Float,
+    openingAnchorX: Float,
+    back: EditorBackMotion,
+    enabled: Boolean,
+): Modifier {
+    if (!enabled || window.isEmpty || (reveal >= 1f && back.progress <= 0f) || reveal <= 0f) return this
+    val layer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    val source = remember { FloatArray(8) }
+    val destination = remember { FloatArray(8) }
+    val matrix = remember { Matrix() }
+    return drawWithContent {
+        if (size.width <= 0f || size.height <= 0f) return@drawWithContent
+        val content = this
+        layer.record { content.drawContent() }
+        val canvas = drawContext.canvas.nativeCanvas
+        // The active content is mostly inside the editor's current height. Sample that section
+        // more densely so the short starting capsule gets a curved outline too.
+        val start = window.top.coerceIn(0f, size.height)
+        val end = window.bottom.coerceIn(start, size.height)
+        val bands = 32
+        fun bandAt(y: Float) = editorWarpBand(y, size.width, size.height, window, reveal, openingAnchorX, back)
+        fun drawBand(topY: Float, bottomY: Float, top: EditorWarpBand, bottom: EditorWarpBand) {
+            if (bottomY <= topY) return
+            source[0] = 0f
+            source[1] = topY
+            source[2] = size.width
+            source[3] = topY
+            source[4] = size.width
+            source[5] = bottomY
+            source[6] = 0f
+            source[7] = bottomY
+            destination[0] = top.left.x
+            destination[1] = top.left.y
+            destination[2] = top.right.x
+            destination[3] = top.right.y
+            destination[4] = bottom.right.x
+            destination[5] = bottom.right.y
+            destination[6] = bottom.left.x
+            destination[7] = bottom.left.y
+            if (matrix.setPolyToPoly(source, 0, destination, 0, 4)) {
+                canvas.withMatrix(matrix) {
+                    clipRect(0f, topY, size.width, bottomY)
+                    drawLayer(layer)
+                }
+            }
+        }
+        var topY = start
+        var top = bandAt(topY)
+        drawBand(0f, topY, bandAt(0f), top)
+        repeat(bands) { index ->
+            val bottomY = aiLerp(start, end, (index + 1f) / bands)
+            val bottom = bandAt(bottomY)
+            drawBand(topY, bottomY, top, bottom)
+            topY = bottomY
+            top = bottom
+        }
+        drawBand(topY, size.height, top, bandAt(size.height))
+    }
+}
 
 /**
  * Kumo/macOS-style Genie deformation from the measured floating toolbar bounds.

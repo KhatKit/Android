@@ -23,15 +23,10 @@ import heizige.kk.khatkit.app.core.ui.icons.dashboard
 import heizige.kk.khatkit.app.core.ui.icons.title
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
+import ui.feice.mochi.icons.MochiIonicon
 
 /**
- * 「界面偏好设置」二级页（MD3 风格）。
- *
- * 设置主页首组只留一行「界面偏好设置」（见 `SettingPage.kt`），点进来就是这一页；
- * 页内四个子项各自再进自己的三级页，顺序与设置主页原先平铺时一致：
- * 主题 / 消息显示 / 字体 / 代码块。
- *
- * 页内没有任何开关，纯导航，故不取 `SettingViewModel`。
+ * 「界面偏好设置」入口页，分流到主题、导航栏、消息显示、字体和代码块。
  */
 @Composable
 fun SettingPreferencesUIPage() {
@@ -63,6 +58,13 @@ fun SettingPreferencesUIPage() {
                         leadingContent = { Icon(dashboard, null) },
                         supportingContent = { Text(stringResource(R.string.setting_page_themes_desc)) },
                         headlineContent = { Text(stringResource(R.string.setting_page_themes)) },
+                    )
+                    item(
+                        onClick = { navController.navigate(Screen.SettingThemeNavBar) },
+                        chevron = true,
+                        leadingContent = { MochiIonicon("compass") },
+                        supportingContent = { Text(stringResource(R.string.setting_preferences_navigation_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_preferences_navigation_title)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingPreferencesUIMessage) },

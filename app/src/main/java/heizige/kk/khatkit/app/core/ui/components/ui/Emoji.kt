@@ -135,20 +135,24 @@ fun EmojiPicker(
                         cancelLabel = stringResource(R.string.cancel),
                         // 表情表本身就是主 UI，空关键词时也要摊开，不走「先输入再展示」。
                         showResultsWhenEmpty = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         expandedContent = {
                             // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
                             NoHeroTransition {
                                 Column(modifier = Modifier.fillMaxSize()) {
                                     categoryRow()
-                                    emojiGrid(Modifier.fillMaxSize())
+                                    emojiGrid(
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth(),
+                                    )
                                 }
                             }
                         },
                     )
-                }
-
-                if (!searchExpanded) {
+                } else {
                     // Category tabs
                     categoryRow()
 

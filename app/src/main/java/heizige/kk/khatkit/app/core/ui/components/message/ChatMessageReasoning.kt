@@ -23,6 +23,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -131,8 +132,11 @@ private fun ReasoningContent(
     loading: Boolean,
 ) {
     val isPreview = expandState == ReasoningCardState.Preview
+    // 思考正文用虚色：它是过程性内容，不该和正式回复抢视觉权重
+    val reasoningColor = MaterialTheme.colorScheme.onSurfaceVariant
     val reasoningTextStyle = MaterialTheme.typography.bodyMedium.copy(
         fontFamily = LocalTextStyle.current.fontFamily,
+        color = reasoningColor,
     )
     Column(
         modifier = Modifier
@@ -169,15 +173,19 @@ private fun ReasoningContent(
             }
     ) {
         val reasoningContent = @Composable {
-            MarkdownBlock(
-                content = reasoning.reasoning.replaceRegexes(
-                    assistant = assistant,
-                    scope = AssistantAffectScope.ASSISTANT,
-                    visual = true,
-                ),
-                style = reasoningTextStyle,
-                modifier = Modifier.fillMaxSize(),
-            )
+            // Markdown 内部有些节点直接取 LocalContentColor，这里一并压成虚色，
+            // 保证整段思考正文是同一档灰，不会一半深一半浅
+            CompositionLocalProvider(LocalContentColor provides reasoningColor) {
+                MarkdownBlock(
+                    content = reasoning.reasoning.replaceRegexes(
+                        assistant = assistant,
+                        scope = AssistantAffectScope.ASSISTANT,
+                        visual = true,
+                    ),
+                    style = reasoningTextStyle,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
         // 流式生成期间不启用 SelectionContainer，避免 selectable 列表并发修改导致的
         // ConcurrentModificationException（详见 ChatMessage.kt 文本块同样处理）。

@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,9 +10,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,10 +29,15 @@ import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_TITLE_PROMPT
 import heizige.kk.khatkit.app.core.data.ai.prompts.DEFAULT_TRANSLATION_PROMPT
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.basic.MochiTextFieldDefaults
+import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.icons.editNote
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues, listState: LazyListState) {
@@ -50,20 +53,13 @@ internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, conten
     }
 }
 
-/**
- * 提示词设置项集合：MD3 与 Miuix 两份页面共用，避免两处各写一遍导致漏项或数值漂移。
- */
+/** 提示词设置项集合，统一采用 Mochi 的分组列表行。 */
 @Composable
 internal fun PromptSettingsContent(
     settings: Settings,
     onUpdate: (Settings) -> Unit,
 ) {
-    // 分流放在这个「两份页面共用的唯一漏斗」里，而不是 PromptSettingsPage：
-    // Miuix 侧的提示词页签由 SettingModelPageMiuix 直接调本函数（SettingModelPage.kt:58 已早退），
-    // 早退只加在上层页面函数里的话，Miuix 下仍然会走到下面的 MD3 CardGroup 实现。
-    
-
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    MochiListSection(header = stringResource(R.string.setting_model_page_tab_prompt)) {
         PromptSettingItem(
             title = stringResource(R.string.setting_model_page_prompt_translation),
             promptDescription = stringResource(R.string.setting_model_page_translate_prompt_vars),
@@ -109,53 +105,63 @@ private fun PromptSettingItem(
 ) {
     var showEditor by remember { mutableStateOf(false) }
 
-    CardGroup(title = { Text(title) }) {
-        item(
-            onClick = { showEditor = true },
-            // 点了是拉起提示词编辑面板（bottom sheet），不是进二级页，所以行尾不放 ›
-            headlineContent = { Text(stringResource(R.string.setting_model_page_prompt)) },
+    MochiListRow(
+        title = title,
+        subtitle = promptDescription,
+        onClick = { showEditor = true },
+        trailing = {
+            MochiIconButton(
+                onClick = { showEditor = true },
+            ) {
+                Icon(
+                    imageVector = editNote,
+                    contentDescription = stringResource(R.string.setting_model_page_prompt),
+                )
+            }
+        },
+    )
+    if (reasoningLevel != null && onUpdateReasoningLevel != null) {
+        MochiListRow(
+            title = stringResource(R.string.assistant_page_thinking_budget),
+            trailing = {
+                ReasoningButton(
+                    reasoningLevel = reasoningLevel,
+                    onUpdateReasoningLevel = onUpdateReasoningLevel,
+                )
+            },
         )
-        if (reasoningLevel != null && onUpdateReasoningLevel != null) {
-            item(
-                headlineContent = { Text(stringResource(R.string.assistant_page_thinking_budget)) },
-                trailingContent = {
-                    ReasoningButton(
-                        reasoningLevel = reasoningLevel,
-                        onUpdateReasoningLevel = onUpdateReasoningLevel,
-                    )
-                },
-            )
-        }
     }
 
-        PrimaryBottomSheet(
-            visible = showEditor,
-            title = title,
-            imageVector = editNote,
-            onDismiss = { showEditor = false },
-            scrollable = false,
-        ) { _ ->
-            Column(
-                modifier = Modifier
-                    .padding(bottom = 16.dp)
-                    .imePadding(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = promptDescription,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Md3OutlinedTextField(
-                    value = promptValue,
-                    onValueChange = onPromptChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 15,
-                    shape = RoundedCornerShape(16.dp)
-                )
-                MochiTextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.setting_model_page_reset_to_default))
-                }
+    PrimaryBottomSheet(
+        visible = showEditor,
+        title = title,
+        imageVector = editNote,
+        onDismiss = { showEditor = false },
+        scrollable = false,
+    ) { _ ->
+        Column(
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = promptDescription,
+                style = MochiTheme.textStyles.footnote,
+                color = MochiTheme.colorScheme.onSurfaceVariant,
+            )
+            MochiTextField(
+                value = promptValue,
+                onValueChange = onPromptChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = false,
+                maxLines = 15,
+                textStyle = MochiTheme.textStyles.body,
+                colors = MochiTextFieldDefaults.colors(),
+            )
+            MochiTextButton(onClick = onResetPrompt, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(R.string.setting_model_page_reset_to_default))
             }
         }
+    }
 }

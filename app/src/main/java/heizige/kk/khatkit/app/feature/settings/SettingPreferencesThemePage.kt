@@ -48,6 +48,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.data.datastore.MochiAppearance
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.icons.add
 import heizige.kk.khatkit.app.core.ui.icons.check
@@ -63,6 +64,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import heizige.kk.khatkit.uikit.mochi.KkSlider
@@ -80,7 +82,10 @@ import kotlin.uuid.Uuid
 import ui.feice.mochi.basic.MochiDialog
 import ui.feice.mochi.basic.MochiDialogAction
 import ui.feice.mochi.basic.MochiDialogActionRole
+import ui.feice.mochi.effect.content.crossfadeOrChange
+import ui.feice.mochi.theme.MochiHdr
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.core.ui.theme.LocalKkThemeReveal
 
 private val themeJson = Json {
     ignoreUnknownKeys = true
@@ -101,6 +106,9 @@ private val themeJson = Json {
 @Composable
 fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val display = settings.displaySetting
+    val themeReveal = LocalKkThemeReveal.current
+    val scroll = rememberLazyListState()
     val navController = LocalNavController.current
     val clipboardManager = LocalClipboard.current
     val scope = rememberCoroutineScope()
@@ -113,14 +121,21 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
 
     fun selectTheme(themeId: String) {
         // 选自定义主题 = 不再跟随壁纸取色，否则选了也不生效（原来这块被 dynamicColor 挡着，看着像没用）
-        vm.updateSettings(settings.copy(themeId = themeId, dynamicColor = false))
+        vm.updateSettings {
+            it.copy(
+                themeId = themeId,
+                dynamicColor = false,
+                displaySetting = it.displaySetting.withMochiAppearance(MochiAppearance.MOCHI),
+            )
+        }
     }
 
     MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_preferences_theme),
-        largeTitle = false,
+        scrollUnderTopBar = true,
     ) { innerPadding ->
         LazyColumn(
+            state = scroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(
                 start = 16.dp,
@@ -133,25 +148,31 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
         item(key = "appearance") {
             CardGroup(
                 title = { Text("外观") },
-                footer = "配色、材质和列表卡片各自一页；改完立刻生效，不用回退再进。",
             ) {
+                mochiThemePicker(
+                    title = "主题",
+                    options = listOf(
+                        MochiAppearance.MOCHI to "Mochi",
+                        MochiAppearance.IOS to "iOS",
+                        MochiAppearance.NOTHING to "Nothing",
+                    ),
+                    selected = display.resolvedMochiAppearance,
+                ) { appearance ->
+                    themeReveal.crossfadeOrChange {
+                        vm.updateSettings { it.copy(displaySetting = it.displaySetting.withMochiAppearance(appearance)) }
+                    }
+                }
                 item(
                     chevron = true,
                     onClick = { navController.navigate(Screen.SettingThemeColors) },
                     headlineContent = { Text("配色") },
-                    supportingContent = { Text("明暗模式、系统取色、主题色") },
+                    supportingContent = { Text("明暗模式、取色算法、主题色") },
                 )
                 item(
                     chevron = true,
                     onClick = { navController.navigate(Screen.SettingThemeMaterials) },
                     headlineContent = { Text("材质") },
-                    supportingContent = { Text("玻璃、按钮样式、模糊") },
-                )
-                item(
-                    chevron = true,
-                    onClick = { navController.navigate(Screen.SettingThemeNavBar) },
-                    headlineContent = { Text("导航栏") },
-                    supportingContent = { Text("底部导航栏样式、栏玻璃通透度") },
+                    supportingContent = { Text("玻璃、按钮样式、顶栏样式") },
                 )
                 item(
                     chevron = true,
@@ -159,6 +180,20 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                     headlineContent = { Text("列表卡片") },
                     supportingContent = { Text("分组卡片的圆角与卡片之间的距离") },
                 )
+            }
+        }
+
+        item(key = "experimental") {
+            CardGroup(title = { Text("实验性") }) {
+                val supported = MochiHdr.supported
+                mochiThemeSwitch(
+                    title = "HDR 高光",
+                    description = if (supported) "提高交互高光亮度，耗电量会增加" else "需要 Android 14 以上和支持 HDR 的屏幕",
+                    checked = supported && display.mochiHdrHighlights,
+                    enabled = supported,
+                ) { enabled ->
+                    vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiHdrHighlights = enabled)) }
+                }
             }
         }
 
@@ -252,6 +287,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                         customThemes = newThemes,
                         themeId = theme.id,
                         dynamicColor = false,
+                        displaySetting = settings.displaySetting.withMochiAppearance(MochiAppearance.MOCHI),
                     )
                 )
                 showEditSheet = false
@@ -269,6 +305,7 @@ fun SettingPreferencesThemePage(vm: SettingViewModel = hiltViewModel()) {
                         customThemes = settings.customThemes + importedTheme,
                         themeId = importedTheme.id,
                         dynamicColor = false,
+                        displaySetting = settings.displaySetting.withMochiAppearance(MochiAppearance.MOCHI),
                     )
                 )
                 showImportDialog = false

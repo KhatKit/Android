@@ -148,10 +148,11 @@ fun ReasoningPicker(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+                // MochiDialog 已经给正文留出统一的水平内边距；这里不再叠加一层，
+                // 让大字号下的说明文字保留足够行宽。
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 标题
             Column(

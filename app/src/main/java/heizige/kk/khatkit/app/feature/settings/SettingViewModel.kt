@@ -30,4 +30,10 @@ class SettingViewModel @Inject constructor(
             settingsStore.update(settings)
         }
     }
+
+    fun updateSettings(transform: (Settings) -> Settings) {
+        viewModelScope.launch {
+            settingsStore.update(transform)
+        }
+    }
 }

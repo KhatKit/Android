@@ -32,6 +32,7 @@ import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -216,8 +217,10 @@ class ExploreMarketViewModel @Inject constructor(
         refresh("")
     }
 
+    private var refreshJob: Job? = null
+
     fun refresh(query: String = "") {
-        viewModelScope.launch {
+        refreshJob = viewModelScope.launch {
             _loading.value = true
             withContext(Dispatchers.IO) {
                 _skills.value = runCatching { skillManager.listSkills() }.getOrDefault(emptyList())
@@ -233,6 +236,15 @@ class ExploreMarketViewModel @Inject constructor(
             }
             _loading.value = false
         }
+    }
+
+    /**
+     * 下拉刷新用：等本次拉取真的结束再返回，Mochi 的转圈不会在数据回来前提前收回。
+     * 注意 [LaunchedEffect] 等调用方也会用 [refresh]（不等待），这里单独开一个入口不改原语义。
+     */
+    suspend fun refreshAndAwait(query: String = "") {
+        refresh(query)
+        refreshJob?.join()
     }
 
     /**

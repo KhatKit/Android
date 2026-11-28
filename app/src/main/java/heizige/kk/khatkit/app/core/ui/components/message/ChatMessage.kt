@@ -86,6 +86,7 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.ZoomableAsyncImage
 import heizige.kk.khatkit.app.core.ui.components.richtext.buildMarkdownPreviewHtml
 import heizige.kk.khatkit.app.core.ui.components.webview.WebViewContentCache
 import heizige.kk.khatkit.app.core.ui.components.ui.ChainOfThought
+import heizige.kk.khatkit.app.core.ui.components.ui.ExpandedContentPadding
 import heizige.kk.khatkit.app.core.ui.components.ui.Favicon
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.modifier.shimmer
@@ -447,6 +448,8 @@ private fun MessagePartsBlock(
 
     // Render parts in original order (group thinking/tool as chain-of-thought)
     val groupedParts = remember(parts) { parts.groupMessageParts() }
+    // 思考链 / 工具链 / 正文各段之间统一留 8dp：原来在「整条消息一张卡」的形态里它们是贴着的
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     groupedParts.fastForEach { block ->
         when (block) {
             is MessagePartBlock.ChartBlock -> key(block.index) {
@@ -460,6 +463,13 @@ private fun MessagePartsBlock(
                     ChainOfThought(
                         modifier = Modifier.kkAnimateContentSize(),
                         steps = block.steps,
+                        // 整条消息共用一张卡时，思考正文左右各留 12dp 呼吸（比默认 16 略窄，宽度仍接近正文），
+                        // 上下给标题行与正文之间留出间距；不共卡时保留默认左右 16dp，免得正文贴到卡片边缘
+                        expandedContentPadding = if (insideAssistantCard) {
+                            PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)
+                        } else {
+                            ExpandedContentPadding
+                        },
                         // 不要左侧竖线：卡片底 + 行内分隔线就够分层了
                         showTimeline = false,
                         optionRowBackground = Color.Transparent,
@@ -730,6 +740,7 @@ private fun MessagePartsBlock(
                 }
             }
         }
+    }
     }
 
     // Annotations (always rendered at the end)

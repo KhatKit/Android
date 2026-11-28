@@ -228,11 +228,6 @@ dependencies {
     implementation(libs.metadata.extractor)
 
     // Haze (background blur and glass)
-    implementation(libs.haze)
-    implementation(libs.haze.blur)
-    implementation(libs.haze.blur.material3)
-    implementation(libs.haze.glass)
-    implementation(libs.haze.glass.material3)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -355,6 +350,7 @@ dependencies {
     // mochi-compose 0.2.0（P1 spike：UI 外壳/组件的目标库）
     implementation(libs.mochi.compose)
     implementation(libs.mochi.ios)
+    implementation(libs.mochi.nothing)
     implementation(libs.mochi.icons)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
 

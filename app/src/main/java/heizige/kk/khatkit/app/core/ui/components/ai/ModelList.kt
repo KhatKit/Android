@@ -672,8 +672,31 @@ private fun ColumnScope.ModelList(
         }
     }
 
-    // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，展开成
-    // 铺满全屏的搜索页 + 取消键；返回键收起，关键词同时清空。
+    // 搜索框、模型表和供应商筛选条共用弹层正文的有限高度，避免搜索结果槽按整屏扩展，
+    // 与弹层正文中的模型列表重叠。
+    val providerBadgeListState = rememberLazyListState()
+    LaunchedEffect(lazyListState) {
+        // 当 LazyColumn 滚动时，筛选条也跟随滚动到当前供应商。
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .debounce(100)
+            .collect { index ->
+                if (index > 0) {
+                    val currentProvider = providerPositions.entries.findLast {
+                        index > it.value
+                    }
+                    val providerIndex = providers.indexOfFirst { it.id == currentProvider?.key }
+                    if (providerIndex >= 0) {
+                        providerBadgeListState.animateScrollToItem(providerIndex)
+                    } else {
+                        providerBadgeListState.requestScrollToItem(0)
+                    }
+                } else {
+                    providerBadgeListState.requestScrollToItem(0)
+                }
+            }
+    }
+
     Md3SearchBar(
         value = searchKeywords,
         onValueChange = { searchKeywords = it },
@@ -684,66 +707,44 @@ private fun ColumnScope.ModelList(
         // 模型表本身就是主 UI，空关键词时也要摊开，不走「先输入再展示」。
         showResultsWhenEmpty = true,
         modifier = Modifier
+            .weight(1f)
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
-        expandedContent = { NoHeroTransition { NoHeroTransition { modelList(Modifier.fillMaxSize()) } } },
-    )
-
-    // 展开期间模型列表整个抽掉（KSU 的 SearchBox 同款），只在搜索框的全屏槽里出现一次。
-    if (!searchExpanded) {
-        modelList(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        )
-    }
-
-    // 供应商Badge行
-    val providerBadgeListState = rememberLazyListState()
-    LaunchedEffect(lazyListState) {
-        // 当LazyColumn滚动时，LazyRow也跟随滚动
-        snapshotFlow { lazyListState.firstVisibleItemIndex }
-            .distinctUntilChanged()
-            .debounce(100) // 防抖处理
-            .collect { index ->
-                if (index > 0) {
-                    val currentProvider = providerPositions.entries.findLast {
-                        index > it.value
+        expandedContent = {
+            NoHeroTransition {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    modelList(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
+                    if (providers.isNotEmpty()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            state = providerBadgeListState,
+                        ) {
+                            items(providers) { provider ->
+                                KkAssistChip(
+                                    onClick = {
+                                        val position = providerPositions[provider.id] ?: 0
+                                        coroutineScope.launch {
+                                            lazyListState.animateScrollToItem(position)
+                                        }
+                                    },
+                                    label = provider.name,
+                                    leadingIcon = {
+                                        AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
+                                    },
+                                )
+                            }
+                        }
                     }
-                    val index = providers.indexOfFirst { it.id == currentProvider?.key }
-                    if (index >= 0) {
-                        providerBadgeListState.animateScrollToItem(index)
-                    } else {
-                        providerBadgeListState.requestScrollToItem(0)
-                    }
-                } else {
-                    providerBadgeListState.requestScrollToItem(0)
                 }
             }
-    }
-    if (providers.isNotEmpty()) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 8.dp),
-            state = providerBadgeListState
-        ) {
-            items(providers) { provider ->
-                KkAssistChip(
-                    onClick = {
-                        val position = providerPositions[provider.id] ?: 0
-                        coroutineScope.launch {
-                            lazyListState.animateScrollToItem(position)
-                        }
-                    },
-                    label = provider.name,
-                    leadingIcon = {
-                        AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
-                    },
-                )
-            }
-        }
-    }
+        },
+    )
 }
 
 @Composable

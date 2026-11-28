@@ -1,5 +1,9 @@
 # 更新日志
 
+## 未发布（探索市场下拉刷新）
+- **探索市场顶栏恢复「栏下渐进模糊」**：`MochiPageScaffold` 的滚动边缘模糊是 opt-in（`scrollUnderTopBar`），11-23 的 `8df465588` 只给聊天 / 设置 / 下载中心开了，探索市场漏了 → 骨架走 Column 分支（栏是固定表头），列表永远滚不到栏下，顶栏没有背景模糊。现在补上 `scrollUnderTopBar = MochiScrollEdgeDefaults.progress(marketListState)`，内容压在栏下滚、栏按进度出底色并做 Mochi scroll edge 渐进模糊（`ExploreMarketPage.kt`）。
+- **探索市场改用 Mochi 示例的下拉刷新**：原来的 Material3 `PullToRefreshBox` 换成 Mochi 的 UIRefreshControl 样式 —— 列表显式拿 `rememberMochiOverscrollEffect()`，`rememberMochiRefreshState` 读越界位移，拉过阈值轻震开始刷新，辐条随下拉逐根显形，刷新中内容停在转圈下方（`mochiRefreshHold`），结束后弹簧收回；转圈按顶栏高度下移，停在栏底与被拉下来的内容之间。刷新等待改走新加的 `ExploreMarketViewModel.refreshAndAwait()`（`ExploreMarketPage.kt`、`ExploreMarketViewModel.kt`）。
+
 ## 2.5.7（2026-11-14）
 - **卡片 UI DSL 新增 `ChipRow` / `Dropdown`**：给卡片补上「一行可点选 chips」（单选 / 多选、图标、折行或横滚）与「当前值 + ⌄ 展开菜单」两个节点，渲染分别走 `MochiChip` / `MochiDropdown`；运行时 `NodeTree.kt` 与卡片侧 `ui_kit.lua` 双份校验同步，已有卡片的 `Select` / `RadioGroup` 外观不变（`docs/card-dsl-chip-and-dropdown.md`）。
 - **工具台卡片设计规范落地**：新增 `docs/card-design-spec.md`（Mochi 版式：hero 大卡 + iOS inset grouped 分组 + 表单/结果分层），配套 Rust 侧 `docscard-runtime-wasm/src/ui.rs` 与 `libkhatkit_core.so` 同步重编。

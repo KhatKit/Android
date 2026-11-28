@@ -57,6 +57,9 @@ import heizige.kk.khatkit.app.core.data.model.Tag
 import heizige.kk.khatkit.app.core.data.sync.s3.S3Config
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.uikit.mochi.NavBarLabelStyle
+import ui.feice.mochi.theme.MochiGlassStyle
+import ui.feice.mochi.theme.MochiTopBarStyle
+import ui.feice.mochi.theme.PaletteStyle
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.toMutableStateFlow
@@ -768,7 +771,7 @@ data class DisplaySetting(
     /**
      * FX1：液态玻璃 / 光效 / 交互动效总开关，**默认开**（主人拍板）。
      *
-     * 关掉时：MochiTheme 收到 `MochiMaterials()`（栏/菜单/面板/弹窗退回纯色、scrollEdge 模糊关），
+     * 关掉时：栏、菜单、面板和弹窗退回纯色，顶栏仍使用单独选择的滚动边缘样式，
      * 且 `LocalKkEffectsEnabled = false`（Kk 层按压形变/触觉静默）。Mochi 真组件内部的
      * pressScale 属基础触感，不随此开关。
      *
@@ -789,17 +792,34 @@ data class DisplaySetting(
     /** 内容往下滚时底部导航栏收起成只剩当前图标的小胶囊（Mochi 的 iOS 26 行为，默认开）。 */
     val navBarCollapseOnScroll: Boolean = true,
     /**
-     * 栏玻璃通透度 0..1（0 最透明、0.5 iOS 默认、1 色调最重），对应 Mochi 的 `iosMaterials(glassTint = …)`。
-     * 只作用于「透」档玻璃（栏、栏里的按钮、警告框、玻璃样式按钮）；菜单 / 面板是固定的「实」档，不跟它变。
-     * 新增字段，老安装取默认 0.5（= iOS 默认）。
+     * 栏玻璃的染色量，0 最透明，1 色调最重。
      */
     val glassTint: Float = 0.5f,
-    /**
-     * 仅模糊：保留背景模糊、面色和内容对比度，去掉折射 / 色散 / 边光 / 按压玻璃泡等光学效果，
-     * 对应 Mochi 的 `iosMaterials(blurOnly = true)` / `MochiGlass.asBlurOnly()`。新增字段，默认关。
-     */
+    /** 旧版毛玻璃开关，供尚未选过新版玻璃样式的配置读取。 */
     val glassBlurOnly: Boolean = false,
-)
+    val mochiAppearance: MochiAppearance = MochiAppearance.MOCHI,
+    /** Legacy Nothing switch. Read when loading settings saved before Nothing became a theme. */
+    val mochiNothingPalette: Boolean = false,
+    val mochiSerifTitles: Boolean = false,
+    val mochiPaletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
+    val mochiGlassStyle: MochiGlassStyle? = null,
+    val mochiTopBarStyle: MochiTopBarStyle = MochiTopBarStyle.Frosted,
+    val mochiPredictiveBack: Boolean = true,
+    val mochiHdrHighlights: Boolean = false,
+) {
+    val resolvedMochiAppearance: MochiAppearance
+        get() = if (mochiAppearance == MochiAppearance.MOCHI && mochiNothingPalette) {
+            MochiAppearance.NOTHING
+        } else {
+            mochiAppearance
+        }
+
+    fun withMochiAppearance(appearance: MochiAppearance): DisplaySetting =
+        copy(mochiAppearance = appearance, mochiNothingPalette = false)
+}
+
+@Serializable
+enum class MochiAppearance { MOCHI, IOS, NOTHING }
 
 @Serializable
 data class WebDavConfig(

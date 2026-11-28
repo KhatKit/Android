@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.uikit.mochi
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,12 +9,14 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -21,6 +24,7 @@ import kotlin.math.roundToInt
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.navigation.MochiTitleBarDefaults
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 
@@ -33,6 +37,54 @@ import ui.feice.mochi.theme.MochiTheme
  */
 
 private val BarHeight = 56.dp
+
+/** Shared title for app pages, with a fixed bar background and no scroll-edge fade. */
+@Composable
+fun MochiPageTitleBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    navigationIcon: (@Composable () -> Unit)? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+    background: Color = MochiDefaults.groupedBackground(),
+    barHeight: androidx.compose.ui.unit.Dp = MochiTitleBarDefaults.Height,
+    titleProgress: (() -> Float)? = null,
+    collapsible: Boolean = titleProgress == null,
+    backdrop: MochiBackdrop? = null,
+) {
+    val scroll = LocalMochiTitleScroll.current.takeIf { collapsible }
+    if (scroll == null || title.isBlank()) {
+        MochiTitleBar(
+            title = title,
+            modifier = modifier.background(background),
+            subtitle = subtitle,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            background = background,
+            barHeight = barHeight,
+            titleProgress = titleProgress ?: { 1f },
+            backgroundProgress = { 0f },
+            backdrop = backdrop,
+        )
+    } else {
+        DisposableEffect(scroll) {
+            onDispose { scroll.updateHeight(0) }
+        }
+        MochiLargeTitleTopBar(
+            title = title,
+            modifier = modifier,
+            navigationIcon = navigationIcon ?: {},
+            actions = actions ?: {},
+            titleProgress = { scroll.progress },
+            titleVisibility = titleProgress ?: { 1f },
+            subtitle = subtitle,
+            background = background,
+            barHeight = barHeight,
+            backdrop = backdrop,
+            onExpandedTitleHeightChanged = scroll::updateHeight,
+        )
+    }
+}
 
 /**
  * A large-title host bar for pages whose body owns its scroll container.
@@ -51,26 +103,31 @@ fun MochiLargeTitleTopBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     titleProgress: () -> Float = { 0f },
-    backgroundProgress: (() -> Float)? = null,
     backdrop: MochiBackdrop? = null,
+    onExpandedTitleHeightChanged: ((Int) -> Unit)? = null,
+    titleVisibility: () -> Float = { 1f },
+    subtitle: String? = null,
+    background: Color = MochiDefaults.groupedBackground(),
+    barHeight: androidx.compose.ui.unit.Dp = MochiTitleBarDefaults.Height,
 ) {
     val collapsed = titleProgress().coerceIn(0f, 1f)
-    val expanded = 1f - collapsed
+    val visibility = titleVisibility().coerceIn(0f, 1f)
+    val expanded = (1f - collapsed) * visibility
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().background(background),
     ) {
         MochiTitleBar(
             title = title,
+            subtitle = subtitle,
             navigationIcon = navigationIcon,
             actions = actions,
-            background = MochiDefaults.groupedBackground(),
-            titleProgress = { collapsed },
-            backgroundProgress = {
-                (backgroundProgress?.invoke() ?: collapsed).coerceIn(0f, 1f)
-            },
+            background = background,
+            barHeight = barHeight,
+            titleProgress = { collapsed * visibility },
+            backgroundProgress = { 0f },
             backdrop = backdrop,
         )
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .clipToBounds()
@@ -83,6 +140,13 @@ fun MochiLargeTitleTopBar(
                         placeable.place(0, shown - placeable.height)
                     }
                 }
+                .then(
+                    if (onExpandedTitleHeightChanged != null) {
+                        Modifier.onSizeChanged { onExpandedTitleHeightChanged(it.height) }
+                    } else {
+                        Modifier
+                    },
+                )
                 .graphicsLayer { alpha = expanded }
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
         ) {
@@ -93,6 +157,15 @@ fun MochiLargeTitleTopBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MochiTheme.textStyles.footnote,
+                    color = MochiTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -163,13 +236,14 @@ fun MochiSmallTopBar(
 ) {
     // TOP1：顶栏换成 Mochi 真组件 MochiTitleBar（自带滚动边缘渐隐/玻璃取样/共享返回按钮），
     // 不再自建 Row+Text。barColorAlpha / scrollBehavior 为旧调用点参数，收而不用。
-    MochiTitleBar(
+    MochiPageTitleBar(
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,
         actions = actions,
         background = MochiDefaults.groupedBackground(),
         titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+        collapsible = true,
         backdrop = backdrop,
     )
 }
@@ -201,7 +275,7 @@ fun MochiLargeTopAppBar(
             BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = false, titleContent = titleContent)
         }
     } else {
-        MochiTitleBar(
+        MochiPageTitleBar(
             title = title,
             modifier = modifier,
             subtitle = subtitle,
@@ -209,6 +283,7 @@ fun MochiLargeTopAppBar(
             actions = actions,
             background = MochiDefaults.groupedBackground(),
             titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+            collapsible = true,
             backdrop = backdrop,
         )
     }
@@ -239,7 +314,7 @@ fun MochiTopAppBar(
             BarTitle(title = title, subtitle = subtitle, titleAlpha = titleAlpha, centered = centered, titleContent = titleContent)
         }
     } else {
-        MochiTitleBar(
+        MochiPageTitleBar(
             title = title,
             modifier = modifier,
             subtitle = subtitle,
@@ -247,6 +322,7 @@ fun MochiTopAppBar(
             actions = actions,
             background = MochiDefaults.groupedBackground(),
             titleProgress = { titleAlpha.coerceIn(0f, 1f) },
+            collapsible = true,
         )
     }
 }

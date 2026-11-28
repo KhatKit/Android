@@ -1,40 +1,28 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Context
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import heizige.kk.khatkit.uikit.mochi.KkFancySlider
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.ChatFontFamily
@@ -43,31 +31,41 @@ import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.files.FileHelper
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.settingAnchor
 import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.Select
-import heizige.kk.khatkit.app.core.ui.icons.deleteForever
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.theme.LocalKkThemeReveal
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.rememberChatFontFamily
 import heizige.kk.khatkit.app.core.util.plus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ui.feice.mochi.basic.MochiIconButton
+import ui.feice.mochi.basic.Text
+import ui.feice.mochi.effect.content.crossfadeOrChange
+import ui.feice.mochi.icons.MochiIonicon
+import ui.feice.mochi.list.MochiListDefaults
+import ui.feice.mochi.theme.MochiTheme
 import java.io.File
 
 @Composable
 fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
-    
     val settings by vm.settings.collectAsStateWithLifecycle()
-    var displaySetting by remember(settings) { mutableStateOf(settings.displaySetting) }
+    val displaySetting = settings.displaySetting
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
+    val customFontFamily = rememberChatFontFamily(displaySetting.copy(chatFontFamily = ChatFontFamily.CUSTOM))
+    val scroll = rememberLazyListState()
+    val themeReveal = LocalKkThemeReveal.current
+    val serifTitle = stringResource(R.string.setting_preferences_font_serif_title)
+    val serifDescription = stringResource(R.string.setting_preferences_font_serif_desc)
+    val fontFamilyTitle = stringResource(R.string.setting_display_page_chat_font_family_title)
+    val fontOptions = ChatFontFamily.entries.map { it to it.label() }
 
-    fun updateDisplaySetting(setting: DisplaySetting) {
-        displaySetting = setting
-        vm.updateSettings(settings.copy(displaySetting = setting))
+    fun updateDisplaySetting(transform: (DisplaySetting) -> DisplaySetting) {
+        vm.updateSettings { current -> current.copy(displaySetting = transform(current.displaySetting)) }
     }
 
     val importSuccessMsg = stringResource(R.string.setting_display_page_custom_font_import_success)
@@ -82,13 +80,13 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                     importCustomChatFont(context, uri)
                 }
             }.onSuccess { importedFont ->
-                updateDisplaySetting(
-                    displaySetting.copy(
+                updateDisplaySetting {
+                    it.copy(
                         chatFontFamily = ChatFontFamily.CUSTOM,
                         chatCustomFontPath = importedFont.relativePath,
                         chatCustomFontName = importedFont.displayName,
                     )
-                )
+                }
                 Toast.show(importSuccessMsg, isError = false)
             }.onFailure { error ->
                 Toast.show(importFailedMsg.format(error.message.orEmpty()), isError = true)
@@ -96,73 +94,85 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
     MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_preferences_ui_font),
-        scrollBehavior = scrollBehavior,
+        scrollUnderTopBar = true,
     ) { contentPadding ->
         LazyColumn(
+            state = scroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding + PaddingValues(
-                start = 8.dp,
-                top = PageMetrics.TopContentPadding,
-                end = 8.dp,
-                bottom = 8.dp + PageMetrics.BottomContentPadding,
+                start = 16.dp,
+                top = 12.dp,
+                end = 16.dp,
+                bottom = 16.dp + PageMetrics.BottomContentPadding,
             ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
-            item {
-                CardGroup(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_chat_font_family_title)) },
-                        supportingContent = {
-                            Select(
-                                options = ChatFontFamily.entries,
-                                selectedOption = displaySetting.chatFontFamily,
-                                onOptionSelected = { family ->
-                                    if (family == ChatFontFamily.CUSTOM && displaySetting.chatCustomFontPath.isBlank()) {
-                                        fontPickerLauncher.launch(CustomFontMimeTypes)
-                                    } else {
-                                        updateDisplaySetting(displaySetting.copy(chatFontFamily = family))
-                                    }
-                                },
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .fillMaxWidth(),
-                                optionToString = { it.label() },
-                                optionLeading = { family ->
-                                    Text(
-                                        text = "Aa",
-                                        fontFamily = family.toFontFamilyUI(chatFontFamily),
-                                    )
-                                }
-                            )
+            item(key = "titles") {
+                CardGroup(title = { Text(stringResource(R.string.setting_preferences_font_titles)) }) {
+                    mochiThemeSwitch(
+                        title = serifTitle,
+                        description = serifDescription,
+                        checked = displaySetting.mochiSerifTitles,
+                        anchor = settingAnchor(R.string.setting_preferences_font_serif_title),
+                    ) { enabled ->
+                        themeReveal.crossfadeOrChange {
+                            updateDisplaySetting { it.copy(mochiSerifTitles = enabled) }
                         }
-                    ,
+                    }
+                }
+            }
+            item(key = "chat") {
+                CardGroup(title = { Text(stringResource(R.string.setting_preferences_font_chat)) }) {
+                    mochiThemePicker(
+                        title = fontFamilyTitle,
+                        options = fontOptions,
+                        selected = displaySetting.chatFontFamily,
                         anchor = settingAnchor(R.string.setting_display_page_chat_font_family_title),
-                    )
+                        optionIcon = { family, tint ->
+                            Text(
+                                text = "Aa",
+                                color = tint,
+                                style = MochiTheme.textStyles.body.copy(
+                                    fontFamily = when (family) {
+                                        ChatFontFamily.DEFAULT -> FontFamily.Default
+                                        ChatFontFamily.SERIF -> FontFamily.Serif
+                                        ChatFontFamily.MONOSPACE -> FontFamily.Monospace
+                                        ChatFontFamily.CUSTOM -> customFontFamily
+                                    },
+                                ),
+                            )
+                        },
+                    ) { family ->
+                        if (family == ChatFontFamily.CUSTOM && displaySetting.chatCustomFontPath.isBlank()) {
+                            fontPickerLauncher.launch(CustomFontMimeTypes)
+                        } else {
+                            updateDisplaySetting { it.copy(chatFontFamily = family) }
+                        }
+                    }
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_custom_font_title)) },
                         supportingContent = {
                             Text(
-                                if (displaySetting.chatCustomFontName.isNotBlank()) {
-                                    displaySetting.chatCustomFontName
-                                } else {
+                                text = displaySetting.chatCustomFontName.ifBlank {
                                     stringResource(R.string.setting_display_page_custom_font_not_imported)
-                                }
+                                },
+                                style = MochiTheme.textStyles.footnote,
+                                color = MochiTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         trailingContent = {
-                            Row {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 MochiIconButton(
                                     onClick = { fontPickerLauncher.launch(CustomFontMimeTypes) },
-                                    shapes = IconButtonDefaults.shapes(),
+                                    size = 44.dp,
                                 ) {
-                                    Icon(
-                                        uploadFile,
+                                    MochiIonicon(
+                                        "cloud-upload",
+                                        size = 20.dp,
                                         contentDescription = stringResource(
                                             R.string.setting_display_page_custom_font_import
                                         )
@@ -172,18 +182,24 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                     MochiIconButton(
                                         onClick = {
                                             deleteCustomChatFont(context, displaySetting.chatCustomFontPath)
-                                            updateDisplaySetting(
-                                                displaySetting.copy(
-                                                    chatFontFamily = ChatFontFamily.DEFAULT,
+                                            updateDisplaySetting { current ->
+                                                current.copy(
+                                                    chatFontFamily = if (current.chatFontFamily == ChatFontFamily.CUSTOM) {
+                                                        ChatFontFamily.DEFAULT
+                                                    } else {
+                                                        current.chatFontFamily
+                                                    },
                                                     chatCustomFontPath = "",
                                                     chatCustomFontName = "",
                                                 )
-                                            )
+                                            }
                                         },
-                                        shapes = IconButtonDefaults.shapes(),
+                                        size = 44.dp,
                                     ) {
-                                        Icon(
-                                            deleteForever,
+                                        MochiIonicon(
+                                            "trash",
+                                            size = 20.dp,
+                                            tint = MochiTheme.colorScheme.error,
                                             contentDescription = stringResource(
                                                 R.string.setting_display_page_custom_font_remove
                                             )
@@ -191,30 +207,38 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                                     }
                                 }
                             }
-                        }
-                    ,
+                        },
                         anchor = settingAnchor(R.string.setting_display_page_custom_font_title),
                     )
                     sliderItem(
                         title = { stringResource(R.string.setting_display_page_font_size_title) },
                         value = displaySetting.fontSizeRatio,
-                        onValueChange = { updateDisplaySetting(displaySetting.copy(fontSizeRatio = it)) },
+                        onValueChange = { size -> updateDisplaySetting { it.copy(fontSizeRatio = size) } },
                         valueRange = 0.5f..2f,
                         defaultValue = 1.0f,
                         steps = 11,
                         displayScale = 100f,
                         suffix = "%",
-                        supporting = {
+                        anchor = settingAnchor(R.string.setting_display_page_font_size_title),
+                    )
+                }
+            }
+            item(key = "preview") {
+                CardGroup(title = { Text(stringResource(R.string.setting_preferences_font_preview)) }) {
+                    item(
+                        headlineContent = {
+                            val body = MochiTheme.textStyles.body
                             MarkdownBlock(
                                 content = stringResource(R.string.setting_display_page_font_size_preview),
-                                style = LocalTextStyle.current.copy(
-                                    fontSize = LocalTextStyle.current.fontSize * displaySetting.fontSizeRatio,
-                                    lineHeight = LocalTextStyle.current.lineHeight * displaySetting.fontSizeRatio,
-                                    fontFamily = chatFontFamily
-                                )
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                style = body.copy(
+                                    fontSize = body.fontSize * displaySetting.fontSizeRatio,
+                                    lineHeight = body.lineHeight * displaySetting.fontSizeRatio,
+                                    fontFamily = chatFontFamily,
+                                    color = MochiTheme.colorScheme.onSurface,
+                                ),
                             )
                         },
-                        anchor = settingAnchor(R.string.setting_display_page_font_size_title),
                     )
                 }
             }
@@ -223,11 +247,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
 }
 
 // ---------------------------------------------------------------------------
-// 自定义聊天字体：MD3 与 Miuix 两个设置页共用的同一份实现（internal，不新增对外 API）。
-// 原 Miuix 字体页里逐字镜像的 MIME 表 / 扩展名集合 / ImportedChatFont / 导入 / 删除 / 标签
-// 六件套已删除，两页共用本文件的这份实现。
-// 落盘契约不变：目录 filesDir/<FileFolders.FONTS>、文件名 chat_font.<时间戳>.<扩展名>、
-// 写回 DisplaySetting.chatCustomFontPath / chatCustomFontName。
+// 自定义聊天字体保存在 filesDir/<FileFolders.FONTS>。
 // ---------------------------------------------------------------------------
 
 internal val CustomFontMimeTypes = arrayOf(
@@ -246,20 +266,12 @@ internal data class ImportedChatFont(
     val displayName: String,
 )
 
-/** 字体族标签：默认 / 衬线 / 等宽 / 自定义，两风格同键同义。 */
 @Composable
 internal fun ChatFontFamily.label(): String = when (this) {
     ChatFontFamily.DEFAULT -> stringResource(R.string.setting_display_page_chat_font_family_default)
     ChatFontFamily.SERIF -> stringResource(R.string.setting_display_page_chat_font_family_serif)
     ChatFontFamily.MONOSPACE -> stringResource(R.string.setting_display_page_chat_font_family_monospace)
     ChatFontFamily.CUSTOM -> stringResource(R.string.setting_display_page_chat_font_family_custom)
-}
-
-private fun ChatFontFamily.toFontFamilyUI(customFontFamily: FontFamily): FontFamily = when (this) {
-    ChatFontFamily.DEFAULT -> FontFamily.Default
-    ChatFontFamily.SERIF -> FontFamily.Serif
-    ChatFontFamily.MONOSPACE -> FontFamily.Monospace
-    ChatFontFamily.CUSTOM -> customFontFamily
 }
 
 internal fun importCustomChatFont(context: Context, uri: Uri): ImportedChatFont {

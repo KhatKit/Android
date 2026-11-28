@@ -97,9 +97,11 @@ internal data class SettingSearchEntry(
         Leaf(R.string.setting_display_page_auto_collapse_thinking_title, null, "thinking collapse 思考 折叠", Screen.SettingPreferencesUIMessage),
         Leaf(R.string.setting_display_page_enable_latex_rendering_title, null, "latex math formula 公式 数学", Screen.SettingPreferencesUIMessage),
         // ── 界面 → 字体 ─────────────────────────────────────────────
+        Leaf(R.string.setting_preferences_font_serif_title, R.string.setting_preferences_font_serif_desc, "serif heading title 衬线 大标题", Screen.SettingPreferencesUIFont),
         Leaf(R.string.setting_display_page_chat_font_family_title, null, "font family 字体 字族", Screen.SettingPreferencesUIFont),
         Leaf(R.string.setting_display_page_custom_font_title, null, "custom font import 自定义 字体 导入", Screen.SettingPreferencesUIFont),
         Leaf(R.string.setting_display_page_font_size_title, null, "font size 字号 大小", Screen.SettingPreferencesUIFont),
+        Leaf(R.string.setting_preferences_predictive_back_title, R.string.setting_preferences_predictive_back_desc, "predictive back gesture 预测性返回 返回手势", Screen.SettingThemeNavBar),
         // ── 界面 → 代码块 ───────────────────────────────────────────
         Leaf(R.string.setting_display_page_code_block_auto_wrap_title, null, "code wrap 代码 换行", Screen.SettingPreferencesUICode),
         Leaf(R.string.setting_display_page_code_block_auto_collapse_title, null, "code collapse 代码 折叠", Screen.SettingPreferencesUICode),
@@ -171,6 +173,7 @@ private fun Screen.pageTitle(): String = when (this) {
     Screen.SettingPreferencesGeneral -> stringResource(R.string.setting_page_preferences_general)
     Screen.SettingPreferencesUIMessage -> stringResource(R.string.setting_page_preferences_ui_message)
     Screen.SettingPreferencesUIFont -> stringResource(R.string.setting_page_preferences_ui_font)
+    Screen.SettingThemeNavBar -> stringResource(R.string.setting_preferences_navigation_title)
     Screen.SettingPreferencesUICode -> stringResource(R.string.setting_page_preferences_ui_code)
     Screen.SettingPreferencesNotification -> stringResource(R.string.setting_page_preferences_notification)
     Screen.SettingPreferencesNetwork -> stringResource(R.string.setting_page_preferences_network)

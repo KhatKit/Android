@@ -211,7 +211,7 @@ fun KhatKitPage(
                         title = title,
                         modifier = Modifier.onSizeChanged { barHeight = it.height },
                         titleProgress = barTitleProgress,
-                        backgroundProgress = barBackgroundProgress,
+                        // 新的 MochiLargeTitleTopBar 自己按 titleProgress 算栏底色，不再收 backgroundProgress
                         navigationIcon = { MochiBackButton(onClick = back) },
                         actions = content,
                         backdrop = barBackdrop,

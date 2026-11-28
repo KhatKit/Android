@@ -95,6 +95,10 @@ import heizige.kk.khatkit.app.core.ui.icons.photoCamera
 import heizige.kk.khatkit.app.core.ui.icons.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
+import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+
+/** 列表首项是搜索框，重排位号要跳过它。 */
+private const val SearchHeaderItems = 1
 
 @Composable
 fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
@@ -109,9 +113,12 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         // 只有在没按搜索词过滤时才允许改顺序：过滤态下的 index 是过滤后列表的，
         // 拿它去索引 settings.providers 会把顺序搅乱。
-        if (searchQuery.isBlank()) {
+        // 列表首项是搜索框（不参与拖拽），所以位号要先减掉这一项。
+        if (searchQuery.isBlank() && settings.providers.isNotEmpty()) {
+            val fromIndex = (from.index - SearchHeaderItems).coerceIn(0, settings.providers.lastIndex)
+            val toIndex = (to.index - SearchHeaderItems).coerceIn(0, settings.providers.lastIndex)
             val newProviders = settings.providers.toMutableList().apply {
-                add(to.index, removeAt(from.index))
+                add(toIndex, removeAt(fromIndex))
             }
             vm.updateSettings(settings.copy(providers = newProviders))
         }
@@ -128,25 +135,10 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
     }
 
     MochiSettingsPageScaffold(
-        // 正文里有固定的搜索栏 / 工具条 / 全屏视图，骨架级的交界渐隐会糊到它们
-        edgeFade = false,
         title = stringResource(R.string.setting_provider_page_title),
         scrollBehavior = scrollBehavior,
+        // 大标题常显：往上滚收起后顶栏才出现小标题、栏底色同时淡入（Mochi 示例子页那套）
         actions = {
-            RecommendProviderButton { provider ->
-                vm.updateSettings(
-                    settings.copy(
-                        providers = listOf(provider.copyProvider(Uuid.random())) + settings.providers
-                    )
-                )
-            }
-            ImportProviderButton {
-                vm.updateSettings(
-                    settings.copy(
-                        providers = listOf(it.copyProvider(Uuid.random())) + settings.providers
-                    )
-                )
-            }
             AddButton {
                 vm.updateSettings(
                     settings.copy(
@@ -156,68 +148,40 @@ fun SettingProviderPage(vm: SettingViewModel = hiltViewModel()) {
             }
         },
     ) { innerPadding ->
-        Column(
+        // 搜索框是滚动正文的首项：静止时停在栏下，往上滚时从栏后穿过去（栏下才有可压的渐隐）
+        ProviderList(
+            providers = filteredProviders,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
-        ) {
-            // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
-            // 展开成铺满全屏的搜索页；取消键/返回键收起，关键词同时清空。
-            // 展开期间页面正文整个抽掉（KSU 的 SearchBox 同款），列表只在全屏槽里出现一次。
-            Md3SearchBar(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = stringResource(R.string.setting_provider_page_search_providers),
-                active = searchExpanded,
-                onActiveChange = { searchExpanded = it },
-                cancelLabel = stringResource(R.string.cancel),
-                modifier = Modifier.fillMaxWidth(),
-                // 不传 showResultsWhenEmpty（默认 false）：点开搜索先空白，输入才出列表。
-        // 新增/导入/推荐按钮在 top bar 上，搜索态本来就够不着，收起后就回来了。
-        expandedContent = {
-                    // 独立窗口里不能有 sharedElement，否则 lookahead 配对跨 ViewRoot 会崩
-                    NoHeroTransition {
-                        ProviderList(
-                            providers = filteredProviders,
-                            modifier = Modifier.fillMaxSize(),
-                            listState = lazyListState,
-                            reorderableState = reorderableState,
-                            dragEnabled = false,
-                            bottomPadding = innerPadding.calculateBottomPadding() +
-                                PageMetrics.BottomContentPadding,
-                            onClick = { provider ->
-                                navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
-                            },
-                        )
-                    }
-                },
-            )
-
-            if (!searchExpanded) {
-                ProviderList(
-                    providers = filteredProviders,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .imePadding(),
-                    listState = lazyListState,
-                    reorderableState = reorderableState,
-                    // 与助手列表同款：长按整行直接拖动，不用先按住拖柄。
-                    dragEnabled = searchQuery.isBlank(),
-                    bottomPadding = innerPadding.calculateBottomPadding() +
-                        PageMetrics.BottomContentPadding,
-                    onClick = { provider ->
-                        navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
-                    },
+                .imePadding(),
+            listState = lazyListState,
+            reorderableState = reorderableState,
+            dragEnabled = !searchExpanded && searchQuery.isBlank(),
+            topPadding = innerPadding.calculateTopPadding(),
+            bottomPadding = innerPadding.calculateBottomPadding() + PageMetrics.BottomContentPadding,
+            header = {
+                // KSU 式药丸搜索框（KernelSU SuperSearchBar 同一套逻辑）：点一下折叠药丸，
+                // 展开后结果就在下面这份列表里，不再另外搬一份全屏列表。
+                Md3SearchBar(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = stringResource(R.string.setting_provider_page_search_providers),
+                    active = searchExpanded,
+                    onActiveChange = { searchExpanded = it },
+                    cancelLabel = stringResource(R.string.cancel),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
+            },
+            onClick = { provider ->
+                navController.navigate(Screen.SettingProviderDetail(provider.id.toString()))
+            },
+        )
     }
 }
 
 /**
- * 供应商列表。折叠态挂在页面正文里，展开态搬进搜索框的全屏槽，所以两处共用一份实现，
- * 只有 [modifier] 不同（页面里用 `weight(1f)` 跟着 Column 走，全屏槽里 `fillMaxSize`）。
+ * 供应商列表。搜索框是列表首项（[header]），整页只有一个滚动容器：
+ * 搜索框和卡片一起从顶栏后面滚过去，顶栏据此淡入底色和栏下渐隐。
  */
 @Composable
 private fun ProviderList(
@@ -227,7 +191,9 @@ private fun ProviderList(
     listState: LazyListState,
     reorderableState: ReorderableLazyListState,
     dragEnabled: Boolean,
+    topPadding: Dp,
     bottomPadding: Dp,
+    header: @Composable () -> Unit,
 ) {
     // 与助手列表同款分组：整列看着是一张卡片，圆角按 index/count 逐项算
     // （首项只圆上边、末项只圆下边、中间项直角），项间距取全局列表卡片样式。
@@ -237,13 +203,18 @@ private fun ProviderList(
     val haptic = LocalHapticFeedback.current
 
     LazyColumn(
-        // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-        modifier = modifier.kkScrollEdgeFade(state = listState, bottom = 0.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) +
-            PaddingValues(bottom = bottomPadding),
+        modifier = modifier,
+        // 顶栏高度当 contentPadding：列表内容从栏后穿过去，栏下才有可渐隐 / 模糊的内容
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = topPadding + 8.dp,
+            bottom = 8.dp,
+        ) + PaddingValues(bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(cards.gap),
         state = listState,
     ) {
+        item(key = "provider-search") { header() }
         lazyItemsIndexed(providers, key = { _, provider -> provider.id }) { index, provider ->
             ReorderableItem(
                 state = reorderableState,
@@ -283,285 +254,6 @@ private fun ProviderList(
         }
     }
 }
-
-@Composable
-private fun RecommendProviderButton(
-    onAdd: (ProviderSetting) -> Unit
-) {
-
-    var showSheet by remember { mutableStateOf(false) }
-    val importSuccessMessage = stringResource(R.string.setting_provider_page_import_success)
-
-    MochiIconButton(
-        onClick = { showSheet = true },
-        shapes = IconButtonDefaults.shapes(),
-    ) {
-        Icon(autoAwesome, contentDescription = stringResource(R.string.setting_provider_page_recommend))
-    }
-
-        PrimaryBottomSheet(
-            visible = showSheet,
-            title = stringResource(R.string.setting_provider_page_recommend),
-            imageVector = dns,
-            onDismiss = { showSheet = false },
-        ) { _ ->
-            val cards = listCardStyle()
-            InlineCardGroup(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-            ) {
-                RECOMMENDED_PROVIDERS.forEachIndexed { index, provider ->
-                    // 与 Miuix 侧同形：整列并成一张分组卡，组距只在首行留一份。
-                    RecommendProviderItem(
-                        provider = provider,
-                        shape = cards.indexedShape(index, RECOMMENDED_PROVIDERS.size),
-                        onAdd = {
-                            onAdd(provider)
-                            Toast.show(
-                                importSuccessMessage,
-                                isError = false
-                            )
-                        }
-                    )
-                }
-            }
-        }
-}
-
-@Composable
-private fun RecommendProviderItem(
-    provider: ProviderSetting,
-    shape: Shape,
-    onAdd: () -> Unit
-) {
-    MochiOptionItem(
-        onClick = onAdd,
-        modifier = Modifier.fillMaxWidth(),
-        shape = shape,
-        leadingContent = {
-            AutoAIIcon(
-                name = provider.name,
-                modifier = Modifier.size(40.dp)
-            )
-        },
-        titleContent = {
-            Text(
-                text = provider.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
-                CompositionLocalProvider(LocalContentColor provides LocalContentColor.current.copy(alpha = 0.7f)) {
-                    provider.description()
-                }
-            }
-        },
-        trailingContent = {
-            MochiIconButton(onClick = onAdd, shapes = IconButtonDefaults.shapes()) {
-                Icon(add, contentDescription = stringResource(R.string.setting_provider_page_add))
-            }
-        },
-    )
-}
-
-@Composable
-private fun ImportProviderButton(
-    onAdd: (ProviderSetting) -> Unit
-) {
-
-    val context = LocalContext.current
-    var showImportDialog by remember { mutableStateOf(false) }
-    // 扫码导入：CameraX 取景 + zxing 解码（上游 d8ba9cf67；不再依赖 ML Kit barhopper）
-    var showScanner by remember { mutableStateOf(false) }
-
-    val pickImageLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        uri?.let {
-            handleImageQRCode(it, onAdd, context)
-        }
-    }
-
-    MochiIconButton(
-        onClick = {
-            showImportDialog = true
-        },
-        shapes = IconButtonDefaults.shapes(),
-    ) {
-        Icon(uploadFile, null)
-    }
-
-    if (showImportDialog) {
-        AppDialog(
-            onDismissRequest = { showImportDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.setting_provider_page_import_dialog_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.setting_provider_page_import_dialog_message),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // 从相册选择（图片里带二维码也能导入）
-                        MochiButton(
-                            onClick = {
-                                showImportDialog = false
-                                pickImageLauncher.launch(
-                                    androidx.activity.result.PickVisualMediaRequest(
-                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                    )
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    imageVector = image,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = stringResource(R.string.setting_provider_page_select_from_gallery),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-
-                        // 扫码导入：CameraX 取景 + zxing 解码（不再走 ML Kit barhopper）
-                        MochiButton(
-                            onClick = {
-                                showImportDialog = false
-                                showScanner = true
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    imageVector = photoCamera,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = stringResource(R.string.setting_provider_page_scan_qr_code),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                MochiTextButton(
-                    onClick = { showImportDialog = false },
-                    shapes = ButtonDefaults.shapes(shape = MaterialTheme.shapes.large)
-                ) {
-                    Text(
-                        text = stringResource(R.string.cancel),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-        )
-    }
-
-    // 扫码弹层：onResult(null) 是「权限被拒 / 无相机 / 用户取消」的统一回落路径
-    if (showScanner) {
-        QrScannerSheet(
-            onResult = { content ->
-                showScanner = false
-                if (content.isNullOrEmpty()) {
-                    Toast.show(
-                        context.getString(R.string.setting_provider_page_scan_fallback),
-                        isError = true
-                    )
-                } else {
-                    runCatching {
-                        val setting = decodeProviderSetting(content)
-                        onAdd(setting)
-                        Toast.show(
-                            context.getString(R.string.setting_provider_page_import_success),
-                            isError = false
-                        )
-                    }.onFailure { error ->
-                        Toast.show(
-                            context.getString(
-                                R.string.setting_provider_page_qr_decode_failed,
-                                error.message ?: ""
-                            ),
-                            isError = true
-                        )
-                    }
-                }
-            },
-            onDismiss = { showScanner = false },
-        )
-    }
-}
-
-private fun handleImageQRCode(
-    uri: Uri,
-    onAdd: (ProviderSetting) -> Unit,
-    context: android.content.Context
-) {
-    runCatching {
-        // 使用ImageUtils解析二维码
-        val qrContent = ImageHelper.decodeQRCodeFromUri(context, uri)
-
-        if (qrContent.isNullOrEmpty()) {
-            Toast.show(
-                context.getString(R.string.setting_provider_page_no_qr_found),
-                isError = true
-            )
-            return
-        }
-
-        val setting = decodeProviderSetting(qrContent)
-        onAdd(setting)
-        Toast.show(
-            context.getString(R.string.setting_provider_page_import_success),
-            isError = false
-        )
-    }.onFailure { error ->
-        Toast.show(
-            context.getString(R.string.setting_provider_page_image_qr_decode_failed, error.message ?: ""),
-            isError = true
-        )
-    }
-}
-
 
 @Composable
 private fun AddButton(onAdd: (ProviderSetting) -> Unit) {

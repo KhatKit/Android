@@ -76,7 +76,7 @@ internal fun MediaPickerDialog(
         // predictive-back input; bind handlers to it so gestures reach the picker host.
         CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides dialog) {
             val spec = MochiNavDefaults.spec().copy(pushBackdrop = Color.Transparent)
-            MochiNavHost(navigator, Modifier.fillMaxSize(), spec = spec, predictiveBack = true) { route ->
+            MochiNavHost(navigator, Modifier.fillMaxSize(), spec = spec) { route ->
                 if (route == "picker") content(close)
             }
         }

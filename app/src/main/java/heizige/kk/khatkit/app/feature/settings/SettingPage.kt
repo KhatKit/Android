@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
@@ -117,7 +116,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
     MochiSettingsPageScaffold(
         title = stringResource(R.string.settings),
         titleProgress = { 1f },
-        backgroundProgress = MochiScrollEdgeDefaults.progress(gridState),
+        scrollUnderTopBar = true,
     ) { innerPadding ->
         SettingsGroupGrid(innerPadding, gridState) {
             item("settingsSearch", span = { GridItemSpan(maxLineSpan) }) {

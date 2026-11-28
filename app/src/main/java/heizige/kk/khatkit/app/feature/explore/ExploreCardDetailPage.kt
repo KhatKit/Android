@@ -88,7 +88,7 @@ import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
-import ui.feice.mochi.navigation.MochiTitleBar
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
@@ -153,7 +153,7 @@ fun ExploreCardDetailPage(name: String) {
 
     MochiPageScaffold(
         topBar = {
-            MochiTitleBar(
+            MochiPageTitleBar(
                 title = name,
                 backdrop = LocalKkBarBackdrop.current,
                 navigationIcon = { BackButton() },

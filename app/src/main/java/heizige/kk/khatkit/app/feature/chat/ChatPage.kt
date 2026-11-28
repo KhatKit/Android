@@ -1,7 +1,10 @@
 package heizige.kk.khatkit.app.feature.chat
 
-import ui.feice.mochi.navigation.MochiTitleBar
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.effect.content.mochiBlurReveal
+import ui.feice.mochi.effect.content.mochiBlur
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.runtime.SideEffect
 import ui.feice.mochi.navigation.MochiTitleBarDefaults
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
@@ -93,13 +96,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.blur.material3.Material3
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -124,6 +120,7 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.chat.ChatError
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatInput
+import heizige.kk.khatkit.app.core.ui.components.ai.editorBackdropProgress
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPickerSheet
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
@@ -361,8 +358,8 @@ internal fun ChatScaffold(
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
     var previewSearchQuery by rememberSaveable { mutableStateOf("") }
-    val hazeState = rememberHazeState()
     val assistant = setting.getAssistantById(conversation.assistantId) ?: setting.getCurrentAssistant()
+    val editorReveal = remember(conversation.id, archived) { mutableFloatStateOf(0f) }
     var showRolePicker by remember { mutableStateOf(false) }
     var showFilesSheet by remember { mutableStateOf(false) }
     var showCompressDialog by remember { mutableStateOf(false) }
@@ -443,6 +440,7 @@ internal fun ChatScaffold(
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
                 )
             } else ChatInput(
+                editorRevealState = editorReveal,
                 onStartVoiceMode = onStartVoiceMode,
                 voiceState = voiceState,
                 onStopVoiceMode = vm.voiceSession::stop,
@@ -455,7 +453,6 @@ internal fun ChatScaffold(
                 onSendQueuedMessageNow = vm::sendQueuedMessageNow,
                 loading = loadingJob != null,
                 settings = setting,
-                hazeState = hazeState,
                 completionProviders = completionProviders,
                 commands = listOf(
                     ChatInputCommand("compress", stringResource(R.string.chat_page_compress_context)) {
@@ -573,8 +570,12 @@ internal fun ChatScaffold(
             else -> chatListState
         })
         MochiPageScaffold(
-            modifier = activeNestedScroll,
-            scrollUnderTopBar = topBarProgress,
+            modifier = activeNestedScroll.clipToBounds().mochiBlur(continuous = true) {
+                if (setting.displaySetting.effectsEnabled) {
+                    24.dp * editorBackdropProgress(editorReveal.floatValue)
+                } else 0.dp
+            },
+            scrollUnderTopBar = true,
             topBar = {
                     TopBar(
                         settings = setting,
@@ -584,7 +585,6 @@ internal fun ChatScaffold(
                         role = assistant,
                         // 和下面的欢迎层同一个条件：空会话顶栏显示问候语，发出第一条就换回角色名 + 模型名
                         welcome = showWelcome,
-                        hazeState = hazeState,
                         bigScreen = bigScreen,
                         sidebarState = sidebarState,
                         previewMode = previewMode,
@@ -616,10 +616,9 @@ internal fun ChatScaffold(
                     }
                 }
             },
-            containerColor = Color.Transparent,
-            // 页面底色是透明的（正文铺助手背景图/渐变），但栏玻璃取样必须垫一层不透明页面底色，
-            // 否则录出来的取样源是半透明的 → 顶栏两枚按钮在浅色下变成灰圆盘（Mochi 实例里是白胶囊）
+            containerColor = CustomColors.pageContainerColor,
             barBackdropColor = CustomColors.pageContainerColor,
+            captureBodyBackdrop = setting.displaySetting.effectsEnabled,
             // 正文里铺着助手背景图，整槽渐隐会把背景一起擦掉：交界过渡由 ChatList 自己加在消息列表上
             edgeFade = false,
     ) { innerPadding ->
@@ -629,7 +628,7 @@ internal fun ChatScaffold(
             Box(modifier = Modifier.fillMaxSize()) {
                 // 角色由本函数 :315 解析好的 `assistant`（= getAssistantById(会话角色) ?: 当前角色）
                 // 传入，与顶栏、ChatInput 全部同源。背景图/流光不再自己解析全局 currentAssistant。
-                AssistantBackground(assistant = assistant, modifier = Modifier.hazeSource(hazeState))
+                AssistantBackground(assistant = assistant, modifier = Modifier)
                 ChatList(
                 // U3b：列表底部补输入栏高度，滚到底时最后一条完整可见。
                 // U3b2：底部留白**恰好等于悬浮输入栏实测高度**（onSizeChanged 量出来的值），
@@ -648,7 +647,6 @@ internal fun ChatScaffold(
                 previewSearchQuery = previewSearchQuery,
                 onPreviewSearchQueryChange = { previewSearchQuery = it },
                 settings = setting,
-                hazeState = hazeState,
                 errors = errors,
                 onDismissError = onDismissError,
                 onClearAllErrors = onClearAllErrors,
@@ -805,7 +803,7 @@ private fun ChatFilesPickerSheet(
     // 有页内浮层登记时 RouteActivity 会把 MochiNavHost 的预测返回关掉，这里显式打开，
     // 让返回手势跟手收起面板（预览的是面板，不是整页侧滑）。
     androidx.compose.runtime.CompositionLocalProvider(
-        ui.feice.mochi.navigation.LocalMochiPredictiveBack provides true,
+        ui.feice.mochi.navigation.LocalMochiPredictiveBack provides setting.displaySetting.mochiPredictiveBack,
     ) {
         MochiSheet(
             state = sheetState,
@@ -927,8 +925,6 @@ private fun TopBar(
     role: Assistant,
     /** 空会话：标题换成时段问候语、副标题换成「今天想完成什么?」，有消息后模糊交叉淡化回角色名 + 模型名。 */
     welcome: Boolean,
-    /** 与正文背景同一个 haze 源，供顶栏在角色有自定义背景时做毛玻璃。 */
-    hazeState: HazeState,
     sidebarState: MochiSidebarState,
     bigScreen: Boolean,
     previewMode: Boolean,
@@ -969,28 +965,14 @@ private fun TopBar(
     val roleName = if (settings.init) "" else topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
     val roleModelName = topBarModel?.displayName.orEmpty()
 
-    // 角色有自定义底色（背景图 / 流光）时栏不画底色，把底色让给正文那张背景；开模糊时叠一层 haze。
-    // 和「液态玻璃效果」总开关联动：总开关关掉时栏一律纯色，不再对背景图做 haze 模糊。
+    // 自定义助手背景透到顶栏，边缘过渡由页面的 Mochi scroll edge 处理。
     val roleHasCustomBackground = role.background != null
-    val barModifier =
-        if (
-            roleHasCustomBackground &&
-            settings.displaySetting.enableBlurEffect &&
-            settings.displaySetting.effectsEnabled
-        ) {
-            Modifier.hazeBlur(
-                input = HazeInput.Sources(hazeState),
-                style = HazeBlurStyle.Material3 { blurRadius(20.dp) },
-            )
-        } else {
-            Modifier
-        }
     val cs = MochiTheme.colorScheme
     // 栏按钮配色照 Mochi 实例（demo 的聊天页/目录页）：白胶囊（浅色）/ 深胶囊（深色）+ 深色图标。
     // 按设置里的按钮样式：玻璃或实心，见 uikit 的 kkBarButtonColors。
     val barColors = kkBarButtonColors()
 
-    Box(barModifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxWidth()) {
         // 标题区的点击（切换角色）与搜索框，放在 MochiTitleBar **下面**画：
         // 栏里的按钮（搜索 / 角色面板）在上面先吃触摸，标题区没有 pointerInput，
         // 点标题才会落到这一层。以前这层画在栏上面，左右各让 64dp 仍压住搜索按钮左半边，
@@ -1041,7 +1023,7 @@ private fun TopBar(
             }
         }
         // MochiBlurText 换字时自己做模糊交叉淡化，这里只换字符串
-        MochiTitleBar(
+        MochiPageTitleBar(
             title = if (welcome) greetingMessage() else roleName,
             subtitle = if (welcome) {
                 stringResource(R.string.chat_welcome_question)
@@ -1051,7 +1033,6 @@ private fun TopBar(
             background = if (roleHasCustomBackground) Color.Transparent else CustomColors.pageContainerColor,
             // 搜索展开时标题模糊退场，让位给搜索框
             titleProgress = { 1f - searchProgress.value },
-            backgroundProgress = edgeProgress,
             // 页面骨架（MochiPageScaffold）统一录正文、下发来源；材质没开玻璃时它是 null
             backdrop = LocalKkBarBackdrop.current,
             navigationIcon = { KkBarIconScope {

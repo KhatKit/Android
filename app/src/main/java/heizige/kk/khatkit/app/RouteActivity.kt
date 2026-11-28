@@ -343,8 +343,7 @@ class RouteActivity : ComponentActivity() {
                     // route ⇄ Screen 由 [ScreenRoutes] 保证；未知 route 不画、不崩。
                     //
                     // NAV3：有页内浮层登记返回（PageBackInterceptor.hasHandlers）时，把 Mochi 的
-                    // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时 predictiveBack
-                    // 保持 true，预测手势（跟手预览/取消回弹）完全由 MochiNavHost 内部处理。
+                    // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时遵循外观设置。
                     // 这样任一时刻只有一条处理器接返回，不会出现「第一次白按、第二次才退层」。
                     // 只看「栈顶那一页」登记的浮层：下层页面的登记（例如 Chat 底部页仍组合着的编辑器）
                     // 不能吞掉当前页的返回，否则就会出现「第一次按返回没反应」。
@@ -353,7 +352,7 @@ class RouteActivity : ComponentActivity() {
                     MochiNavHost(
                         navigator = mochiNavigator,
                         modifier = Modifier.fillMaxSize(),
-                        predictiveBack = !hasOverlay,
+                        predictiveBack = settings.displaySetting.mochiPredictiveBack && !hasOverlay,
                     ) { route ->
                         // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
                         // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。

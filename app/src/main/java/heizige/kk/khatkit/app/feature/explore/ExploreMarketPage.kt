@@ -132,11 +132,13 @@ import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
-import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
 import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
 import heizige.kk.khatkit.app.feature.tools.helper.toolTitle
 import ui.feice.mochi.basic.MochiActivityIndicator
+import ui.feice.mochi.basic.MochiRefreshIndicator
+import ui.feice.mochi.basic.mochiRefreshHold
+import ui.feice.mochi.basic.rememberMochiRefreshState
 import ui.feice.mochi.basic.MochiCarousel
 import ui.feice.mochi.basic.MochiChip
 import ui.feice.mochi.basic.MochiEmptyState
@@ -151,7 +153,7 @@ import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListLeadingStyle
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
-import ui.feice.mochi.navigation.MochiTitleBar
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import kotlin.math.abs
 import ui.feice.mochi.basic.MochiButton
 import ui.feice.mochi.basic.MochiIconButton
@@ -175,6 +177,9 @@ import ui.feice.mochi.list.mochiListSection
 import ui.feice.mochi.list.rows
 import androidx.compose.foundation.layout.heightIn
 import ui.feice.mochi.effect.elastic.mochiPressDeform
+import ui.feice.mochi.effect.overscroll.MochiOverscrollEffect
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.effect.overscroll.rememberMochiOverscrollEffect
 import ui.feice.mochi.theme.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
@@ -347,7 +352,7 @@ private fun MarketTopBar(
     listState: LazyListState,
     actions: @Composable RowScope.() -> Unit,
 ) {
-    MochiTitleBar(
+    MochiPageTitleBar(
         title = title,
         subtitle = subtitle,
         // 页面骨架统一录正文、下发来源；材质没开玻璃时它是 null
@@ -419,6 +424,12 @@ fun ExploreMarketPage() {
     }
     // 列表滚动状态：顶栏标题的渐显读它。
     val marketListState = rememberLazyListState()
+    // 下拉刷新（Mochi 示例的 UIRefreshControl 样式）：越界位移驱动，辐条随下拉逐根显形，
+    // 拉过阈值轻震一下开始刷新；刷新中内容停在转圈下方，结束后弹簧收回。
+    val marketOverscroll = rememberMochiOverscrollEffect()
+    val marketRefresh = rememberMochiRefreshState(marketOverscroll, marketListState) {
+        vm.refreshAndAwait(query)
+    }
 
     // 轮播卡「已安装 → 卸载」的待确认目标。非空时页面根部弹确认框。
     var uninstallTarget by remember { mutableStateOf<CardIndexEntry?>(null) }
@@ -520,7 +531,7 @@ fun ExploreMarketPage() {
     //
     // 本机内容（本机卡片 / 本地工具 / 已装技能与 MCP）不再平铺在这一页：这一页只负责
     // **发现与下载**，本机有什么去「本地」二级页看。
-    val marketList: @Composable (Modifier, PaddingValues) -> Unit = { listModifier, listPadding ->
+    val marketList: @Composable (Modifier, PaddingValues, MochiOverscrollEffect) -> Unit = { listModifier, listPadding, overscroll ->
         // 左右内边距**统一由列表的 contentPadding 给**（和工具台的列表同一个做法）：
         // 懒加载分组（mochiListSection）的行是 LazyColumn 的直接子项，拿不到逐项 Modifier，
         // 若还像以前那样逐项塞 sectionPad，分组卡片会从屏幕左边缘铺到右边缘、和其它分区不对齐。
@@ -556,6 +567,9 @@ fun ExploreMarketPage() {
         LazyColumn(
             state = marketListState,
             modifier = listModifier,
+            // 回弹和下拉刷新共用同一个 effect，刷新状态才读得到手指的越界位移。
+            overscrollEffect = overscroll,
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
             // 左右 16dp 统一给在这里：懒加载分组的行是列表的直接子项，只有这样分组卡片
             // 才能和其它分区（骨架 / 空状态 / 页脚）左右对齐。铺满整屏的两项各自反向外扩。
             contentPadding = listPadding + PaddingValues(horizontal = 16.dp),
@@ -1093,15 +1107,24 @@ fun ExploreMarketPage() {
                 )
             },
             containerColor = MochiDefaults.groupedBackground(),
+            // 内容压在顶栏下面滚：栏按滚动进度出底色 + Mochi 的 scroll edge 渐进模糊，
+            // 这才是 Mochi 示例顶栏的「背景模糊」。缺了它骨架走 Column 分支，栏是固定表头，
+            // 正文永远滚不到栏下，栏下自然没有模糊。
+            scrollUnderTopBar = true,
         ) { innerPadding ->
-            MochiPullToRefreshBox(
-                isRefreshing = loading,
-                onRefresh = { vm.refresh(query) },
-                modifier = Modifier.fillMaxSize(),
-            ) {
+            Box(Modifier.fillMaxSize()) {
                 marketList(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().mochiRefreshHold(marketRefresh),
                     innerPadding + PaddingValues(top = 8.dp, bottom = 32.dp),
+                    marketOverscroll,
+                )
+                // 列表用 contentPadding 让内容压在顶栏下面，转圈按顶栏高度下移，
+                // 才正好停在被拉下来的内容和栏底之间。
+                MochiRefreshIndicator(
+                    marketRefresh,
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = innerPadding.calculateTopPadding()),
                 )
             }
         }

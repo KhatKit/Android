@@ -1,36 +1,27 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -47,17 +38,17 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
-import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.SwitchSetting
-import heizige.kk.khatkit.app.core.ui.components.ui.SliderSetting
-import heizige.kk.khatkit.app.core.ui.components.ui.settingItem
+import heizige.kk.khatkit.uikit.mochi.KkSwitch
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.app.core.ui.icons.close
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.icons.editNote
 import heizige.kk.khatkit.app.core.ui.icons.neurology
-import ui.feice.mochi.navigation.MochiTitleBar
+import ui.feice.mochi.list.MochiListRow
+import ui.feice.mochi.list.MochiListSection
+import ui.feice.mochi.list.MochiListSliderRow
 
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
@@ -67,16 +58,8 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val modelList = rememberLazyListState()
     val promptList = rememberLazyListState()
     val progress = MochiScrollEdgeDefaults.progress(if (pagerState.currentPage == 0) modelList else promptList)
-    MochiPageScaffold(
-        scrollUnderTopBar = progress,
-        topBar = {
-            MochiTitleBar(
-                title = stringResource(R.string.setting_model_page_title),
-                navigationIcon = { BackButton() },
-                backdrop = LocalKkBarBackdrop.current,
-                backgroundProgress = progress,
-            )
-        },
+    MochiSettingsPageScaffold(
+        title = stringResource(R.string.setting_model_page_title),
         rail = {
             MochiNavBottomBar(listOf(
                 MochiNavTab(neurology, stringResource(R.string.setting_model_page_tab_model), pagerState.currentPage == 0) {
@@ -105,102 +88,94 @@ private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentP
         contentPadding = contentPadding + PaddingValues(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_chat_model),
-                description = stringResource(R.string.setting_model_page_chat_model_desc),
-                modelId = settings.chatModelId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(chatModelId = it.id)) },
-            )
+        item(key = "model-assignments") {
+            MochiListSection(header = stringResource(R.string.setting_model_page_tab_model)) {
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_chat_model),
+                    description = stringResource(R.string.setting_model_page_chat_model_desc),
+                    modelId = settings.chatModelId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(chatModelId = it.id)) },
+                )
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_fast_model),
+                    description = stringResource(R.string.setting_model_page_fast_model_desc),
+                    modelId = settings.fastModelId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(fastModelId = it.id)) },
+                    reasoningLevel = settings.fastModelReasoningLevel,
+                    onUpdateReasoningLevel = {
+                        vm.updateSettings(settings.copy(fastModelReasoningLevel = it))
+                    },
+                )
+                // 记忆整理模型：没设置时跟快速模型（上游 72d419171）
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_memory_model),
+                    description = stringResource(R.string.setting_model_page_memory_model_desc),
+                    modelId = settings.memoryModelId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(memoryModelId = it.id)) },
+                    emptyText = stringResource(R.string.setting_model_page_memory_model_follow_fast),
+                    onClear = { vm.updateSettings(settings.copy(memoryModelId = null)) },
+                    // 没设置时推理强度也跟着快速模型，所以只有选了模型才显示这一行
+                    reasoningLevel = settings.memoryModelReasoningLevel.takeIf { settings.memoryModelId != null },
+                    onUpdateReasoningLevel = {
+                        vm.updateSettings(settings.copy(memoryModelReasoningLevel = it))
+                    },
+                )
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_translate_model),
+                    modelId = settings.translateModeId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(translateModeId = it.id)) },
+                )
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_ocr_model),
+                    description = stringResource(R.string.setting_model_page_ocr_model_desc),
+                    modelId = settings.ocrModelId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(ocrModelId = it.id)) },
+                )
+                ModelSettingItem(
+                    title = stringResource(R.string.setting_model_page_compress_model),
+                    description = stringResource(R.string.setting_model_page_compress_model_desc),
+                    modelId = settings.compressModelId,
+                    providers = settings.providers,
+                    onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
+                )
+            }
         }
-        item {
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_fast_model),
-                description = stringResource(R.string.setting_model_page_fast_model_desc),
-                modelId = settings.fastModelId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(fastModelId = it.id)) },
-                reasoningLevel = settings.fastModelReasoningLevel,
-                onUpdateReasoningLevel = {
-                    vm.updateSettings(settings.copy(fastModelReasoningLevel = it))
-                },
-            )
-        }
-        item {
-            // 记忆整理模型：没设置时跟快速模型（上游 72d419171）
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_memory_model),
-                description = stringResource(R.string.setting_model_page_memory_model_desc),
-                modelId = settings.memoryModelId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(memoryModelId = it.id)) },
-                emptyText = stringResource(R.string.setting_model_page_memory_model_follow_fast),
-                onClear = { vm.updateSettings(settings.copy(memoryModelId = null)) },
-                // 没设置时推理强度也跟着快速模型，所以只有选了模型才显示这一行
-                reasoningLevel = settings.memoryModelReasoningLevel.takeIf { settings.memoryModelId != null },
-                onUpdateReasoningLevel = {
-                    vm.updateSettings(settings.copy(memoryModelReasoningLevel = it))
-                },
-            )
-        }
-        item {
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_translate_model),
-                modelId = settings.translateModeId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(translateModeId = it.id)) },
-            )
-        }
-        item {
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_ocr_model),
-                description = stringResource(R.string.setting_model_page_ocr_model_desc),
-                modelId = settings.ocrModelId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(ocrModelId = it.id)) },
-            )
-        }
-        item {
+        item(key = "ocr-plugin") {
             // OCR5：插件入口。未安装时给「去市场安装」提示，点击跳探索市场（OCR 扩展条目在市场页里）。
             OcrPluginSettingItem()
         }
-        item {
-            ModelSettingItem(
-                title = stringResource(R.string.setting_model_page_compress_model),
-                description = stringResource(R.string.setting_model_page_compress_model_desc),
-                modelId = settings.compressModelId,
-                providers = settings.providers,
-                onSelect = { vm.updateSettings(settings.copy(compressModelId = it.id)) },
-            )
-        }
-        item {
-            CardGroup(title = { Text(stringResource(R.string.setting_model_page_auto_compress_title)) }) {
-                settingItem(
-                    SwitchSetting(
-                        titleRes = R.string.setting_model_page_auto_compress_title,
-                        descriptionRes = R.string.setting_model_page_auto_compress_desc,
-                        checked = settings.enableAutoCompress,
-                        onCheckedChange = {
-                            vm.updateSettings(settings.copy(enableAutoCompress = it))
-                        },
-                    )
+        item(key = "auto-compress") {
+            MochiListSection {
+                MochiListRow(
+                    title = stringResource(R.string.setting_model_page_auto_compress_title),
+                    subtitle = stringResource(R.string.setting_model_page_auto_compress_desc),
+                    trailing = {
+                        KkSwitch(
+                            checked = settings.enableAutoCompress,
+                            onCheckedChange = {
+                                vm.updateSettings(settings.copy(enableAutoCompress = it))
+                            },
+                        )
+                    },
                 )
-                settingItem(
-                    SliderSetting(
-                        titleRes = R.string.setting_model_page_auto_compress_threshold,
-                        descriptionRes = R.string.setting_model_page_auto_compress_threshold_desc,
-                        value = settings.autoCompressThreshold,
-                        valueRange = 0.5f..0.95f,
-                        steps = 8,
-                        enabled = settings.enableAutoCompress,
-                        onValueChange = {
-                            vm.updateSettings(
-                                settings.copy(autoCompressThreshold = it.coerceIn(0.5f..0.95f))
-                            )
-                        },
-                        valueLabel = { "${(it * 100).toInt()}%" },
-                    )
+                MochiListSliderRow(
+                    value = settings.autoCompressThreshold,
+                    onValueChange = {
+                        vm.updateSettings(
+                            settings.copy(autoCompressThreshold = it.coerceIn(0.5f..0.95f))
+                        )
+                    },
+                    valueRange = 0.5f..0.95f,
+                    steps = 8,
+                    enabled = settings.enableAutoCompress,
+                    title = stringResource(R.string.setting_model_page_auto_compress_threshold),
+                    valueText = "${(settings.autoCompressThreshold * 100).toInt()}%",
+                    supportingText = stringResource(R.string.setting_model_page_auto_compress_threshold_desc),
                 )
             }
         }
@@ -227,59 +202,37 @@ private fun ModelSettingItem(
         type = ModelType.CHAT,
     )
 
-    Column {
-        CardGroup(title = { Text(title) }) {
-            item(
-                onClick = { state.open() },
-                headlineContent = { Text(title) },
-                trailingContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = state.currentModel?.displayName
-                                ?: emptyText
-                                ?: stringResource(R.string.model_list_select_model),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        // 点行是拉起模型选择面板（不是进二级页），行尾只放当前值，不放 ›
-                        if (onClear != null && state.currentModel != null) {
-                            Icon(
-                                imageVector = close,
-                                contentDescription = stringResource(R.string.model_list_clear_model),
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clickable { onClear() },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                },
-            )
-            if (reasoningLevel != null && onUpdateReasoningLevel != null) {
-                item(
-                    headlineContent = { Text(stringResource(R.string.assistant_page_thinking_budget)) },
-                    trailingContent = {
-                        ReasoningButton(
-                            reasoningLevel = reasoningLevel,
-                            onUpdateReasoningLevel = onUpdateReasoningLevel,
-                        )
-                    },
-                )
+    MochiListRow(
+        title = title,
+        subtitle = description,
+        value = state.currentModel?.displayName
+            ?: emptyText
+            ?: stringResource(R.string.model_list_select_model),
+        onClick = { state.open() },
+        trailing = if (onClear != null && state.currentModel != null) {
+            {
+                MochiIconButton(onClick = onClear) {
+                    Icon(
+                        imageVector = close,
+                        contentDescription = stringResource(R.string.model_list_clear_model),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
-        }
-        if (description != null) {
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-            )
-        }
+        } else {
+            null
+        },
+    )
+    if (reasoningLevel != null && onUpdateReasoningLevel != null) {
+        MochiListRow(
+            title = stringResource(R.string.assistant_page_thinking_budget),
+            trailing = {
+                ReasoningButton(
+                    reasoningLevel = reasoningLevel,
+                    onUpdateReasoningLevel = onUpdateReasoningLevel,
+                )
+            },
+        )
     }
 
     ModelListSheet(state = state, onSelect = onSelect)
@@ -302,29 +255,13 @@ private fun OcrPluginSettingItem() {
     }
     val version = record?.version?.takeIf { it.isNotBlank() }
 
-    Column {
-        CardGroup(title = { Text("OCR 插件") }) {
-            item(
-                onClick = { navController.navigate(Screen.ExploreMarket) },
-                chevron = true,
-                headlineContent = {
-                    Text(if (version == null) "OCR 插件：未安装" else "OCR 插件")
-                },
-                supportingContent = {
-                    Text(
-                        if (version == null) "去市场安装后可用本机 OCR 插件" else "已安装，可在市场里更新或卸载"
-                    )
-                },
-                trailingContent = {
-                    Text(
-                        text = version?.let { "v$it" } ?: "去市场安装",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
+    MochiListSection(header = "OCR 插件") {
+        MochiListRow(
+            title = if (version == null) "未安装" else "已安装",
+            subtitle = if (version == null) "去市场安装后可用本机 OCR 插件" else "已安装，可在市场里更新或卸载",
+            value = version?.let { "v$it" } ?: "去市场安装",
+            onClick = { navController.navigate(Screen.ExploreMarket) },
+            chevron = true,
+        )
     }
 }

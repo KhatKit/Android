@@ -430,7 +430,11 @@ internal fun AddProviderSheet(
             }
         }
 
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.68f),
+        ) {
             Md3SearchBar(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -441,15 +445,21 @@ internal fun AddProviderSheet(
                 // 引擎表本身就是这块弹层的主 UI：空关键词也摊开，不走「先输入再展示」。
                 showResultsWhenEmpty = true,
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                expandedContent = { NoHeroTransition { engineList(Modifier.fillMaxSize()) } },
+                expandedContent = {
+                    NoHeroTransition {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            engineList(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                            )
+                        }
+                    }
+                },
             )
-
-            // 展开期间列表整个抽掉（KSU 的 SearchBox 同款），只在搜索框的展开槽里出现一次。
-            if (!searchExpanded) {
-                engineList(Modifier.fillMaxHeight(0.68f))
-            }
         }
     }
 }

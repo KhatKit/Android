@@ -6,30 +6,40 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
+import heizige.kk.khatkit.app.core.ui.components.ui.CardGroupScope
+import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.LocalKkThemeReveal
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
+import heizige.kk.khatkit.app.core.ui.theme.resolvedMochiGlassStyle
+import heizige.kk.khatkit.app.core.ui.theme.usesMochiSeedPalette
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import heizige.kk.khatkit.app.core.ui.theme.rememberColorModeChanger
@@ -39,9 +49,104 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlin.math.roundToInt
 import ui.feice.mochi.basic.MochiSegmentedControl
 import ui.feice.mochi.basic.MochiSegmentedDefaults
+import ui.feice.mochi.basic.MochiAlign
+import ui.feice.mochi.basic.MochiDropdown
+import ui.feice.mochi.basic.MochiDropdownDefaults
+import ui.feice.mochi.basic.MochiItem
 import ui.feice.mochi.effect.content.crossfadeOrChange
 import ui.feice.mochi.picker.MochiSeedPalette
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.MochiGlassStyle
+import ui.feice.mochi.theme.MochiTopBarStyle
+import ui.feice.mochi.theme.PaletteStyle
+
+private val paletteOptions = listOf(
+    PaletteStyle.TonalSpot to "Tonal",
+    PaletteStyle.Expressive to "Expressive",
+    PaletteStyle.Vibrant to "Vibrant",
+    PaletteStyle.Neutral to "Neutral",
+    PaletteStyle.Content to "Content",
+    PaletteStyle.Fidelity to "Fidelity",
+)
+
+private val topBarOptions = listOf(
+    MochiTopBarStyle.Frosted to "毛玻璃",
+    MochiTopBarStyle.GradientBlur to "渐变模糊",
+    MochiTopBarStyle.SolidFade to "实色渐隐",
+    MochiTopBarStyle.TranslucentFade to "半透明渐隐",
+)
+
+private val glassOptions = listOf(
+    MochiGlassStyle.Regular to "标准折射",
+    MochiGlassStyle.Frosted to "毛玻璃",
+    MochiGlassStyle.Thick to "厚实折射",
+)
+
+internal fun <T> CardGroupScope.mochiThemePicker(
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    visible: Boolean = true,
+    anchor: String? = null,
+    optionIcon: (@Composable (T, Color) -> Unit)? = null,
+    onSelect: (T) -> Unit,
+) {
+    item(
+        visible = visible,
+        anchor = anchor,
+        headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        trailingContent = {
+            var expanded by remember { mutableStateOf(false) }
+            val entries = remember(options, optionIcon) {
+                options.map { (value, label) ->
+                    MochiItem(
+                        label = label,
+                        icon = optionIcon?.let { icon -> { tint -> icon(value, tint) } },
+                    )
+                }.toImmutableList()
+            }
+            val index = options.indexOfFirst { it.first == selected }
+            MochiDropdown(
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                items = entries,
+                onItemClick = { onSelect(options[it].first) },
+                selectedIndex = index,
+                modifier = Modifier.widthIn(max = 160.dp),
+                behavior = MochiDropdownDefaults.behavior(align = MochiAlign.End, liquidCover = false),
+                buttonMinHeight = 34.dp,
+                buttonPadding = PaddingValues(horizontal = 12.dp),
+            ) {
+                ui.feice.mochi.basic.Text(
+                    text = options.getOrNull(index)?.second.orEmpty(),
+                    style = MochiTheme.textStyles.body,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(keyboardArrowDown, contentDescription = null)
+            }
+        },
+    )
+}
+
+internal fun CardGroupScope.mochiThemeSwitch(
+    title: String,
+    checked: Boolean,
+    description: String? = null,
+    visible: Boolean = true,
+    enabled: Boolean = true,
+    anchor: String? = null,
+    onChange: (Boolean) -> Unit,
+) {
+    item(
+        visible = visible,
+        anchor = anchor,
+        headlineContent = { Text(title) },
+        supportingContent = description?.let { label -> { Text(label) } },
+        onClick = if (enabled) ({ onChange(!checked) }) else null,
+        trailingContent = { KkSwitch(checked = checked, enabled = enabled, onCheckedChange = onChange) },
+    )
+}
 
 /**
  * 主题设置的三张二级页：配色、材质、列表卡片。
@@ -60,6 +165,8 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
     val colorMode = heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode()
     val changeColorMode = rememberColorModeChanger(colorMode)
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val useSeedPalette = settings.displaySetting.usesMochiSeedPalette
+    val scroll = rememberLazyListState()
 
     // 莫奈色板回显：预设主题取它的主色，自定义主题取保存的种子色；跟随壁纸取色时没有选中项
     val selectedSeedColor: Color? = if (settings.dynamicColor) {
@@ -78,9 +185,10 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
 
     MochiSettingsPageScaffold(
         title = "配色",
-        largeTitle = false,
+        scrollUnderTopBar = true,
     ) { innerPadding ->
         LazyColumn(
+            state = scroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(
                 start = 16.dp,
@@ -108,18 +216,19 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
                     anchor = settingAnchor(R.string.setting_display_page_button_style_title),
                 )
                 item(
+                    visible = useSeedPalette,
                     headlineContent = { Text(stringResource(R.string.greeting_settings_dynamic_color)) },
                     supportingContent = { Text(stringResource(R.string.greeting_settings_dynamic_color_desc)) },
                     onClick = {
                         if (dynamicColorSupported) {
-                            vm.updateSettings(settings.copy(dynamicColor = !settings.dynamicColor))
+                            vm.updateSettings { it.copy(dynamicColor = !it.dynamicColor) }
                         }
                     },
                     trailingContent = {
                         KkSwitch(
                             checked = dynamicColorSupported && settings.dynamicColor,
                             enabled = dynamicColorSupported,
-                            onCheckedChange = { vm.updateSettings(settings.copy(dynamicColor = it)) },
+                            onCheckedChange = { enabled -> vm.updateSettings { it.copy(dynamicColor = enabled) } },
                         )
                     },
                     anchor = settingAnchor(R.string.greeting_settings_dynamic_color),
@@ -127,12 +236,19 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
             }
         }
 
-        item(key = "seed") {
+        if (useSeedPalette) item(key = "seed") {
             CardGroup(
                 title = { Text("主题色") },
                 footer = "按 MD3 规则从种子色生成整套配色，色块上是生成的主色、辅助色和第三色。" +
                     "选了色块后，「系统取色」换成同样明暗的静态配色。",
             ) {
+                mochiThemePicker(
+                    title = "取色算法",
+                    options = paletteOptions,
+                    selected = settings.displaySetting.mochiPaletteStyle,
+                ) { style ->
+                    vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiPaletteStyle = style)) }
+                }
                 item(
                     headlineContent = {
                         Column(
@@ -154,6 +270,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
                                 modifier = Modifier.fillMaxWidth(),
                                 seeds = presetSeeds,
                                 custom = true,
+                                style = settings.displaySetting.mochiPaletteStyle,
                             )
                         }
                     },
@@ -168,6 +285,8 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
 @Composable
 fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val display = settings.displaySetting
+    val scroll = rememberLazyListState()
     // 换外观（玻璃开关）照 Mochi demo 原位模糊交叉淡化
     val themeReveal = LocalKkThemeReveal.current
     val buttonStyleLabels = listOf(
@@ -177,9 +296,10 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
 
     MochiSettingsPageScaffold(
         title = "材质",
-        largeTitle = false,
+        scrollUnderTopBar = true,
     ) { innerPadding ->
         LazyColumn(
+            state = scroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = innerPadding + PaddingValues(
                 start = 16.dp,
@@ -192,20 +312,14 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
         item(key = "materials") {
             CardGroup(
                 title = { Text("材质") },
-                footer = "玻璃让栏、菜单、面板和圆形按钮透出背后的内容；按钮样式选圆形按钮是玻璃还是实心。",
+                footer = "液态玻璃作用于导航栏、菜单和面板。顶栏样式决定内容滚到顶栏下方时的效果。",
             ) {
                 item(
                     headlineContent = { Text(stringResource(R.string.setting_display_page_effects_title)) },
                     supportingContent = { Text(stringResource(R.string.setting_display_page_effects_desc)) },
                     onClick = {
                         themeReveal.crossfadeOrChange {
-                            vm.updateSettings(
-                                settings.copy(
-                                    displaySetting = settings.displaySetting.copy(
-                                        effectsEnabled = !settings.displaySetting.effectsEnabled,
-                                    ),
-                                )
-                            )
+                            vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(effectsEnabled = !it.displaySetting.effectsEnabled)) }
                         }
                     },
                     trailingContent = {
@@ -213,17 +327,23 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                             checked = settings.displaySetting.effectsEnabled,
                             onCheckedChange = { on ->
                                 themeReveal.crossfadeOrChange {
-                                    vm.updateSettings(
-                                        settings.copy(
-                                            displaySetting = settings.displaySetting.copy(effectsEnabled = on),
-                                        )
-                                    )
+                                    vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(effectsEnabled = on)) }
                                 }
                             },
                         )
                     },
                     anchor = settingAnchor(R.string.setting_display_page_effects_title),
                 )
+                mochiThemePicker(
+                    title = "玻璃样式",
+                    options = glassOptions,
+                    selected = display.resolvedMochiGlassStyle,
+                    visible = display.effectsEnabled,
+                ) { style ->
+                    themeReveal.crossfadeOrChange {
+                        vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiGlassStyle = style)) }
+                    }
+                }
                 // 按钮样式只在总开关开着时有意义：visible 走行级展开/收起动画，卡片高度跟着一起收放
                 item(
                     visible = settings.displaySetting.effectsEnabled,
@@ -234,13 +354,7 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                             selectedIndex = if (settings.displaySetting.glassButtons) 0 else 1,
                             onSelect = { index ->
                                 themeReveal.crossfadeOrChange {
-                                    vm.updateSettings(
-                                        settings.copy(
-                                            displaySetting = settings.displaySetting.copy(
-                                                glassButtons = index == 0,
-                                            ),
-                                        )
-                                    )
+                                    vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(glassButtons = index == 0)) }
                                 }
                             },
                             items = buttonStyleLabels,
@@ -248,6 +362,15 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                         )
                     },
                 )
+                mochiThemePicker(
+                    title = "顶栏样式",
+                    options = topBarOptions,
+                    selected = display.mochiTopBarStyle,
+                ) { style ->
+                    themeReveal.crossfadeOrChange {
+                        vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiTopBarStyle = style)) }
+                    }
+                }
             }
         }
         }
@@ -261,7 +384,6 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
 
     MochiSettingsPageScaffold(
         title = "列表卡片",
-        largeTitle = false,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -328,19 +450,13 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
     }
 }
 
-/**
- * 二级页：导航栏。照 Mochi 示例 demo 的两块能力：
- * - 「导航栏与搜索」/ 首页标签栏演示的三种排法：图标+文字、仅选中项显示文字、仅图标；
- *   外加 Mochi 的滚动收起（内容往下滚缩成只剩当前图标的小胶囊）。
- * - 「主题 → 液态玻璃」页的自定义项：通透度滑条 + 仅模糊开关，作用是整块栏玻璃
- *   （栏、栏里的按钮、警告框、玻璃样式按钮），菜单 / 面板固定「实」档不跟通透度变。
- *
- * 两个开关都只改主题材质 / 标签栏 behavior，页面里没有外观分支；改完立刻生效。
- */
+/** 导航手势、标签栏和栏玻璃设置。 */
 @Composable
 fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val display = settings.displaySetting
+    val predictiveBackTitle = stringResource(R.string.setting_preferences_predictive_back_title)
+    val predictiveBackDescription = stringResource(R.string.setting_preferences_predictive_back_desc)
     val labelStyleLabels = listOf(
         "图标 + 文字",
         "仅选中项文字",
@@ -348,8 +464,7 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
     ).toImmutableList()
 
     MochiSettingsPageScaffold(
-        title = "导航栏",
-        largeTitle = false,
+        title = stringResource(R.string.setting_preferences_navigation_title),
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -361,6 +476,20 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
             ),
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
+        item(key = "gestures") {
+            CardGroup(title = { Text(stringResource(R.string.setting_preferences_navigation_gestures)) }) {
+                mochiThemeSwitch(
+                    title = predictiveBackTitle,
+                    description = predictiveBackDescription,
+                    checked = display.mochiPredictiveBack,
+                    anchor = settingAnchor(R.string.setting_preferences_predictive_back_title),
+                ) { enabled ->
+                    vm.updateSettings { current ->
+                        current.copy(displaySetting = current.displaySetting.copy(mochiPredictiveBack = enabled))
+                    }
+                }
+            }
+        }
         item(key = "navBarStyle") {
             CardGroup(
                 title = { Text("底部导航栏") },
@@ -422,54 +551,24 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
                 )
             }
         }
-        item(key = "barGlass") {
+        if (display.effectsEnabled) item(key = "barGlass") {
             CardGroup(
                 title = { Text("栏玻璃") },
-                footer = "通透度照 Mochi 示例「主题 → 液态玻璃」：往左更透明、往右更接近毛玻璃；「仅模糊」保留背景模糊和内容对比，去掉折射、色散和边光。" +
-                    "先打开「材质 → 液态玻璃效果」才生效。",
+                footer = "往左更透明，往右加重玻璃底色。玻璃样式可在「材质」中选择。",
             ) {
                 sliderItem(
                     title = { "通透度" },
                     value = display.glassTint,
                     onValueChange = { value ->
-                        vm.updateSettings(
-                            settings.copy(
-                                displaySetting = display.copy(
-                                    glassTint = (value * 100f).roundToInt() / 100f,
-                                ),
-                            )
-                        )
+                        vm.updateSettings {
+                            it.copy(displaySetting = it.displaySetting.copy(glassTint = (value * 100f).roundToInt() / 100f))
+                        }
                     },
                     valueRange = 0f..1f,
                     defaultValue = 0.5f,
                     steps = 19,
                     displayScale = 100f,
                     suffix = "%",
-                )
-                item(
-                    headlineContent = { Text("仅模糊") },
-                    supportingContent = { Text("只保留背景模糊，去掉玻璃的光学边缘、色散和按压玻璃泡") },
-                    onClick = {
-                        vm.updateSettings(
-                            settings.copy(
-                                displaySetting = display.copy(
-                                    glassBlurOnly = !display.glassBlurOnly,
-                                ),
-                            )
-                        )
-                    },
-                    trailingContent = {
-                        KkSwitch(
-                            checked = display.glassBlurOnly,
-                            onCheckedChange = { on ->
-                                vm.updateSettings(
-                                    settings.copy(
-                                        displaySetting = display.copy(glassBlurOnly = on),
-                                    )
-                                )
-                            },
-                        )
-                    },
                 )
             }
         }

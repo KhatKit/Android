@@ -79,8 +79,6 @@ import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.zIndex
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -130,7 +128,6 @@ fun ChatList(
     previewSearchQuery: String = "",
     onPreviewSearchQueryChange: (String) -> Unit = {},
     settings: Settings,
-    hazeState: HazeState,
     errors: List<ChatError> = emptyList(),
     onDismissError: (Uuid) -> Unit = {},
     onClearAllErrors: () -> Unit = {},
@@ -162,7 +159,6 @@ fun ChatList(
                 state = previewState,
                 conversation = conversation,
                 settings = settings,
-                hazeState = hazeState,
                 searchQuery = previewSearchQuery,
                 onSearchQueryChange = onPreviewSearchQueryChange,
                 onJumpToMessage = onJumpToMessage,
@@ -177,7 +173,6 @@ fun ChatList(
                 loading = loading,
                 processingStatus = processingStatus,
                 settings = settings,
-                hazeState = hazeState,
                 errors = errors,
                 onDismissError = onDismissError,
                 onClearAllErrors = onClearAllErrors,
@@ -338,7 +333,6 @@ private fun ChatListNormal(
     loading: Boolean,
     processingStatus: String? = null,
     settings: Settings,
-    hazeState: HazeState,
     errors: List<ChatError>,
     onDismissError: (Uuid) -> Unit,
     onClearAllErrors: () -> Unit,
@@ -469,13 +463,12 @@ private fun ChatListNormal(
                 modifier = Modifier
                     .fillMaxSize()
                     // 顶栏过渡由页面骨架绘制。底边从悬浮输入栏顶上 24dp 一直渐隐到屏幕底，
-                    // 滚到最新一条时底边是实的。放在 hazeSource 外面：输入栏的毛玻璃仍取样没被遮的内容
+                    // 滚到最新一条时底边是实的。
                     .kkScrollEdgeFade(
                         state = state,
                         top = 0.dp,
                         bottom = innerPadding.calculateBottomPadding() + KkScrollEdgeExtent,
-                    )
-                    .hazeSource(state = hazeState),
+                    ),
             ) {
             itemsIndexed(
                 items = conversation.messageNodes,
@@ -760,7 +753,6 @@ private fun ChatListPreview(
     state: LazyListState,
     conversation: Conversation,
     settings: Settings,
-    hazeState: HazeState,
     animatedVisibilityScope: AnimatedVisibilityScope,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -791,9 +783,7 @@ private fun ChatListPreview(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .hazeSource(state = hazeState),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // 消息预览
         LazyColumn(

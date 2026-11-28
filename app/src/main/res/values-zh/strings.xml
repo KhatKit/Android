@@ -1344,6 +1344,16 @@
   <string name="setting_page_preferences_ui_message_desc">头像、气泡、模型名</string>
   <string name="setting_page_preferences_ui_font">字体</string>
   <string name="setting_page_preferences_ui_font_desc">字体、字号</string>
+  <string name="setting_preferences_font_titles">标题</string>
+  <string name="setting_preferences_font_serif_title">衬线体标题</string>
+  <string name="setting_preferences_font_serif_desc">大标题使用系统衬线字体</string>
+  <string name="setting_preferences_font_chat">聊天正文</string>
+  <string name="setting_preferences_font_preview">预览</string>
+  <string name="setting_preferences_navigation_title">导航栏</string>
+  <string name="setting_preferences_navigation_desc">返回手势和底部导航栏</string>
+  <string name="setting_preferences_navigation_gestures">手势</string>
+  <string name="setting_preferences_predictive_back_title">预测性返回</string>
+  <string name="setting_preferences_predictive_back_desc">返回手势跟手预览上一页</string>
   <string name="setting_page_preferences_ui_code">代码</string>
   <string name="setting_page_preferences_ui_code_desc">换行、折叠、行号</string>
   <string name="skills_page_import_from_file">从文件导入</string>

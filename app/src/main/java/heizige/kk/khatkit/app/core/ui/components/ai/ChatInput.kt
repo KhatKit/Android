@@ -36,6 +36,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.activity.BackEventCompat
 import heizige.kk.khatkit.app.core.ui.icons.moreVert
 import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
 import heizige.kk.khatkit.app.core.ui.icons.image
@@ -110,6 +111,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
@@ -121,7 +123,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -145,16 +146,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.hazeBlur
-import dev.chrisbanes.haze.blur.material3.Material3
-import dev.chrisbanes.haze.glass.GlassDefaults
-import dev.chrisbanes.haze.glass.GlassStyle
-import dev.chrisbanes.haze.glass.OpticalSizeValue
-import dev.chrisbanes.haze.glass.hazeGlass
-import dev.chrisbanes.haze.glass.material3.Material3
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -226,6 +217,19 @@ import ui.feice.mochi.effect.glass.LocalMochiBackdrop
 import ui.feice.mochi.effect.glass.LocalMochiGlassShadow
 import ui.feice.mochi.effect.glass.MochiGlassSurface
 import ui.feice.mochi.effect.glass.MochiNoGlassShadow
+import ui.feice.mochi.effect.metaball.MochiBlob
+import ui.feice.mochi.effect.metaball.MochiMetaballColors
+import ui.feice.mochi.effect.metaball.MochiMetaballFrame
+import ui.feice.mochi.effect.metaball.drawMochiMetaball
+import ui.feice.mochi.effect.metaball.proximityFuse
+import ui.feice.mochi.effect.metaball.rememberMochiMetaballRenderer
+import ui.feice.mochi.effect.content.mochiBlurReveal
+import ui.feice.mochi.theme.MochiGlass
+import ui.feice.mochi.theme.MochiGlassStyle
+import ui.feice.mochi.theme.MochiGraphics
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.lerp
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.basic.MochiButtonStyle
@@ -248,8 +252,12 @@ import heizige.kk.khatkit.uikit.mochi.kkPressState
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -258,7 +266,7 @@ fun ChatInput(
     state: ChatInputState,
     loading: Boolean,
     settings: Settings,
-    hazeState: HazeState,
+    editorRevealState: MutableFloatState,
     enableSearch: Boolean,
     onUpdateSearchMode: (SearchMode) -> Unit,
     modifier: Modifier = Modifier,
@@ -285,8 +293,15 @@ fun ChatInput(
 ) {
 
     val assistant = settings.getCurrentAssistant()
-    val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val composerFieldColor = MochiTextFieldDefaults.colors().container.compositeOver(CustomColors.pageContainerColor)
+    val sheetGlass = MochiTheme.materials.sheetGlass?.let { glass ->
+        if (!settings.displaySetting.enableBlurEffect) glass else glass.copy(
+            style = when (settings.displaySetting.backgroundEffectType) {
+                BackgroundEffectType.BLUR -> MochiGlassStyle.Frosted
+                BackgroundEffectType.GLASS -> MochiGlassStyle.Regular
+            },
+        )
+    }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -294,7 +309,6 @@ fun ChatInput(
     // 展开进度：0f 收起（胶囊）→ 1f 展开（24dp 圆角），拖动时实时跟手
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
-    var panelHeightPx by remember { mutableIntStateOf(0) }
     // KodeHead 同款 ease-out 三次曲线（放大前期行程）
     fun easedProgress(): Float {
         val raw = progress.value
@@ -309,25 +323,44 @@ fun ChatInput(
     // genie 的 collapsedBounds 直接取输入胶囊的真实 bounds（对齐 KodeHeap Post.kt:3925
     // 的 onGloballyPositioned { it.boundsInRoot() }），不再硬编码 60×56dp 矩形。
     var flbBounds by remember { mutableStateOf(Rect.Zero) }
+    var fabBounds by remember { mutableStateOf(Rect.Zero) }
     // —— 全屏编辑器：同 window 的页内浮层，进度单一来源 ——
     var editorOpen by remember { mutableStateOf(false) }
-    var editorReveal by remember { mutableFloatStateOf(0f) }
+    var editorOverlayReady by remember { mutableStateOf(false) }
+    var editorSettled by remember { mutableStateOf(false) }
+    var openedByTap by remember { mutableStateOf(false) }
+    var fullscreenButtonCenter by remember { mutableStateOf(Offset.Unspecified) }
+    var editorOpeningX by remember { mutableFloatStateOf(Float.NaN) }
+    var editorBackMotion by remember { mutableStateOf(EditorBackMotion()) }
+    var editorReveal by editorRevealState
     val editorRevealDistancePx = with(LocalDensity.current) { 160.dp.toPx() }
     val editorFlingVelocityPx = with(LocalDensity.current) { 600.dp.toPx() }
     val editorJobRef = remember { object { var job: Job? = null } }
+    val reduceMotion = rememberKkReduceMotion()
+    DisposableEffect(editorRevealState) {
+        onDispose { editorRevealState.floatValue = 0f }
+    }
 
     // velocity：松手时的揭示速度（进度/秒），弹簧从手指的速度接着走，松手那一帧不顿
-    fun settleEditor(open: Boolean, velocity: Float = 0f) {
+    fun settleEditor(open: Boolean, velocity: Float = 0f, waitForOverlay: Boolean = false) {
         editorJobRef.job?.cancel()
+        editorSettled = false
         editorJobRef.job = scope.launch {
+            if (waitForOverlay) snapshotFlow { editorOverlayReady }.first { it }
             val target = if (open) 1f else 0f
             animate(
                 initialValue = editorReveal,
                 targetValue = target,
-                initialVelocity = velocity,
-                animationSpec = EditorRevealSpring,
+                initialVelocity = velocity.coerceIn(-9f, 9f),
+                animationSpec = when {
+                    reduceMotion -> androidx.compose.animation.core.snap()
+                    open && waitForOverlay -> EditorTapSpring
+                    open -> MochiMotions.Ios27Menu.openSpatial
+                    else -> MochiMotions.Ios27Menu.closeSpatial
+                },
             ) { value, _ -> editorReveal = value }
             editorReveal = target
+            editorSettled = open
             if (!open) {
                 editorOpen = false
             }
@@ -335,20 +368,16 @@ fun ChatInput(
     }
 
     fun changeEditorOpen(open: Boolean) {
-        if (open) editorOpen = true
-        settleEditor(open = open)
+        if (open) {
+            openedByTap = true
+            editorOpeningX = if (fullscreenButtonCenter != Offset.Unspecified) fullscreenButtonCenter.x else flbBounds.center.x
+            editorOpen = true
+        }
+        settleEditor(open = open, waitForOverlay = open)
     }
 
-    // 上滑拉起编辑器时输入胶囊那一行（ActionIconButton + TextInputRow）与右侧 FAB 淡出：
-    // alpha = 1 - smoothstep(reveal / 0.25)，与编辑器工具栏的 smoothstep(reveal / 0.25) 严格互补
-    // ⇒ 任一时刻屏幕底部只有一条底栏 >0.5 可见。reveal = 0（静止态）不挂任何额外节点，
-    // 渲染与改动前逐帧一致。
-    fun Modifier.flbFadeOnEditorReveal(): Modifier =
-        if (editorReveal > 0.001f) {
-            graphicsLayer { alpha = aiFlbCapsuleAlpha(editorReveal) }
-        } else {
-            this
-        }
+    fun composerGlassAlpha(): Float =
+        if (editorOverlayReady) 1f - editorSurfaceHandoff(editorReveal) else 1f
 
     // 返回兜底：编辑器是页内浮层，它的 PredictiveBackHandler 与 NavDisplay 注册在同一个
     // 页面 dispatcher 上（后注册者优先）。这里再登记一层，保证即便顺序假设不成立，
@@ -394,7 +423,6 @@ fun ChatInput(
     var inputRowSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val densityLocal = LocalDensity.current
     val gapPx = with(densityLocal) { 8.dp.toPx() }
-    val expandedRadiusPx = with(densityLocal) { 24.dp.toPx() }
     // 背景圆角随输入框圆角走：收起时 = 输入框圆角 + 间距（同心），
     // 展开后段用 late-morph 过渡到 24dp。
     val collapsedOuterRadiusPx = with(densityLocal) { (MochiTextFieldDefaults.Height / 2).toPx() } + gapPx
@@ -525,9 +553,7 @@ fun ChatInput(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-            KkSurface(
-                modifier = Modifier
-                    .weight(1f)
+            val composerSwipe = Modifier
                     // 收起态「一次上滑」＝ 拉起编辑器（KodeHeap 帖子详情页 FLB 手势模型）。
                     // Initial pass 抢在按钮/文本框之前处理并 consume，保证在它们之上也能稳定拖动。
                     .pointerInput(editorRevealDistancePx) {
@@ -540,9 +566,7 @@ fun ChatInput(
                             var totalX = 0f
                             var totalY = 0f
                             var passedSlop = false
-                            var vertical = false
                             var drivingEditor = false
-                            var accordionDriving = false
                             var lastReveal = editorReveal.coerceIn(0f, 1f)
                             val velocityTracker = VelocityTracker()
                             velocityTracker.addPosition(down.uptimeMillis, down.position)
@@ -562,42 +586,30 @@ fun ChatInput(
                                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
                                     velocityTracker.addPosition(change.uptimeMillis, change.position)
                                     val delta = change.positionChange()
-                                    if (!passedSlop) {
-                                        totalX += delta.x
-                                        totalY += delta.y
-                                        if (hypot(totalX, totalY) > touchSlop) {
-                                            // 锁轴：竖向留给 FLB，横向全部丢弃
-                                            vertical = abs(totalY) >= abs(totalX)
-                                            if (vertical) totalX = 0f else totalY = 0f
-                                            passedSlop = true
-                                            editorJobRef.job?.cancel()
-                                            editorJobRef.job = null
-                                        }
-                                    } else {
-                                        if (vertical) totalY += delta.y else totalX += delta.x
+                                    totalX += delta.x
+                                    totalY += delta.y
+                                    if (!passedSlop && hypot(totalX, totalY) > touchSlop) {
+                                        // 只用纵向位移推进展开，横向位移留给页面形变。
+                                        if (abs(totalY) < abs(totalX) || totalY >= 0f) break
+                                        passedSlop = true
+                                        editorJobRef.job?.cancel()
+                                        editorJobRef.job = null
+                                        editorSettled = false
+                                        openedByTap = false
                                     }
 
                                     if (passedSlop) {
                                         change.consume()
-                                        if (vertical) {
-                                            if (totalY < 0f || drivingEditor) {
-                                                // 上滑：直接用 KodeHeap 的揭示进度映射
-                                                // （160dp 线性到 1，之后 rubber-band 到 1.12）
-                                                drivingEditor = true
-                                                lastReveal = composerAiRevealProgressFromDrag(
-                                                    rawY = totalY,
-                                                    commitDistance = editorRevealDistancePx,
-                                                )
-                                                editorReveal = lastReveal.coerceAtLeast(0f)
-                                                if (!editorOpen && lastReveal > 0.001f) {
-                                                    editorOpen = true
-                                                }
-                                            } else if (panelHeightPx > 0 && progress.value > 0f) {
-                                                // 手风琴已展开时下滑：跟手收起面板（保留原行为）
-                                                accordionDriving = true
-                                                val next = (progress.value - totalY / panelHeightPx)
-                                                    .coerceIn(0f, 1f)
-                                                scope.launch { progress.snapTo(next) }
+                                        if (totalY < 0f || drivingEditor) {
+                                            drivingEditor = true
+                                            editorOpeningX = flbBounds.left + change.position.x
+                                            lastReveal = composerAiRevealProgressFromDrag(
+                                                rawY = (totalY + touchSlop).coerceAtMost(0f),
+                                                commitDistance = editorRevealDistancePx,
+                                            )
+                                            editorReveal = lastReveal.coerceAtLeast(0f)
+                                            if (!editorOpen && lastReveal > 0.001f) {
+                                                editorOpen = true
                                             }
                                         }
                                     }
@@ -605,60 +617,23 @@ fun ChatInput(
                                     if (!change.pressed) break
                                 }
                             } catch (cancelled: CancellationException) {
-                                if (passedSlop && drivingEditor) releaseEditor()
+                                if (drivingEditor) settleEditor(open = false)
                                 throw cancelled
                             }
 
-                            if (!passedSlop) return@awaitEachGesture
-
                             if (drivingEditor) {
                                 releaseEditor()
-                                return@awaitEachGesture
-                            }
-                            if (accordionDriving) {
-                                val target = if (progress.value > 0.5f) 1f else 0f
-                                val start = progress.value
-                                scope.launch {
-                                    progress.animateTo(
-                                        targetValue = target,
-                                        animationSpec = flbSettleSpec(start, target),
-                                    )
-                                }
                             }
                         }
                     }
-                    .clip(containerShape)
-                    .then(
-                        if (easedProgress() > 0.05f && settings.displaySetting.enableBlurEffect) {
-                            when (settings.displaySetting.backgroundEffectType) {
-                                BackgroundEffectType.BLUR -> Modifier.hazeBlur(
-                                    input = HazeInput.Sources(hazeState),
-                                    style = HazeBlurStyle.Material3 { blurRadius(40.dp) },
-                                )
-
-                                BackgroundEffectType.GLASS -> Modifier.hazeGlass(
-                                    input = HazeInput.Sources(hazeState),
-                                    style = GlassStyle.Material3(
-                                        containerColor = hazeTintColor,
-                                        tint = hazeTintColor.copy(alpha = 0.3f),
-                                    ) {
-                                        edgeShadow(Color.Transparent)
-                                        optics(
-                                            GlassDefaults.optics.copy(
-                                                blurRadius = OpticalSizeValue.Fixed(16.dp),
-                                                depth = OpticalSizeValue.Fixed(0.5f),
-                                            )
-                                        )
-                                        shape(containerShape)
-                                    },
-                                )
-                            }
-                        } else Modifier
-                    ),
+            KkSurface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(containerShape),
                 shape = containerShape,
                 // 收起时保持输入栏原有的轻量感；展开后变成独立的 Mochi surface，
                 // 让 FAB 拉起的能力面板与工具台/设置页的分组容器有明确层次。
-                color = MochiTheme.colorScheme.surfaceContainer.copy(alpha = easedProgress()),
+                color = Color.Transparent,
                 contentColor = MochiTheme.colorScheme.onSurface,
                 // 收起时不描边，展开过程中出现 Mochi outline。
                 border = if (easedProgress() > 0.05f) {
@@ -668,6 +643,15 @@ fun ChatInput(
                     )
                 } else null,
             ) {
+                Box {
+                if (easedProgress() > 0.05f) {
+                    MochiGlassSurface(
+                        modifier = Modifier.matchParentSize().graphicsLayer { alpha = easedProgress() },
+                        material = (sheetGlass ?: MochiGlass()).copy(fallback = MochiTheme.colorScheme.surfaceContainer),
+                        backdrop = LocalMochiBackdrop.current.takeIf { sheetGlass != null },
+                        cornerRadius = outerRadiusDp.dp,
+                    ) {}
+                }
                 Column(
                     modifier = Modifier.padding(
                         horizontal = 8.dp,
@@ -713,7 +697,6 @@ fun ChatInput(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .onSizeChanged {
-                                    panelHeightPx = it.height
                                     panelSize = it
                                 }
                                 .aiChatGenieEffect(
@@ -802,32 +785,30 @@ fun ChatInput(
                     }
 
 
-                    // 悬浮输入栏：＋ 圆按钮 + 胶囊输入框，发送键在胶囊里同心排布。
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .onSizeChanged { inputRowSize = it }
-                            // FLB 实测 bounds（窗口坐标）：编辑器 genie 的 collapsedBounds 来源
-                            .onGloballyPositioned { coords ->
-                                val topLeft = coords.localToWindow(Offset.Zero)
-                                flbBounds = Rect(
-                                    left = topLeft.x,
-                                    top = topLeft.y,
-                                    right = topLeft.x + coords.size.width,
-                                    bottom = topLeft.y + coords.size.height,
-                                )
-                            }
-                            // 上滑拉起编辑器时输入栏淡出（与编辑器工具栏 alpha 互补，见 aiFlbCapsuleAlpha）
-                            .flbFadeOnEditorReveal(),
+                            .onSizeChanged { inputRowSize = it },
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         ComposerGlass(
-                            modifier = Modifier.size(MochiTextFieldDefaults.Height),
+                            modifier = Modifier.size(MochiTextFieldDefaults.Height)
+                                .onGloballyPositioned { coords ->
+                                    if (!editorOpen || fabBounds == Rect.Zero) {
+                                        fabBounds = Rect(coords.localToWindow(Offset.Zero), coords.size.toSize())
+                                    }
+                                },
                             fallback = composerFieldColor,
+                            glassAlpha = ::composerGlassAlpha,
+                            lift = { 16.dp * editorComposerLift(editorReveal) },
                         ) {
                             MochiRealIconButton(
                                 onClick = onMoreClick,
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = if (editorOverlayReady) 1f - editorPhase(editorReveal, 0.04f, 0.20f) else 1f
+                                    translationY = -editorComposerLift(editorReveal) * 16.dp.toPx()
+                                },
                                 size = MochiTextFieldDefaults.Height,
                                 style = MochiButtonStyle.Text,
                             ) {
@@ -840,33 +821,47 @@ fun ChatInput(
                             }
                         }
                         ComposerGlass(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f)
+                                .onGloballyPositioned { coords ->
+                                    if (!editorOpen || flbBounds == Rect.Zero) {
+                                        flbBounds = Rect(coords.localToWindow(Offset.Zero), coords.size.toSize())
+                                    }
+                                }
+                                .then(composerSwipe),
                             fallback = composerFieldColor,
+                            glassAlpha = ::composerGlassAlpha,
+                            lift = { 20.dp * editorComposerLift(editorReveal) },
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth()
                                     .heightIn(min = MochiTextFieldDefaults.Height)
-                                    .clip(MochiTextFieldDefaults.Shape),
+                                    .clip(MochiTextFieldDefaults.Shape)
+                                    .graphicsLayer {
+                                        alpha = if (editorOverlayReady) 1f - editorPhase(editorReveal, 0.04f, 0.28f) else 1f
+                                        translationY = -editorComposerLift(editorReveal) * 20.dp.toPx()
+                                    },
                                 verticalAlignment = Alignment.Bottom,
                             ) {
                                 TextInputRow(
                                     state = state,
+                                    isFullScreen = editorOpen,
                                     completionProviders = completionProviders,
                                     commands = commands,
                                     onRunCommand = ::runCommand,
                                     onSendMessage = { sendMessage() },
-                                    isFullScreen = editorOpen,
-                                    editorRevealProgress = editorReveal,
-                                    onEditorRevealProgress = { editorReveal = it },
-                                    flbBounds = flbBounds,
-                                    attachmentActions = attachmentActions,
-                                    onFullScreenChange = ::changeEditorOpen,
                                     modifier = Modifier.weight(1f),
                                 )
                                 MochiRealIconButton(
                                     onClick = { changeEditorOpen(!editorOpen) },
                                     modifier = Modifier
                                         .padding(MochiTextFieldDefaults.TrailingInset)
+                                        .onGloballyPositioned { coords ->
+                                            if (!editorOpen) {
+                                                fullscreenButtonCenter = coords.localToWindow(
+                                                    Offset(coords.size.width / 2f, coords.size.height / 2f),
+                                                )
+                                            }
+                                        }
                                         .testTag("chat_fullscreen_button"),
                                     size = MochiTextFieldDefaults.TrailingButtonSize,
                                     style = MochiButtonStyle.Text,
@@ -875,7 +870,14 @@ fun ChatInput(
                                         fullscreen,
                                         contentDescription = stringResource(R.string.text_area_fullscreen_edit),
                                         tint = MochiTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp),
+                                        modifier = Modifier.size(20.dp).graphicsLayer {
+                                            if (openedByTap && !reduceMotion) {
+                                                val pulse = editorTapPulse(editorReveal)
+                                                scaleX = 1f + 0.24f * pulse
+                                                scaleY = scaleX
+                                                rotationZ = -10f * pulse
+                                            }
+                                        },
                                     )
                                 }
                                 SendButton(
@@ -899,11 +901,81 @@ fun ChatInput(
                         }
                     }
                 }
+                }
             }
 
             }
 
         }
+    }
+
+    PredictiveBackHandler(enabled = editorOpen) { events ->
+        editorJobRef.job?.cancel()
+        val startReveal = editorReveal.coerceIn(0f, 1f)
+        var touchStart = Offset.Unspecified
+        try {
+            events.collect { event ->
+                if (touchStart == Offset.Unspecified) touchStart = Offset(event.touchX, event.touchY)
+                val direction = when (event.swipeEdge) {
+                    BackEventCompat.EDGE_LEFT -> 1f
+                    BackEventCompat.EDGE_RIGHT -> -1f
+                    else -> 0f
+                }
+                val follow = event.progress.coerceIn(0f, 1f)
+                editorReveal = startReveal * (1f - follow)
+                editorBackMotion = EditorBackMotion(
+                    direction = direction,
+                    progress = follow,
+                    touchY = event.touchY,
+                    travelX = (direction * (event.touchX - touchStart.x)).coerceAtLeast(0f),
+                    travelY = event.touchY - touchStart.y,
+                )
+            }
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            val releaseReveal = editorReveal
+            val releaseMotion = editorBackMotion
+            animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.closeSpatial) { value, _ ->
+                val remaining = 1f - value.coerceIn(0f, 1f)
+                editorReveal = releaseReveal * remaining
+                editorBackMotion = releaseMotion.copy(progress = releaseMotion.progress * remaining)
+            }
+            editorReveal = 0f
+            editorBackMotion = EditorBackMotion()
+            editorSettled = false
+            editorOpen = false
+        } catch (_: CancellationException) {
+            val cancelReveal = editorReveal
+            val cancelMotion = editorBackMotion
+            editorJobRef.job = scope.launch {
+                animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.openSpatial) { value, _ ->
+                    val fraction = value.coerceIn(0f, 1f)
+                    editorReveal = cancelReveal + (startReveal - cancelReveal) * fraction
+                    editorBackMotion = cancelMotion.copy(progress = cancelMotion.progress * (1f - fraction))
+                }
+                editorBackMotion = EditorBackMotion()
+                if (!editorSettled) settleEditor(open = true)
+            }
+        }
+    }
+
+    if (editorOpen) {
+        FullScreenEditor(
+            state = state,
+            flbBounds = flbBounds,
+            fabBounds = fabBounds,
+            fallback = composerFieldColor,
+            blurChatPage = settings.displaySetting.effectsEnabled && MochiGraphics.blur,
+            revealProgress = editorReveal,
+            tapOrigin = fullscreenButtonCenter.takeIf { openedByTap && !reduceMotion } ?: Offset.Unspecified,
+            openingAnchorX = editorOpeningX,
+            backMotion = editorBackMotion,
+            settled = editorSettled,
+            onOverlayReady = { editorOverlayReady = it },
+            attachmentActions = attachmentActions,
+            onSend = { sendMessage(); changeEditorOpen(false) },
+            onDone = { changeEditorOpen(false) },
+        )
     }
 
     // 长按发送键但没配语音识别模型：只提示去配置，不进录音
@@ -1030,17 +1102,27 @@ private fun SendButton(
 private fun ComposerGlass(
     modifier: Modifier,
     fallback: Color,
+    glassAlpha: () -> Float,
+    lift: () -> Dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val material = MochiTheme.materials.controlGlass
     val backdrop = LocalMochiBackdrop.current
-    if (material == null || backdrop == null) {
-        Box(modifier.background(fallback, MochiTextFieldDefaults.Shape), content = content)
-        return
-    }
-    // The backdrop contains only the page, not the composer or its contents.
-    CompositionLocalProvider(LocalMochiGlassShadow provides MochiNoGlassShadow) {
-        MochiGlassSurface(modifier, material, backdrop, content = content)
+    Box(modifier) {
+        val plateModifier = Modifier.matchParentSize().graphicsLayer {
+            alpha = glassAlpha()
+            translationY = -lift().toPx()
+        }
+        if (glassAlpha() > 0f) {
+            if (material == null || backdrop == null) {
+                Box(plateModifier.background(fallback, MochiTextFieldDefaults.Shape))
+            } else {
+                CompositionLocalProvider(LocalMochiGlassShadow provides MochiNoGlassShadow) {
+                    MochiGlassSurface(plateModifier, material, backdrop) {}
+                }
+            }
+        }
+        content()
     }
 }
 
@@ -1052,11 +1134,6 @@ private fun TextInputRow(
     onRunCommand: (ChatInputCommand) -> Unit,
     onSendMessage: () -> Unit,
     isFullScreen: Boolean,
-    editorRevealProgress: Float = 0f,
-    onEditorRevealProgress: (Float) -> Unit = {},
-    flbBounds: Rect = Rect.Zero,
-    attachmentActions: ChatAttachmentPickerActions? = null,
-    onFullScreenChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val settings = LocalSettings.current
@@ -1219,17 +1296,6 @@ private fun TextInputRow(
                 }
             } else null,
         )
-        if (isFullScreen) {
-            FullScreenEditor(
-                state = state,
-                flbBounds = flbBounds,
-                revealProgress = editorRevealProgress,
-                onRevealProgress = onEditorRevealProgress,
-                attachmentActions = attachmentActions,
-                onSend = { onSendMessage(); onFullScreenChange(false) },
-                onDone = { onFullScreenChange(false) },
-            )
-        }
     }
 }
 
@@ -1468,22 +1534,142 @@ private fun QuickMessageButton(
     }
 }
 
+internal const val EditorFusionContact = 0.14f
+internal const val EditorFullWidth = 0.25f
+private val EditorTapSpring = MochiMotions.responseSpring(response = 0.43f, damping = 0.82f)
+
+private fun editorTapPulse(reveal: Float) =
+    editorPhase(reveal, 0f, 0.16f) * (1f - editorPhase(reveal, 0.16f, 0.66f))
+
+private fun editorPhase(progress: Float, start: Float, end: Float): Float {
+    val t = ((progress - start) / (end - start)).coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
+}
+
+private fun Rect.asGlassBlob() = MochiBlob(this, minOf(width, height).coerceAtLeast(0f) / 2f)
+
+internal fun editorBackdropProgress(reveal: Float) = editorPhase(reveal, 0f, 0.84f)
+
+internal fun editorSurfaceHandoff(reveal: Float) = editorPhase(reveal, 0f, 0.16f)
+
+internal fun editorGlassAlpha(reveal: Float) = 1f - editorPhase(reveal, 0.92f, 1f)
+
+private fun editorExpansion(reveal: Float): Float {
+    return editorPhase(reveal, EditorFusionContact, 1f)
+}
+
+private fun editorComposerLift(reveal: Float) =
+    editorPhase(reveal, 0f, EditorFusionContact) * (1f - editorPhase(reveal, 0.45f, 1f))
+
+internal fun editorComposerBounds(pill: Rect, fab: Rect, viewport: Rect, reveal: Float, liftPx: Float): Rect {
+    if (pill.isEmpty) return viewport
+    val contact = editorPhase(reveal, 0f, EditorFusionContact)
+    val overlap = fab.minDimension * 0.2f
+    val joined = if (fab.isEmpty) {
+        pill
+    } else if (fab.center.x < pill.center.x) {
+        pill.copy(left = lerp(pill.left, minOf(pill.left, fab.right - overlap), contact))
+    } else {
+        pill.copy(right = lerp(pill.right, maxOf(pill.right, fab.left + overlap), contact))
+    }
+    val widen = editorPhase(reveal, EditorFusionContact, EditorFullWidth)
+    val rise = editorExpansion(reveal)
+    val lift = liftPx * editorComposerLift(reveal)
+    return Rect(
+        left = lerp(joined.left, viewport.left, widen),
+        top = lerp(joined.top, viewport.top, rise) - lift,
+        right = lerp(joined.right, viewport.right, widen),
+        bottom = lerp(joined.bottom, viewport.bottom, rise) - lift,
+    )
+}
+
+@Composable
+private fun EditorBackdropSurface(
+    modifier: Modifier,
+    main: MochiBlob,
+    fab: MochiBlob,
+    fusePx: Float,
+    tint: Color,
+    rimAlpha: Float,
+) {
+    val renderer = rememberMochiMetaballRenderer()
+    val innerRenderer = rememberMochiMetaballRenderer()
+    val layerPaint = remember { Paint() }
+    val erasePaint = remember { Paint().apply { blendMode = BlendMode.DstOut } }
+    val dark = MochiTheme.colorScheme.isDark
+    Canvas(modifier) {
+        if (main.rect.isEmpty) return@Canvas
+        val rimWidth = 0.8.dp.toPx()
+        val rim = Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = rimAlpha * if (dark) 0.34f else 0.78f),
+                Color.White.copy(alpha = rimAlpha * if (dark) 0.08f else 0.22f),
+                (if (dark) Color.White else Color.Black).copy(alpha = rimAlpha * 0.18f),
+            ),
+            startY = main.rect.top,
+            endY = maxOf(main.rect.bottom, fab.rect.bottom),
+        )
+        if (fab.rect.minDimension <= rimWidth * 2f) {
+            drawRoundRect(tint, main.rect.topLeft, main.rect.size, CornerRadius(main.cornerRadius))
+            if (rimAlpha > 0f) {
+                val inset = rimWidth / 2f
+                val strokeRect = main.rect.deflate(inset)
+                drawRoundRect(
+                    rim, strokeRect.topLeft, strokeRect.size,
+                    CornerRadius((main.cornerRadius - inset).coerceAtLeast(0f)),
+                    style = Stroke(rimWidth),
+                )
+            }
+            return@Canvas
+        }
+
+        val fuse = if (fusePx > 0f) fusePx * proximityFuse(main.rect, fab.rect, fusePx) else 0f
+        val frame = MochiMetaballFrame(main, fab, fuse)
+        drawMochiMetaball(renderer, frame, MochiMetaballColors(tint, tint, Color.Transparent), smoothing = 0f)
+        if (rimAlpha <= 0f) return@Canvas
+
+        // Keep only the outer edge of the fused shapes. The live ChatPage supplies all blur.
+        val bounds = Rect(
+            minOf(main.rect.left, fab.rect.left), minOf(main.rect.top, fab.rect.top),
+            maxOf(main.rect.right, fab.rect.right), maxOf(main.rect.bottom, fab.rect.bottom),
+        ).inflate(fuse + 2f)
+        val mask = MochiMetaballColors(Color.White, Color.White, Color.Transparent)
+        val inner = MochiMetaballFrame(
+            MochiBlob(main.rect.deflate(rimWidth), (main.cornerRadius - rimWidth).coerceAtLeast(0f)),
+            MochiBlob(fab.rect.deflate(rimWidth), (fab.cornerRadius - rimWidth).coerceAtLeast(0f)),
+            fuse,
+        )
+        drawIntoCanvas { canvas ->
+            canvas.saveLayer(bounds, layerPaint)
+            drawMochiMetaball(renderer, frame, mask, smoothing = 0f)
+            canvas.saveLayer(bounds, erasePaint)
+            drawMochiMetaball(innerRenderer, inner, mask, smoothing = 0f)
+            canvas.restore()
+            drawRect(rim, bounds.topLeft, bounds.size, blendMode = BlendMode.SrcIn)
+            canvas.restore()
+        }
+    }
+}
+
 @Composable
 private fun FullScreenEditor(
     state: ChatInputState,
-    flbBounds: Rect = Rect.Zero,
+    flbBounds: Rect,
+    fabBounds: Rect,
+    fallback: Color,
+    blurChatPage: Boolean,
     revealProgress: Float = 0f,
-    onRevealProgress: (Float) -> Unit = {},
+    tapOrigin: Offset,
+    openingAnchorX: Float,
+    backMotion: EditorBackMotion,
+    settled: Boolean,
+    onOverlayReady: (Boolean) -> Unit,
     attachmentActions: ChatAttachmentPickerActions? = null,
     onSend: () -> Unit,
     onDone: () -> Unit,
 ) {
     val reveal = revealProgress.coerceIn(0f, 1f)
-    // 屏幕物理圆角（末段 morph 的终点；取不到时为 0，与 KodeHeap 默认值一致）
     val screenCornerRadiusPx = rememberScreenCornerRadiusPx()
-    val windowMorphProgress = aiWindowMorphProgress(reveal)
-    val windowBorderWidth = 2.dp * (1f - windowMorphProgress)
-    val windowSurfaceAlpha = 0.94f - 0.16f * reveal
     val density = LocalDensity.current
     // 系统栏 / IME 内边距在父组合里取值再传进浮层：父组合的 insets holder 就是输入框自己用的那个
     // （ChatInput 的 Column 已经 .imePadding()），取值必然有效，键盘升起时跟着 IME 动画逐帧走。
@@ -1501,38 +1687,25 @@ private fun FullScreenEditor(
         maxOf(safeDrawingInsets.getBottom(density), imeInsets.getBottom(density)).toDp()
     }
 
-    // 单一预测性返回：编辑器是同一窗口里的浮层，handler 与 NavDisplay 注册在同一个 dispatcher 上、
-    // 且注册更晚 ⇒ 返回先跟手收起编辑器，不会 pop 掉 ChatPage。只在 reveal 稳定 > 0.02 时接管。
-    PredictiveBackHandler(enabled = reveal > 0.02f) { events ->
-        try {
-            events.collect { event ->
-                onRevealProgress((1f - event.progress).coerceIn(0f, 1f))
-            }
-            animate(reveal, 0f, animationSpec = EditorRevealSpring) { value, _ ->
-                onRevealProgress(value)
-            }
-            onRevealProgress(0f)
-            onDone()
-        } catch (_: CancellationException) {
-            animate(reveal, 1f, animationSpec = EditorRevealSpring) { value, _ ->
-                onRevealProgress(value)
-            }
-            onRevealProgress(1f)
-        }
-    }
-
     // 同步建好：第一帧就带着输入框里的字，揭示途中不会先空白再跳出内容
     val richState = remember { RichTextState().apply { setMarkdown(state.textContent.text.toString()) } }
     fun commitRichText() {
         state.setMessageText(richState.toMarkdown())
     }
     val hasContent = richState.annotatedString.text.isNotBlank() || state.messageContent.isNotEmpty()
-    val editorLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     var previewMode by remember { mutableStateOf(false) }
-    // 底部工具栏 morph 的两端（都在窗口坐标里量，与 flbBounds 同一坐标系）
-    var toolbarLayerBounds by remember { mutableStateOf(Rect.Zero) }
     var toolbarHeightPx by remember { mutableIntStateOf(0) }
+    var overlayBounds by remember { mutableStateOf(Rect.Zero) }
     val latestReveal by androidx.compose.runtime.rememberUpdatedState(revealProgress)
+    val latestSettled by androidx.compose.runtime.rememberUpdatedState(settled)
+    val latestOverlayReady by androidx.compose.runtime.rememberUpdatedState(onOverlayReady)
+    val hasOverlayBounds = !overlayBounds.isEmpty
+    DisposableEffect(Unit) {
+        onDispose { latestOverlayReady(false) }
+    }
+    LaunchedEffect(hasOverlayBounds) {
+        if (hasOverlayBounds) latestOverlayReady(true)
+    }
 
     // 同一窗口的浮层（挂在 DecorView 上）：不开独立 Dialog 窗口，没有窗口动画和压暗跳变，
     // 上滑那一下的手势也不会被新窗口打断；坐标系和输入胶囊一致，不用再换算原点。
@@ -1549,77 +1722,87 @@ private fun FullScreenEditor(
         }
         // 揭示完成后再聚焦：键盘在窗口铺满后升起，不和揭示动画抢同一段时间
         LaunchedEffect(Unit) {
-            snapshotFlow { latestReveal >= 0.999f }.first { it }
+            snapshotFlow { latestSettled }.first { it }
             runCatching { focusRequester.requestFocus() }
         }
 
-        val collapsedBounds = flbBounds
-        val windowCornerRadiusPx = aiWindowCornerRadiusPx(
-            toolbarWidthPx = collapsedBounds.width,
-            toolbarHeightPx = collapsedBounds.height,
-            revealProgress = reveal,
-            screenCornerRadiusPx = screenCornerRadiusPx,
-        )
-        // 胶囊尚未测量到（空 Rect）时退化成普通圆角矩形：`aiChatGenieEffect` 对空
-        // collapsedBounds 会直接返回、连内容都不画，不能把空矩形喂给它。
-        val flbMeasured = collapsedBounds.width > 0f && collapsedBounds.height > 0f
-        val windowShape: androidx.compose.ui.graphics.Shape = if (flbMeasured) {
-            aiChatGenieWindowShape(
-                progress = reveal,
-                collapsedBounds = collapsedBounds,
-                destinationCornerRadiusPx = windowCornerRadiusPx,
-            )
-        } else {
-            RoundedCornerShape(with(density) { screenCornerRadiusPx.toDp() })
-        }
-        val toolbarTargetBounds = Rect(
-            left = toolbarLayerBounds.left,
-            top = toolbarLayerBounds.bottom - toolbarHeightPx,
-            right = toolbarLayerBounds.right,
-            bottom = toolbarLayerBounds.bottom,
-        )
-        val toolbarMeasured = toolbarTargetBounds.width > 0f && toolbarTargetBounds.height > 0f
-        // 胶囊 → 胶囊：工具栏落定后仍是满圆角药丸，和收起态的输入胶囊同一种形状
-        val toolbarMorph = aiFlbToolbarMorph(
-            revealProgress = reveal,
-            collapsedBounds = flbBounds,
-            targetBounds = toolbarTargetBounds,
-            collapsedCornerRadiusPx = minOf(flbBounds.width, flbBounds.height) / 2f,
-            targetCornerRadiusPx = toolbarHeightPx / 2f,
-        )
         val cs = MochiTheme.colorScheme
         val toolbarHeight = with(density) { toolbarHeightPx.toDp() }
         val toolbarMargin = 12.dp
+        val expansion = editorExpansion(reveal)
+        val liftPx = with(density) { 20.dp.toPx() }
+        val tapCenter = tapOrigin - overlayBounds.topLeft
+        val tapPulse = if (tapOrigin != Offset.Unspecified) editorTapPulse(reveal) else 0f
+        val tapLift = with(density) { 14.dp.toPx() } * tapPulse
+        val windowRect = editorComposerBounds(flbBounds, fabBounds, overlayBounds, reveal, liftPx)
+            .translate(-overlayBounds.topLeft - Offset(0f, tapLift))
+        val backStrength = if (editorMotion) backMotion.progress else 0f
+        val windowRadius = flbBounds.asGlassBlob().cornerRadius * (1f - expansion) +
+            screenCornerRadiusPx * expansion
+        val fabSize = 1f - editorPhase(reveal, EditorFusionContact, EditorFullWidth)
+        val fabCenter = fabBounds.center - overlayBounds.topLeft -
+            Offset(0f, liftPx * 0.8f * editorComposerLift(reveal) + tapLift * 0.65f)
+        val fabRect = Rect(
+            center = fabCenter,
+            radius = minOf(fabBounds.width, fabBounds.height) * 0.5f * fabSize,
+        )
+        val fusePx = with(density) { 26.dp.toPx() } *
+            editorPhase(reveal, 0f, 0.08f) * fabSize
+        val surfaceHandoff = editorSurfaceHandoff(reveal)
+        val rimAlpha = if (blurChatPage) {
+            surfaceHandoff * maxOf(editorGlassAlpha(reveal), 0.75f * backStrength)
+        } else 0f
+        val windowShape = androidx.compose.foundation.shape.GenericShape { _, _ ->
+            addRoundRect(androidx.compose.ui.geometry.RoundRect(
+                windowRect, androidx.compose.ui.geometry.CornerRadius(windowRadius),
+            ))
+        }
+        val backing = if (blurChatPage) {
+            val tintAlpha = 0.12f + 0.10f * editorBackdropProgress(reveal) + 0.14f * backStrength
+            cs.surface.copy(alpha = tintAlpha * surfaceHandoff)
+        } else {
+            val solid = androidx.compose.ui.graphics.lerp(fallback, cs.surface, expansion)
+            solid.copy(alpha = solid.alpha * surfaceHandoff)
+        }
+        val backdrop = LocalMochiBackdrop.current
 
+        Box(Modifier.fillMaxSize().onGloballyPositioned {
+            overlayBounds = Rect(it.localToWindow(Offset.Zero), it.size.toSize())
+        }) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (flbMeasured) {
-                        Modifier.aiChatGenieEffect(
-                            progress = reveal,
-                            collapsedBounds = collapsedBounds,
-                            contentLayer = editorLayer,
-                            maxBandCount = 36,
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
-                .clip(windowShape)
-                .background(cs.surface.copy(alpha = windowSurfaceAlpha))
-                .then(
-                    if (windowBorderWidth > 0.001.dp) {
-                        Modifier.border(
-                            width = windowBorderWidth,
-                            color = cs.outline,
-                            shape = windowShape,
-                        )
-                    } else {
-                        Modifier
-                    }
-                ),
+            // Record the editor surface, title and draft together. The format bar is a sibling.
+            Modifier.matchParentSize().editorGenieWarp(
+                window = windowRect,
+                reveal = reveal,
+                openingAnchorX = if (openingAnchorX.isFinite()) openingAnchorX - overlayBounds.left else windowRect.center.x,
+                back = backMotion.copy(touchY = backMotion.touchY - overlayBounds.top),
+                enabled = editorMotion,
+            ),
         ) {
+        Box(Modifier.matchParentSize()) {
+            if (reveal > 0f && !overlayBounds.isEmpty) {
+                EditorBackdropSurface(
+                    modifier = Modifier.matchParentSize(),
+                    main = MochiBlob(windowRect, windowRadius),
+                    fab = fabRect.asGlassBlob(),
+                    fusePx = fusePx,
+                    tint = backing,
+                    rimAlpha = rimAlpha,
+                )
+            }
+            Box(Modifier.matchParentSize().clip(windowShape)) {
+            if (tapPulse > 0f && blurChatPage) {
+                Canvas(Modifier.matchParentSize()) {
+                    val glassLight = androidx.compose.ui.graphics.lerp(cs.primary, Color.White, 0.58f)
+                    drawRect(
+                        Brush.radialGradient(
+                            colors = listOf(glassLight.copy(alpha = 0.22f * tapPulse), Color.Transparent),
+                            center = tapCenter - Offset(0f, tapLift),
+                            radius = (36.dp + 112.dp * reveal).toPx(),
+                        ),
+                    )
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1634,6 +1817,7 @@ private fun FullScreenEditor(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .mochiBlurReveal({ editorPhase(reveal, 0.52f, 0.92f) }, rise = if (editorMotion) 12.dp else 0.dp)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1684,6 +1868,7 @@ private fun FullScreenEditor(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
+                        .mochiBlurReveal({ editorPhase(reveal, 0.38f, 0.84f) }, rise = if (editorMotion) 16.dp else 0.dp)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp)
                         .padding(top = 8.dp, bottom = toolbarHeight + toolbarMargin * 2),
@@ -1709,11 +1894,10 @@ private fun FullScreenEditor(
                     }
                 }
             }
+            }
+        }
         }
 
-        // —— 底部工具栏图层（窗口图层的兄弟层）——
-        // 画在窗口图层（genie 形变 + clip(windowShape)）之外：窗口形状在揭示中段仍只有胶囊大小，
-        // 留在窗口图层里会被裁成胶囊、看不到 morph。
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1723,77 +1907,33 @@ private fun FullScreenEditor(
                     end = popupPadEnd,
                     bottom = popupPadBottom,
                 )
-                .padding(horizontal = toolbarMargin, vertical = toolbarMargin)
-                .onGloballyPositioned { coords ->
-                    val topLeft = coords.localToWindow(Offset.Zero)
-                    toolbarLayerBounds = Rect(
-                        left = topLeft.x,
-                        top = topLeft.y,
-                        right = topLeft.x + coords.size.width,
-                        bottom = topLeft.y + coords.size.height,
-                    )
-                },
+                .padding(horizontal = toolbarMargin, vertical = toolbarMargin),
         ) {
-            // morph 矩形换到工具栏自己的局部坐标里（工具栏按最终位置布局）
-            val morphLeft = toolbarMorph.left - toolbarTargetBounds.left
-            val morphTop = toolbarMorph.top - toolbarTargetBounds.top
-            val morphRight = morphLeft + toolbarMorph.width
-            val morphBottom = morphTop + toolbarMorph.height
-            val containerColor = cs.surfaceContainerHigh.copy(alpha = toolbarMorph.containerAlpha)
-            val hairlineColor = cs.outlineVariant.copy(alpha = 0.5f)
-            val hairlinePx = with(density) { 0.5.dp.toPx() }
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .onSizeChanged { toolbarHeightPx = it.height }
-                    // 胶囊 → 工具栏：不再整条缩放（缩放会把图标压扁），而是让底板的圆角矩形从胶囊
-                    // 拉伸到最终位置，按钮按最终布局摆好、被底板裁出来 ⇒ 底板一边变宽一边把按钮"展开"出来。
-                    // 还没量到最终矩形的那一帧整条不画，不会先在原位闪一下再跳到胶囊上。
-                    .graphicsLayer { alpha = if (toolbarMeasured) aiFlbToolbarAlpha(reveal) else 0f }
-                    .drawWithContent {
-                        if (!toolbarMeasured) return@drawWithContent
-                        val radius = androidx.compose.ui.geometry.CornerRadius(toolbarMorph.cornerRadiusPx)
-                        val topLeft = Offset(morphLeft, morphTop)
-                        val size = androidx.compose.ui.geometry.Size(toolbarMorph.width, toolbarMorph.height)
-                        drawRoundRect(containerColor, topLeft, size, radius)
-                        drawRoundRect(
-                            color = hairlineColor,
-                            topLeft = topLeft,
-                            size = size,
-                            cornerRadius = radius,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(hairlinePx),
-                        )
-                        val clip = androidx.compose.ui.graphics.Path().apply {
-                            addRoundRect(
-                                androidx.compose.ui.geometry.RoundRect(
-                                    morphLeft, morphTop, morphRight, morphBottom, radius,
-                                ),
-                            )
-                        }
-                        clipPath(clip) {
-                            this@drawWithContent.drawContent()
-                        }
-                    }
-                    .padding(start = 6.dp, top = 6.dp, bottom = 6.dp, end = 6.dp),
+                    .mochiBlurReveal({ editorPhase(reveal, 0.57f, 0.92f) }, rise = if (editorMotion) 12.dp else 0.dp),
             ) {
+                if (reveal > 0.57f) {
+                    MochiGlassSurface(
+                        modifier = Modifier.matchParentSize(),
+                        material = (MochiTheme.materials.controlGlass ?: MochiGlass())
+                            .copy(adaptive = false, fallback = cs.surfaceContainerHigh),
+                        backdrop = backdrop.takeIf { MochiTheme.materials.controlGlass != null },
+                    ) {}
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // 按钮整体跟着底板的竖直中线走：胶囊比工具栏高（多行输入）时也贴在底板中间
-                        .graphicsLayer {
-                            if (toolbarMeasured) {
-                                translationY = (morphTop + morphBottom) / 2f - size.height / 2f -
-                                    with(density) { 6.dp.toPx() }
-                            }
-                        },
+                        .padding(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // 格式与附件按钮可以横向滚，发送键固定在最右边，不会被挤出屏幕
                     Row(
                         modifier = Modifier
                             .weight(1f)
-                            .graphicsLayer { if (toolbarMeasured) translationX = morphLeft }
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1875,9 +2015,6 @@ private fun FullScreenEditor(
                         }
                     }
                     Spacer(Modifier.width(6.dp))
-                    // 和收起态胶囊里同一个发送键：一直贴着底板的右沿走，揭示一开始就在胶囊发送键的位置上，
-                    // 上滑全程没有"消失再出现"。有字是主题色实心圆、空的时候是淡色箭头（点了不发），
-                    // 由空变有字时弹一下。
                     val sendPop = remember { Animatable(1f) }
                     LaunchedEffect(hasContent) {
                         if (hasContent && editorMotion) {
@@ -1896,16 +2033,13 @@ private fun FullScreenEditor(
                         },
                         onLongClick = {},
                         modifier = Modifier.graphicsLayer {
-                            if (toolbarMeasured) {
-                                // 右沿对齐：Row 的右内边距 6dp 在最终矩形和 morph 矩形里一样
-                                translationX = morphRight - toolbarTargetBounds.width
-                            }
                             scaleX = sendPop.value
                             scaleY = sendPop.value
                         },
                     )
                 }
             }
+        }
         }
     }
 }
@@ -2216,15 +2350,6 @@ private fun PanelAction(
     }
 }
 
-
-/**
- * 全屏编辑器的揭示弹簧：临界阻尼（揭示进度在 1 处被 clamp，回弹看不见只会显得顿一下），
- * 刚度与 Mochi 的高度动画同档。手势松手时把手指速度作为 initialVelocity 接上。
- */
-private val EditorRevealSpring = androidx.compose.animation.core.spring<Float>(
-    dampingRatio = 1f,
-    stiffness = 380f,
-)
 
 /**
  * FLB 手风琴面板的落定曲线：

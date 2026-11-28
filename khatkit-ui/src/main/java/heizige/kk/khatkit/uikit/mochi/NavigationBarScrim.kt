@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.theme.MochiGlass
-import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.LocalMochiMaterials
 
 /** The handle sits on the page color, with a short transition into the scrolling content. */
 @Composable
@@ -29,16 +29,9 @@ fun NavigationBarScrim(background: Color, modifier: Modifier = Modifier) {
 }
 
 /** Glass has its own outer shadow, separate from the plain tab bar's shadow color. */
-@Composable
-fun rememberNavigationBarMaterial(): MochiGlass? {
-    val material = MochiTheme.materials.bar ?: return null
-    return remember(material) {
-        material.copy(
-            light = material.light.copy(shadowOpacity = 0f),
-            dark = material.dark.copy(shadowOpacity = 0f),
-            byLuma = material.byLuma?.let { recipe ->
-                { luma, light -> recipe(luma, light).copy(shadowOpacity = 0f) }
-            },
-        )
-    }
+val LocalKkNavigationBarMaterial = compositionLocalWithComputedDefaultOf<MochiGlass?> {
+    LocalMochiMaterials.currentValue.bar
 }
+
+@Composable
+fun rememberNavigationBarMaterial(): MochiGlass? = LocalKkNavigationBarMaterial.current

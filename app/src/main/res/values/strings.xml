@@ -1094,6 +1094,16 @@
   <string name="setting_page_preferences_ui_message_desc">Avatars, bubbles, model names</string>
   <string name="setting_page_preferences_ui_font">Font</string>
   <string name="setting_page_preferences_ui_font_desc">Font and size</string>
+  <string name="setting_preferences_font_titles">Titles</string>
+  <string name="setting_preferences_font_serif_title">Serif titles</string>
+  <string name="setting_preferences_font_serif_desc">Use the system serif font for large titles</string>
+  <string name="setting_preferences_font_chat">Chat text</string>
+  <string name="setting_preferences_font_preview">Preview</string>
+  <string name="setting_preferences_navigation_title">Navigation</string>
+  <string name="setting_preferences_navigation_desc">Back gesture and bottom bar</string>
+  <string name="setting_preferences_navigation_gestures">Gestures</string>
+  <string name="setting_preferences_predictive_back_title">Predictive back</string>
+  <string name="setting_preferences_predictive_back_desc">Preview the previous screen as you swipe back</string>
   <string name="setting_page_preferences_ui_code">Code</string>
   <string name="setting_page_preferences_ui_code_desc">Wrap, collapse, line numbers</string>
   <string name="setting_page_preferences_network">Network</string>
