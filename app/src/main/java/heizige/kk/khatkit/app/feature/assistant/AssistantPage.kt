@@ -179,17 +179,6 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val lazyListState = rememberLazyListState()
-            val isFiltering = selectedTagIds.isNotEmpty() || searchQuery.isNotBlank()
-            val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-                if (!isFiltering && from.index in settings.assistants.indices) {
-                    val newAssistants = settings.assistants.toMutableList()
-                    val moved = newAssistants.removeAt(from.index)
-                    newAssistants.add(to.index.coerceIn(0, newAssistants.size), moved)
-                    vm.updateSettings(settings.copy(assistants = newAssistants))
-                }
-            }
-            val haptic = LocalHapticFeedback.current
-
             // 助手列表：折叠态挂在页面里，展开态搬进搜索框的全屏槽，所以抽成 lambda 复用。
             val assistantList: @Composable (Modifier) -> Unit = { listModifier ->
                 val cards = listCardStyle()
@@ -212,150 +201,128 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                 },
                             ) { index ->
                                 if (index == filteredAssistants.size) {
-                                    ReorderableItem(
-                                        state = reorderableState,
-                                        key = "mochi-section:assistant-roles:new_assistant",
-                                    ) {
-                                        MochiListRow(
-                                            title = stringResource(R.string.assistant_page_new),
-                                            leading = { Icon(add, contentDescription = null) },
-                                            onClick = {
-                                                createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id))
-                                            },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
+                                    MochiListRow(
+                                        title = stringResource(R.string.assistant_page_new),
+                                        leading = { Icon(add, contentDescription = null) },
+                                        onClick = {
+                                            createState.open(Assistant(chatModelId = settings.getCurrentChatModel()?.id))
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
                                 } else {
                                     val assistant = filteredAssistants[index]
-                                    ReorderableItem(
-                                        state = reorderableState,
-                                        key = "mochi-section:assistant-roles:${assistant.id}",
-                                    ) { isDragging ->
-                                        val memoryCount by remember(assistant.id) {
-                                            vm.getMemoryCount(assistant)
-                                        }.collectAsStateWithLifecycle(initialValue = 0)
-                                        val isCurrent = assistant.id == settings.assistantId
-                                        val hasSupporting = isCurrent || assistant.canManageRoles ||
-                                            assistant.enableMemory || assistant.tags.isNotEmpty()
+                                    val assistantIndex = settings.assistants.indexOfFirst { it.id == assistant.id }
+                                    val memoryCount by remember(assistant.id) {
+                                        vm.getMemoryCount(assistant)
+                                    }.collectAsStateWithLifecycle(initialValue = 0)
+                                    val isCurrent = assistant.id == settings.assistantId
+                                    val hasSupporting = isCurrent || assistant.canManageRoles ||
+                                        assistant.enableMemory || assistant.tags.isNotEmpty()
 
-                                        MochiSwipeRow(
-                                            actions = listOf(
-                                                MochiSwipeAction(
-                                                    label = stringResource(R.string.assistant_page_delete),
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    icon = { tint -> Icon(delete, contentDescription = null, tint = tint) },
-                                                    onClick = { deleteTarget = assistant },
-                                                ),
+                                    MochiSwipeRow(
+                                        actions = listOf(
+                                            MochiSwipeAction(
+                                                label = stringResource(R.string.assistant_page_delete),
+                                                color = MaterialTheme.colorScheme.error,
+                                                icon = { tint -> Icon(delete, contentDescription = null, tint = tint) },
+                                                onClick = { deleteTarget = assistant },
                                             ),
-                                            dividerInset = MochiListDefaults.RowPadding +
-                                                MochiListDefaults.LeadingSize + MochiListDefaults.LeadingGap,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .scale(if (isDragging) 0.98f else 1f),
-                                        ) {
-                                            MochiListRow(
-                                                title = assistant.name.ifBlank {
-                                                    stringResource(R.string.assistant_page_default_assistant)
-                                                },
-                                                subtitle = assistant.description.takeIf { it.isNotBlank() },
-                                                leading = {
-                                                    UIAvatar(
-                                                        value = assistant.avatar,
-                                                        name = assistant.name.ifBlank {
-                                                            stringResource(R.string.assistant_page_default_assistant)
-                                                        },
-                                                        avatarShape = assistant.avatarShape,
-                                                        defaultIconName = settings.findModelProviderName(
-                                                            assistant.chatModelId ?: settings.chatModelId
-                                                        ),
-                                                        avatarColor = assistant.avatarColor,
-                                                        modifier = Modifier
-                                                            .size(MochiListDefaults.LeadingSize)
-                                                            .heroAnimation("assistant_${assistant.id}"),
-                                                    )
-                                                },
-                                                status = if (hasSupporting) {
-                                                    {
-                                                        Row(
-                                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                        ) {
-                                                            if (isCurrent) {
-                                                                Tag(type = TagType.INFO) {
-                                                                    Text(stringResource(R.string.assistant_page_current_assistant))
-                                                                }
+                                        ),
+                                        dividerInset = MochiListDefaults.RowPadding +
+                                            MochiListDefaults.LeadingSize + MochiListDefaults.LeadingGap,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        MochiListRow(
+                                            title = assistant.name.ifBlank {
+                                                stringResource(R.string.assistant_page_default_assistant)
+                                            },
+                                            subtitle = assistant.description.takeIf { it.isNotBlank() },
+                                            leading = {
+                                                UIAvatar(
+                                                    value = assistant.avatar,
+                                                    name = assistant.name.ifBlank {
+                                                        stringResource(R.string.assistant_page_default_assistant)
+                                                    },
+                                                    avatarShape = assistant.avatarShape,
+                                                    defaultIconName = settings.findModelProviderName(
+                                                        assistant.chatModelId ?: settings.chatModelId
+                                                    ),
+                                                    avatarColor = assistant.avatarColor,
+                                                    modifier = Modifier
+                                                        .size(MochiListDefaults.LeadingSize)
+                                                        .heroAnimation("assistant_${assistant.id}"),
+                                                )
+                                            },
+                                            status = if (hasSupporting) {
+                                                {
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                    ) {
+                                                        if (isCurrent) {
+                                                            Tag(type = TagType.INFO) {
+                                                                Text(stringResource(R.string.assistant_page_current_assistant))
                                                             }
-                                                            if (assistant.canManageRoles) {
-                                                                Tag(type = TagType.SUCCESS) {
-                                                                    Text(stringResource(R.string.assistant_page_supervisor))
-                                                                }
+                                                        }
+                                                        if (assistant.canManageRoles) {
+                                                            Tag(type = TagType.SUCCESS) {
+                                                                Text(stringResource(R.string.assistant_page_supervisor))
                                                             }
-                                                            if (assistant.enableMemory) {
-                                                                Tag(type = TagType.SUCCESS) {
-                                                                    Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
-                                                                }
+                                                        }
+                                                        if (assistant.enableMemory) {
+                                                            Tag(type = TagType.SUCCESS) {
+                                                                Text(stringResource(R.string.assistant_page_memory_count, memoryCount))
                                                             }
-                                                            assistant.tags.take(2).fastForEach { tagId ->
-                                                                val tag = settings.assistantTags.find { it.id == tagId }
-                                                                    ?: return@fastForEach
-                                                                KkSurface(
-                                                                    shape = RoundedCornerShape(50),
-                                                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                                                ) {
-                                                                    Text(
-                                                                        text = tag.name,
-                                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                    )
-                                                                }
-                                                            }
-                                                            if (assistant.tags.size > 2) {
+                                                        }
+                                                        assistant.tags.take(2).fastForEach { tagId ->
+                                                            val tag = settings.assistantTags.find { it.id == tagId }
+                                                                ?: return@fastForEach
+                                                            KkSurface(
+                                                                shape = RoundedCornerShape(50),
+                                                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                                            ) {
                                                                 Text(
-                                                                    text = "+${assistant.tags.size - 2}",
+                                                                    text = tag.name,
+                                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                                                     style = MaterialTheme.typography.labelSmall,
-                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                                 )
                                                             }
                                                         }
-                                                    }
-                                                } else null,
-                                                trailing = {
-                                                    AssistantRoleActions(
-                                                        isCurrent = isCurrent,
-                                                        onAction = { action ->
-                                                            when (action) {
-                                                                0 -> if (!isCurrent) vm.setCurrentAssistant(assistant)
-                                                                1 -> navController.navigate(
-                                                                    Screen.AssistantDetail(id = assistant.id.toString())
-                                                                )
-                                                                2 -> vm.copyAssistant(assistant)
-                                                                3 -> vm.copyAssistant(assistant, copyMemories = true)
-                                                                4 -> deleteTarget = assistant
-                                                            }
-                                                        },
-                                                    )
-                                                },
-                                                onClick = {
-                                                    navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
-                                                },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .then(
-                                                        if (!isFiltering) {
-                                                            Modifier.longPressDraggableHandle(
-                                                                onDragStarted = {
-                                                                    haptic.performHapticFeedback(
-                                                                        HapticFeedbackType.GestureThresholdActivate
-                                                                    )
-                                                                },
-                                                                onDragStopped = {
-                                                                    haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                                                },
+                                                        if (assistant.tags.size > 2) {
+                                                            Text(
+                                                                text = "+${assistant.tags.size - 2}",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             )
-                                                        } else Modifier,
-                                                    ),
-                                            )
-                                        }
+                                                        }
+                                                    }
+                                                }
+                                            } else null,
+                                            trailing = {
+                                                AssistantRoleActions(
+                                                    isCurrent = isCurrent,
+                                                    canMoveUp = assistantIndex > 0,
+                                                    canMoveDown = assistantIndex >= 0 && assistantIndex < settings.assistants.lastIndex,
+                                                    onAction = { action ->
+                                                        when (action) {
+                                                            0 -> if (!isCurrent) vm.setCurrentAssistant(assistant)
+                                                            1 -> navController.navigate(
+                                                                Screen.AssistantDetail(id = assistant.id.toString())
+                                                            )
+                                                            2 -> vm.copyAssistant(assistant)
+                                                            3 -> vm.copyAssistant(assistant, copyMemories = true)
+                                                            4 -> vm.moveAssistant(assistant, -1)
+                                                            5 -> vm.moveAssistant(assistant, 1)
+                                                            6 -> deleteTarget = assistant
+                                                        }
+                                                    },
+                                                )
+                                            },
+                                            onClick = {
+                                                navController.navigate(Screen.AssistantDetail(id = assistant.id.toString()))
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
                                     }
                                 }
                             }
@@ -594,6 +561,8 @@ private fun AssistantCreationSheet(
 @Composable
 private fun AssistantRoleActions(
     isCurrent: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
     onAction: (Int) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -626,6 +595,16 @@ private fun AssistantRoleActions(
             MochiItem(
                 label = stringResource(R.string.assistant_page_clone_with_memories_action),
                 icon = { tint -> MochiIonicon("copy-outline", size = 20.dp, tint = tint) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_move_up),
+                enabled = canMoveUp,
+                icon = { tint -> MochiIonicon("arrow-up", size = 20.dp, tint = tint) },
+            ),
+            MochiItem(
+                label = stringResource(R.string.assistant_page_move_down),
+                enabled = canMoveDown,
+                icon = { tint -> MochiIonicon("arrow-down", size = 20.dp, tint = tint) },
             ),
             MochiItem(
                 label = stringResource(R.string.assistant_page_delete),

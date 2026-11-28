@@ -286,6 +286,8 @@
   <string name="assistant_page_set_current">Set as current role</string>
   <string name="assistant_page_edit_role">Edit role</string>
   <string name="assistant_page_clone_with_memories_action">Clone with memories</string>
+  <string name="assistant_page_move_up">Move up</string>
+  <string name="assistant_page_move_down">Move down</string>
   <string name="assistant_page_custom_bodies">Custom Body</string>
   <string name="assistant_page_custom_headers">Custom Headers</string>
   <string name="assistant_page_default_assistant">Default Role</string>

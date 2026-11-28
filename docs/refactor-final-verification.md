@@ -92,3 +92,55 @@ document/material3/web 各 1。
 1. 删除 `AssistantPage.kt:643` 的行尾空行 → 在最终树复跑 `git diff --check`（必须 0）。
 2. 最终树若再次变化，需以同一口径新建副本重跑四条命令（本次全套约 705s）。
 3. 通过后本报告可作为 t13/t45 的放行证据；本报告绑定 HEAD `5cb59c1da` 的内容快照。
+
+---
+
+## 附：t54 洁净 worktree 复核（两轮，均 **未通过**）
+
+验证方式：`git worktree add --detach /tmp/kv-t54 <commit>`（dirty=0 的洁净检出），worktree 内补齐构建前置
+`git submodule update --init material3/material-color-utilities`（pinned `6fd88eb3e95ba1d457842e2a2bf847d06b3a018a`）
+并复制 `local.properties`（否则 `:material3` 报 `Unresolved reference 'dynamiccolor'`）。
+
+### 轮 1：commit `a7ef4b25b`（22:47:48→22:50:08）
+
+| 命令 | exit | 耗时 |
+|---|---:|---:|
+| `:app:compileDebugKotlin` | 1 | 47s |
+| `:app:testDebugUnitTest` | 1 | 22s |
+| `test` | 1 | 22s |
+| `:app:lintDebug` | 1 | 48s |
+| `git diff --check` | 0 | — |
+
+根因：该 commit 把两条 import 拼接成一行 —— `assistant/AssistantPage.kt:79` `import …utility.editimport …UIAvatar`、
+`:86` `…CustomColorsimport androidx.hilt…`，编译器报 `Unresolved reference 'editimport'` + 语法错误。
+溯源：`5cb59c1da`、`23ad0c14b` 同一行正常，是 `a7ef4b25b`（修 EOF 空行那次）引入。
+
+### 轮 2：commit `d5b9ca5ac`（22:51:45→22:54:46）
+
+worktree `/tmp/kv-t54`、HEAD `d5b9ca5ac2e3549f66dcebee640254db91db6855`、tree `1c7d201da381974004405c89bdce20cc168c26e9`。
+
+| 命令 | exit | 耗时 |
+|---|---:|---:|
+| `:app:compileDebugKotlin` | 1 | 87s |
+| `:app:testDebugUnitTest` | 1 | 21s |
+| `test` | 1 | 23s |
+| `:app:lintDebug` | 1 | 50s |
+| `git diff --check` | 0 | — |
+
+根因：`assistant/AssistantPage.kt` 的 Reorderable 包装被改坏，编译期 11 条错误，首条
+`:215:37 None of the following candidates is applicable`，另有 `:219/:220/:234/:236/:241/:244/:245 @Composable invocations can only happen from the context of a @Composable function`、
+`:233 Cannot infer type for value parameter 'isDragging'`、`:345:70 Unresolved reference 'longPressDraggableHandle'`
+（该扩展是 ReorderableItem 内容作用域成员，说明 ReorderableItem 包裹结构已错位）。test/lint 因依赖 compile 全部失败。
+静态复核与该 commit 一致：app en/zh 各 **3040** 条目、唯一名 **3039**、键差集 0、同类型重复 0、87 个 res XML 解析 0 失败；
+旧符号 AutomationBus/TriggerController/AutomationTracer/UiAutomationSnapshotProvider/WorkflowEngine/TracePlayer = 0
+（WorkflowLegacy 仅 2 处注释）。9 项历史单测因编译失败未执行，不能据此放行。
+
+### 结论与下一步
+
+- `a7ef4b25b`、`d5b9ca5ac` 均**不可作为发布基准**（前者 import 拼接、后者 assistant 页面结构错位）。
+- 主工作树当前仍有未提交的 `AssistantPage.kt`（约 262 行，正在移除 Reorderable 结构）/ `AssistantViewModel.kt` /
+  `values`+`values-zh` 改动，属活跃编辑；须收口并提交、确认 `:app:compileDebugKotlin` 通过后，再以最终 commit
+  重建 worktree 重跑五条命令（约 13 min，lint 占 9 min）。
+- 建议加守门：任何提交（含 docs 类）至少跑一次 `:app:compileDebugKotlin`，避免同类破坏再次进入主干。
+- 临时 worktree 已按合同删除（`git worktree remove --force` + `prune`）；本轮未 assemble、未操作设备、未改源码、
+  未 git add/commit。

@@ -55,6 +55,20 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
+    fun moveAssistant(assistant: Assistant, offset: Int) {
+        viewModelScope.launch {
+            settingsStore.update { current ->
+                val from = current.assistants.indexOfFirst { it.id == assistant.id }
+                if (from < 0 || current.assistants.isEmpty()) return@update current
+                val items = current.assistants.toMutableList()
+                val moved = items.removeAt(from)
+                val to = (from + offset).coerceIn(0, items.size)
+                items.add(to, moved)
+                current.copy(assistants = items)
+            }
+        }
+    }
+
     fun removeAssistant(assistant: Assistant) {
         viewModelScope.launch {
             cleanupAssistantFiles(assistant)
