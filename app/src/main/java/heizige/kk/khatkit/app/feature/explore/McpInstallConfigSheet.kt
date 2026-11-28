@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
+import heizige.kk.khatkit.app.core.ui.components.ai.mcp.McpServerConfigModal
+import heizige.kk.khatkit.app.feature.explore.helper.planMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.rePlanMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.maskedMcpSummary
 
 /**
  * P0-5：市场条目的「配置」入口 —— 复用设置页的 MCP 表单（[McpServerConfigModal]），

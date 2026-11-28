@@ -276,7 +276,7 @@ internal fun MediaPickerGridWithOverlays(
                                             }
                                         }
                                         MochiBarButton(
-                                            text = if (allowMultiple && canPick) "$pickLabel (${selectedMedia.size})" else pickLabel,
+                                            text = if (allowMultiple && canPick) androidx.compose.ui.res.pluralStringResource(R.plurals.media_picker_selected_count, selectedMedia.size, pickLabel, selectedMedia.size) else pickLabel,
                                             onClick = { if (canPick) onPicked() },
                                             enabled = canPick,
                                             modifier = Modifier.semantics { contentDescription = pickLabel },
@@ -289,7 +289,11 @@ internal fun MediaPickerGridWithOverlays(
                 }
             }
             // 清空选择只在返回手势提交时执行，取消手势保留选择。
-            PredictiveBackHandler(selectedMedia.isNotEmpty() && !isSearching) { events ->
+            // 返回优先级（外层 KhatKitMediaPicker）：搜索 → 相册「全部」→ 清空选择 → 关闭选择器；
+            // 所以相册筛选态下这条选择处理器必须让位，否则会先清空选择、违背优先级。
+            PredictiveBackHandler(
+                selectedMedia.isNotEmpty() && !isSearching && selectedAlbumId == ALL_ALBUM_ID,
+            ) { events ->
                 try {
                     events.collect { }
                     selectedMedia.clear()

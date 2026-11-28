@@ -183,7 +183,7 @@ private fun MediaImagePagerContent(
                 )
                 if (media.size > 1) {
                     Text(
-                        text = "${pagerState.currentPage + 1}/${media.size}",
+                        text = stringResource(R.string.media_picker_page_position, pagerState.currentPage + 1, media.size),
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                     )

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.tools
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.uikit.mochi.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,15 +63,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.feature.tools.helper.ToolCategory
-import heizige.kk.khatkit.app.feature.tools.helper.ToolGridZoom
+import heizige.kk.khatkit.app.core.data.model.ToolCategory
+import heizige.kk.khatkit.app.feature.tools.helper.ToolGridZoomManager
 import heizige.kk.khatkit.app.feature.tools.helper.ToolShortcutHelper
-import heizige.kk.khatkit.app.feature.tools.helper.matchesToolQuery
-import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
-import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
-import heizige.kk.khatkit.app.feature.tools.helper.toolTitle
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.util.matchesToolQuery
+import heizige.kk.khatkit.app.core.util.toolCategory
+import heizige.kk.khatkit.app.core.util.toolDescription
+import heizige.kk.khatkit.app.core.util.toolTitle
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.hub.CardIndexEntry
 import ui.feice.mochi.basic.MochiActivityIndicator
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
@@ -111,11 +113,15 @@ import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.collections.immutable.persistentListOf
+import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogueState
+import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogue
 
-private enum class ToolScope(val title: String, val icon: String) {
-    ALL("全部", "apps"),
-    RECENT("近期", "time"),
-    FAVORITES("收藏", "star"),
+
+
+private enum class ToolScope(@androidx.annotation.StringRes val titleRes: Int, val icon: String) {
+    ALL(R.string.tools_scope_all, "apps"),
+    RECENT(R.string.tools_scope_recent, "time"),
+    FAVORITES(R.string.tools_scope_favorites, "star"),
 }
 
 private data class ToolView(val grid: Boolean)
@@ -189,7 +195,7 @@ internal fun ToolCataloguePage() {
         scrollUnderTopBar = true,
         topBar = {
             MochiPageTitleBar(
-                title = "工具台",
+                title = stringResource(R.string.tools_title),
                 navigationIcon = { BackButton() },
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
@@ -199,7 +205,7 @@ internal fun ToolCataloguePage() {
                         navId = "tools.api-health",
                         colors = kkBarButtonColors(),
                     ) {
-                        MochiIonicon("pulse", contentDescription = "卡片 API 状态")
+                        MochiIonicon("pulse", contentDescription = stringResource(R.string.tools_api_health_title))
                     }
                     MochiBarIconButton(
                         onClick = {
@@ -209,7 +215,7 @@ internal fun ToolCataloguePage() {
                         contentKey = if (grid) "list" else "grid",
                         colors = kkBarButtonColors(),
                     ) {
-                        MochiIonicon(if (grid) "list" else "grid", contentDescription = if (grid) "切换为列表" else "切换为网格")
+                        MochiIonicon(if (grid) "list" else "grid", contentDescription = if (grid) stringResource(R.string.tools_switch_to_list) else stringResource(R.string.tools_switch_to_grid))
                     }
                 },
             )
@@ -255,7 +261,7 @@ internal fun ToolCataloguePage() {
                     ) {
                         items(categories, key = { it.name }) { item ->
                             val selected = selectedCategory == item.name
-                            RailCategory(item.title, item.icon, selected, scoped.count { it.toolCategory() == item }) {
+                            RailCategory(stringResource(item.titleRes), item.icon, selected, scoped.count { it.toolCategory() == item }) {
                                 selectedCategory = item.name
                                 categoryRequest++
                             }
@@ -307,9 +313,10 @@ private fun CategoryChip(title: String, icon: String, selected: Boolean, count: 
 
 @Composable
 private fun RailCategory(title: String, icon: String, selected: Boolean, count: Int, onClick: () -> Unit) {
+    val cardA11y = stringResource(R.string.tools_card_a11y, title, count)
     MochiChip(
         label = title, selected = selected, onClick = onClick,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 68.dp).semantics { contentDescription = "$title，$count 个工具" },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 68.dp).semantics { contentDescription = cardA11y },
         labelContent = {
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 10.dp),
@@ -402,7 +409,7 @@ private fun ToolResults(
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                            val zoom = ToolGridZoom()
+                            val zoom = ToolGridZoomManager()
                             var claimed = false
                             do {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -451,7 +458,7 @@ private fun ToolResults(
                         Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                             if (state.loading) MochiActivityIndicator()
                             else if (state.error != null) {
-                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
+                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text(stringResource(R.string.tools_retry_load)) }
                             }
                         }
                     }
@@ -470,6 +477,7 @@ private fun ToolResults(
                 start
             }
         }
+        val categoryHeaders = groups.associate { it.category.name to stringResource(it.category.titleRes) }
         val refresh = rememberMochiRefreshState(overscroll, listState, onRefreshAwait)
         LaunchedEffect(query, view, scope) { listState.scrollToItem(0) }
         LaunchedEffect(categoryRequest) {
@@ -507,7 +515,7 @@ private fun ToolResults(
                     }
                 } else {
                     groups.forEach { group ->
-                        mochiListSection(key = "tools:${group.category.name}", header = group.category.title) {
+                        mochiListSection(key = "tools:${group.category.name}", header = categoryHeaders.getValue(group.category.name)) {
                             rows(group.cards, key = { it.name }) { entry ->
                                 MochiListRow(
                                     title = entry.toolTitle(locales),
@@ -528,7 +536,7 @@ private fun ToolResults(
                         Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                             if (state.loading) MochiActivityIndicator()
                             else if (state.error != null) {
-                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text("重试加载") }
+                                MochiButton(onClick = onLoadMore, style = MochiButtonStyle.Tonal) { Text(stringResource(R.string.tools_retry_load)) }
                             }
                         }
                     }
@@ -559,7 +567,7 @@ private fun ToolCatalogueHeader(
         MochiSearchBar(
             query = query,
             onQueryChange = onQueryChange,
-            placeholder = "搜索工具名称或功能",
+            placeholder = stringResource(R.string.tools_search_placeholder),
             modifier = Modifier.padding(vertical = 8.dp),
         )
         MochiChipGroup(
@@ -567,7 +575,7 @@ private fun ToolCatalogueHeader(
         ) {
             ToolScope.entries.forEach { option ->
                 MochiChip(
-                    label = option.title,
+                    label = stringResource(option.titleRes),
                     selected = scope == option,
                     onClick = { onScopeChange(option) },
                     leadingIcon = { MochiIonicon(option.icon, size = 16.dp) },
@@ -580,7 +588,7 @@ private fun ToolCatalogueHeader(
             ) {
                 categories.forEach { item ->
                     val selected = selectedCategory == item.name
-                    CategoryChip(item.title, item.icon, selected, scoped.count { it.toolCategory() == item }) {
+                    CategoryChip(stringResource(item.titleRes), item.icon, selected, scoped.count { it.toolCategory() == item }) {
                         onCategorySelected(item)
                     }
                 }
@@ -589,8 +597,8 @@ private fun ToolCatalogueHeader(
         // 局域网共享做成正文里的一张卡片（顶栏「更多」菜单已删）
         MochiListSection(modifier = Modifier.padding(vertical = 4.dp)) {
             MochiListRow(
-                title = "局域网共享",
-                subtitle = "同一局域网内发现设备、共享文件",
+                title = stringResource(R.string.tools_lan_share),
+                subtitle = stringResource(R.string.tools_lan_share_desc),
                 onClick = { onNavigate(Screen.LanShare) },
                 leading = { MochiIonicon("wifi") },
                 leadingStyle = MochiListLeadingStyle.Symbol,
@@ -600,12 +608,12 @@ private fun ToolCatalogueHeader(
         if (error != null) {
             MochiListSection(modifier = Modifier.padding(vertical = 4.dp)) {
                 MochiListRow(
-                    title = "目录未能更新",
+                    title = stringResource(R.string.tools_catalogue_outdated),
                     subtitle = error,
                     onClick = onRetry,
                     leading = { MochiIonicon("cloud-offline") },
                     leadingStyle = MochiListLeadingStyle.Symbol,
-                    trailing = { Text("重试", style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.primary) },
+                    trailing = { Text(stringResource(R.string.tools_retry_load), style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.primary) },
                 )
             }
         }
@@ -630,21 +638,21 @@ private fun ToolEmptyState(
         } else {
             MochiEmptyState(
                 title = when {
-                    query.isNotBlank() -> "没有匹配的工具"
-                    scope == ToolScope.RECENT -> "还没有近期使用"
-                    scope == ToolScope.FAVORITES -> "还没有收藏"
-                    else -> "暂无工具"
+                    query.isNotBlank() -> stringResource(R.string.tools_empty_no_match)
+                    scope == ToolScope.RECENT -> stringResource(R.string.tools_empty_recent)
+                    scope == ToolScope.FAVORITES -> stringResource(R.string.tools_empty_favorites)
+                    else -> stringResource(R.string.tools_empty_none)
                 },
                 message = when {
-                    query.isNotBlank() -> "换个名称或功能试试。"
-                    scope == ToolScope.RECENT -> "打开过的工具会保留在这里。"
-                    scope == ToolScope.FAVORITES -> "点工具上的星标，方便下次找到。"
-                    else -> "浏览全部分类，选择需要的工具。"
+                    query.isNotBlank() -> stringResource(R.string.tools_empty_hint_query)
+                    scope == ToolScope.RECENT -> stringResource(R.string.tools_empty_hint_recent)
+                    scope == ToolScope.FAVORITES -> stringResource(R.string.tools_empty_hint_favorites)
+                    else -> stringResource(R.string.tools_empty_hint_none)
                 },
                 icon = { MochiIonicon(if (query.isNotBlank()) "search" else scope.icon, size = 36.dp) },
                 action = {
                     MochiButton(onClick = if (state.error != null) onRefresh else onClear, style = MochiButtonStyle.Tonal) {
-                        Text(if (state.error != null) "重新加载" else "查看全部工具")
+                        Text(if (state.error != null) stringResource(R.string.tools_reload) else stringResource(R.string.tools_view_all))
                     }
                 },
             )
@@ -711,9 +719,9 @@ private fun ToolGridCard(
                 if (busy) MochiActivityIndicator(Modifier.size(14.dp))
                 Text(
                     when {
-                        busy -> "正在打开"
-                        entry.name in state.installed -> "已安装"
-                        else -> "下载并打开"
+                        busy -> stringResource(R.string.tools_opening)
+                        entry.name in state.installed -> stringResource(R.string.tools_installed)
+                        else -> stringResource(R.string.tools_download_open)
                     },
                     style = MochiTheme.textStyles.footnote,
                     color = if (busy || entry.name !in state.installed) MochiTheme.colorScheme.primary else MochiTheme.colorScheme.onSurfaceVariant,
@@ -733,14 +741,16 @@ private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, lo
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     val title = entry.toolTitle(locales)
+    val shortcutFailed = stringResource(R.string.tools_shortcut_failed)
+    val actionsDesc = stringResource(R.string.tools_card_actions, title)
     MochiIconDropdown(
         expanded = expanded,
         onExpandedChange = { expanded = it },
         items = persistentListOf(
-            MochiItem(if (favorite) "取消收藏" else "收藏工具", icon = { tint ->
+            MochiItem(if (favorite) stringResource(R.string.tools_unfavorite) else stringResource(R.string.tools_favorite), icon = { tint ->
                 MochiIonicon("star", size = 20.dp, tint = tint)
             }),
-            MochiItem("添加到桌面", icon = { tint ->
+            MochiItem(stringResource(R.string.tools_add_to_home), icon = { tint ->
                 MochiIonicon("add-circle", size = 20.dp, tint = tint)
             }),
         ),
@@ -749,7 +759,7 @@ private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, lo
             when (index) {
                 0 -> onFavorite(entry.name)
                 1 -> if (!ToolShortcutHelper.pin(context, entry.name, title)) {
-                    Toast.show("无法添加桌面快捷方式", isError = true)
+                    Toast.show(shortcutFailed, isError = true)
                 }
             }
         },
@@ -757,7 +767,7 @@ private fun ToolCardActions(entry: CardIndexEntry, state: ToolCatalogueState, lo
         menuWidth = 220.dp,
         size = 44.dp,
     ) {
-        MochiIonicon("ellipsis-horizontal", size = 19.dp, contentDescription = "${title}的操作")
+        MochiIonicon("ellipsis-horizontal", size = 19.dp, contentDescription = actionsDesc)
     }
 }
 
@@ -772,7 +782,7 @@ private fun FavoriteButton(name: String, favorite: Boolean, onFavorite: (String)
                 size = 19.dp,
                 style = if (selected) MochiIconStyle.Filled else MochiIconStyle.Outline,
                 tint = if (selected) MochiTheme.colorScheme.primary else MochiTheme.colorScheme.onSurfaceVariant,
-                contentDescription = if (selected) "取消收藏" else "收藏工具",
+                contentDescription = if (selected) stringResource(R.string.tools_unfavorite) else stringResource(R.string.tools_favorite),
             )
         }
     }

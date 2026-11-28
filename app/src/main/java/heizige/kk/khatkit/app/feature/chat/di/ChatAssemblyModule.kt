@@ -1,0 +1,298 @@
+package heizige.kk.khatkit.app.feature.chat.di
+
+import android.app.Application
+import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import heizige.kk.khatkit.ai.provider.ProviderManager
+import heizige.kk.khatkit.app.AppScope
+import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
+import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
+import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
+import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
+import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
+import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
+import heizige.kk.khatkit.app.core.data.ai.transformers.PlaceholderTransformer
+import heizige.kk.khatkit.app.core.data.ai.transformers.TemplateTransformer
+import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
+import heizige.kk.khatkit.app.core.data.event.AppEventBus
+import heizige.kk.khatkit.app.core.data.files.FilesManager
+import heizige.kk.khatkit.app.core.data.files.SkillManager
+import heizige.kk.khatkit.app.core.data.remote.ModelsDevUpdater
+import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
+import heizige.kk.khatkit.app.core.data.repository.FolderRepository
+import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
+import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
+import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
+import heizige.kk.khatkit.app.core.network.KhatKitMcpToolHost
+import heizige.kk.khatkit.app.core.network.McpToolHost
+import heizige.kk.khatkit.app.core.network.WebServerManager
+import heizige.kk.khatkit.app.core.util.AppAnalytics
+import heizige.kk.khatkit.app.core.util.EmojiData
+import heizige.kk.khatkit.app.core.util.EmojiHelper
+import heizige.kk.khatkit.app.core.util.JsonInstant
+import heizige.kk.khatkit.app.core.util.NoOpAnalytics
+import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
+import heizige.kk.khatkit.app.core.util.UpdateChecker
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
+import heizige.kk.khatkit.tts.provider.TTSManager
+import heizige.kk.khatkit.workspace.WorkspaceManager
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
+import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
+import heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO
+import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
+import heizige.kk.khatkit.app.feature.chat.helper.SubagentTeamManager
+
+
+
+@Module
+@InstallIn(SingletonComponent::class)
+object ChatAssemblyModule {
+    @Provides
+    @Singleton
+    fun provideChatToolFactory(
+        @ApplicationContext context: Context,
+        json: Json,
+        memoryRepository: MemoryRepository,
+        conversationRepository: ConversationRepository,
+        localTools: LocalTools,
+        mcpManager: McpManager,
+        skillManager: SkillManager,
+        workspaceRepository: WorkspaceRepository,
+        filesManager: FilesManager,
+        khatKitToolProvider: KhatKitToolProvider,
+        settingsRepository: SettingsRepository,
+        roleMemoryRepository: RoleMemoryRepository,
+        subagentTeamManager: heizige.kk.khatkit.app.feature.chat.helper.SubagentTeamManager,
+    ): ChatToolFactory = ChatToolFactory(
+        context = context,
+        json = json,
+        memoryRepository = memoryRepository,
+        conversationRepository = conversationRepository,
+        localTools = localTools,
+        mcpManager = mcpManager,
+        skillManager = skillManager,
+        workspaceRepository = workspaceRepository,
+        filesManager = filesManager,
+        khatKitToolProvider = khatKitToolProvider,
+        settingsRepository = settingsRepository,
+        roleMemoryRepository = roleMemoryRepository,
+        subagentTeamManager = subagentTeamManager,
+    )
+
+    /**
+     * 群聊生成管线的**唯一**装配点。
+     *
+     * ⚠️ 这个方法原来叫 `provideChatService`，返回的却是 `ChatManager` —— 名字与产物不符，
+     * 是「标识符 `chatService` 在仓库里指向两个不同的类」这个陷阱的源头。按名字改回产物名，
+     * Hilt 只看返回类型，重命名不影响任何注入点。
+     */
+
+    /**
+     * FLOAT2：悬浮窗宿主。构造即开始跟随 settings 的开关（enabled=false 时不 install 任何窗口），
+     * 由 KhatKitApp 注入持有；开关打开且应用退到后台、且有会话在生成时才出现。
+     */
+    @Provides
+    @Singleton
+    fun provideChatFloatingManager(
+        @ApplicationContext context: android.content.Context, // Application 会被 Hilt 判成重复绑定，用 Context
+        appScope: AppScope,
+        lazyChatManager: dagger.Lazy<ChatManager>,
+        settingsStore: SettingsRepository,
+    ): heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingManager {
+        // Dagger 的 Lazy 和 Kotlin 的 Lazy 不是一个类型：tracker/windows 要 Kotlin Lazy
+        val managerLazy = lazy { lazyChatManager.get() }
+        return heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingManager(
+            context = context.applicationContext as android.app.Application,
+            appScope = appScope,
+            tracker = heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingWindowManager(
+                appScope = appScope,
+                lazyChatManager = managerLazy,
+                enabled = settingsStore.settingsFlow.map { it.displaySetting.enableFloatingChatWindow },
+            ),
+            lazyChatManager = managerLazy,
+        )
+    }
+    @Provides
+    @Singleton
+    fun provideJson(): Json = JsonInstant
+
+    @Provides
+    @Singleton
+    fun provideAppEventBus(): AppEventBus = AppEventBus()
+
+    @Provides
+    @Singleton
+    fun provideLocalTools(
+        @ApplicationContext context: Context,
+        eventBus: AppEventBus,
+        ttsManager: TTSManager,
+        settingsStore: SettingsRepository,
+    ): LocalTools = LocalTools(context, eventBus, ttsManager, settingsStore)
+
+    @Provides
+    @Singleton
+    fun provideUpdateChecker(
+        client: OkHttpClient,
+        appScope: AppScope,
+        controller: KhatKitToolProvider,
+    ): UpdateChecker = UpdateChecker(
+        client = client,
+        appScope = appScope,
+        controller = controller,
+    )
+
+    @Provides
+    @Singleton
+    fun provideModelsDevUpdater(
+        @ApplicationContext context: Context,
+        client: OkHttpClient,
+    ): ModelsDevUpdater = ModelsDevUpdater(
+        context = context,
+        client = client,
+    )
+
+    @Provides
+    @Singleton
+    fun provideEmojiData(@ApplicationContext context: Context): EmojiData = EmojiHelper.loadEmoji(context)
+
+    @Provides
+    @Singleton
+    fun provideTTSManager(@ApplicationContext context: Context): TTSManager = TTSManager(context)
+
+    @Provides
+    @Singleton
+    fun provideAppAnalytics(): AppAnalytics = NoOpAnalytics
+
+    @Provides
+    @Singleton
+    fun provideSoundEffectPlayer(@ApplicationContext context: Context): SoundEffectPlayer = SoundEffectPlayer(context)
+
+    @Provides
+    @Singleton
+    fun provideWorkspaceTerminalSessionManager(
+        @ApplicationContext context: Context,
+        appScope: AppScope,
+        workspaceManager: WorkspaceManager,
+    ): WorkspaceTerminalSessionManager = WorkspaceTerminalSessionManager(context, appScope, workspaceManager)
+
+    // 生成通知与业务解耦：ChatManager 只发事件，通知由这里消费
+    @Provides
+    @Singleton
+    fun provideChatNotificationManager(
+        application: Application,
+        appScope: AppScope,
+        eventBus: AppEventBus,
+        settingsStore: SettingsRepository,
+    ): ChatNotificationManager = ChatNotificationManager(
+        context = application,
+        appScope = appScope,
+        eventBus = eventBus,
+        settingsStore = settingsStore,
+    )
+
+    @Provides
+    @Singleton
+    fun provideHubAccountRepository(
+        @ApplicationContext context: Context,
+    ): HubAccountRepository = HubAccountRepository(context)
+
+    @Provides
+    @Singleton
+    fun provideKhatKitToolProvider(
+        @ApplicationContext context: Context,
+        appScope: AppScope,
+        json: Json,
+        providerManager: ProviderManager,
+        settingsStore: SettingsRepository,
+        cardRunDao: heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO,
+        cardArtifactDao: heizige.kk.khatkit.app.core.data.db.dao.CardArtifactDAO,
+        usageRecorder: heizige.kk.khatkit.app.core.data.ai.UsageRecorder,
+    ): KhatKitToolProvider = KhatKitToolProvider(
+        context = context,
+        scope = appScope,
+        json = json,
+        providerManager = providerManager,
+        settingsRepository = settingsStore,
+        cardRunDao = cardRunDao,
+        cardArtifactDao = cardArtifactDao,
+        usageRecorder = usageRecorder,
+    )
+
+    // 事件触发器：卡片在定时/通知/应用启动/充电时自动运行
+    @Provides
+    @Singleton
+    fun provideTriggerManager(
+        @ApplicationContext context: Context,
+        provider: KhatKitToolProvider,
+        appScope: AppScope,
+    ): TriggerManager = TriggerManager(
+        context = context,
+        provider = provider,
+        scope = appScope,
+    )
+
+    @Provides
+    @Singleton
+    fun provideRoleMemoryRepository(@ApplicationContext context: Context): RoleMemoryRepository =
+        RoleMemoryRepository(java.io.File(context.noBackupFilesDir, "role-memory"))
+
+    @Provides
+    @Singleton
+    fun provideChatManager(
+        context: Application,
+        appScope: AppScope,
+        appEventBus: AppEventBus,
+        settingsStore: SettingsRepository,
+        conversationRepo: ConversationRepository,
+        memoryRepository: MemoryRepository,
+        memoryExtractor: MemoryExtractor,
+        roleMemoryRepository: RoleMemoryRepository,
+        generationLoop: GenerationLoop,
+        translationHandler: TranslationHandler,
+        templateTransformer: TemplateTransformer,
+        providerManager: ProviderManager,
+        chatToolFactory: ChatToolFactory,
+        mcpManager: McpManager,
+        filesManager: FilesManager,
+        workspaceRepository: WorkspaceRepository,
+        folderRepository: FolderRepository,
+        placeholderTransformer: PlaceholderTransformer,
+        ocrTransformer: OcrTransformer,
+        base64ImageToLocalFileTransformer: Base64ImageToLocalFileTransformer,
+    ): ChatManager = ChatManager(
+        context = context,
+        appScope = appScope,
+        appEventBus = appEventBus,
+        settingsStore = settingsStore,
+        conversationRepo = conversationRepo,
+        memoryRepository = memoryRepository,
+        memoryExtractor = memoryExtractor,
+        roleMemoryRepository = roleMemoryRepository,
+        generationLoop = generationLoop,
+        translationHandler = translationHandler,
+        templateTransformer = templateTransformer,
+        providerManager = providerManager,
+        chatToolFactory = chatToolFactory,
+        mcpManager = mcpManager,
+        filesManager = filesManager,
+        workspaceRepository = workspaceRepository,
+        folderRepository = folderRepository,
+        placeholderTransformer = placeholderTransformer,
+        ocrTransformer = ocrTransformer,
+        base64ImageToLocalFileTransformer = base64ImageToLocalFileTransformer,
+    )
+}

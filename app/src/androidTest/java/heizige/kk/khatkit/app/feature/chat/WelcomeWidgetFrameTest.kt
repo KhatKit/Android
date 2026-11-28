@@ -57,7 +57,7 @@ class WelcomeWidgetFrameTest {
         var refreshes = 0
         compose.setContent {
             KhatKitTheme {
-                WelcomeRefreshButton(label, heizige.kk.khatkit.app.core.ui.icons.add, false, { refreshes++ })
+                WelcomeRefreshButton(label, heizige.kk.khatkit.app.core.ui.icons.utility.add, false, { refreshes++ })
             }
         }
         val button = compose.onNodeWithContentDescription(label)

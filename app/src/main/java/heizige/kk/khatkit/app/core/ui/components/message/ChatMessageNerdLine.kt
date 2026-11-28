@@ -2,6 +2,8 @@
 
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,10 +41,10 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
-import heizige.kk.khatkit.app.core.ui.icons.schedule
-import heizige.kk.khatkit.app.core.ui.icons.upload
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
+import heizige.kk.khatkit.app.core.ui.icons.files.downloadForOffline
+import heizige.kk.khatkit.app.core.ui.icons.automation.schedule
+import heizige.kk.khatkit.app.core.ui.icons.files.upload
 import heizige.kk.khatkit.app.core.util.formatNumber
 import heizige.kk.khatkit.app.core.util.toFixed
 import heizige.kk.khatkit.uikit.mochi.MochiDialog
@@ -80,17 +82,17 @@ fun ChatMessageNerdLine(
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             ) {
                 stats.tps?.let { tps ->
-                    StatsItem(icon = { StatsIcon(bolt, "速度") }) {
+                    StatsItem(icon = { StatsIcon(bolt, stringResource(R.string.stats_speed)) }) {
                         Text(text = tps.toFixed(1) + " tok/s")
                     }
                 }
                 if (stats.durationMillis != null) {
-                    StatsItem(icon = { StatsIcon(schedule, "耗时") }) {
+                    StatsItem(icon = { StatsIcon(schedule, stringResource(R.string.stats_elapsed)) }) {
                         Text(text = (stats.durationMillis / 1000f).toFixed(1) + "s")
                     }
                 }
-                StatsItem(icon = { StatsIcon(upload, "上下文") }) {
-                    Text(text = "上下文 " + stats.contextTokens.formatNumber())
+                StatsItem(icon = { StatsIcon(upload, stringResource(R.string.stats_context)) }) {
+                    Text(text = stringResource(R.string.stats_context_value, stats.contextTokens.formatNumber()))
                     val cached = usage.cachedTokens
                     if (cached > 0) {
                         Text(text = " (" + cached.formatNumber() + " cached)")
@@ -104,7 +106,7 @@ fun ChatMessageNerdLine(
         MochiDialog(
             show = true,
             onDismissRequest = { showDetails = false },
-            title = "用量详情",
+            title = stringResource(R.string.stats_usage_details),
         ) {
             UsageDetails(stats)
         }
@@ -118,16 +120,16 @@ private fun UsageDetails(stats: NerdStats) {
         modifier = Modifier.padding(vertical = 4.dp),
     ) {
         ContextUsageBar(usage = stats.usage, modifier = Modifier.padding(bottom = 8.dp))
-        UsageDetailRow("输入", stats.usage.promptTokens.formatNumber())
+        UsageDetailRow(stringResource(R.string.stats_input), stats.usage.promptTokens.formatNumber())
         if (stats.usage.cachedTokens > 0) {
-            UsageDetailRow("缓存命中", stats.usage.cachedTokens.formatNumber())
+            UsageDetailRow(stringResource(R.string.stats_cached), stats.usage.cachedTokens.formatNumber())
         }
-        UsageDetailRow("输出", stats.usage.completionTokens.formatNumber())
-        UsageDetailRow("合计", stats.usage.totalTokens.formatNumber())
-        stats.tps?.let { UsageDetailRow("速度", it.toFixed(1) + " tok/s") }
-        stats.durationMillis?.let { UsageDetailRow("耗时", (it / 1000f).toFixed(1) + "s") }
+        UsageDetailRow(stringResource(R.string.stats_output), stats.usage.completionTokens.formatNumber())
+        UsageDetailRow(stringResource(R.string.stats_total), stats.usage.totalTokens.formatNumber())
+        stats.tps?.let { UsageDetailRow(stringResource(R.string.stats_speed), it.toFixed(1) + " tok/s") }
+        stats.durationMillis?.let { UsageDetailRow(stringResource(R.string.stats_elapsed), (it / 1000f).toFixed(1) + "s") }
         Text(
-            text = "多轮工具调用时输入为累计值",
+            text = stringResource(R.string.stats_usage_note),
             style = MaterialTheme.typography.labelSmall,
             color = LocalContentColor.current.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 6.dp),
@@ -141,9 +143,9 @@ private fun ContextUsageBar(usage: TokenUsage, modifier: Modifier = Modifier) {
     val colorScheme = MaterialTheme.colorScheme
     data class Segment(val label: String, val tokens: Int, val color: Color)
     val segments = listOf(
-        Segment("缓存", usage.cachedTokens, colorScheme.primary),
-        Segment("输入", (usage.promptTokens - usage.cachedTokens).coerceAtLeast(0), colorScheme.primary.copy(alpha = 0.45f)),
-        Segment("输出", usage.completionTokens, colorScheme.tertiary),
+        Segment(stringResource(R.string.stats_cache), usage.cachedTokens, colorScheme.primary),
+        Segment(stringResource(R.string.stats_input), (usage.promptTokens - usage.cachedTokens).coerceAtLeast(0), colorScheme.primary.copy(alpha = 0.45f)),
+        Segment(stringResource(R.string.stats_output), usage.completionTokens, colorScheme.tertiary),
     ).filter { it.tokens > 0 }
     val contextTokens = usage.promptTokens + usage.completionTokens
     val capacity = contextTokens.coerceAtLeast(1)
@@ -152,7 +154,7 @@ private fun ContextUsageBar(usage: TokenUsage, modifier: Modifier = Modifier) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "上下文占用",
+                text = stringResource(R.string.stats_context_usage),
                 color = LocalContentColor.current.copy(alpha = 0.7f),
                 modifier = Modifier.weight(1f),
             )

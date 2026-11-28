@@ -4,6 +4,9 @@ import heizige.kk.khatkit.app.core.util.JsonInstant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.core.util.Emoji
+
+
 
 class AvatarSerializationTest {
 

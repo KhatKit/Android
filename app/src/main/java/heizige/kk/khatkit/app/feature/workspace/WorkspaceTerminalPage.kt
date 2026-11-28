@@ -65,14 +65,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalReadiness
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTab
 import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalTabsState
-import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalViewClient
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceTerminalViewClient
 import ui.feice.mochi.theme.MochiTheme
-
-
 
 @Composable
 fun WorkspaceTerminalPage(id: String) {

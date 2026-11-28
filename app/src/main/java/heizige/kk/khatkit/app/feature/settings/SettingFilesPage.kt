@@ -64,9 +64,12 @@ import heizige.kk.khatkit.app.core.util.fileSizeToString
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
 import java.util.concurrent.TimeUnit
-import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.image
+import heizige.kk.khatkit.app.core.ui.icons.utility.cleaningServices
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.media.image
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -263,7 +266,7 @@ internal fun CleanFilesSheet(
                 )
                 Text(
                     text = range.days?.let {
-                        stringResource(R.string.setting_files_page_clean_older_than_days, it)
+                        androidx.compose.ui.res.pluralStringResource(R.plurals.setting_files_page_clean_older_than_days, it, it)
                     } ?: stringResource(R.string.setting_files_page_clean_all),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 8.dp),

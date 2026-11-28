@@ -5,5 +5,28 @@
   <string name="searxng_desc_1">settings.yml needs to enable json format support:</string>
   <string name="searxng_desc_2">search:\n  formats:\n    - html\n    - json</string>
   <string name="custom_js_desc">Custom search provider powered by QuickJS. Implement search(query, resultSize) and optionally scrape(urls) functions. Use fetch(url, options?) for HTTP requests.</string>
+  <string name="search_provider_bing">Bing</string>
+  <string name="search_provider_khatkit">KhatKit</string>
+  <string name="search_provider_zhipu">Zhipu</string>
+  <string name="search_provider_doubao">Doubao</string>
+  <string name="search_provider_tavily">Tavily</string>
+  <string name="search_provider_exa">Exa</string>
+  <string name="search_provider_searxng">SearXNG</string>
+  <string name="search_provider_linkup">LinkUp</string>
+  <string name="search_provider_brave">Brave</string>
+  <string name="search_provider_metaso">Metaso</string>
+  <string name="search_provider_ollama">Ollama</string>
+  <string name="search_provider_perplexity">Perplexity</string>
+  <string name="search_provider_firecrawl">Firecrawl</string>
+  <string name="search_provider_jina">Jina</string>
+  <string name="search_provider_bocha">Bocha</string>
+  <string name="search_provider_grok">Grok</string>
+  <string name="search_provider_tinyfish">Tinyfish</string>
+  <string name="search_provider_serper">Serper</string>
+  <string name="search_provider_custom_js">Custom JS</string>
+  <string name="search_provider_deepseek">DeepSeek</string>
+  <string name="search_provider_unknown">Unknown</string>
+  <string name="search_metaso_description">Metaso search:</string>
+  <string name="search_doubao_api_key">Doubao Search API Key</string>
 </resources>
 

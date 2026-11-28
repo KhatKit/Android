@@ -29,10 +29,10 @@ class SettingLeafIndexTest {
 
     private companion object {
         /** 登记表本身。 */
-        const val INDEX_FILE = "src/main/java/heizige/kk/khatkit/app/feature/settings/SettingLeafIndex.kt"
+        const val INDEX_FILE = "src/main/java/heizige/kk/khatkit/app/feature/settings/data/SettingSearchEntry.kt"
 
         /** 页面源码根（锚点写在这些文件里）。 */
-        const val SETTINGS_DIR = "src/main/java/heizige/kk/khatkit/app/feature/settings"
+        const val SETTINGS_DIR = "src/main/java/heizige/kk/khatkit/app/feature"
 
         /** 扫出来的 `settingAnchor(R.string.x)` 常量名。 */
         fun anchorsIn(file: File): Set<String> {
@@ -60,10 +60,10 @@ class SettingLeafIndexTest {
         assertTrue("登记表是空的，护栏等于没检查", titles.isNotEmpty())
 
         val anchors = File(SETTINGS_DIR)
-            .listFiles { f -> f.name.startsWith("Setting") && f.name.endsWith(".kt") }
-            ?.flatMap { anchorsIn(it) }
-            ?.toSet()
-            .orEmpty()
+            .walkTopDown()
+            .filter { f -> f.isFile && f.name.endsWith(".kt") }
+            .flatMap { anchorsIn(it).asSequence() }
+            .toSet()
         assertTrue("一个页面锚点都没扫到，扫描路径可能写窄了", anchors.isNotEmpty())
 
         val missing = titles.filterNot { it in anchors }
@@ -81,10 +81,10 @@ class SettingLeafIndexTest {
         assertTrue("找不到登记表", index.isFile)
         val titles = registeredTitles(index.readText()).toSet()
         val anchors = File(SETTINGS_DIR)
-            .listFiles { f -> f.name.startsWith("Setting") && f.name.endsWith(".kt") }
-            ?.flatMap { anchorsIn(it) }
-            ?.toSet()
-            .orEmpty()
+            .walkTopDown()
+            .filter { f -> f.isFile && f.name.endsWith(".kt") }
+            .flatMap { anchorsIn(it).asSequence() }
+            .toSet()
 
         val orphans = anchors.filterNot { it in titles }
         assertEquals(

@@ -1,5 +1,7 @@
 # KhatKit 架构记账表
 
+> **2026-11-28 当前状态以 §11 为准**：t2 仅收口图标及三个插件 Repository；剩余 feature/core 实际迁移由 t35–t39 承接。§0–§10 保留旧基线记录，不能据此宣称当前整仓架构已合规。
+
 > 这份文档记录 **KhatKit 自己** 的包结构、命名、上游继承面与 Nav3 核对结论。
 > 体例参照 `../ARCHITECTURE.md` §4 的「现状 → 目标」对照表。
 >
@@ -1101,3 +1103,226 @@ done
 ⇒ RAW `86.06%` = `1296/1506`；CODE `88.97%` = `1065/1197`。
 ⚠️ 旧记录的 **86.7%** 与实测 **86.06%** 有 0.6pp 落差 —— 引用时**一律用实测值
 86.06%**，别再用 86.7%。（86.7% 那个值来源已不可考，疑为旧版行数或不同工具输出。）
+
+---
+
+## 11. 本轮结构迁移与拆分边界（2026-11-28，t2收口）
+
+本节是本轮状态入口。§0–§10 的旧数字和“无需迁移”等结论保留为历史，不代表当前工作树已满足全部架构条款。t2 合同已由 captain 缩限为既有 153 个图标的语义目录迁移、3 个插件 Store → Repository 及引用收口；其余实际结构改动由 t35–t39 承接，不以本节替代实现或独立评审。
+
+原迁移基线为 HEAD 985043835dab6a5df683d02e50a9219fcb81cc6d；当时快照位于 /tmp/khatkit-t2-baseline-cPwri4dO/。本次接续时 HEAD 为 76921bc04a4d758ca5a3d15908b44832fe4a7a57，开工差异与哈希另存 /tmp/khatkit-t2-a5-{status-before.txt,stat-before.txt,names-before.txt,baseline.json}：532 个差异路径（376 个现存文件、156 个既有删除）。本次未 reset、stash、清理、提交或推送；接续前已存在的迁移按现状核验，不覆盖用户或其它成员 WIP。
+
+### 11.1 命名、引用与持久化
+
+| 原文件（同目录） | 当前文件 | 改动及兼容证据 |
+|---|---|---|
+| core/data/ocr/OcrPluginStore.kt | [OcrPluginRepository.kt](../app/src/main/java/heizige/kk/khatkit/app/core/data/ocr/OcrPluginRepository.kt) | 管安装记录的唯一读写入口；DataStore 名 ocr_plugin、key installed 不变 |
+| core/data/ssh/SshPluginStore.kt | [SshPluginRepository.kt](../app/src/main/java/heizige/kk/khatkit/app/core/data/ssh/SshPluginRepository.kt) | 管安装记录的唯一读写入口；DataStore 名 ssh_plugin、key installed 不变 |
+| core/data/terminal/TerminalPluginStore.kt | [TerminalPluginRepository.kt](../app/src/main/java/heizige/kk/khatkit/app/core/data/terminal/TerminalPluginRepository.kt) | 管安装记录的唯一读写入口；DataStore 名 terminal_plugin、key installed 不变 |
+
+- 与接续 HEAD 中各原文件逐字比较：唯一差异是对应类型名 Store → Repository；3/3 通过。Record 字段、默认值、serializer、JSON 容错行为及读写/清除逻辑均未变，未改插件 wire 名或持久化协议。
+- installer、loader、PluginTools、KhatKitTools、Explore/Extensions/Settings 消费点已同步；新类型名在 app/src 共 14 个文件、37 处出现，全仓 Kotlin 旧三类型名为 0。它们仍由调用点直接构造，不新增 Hilt 绑定；本批未改 DI、Manifest 或框架组件注册，旧名检索未发现测试或反射字符串残留。
+- [TerminalPluginInfo.kt](../app/src/main/java/heizige/kk/khatkit/app/feature/extensions/TerminalPluginInfo.kt) 的已确认 core → feature 反向依赖仍未闭合：Repository、Installer、Hub 共用该身份常量；t26/t28 已给出提升共享身份定义的证据。它属于 t35–t39 后续实际迁移范围；本次只凭改名不宣称方向已合规。
+- Android Service/Activity/Receiver/Provider、WorkManager 已持久化 worker FQCN、Google Play 专名和第三方/官方 API 保持原有语义，不做机械改名。
+
+### 11.2 图标目录、导出与逐项映射
+
+- 原平铺 153 个 Kotlin 文件现位于 9 个语义子包：ai 9、automation 8、chat 8、files 15、media 15、navigation 14、settings 21、social 6、utility 57。平铺文件 0、丢失 0、重复文件名 0；153/153 与 HEAD 原文件比较均仅 package 变化，绘图数据及符号名未变。
+- 文件数与导出数分开计算：共 155 个 ImageVector 导出；其中 [Reasoning.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/Reasoning.kt) 含 Low/Medium/High 三个导出，因此 ai 是 9 文件、11 导出。app/src 的 669 条图标 import（131 个文件）全部解析到现有导出，旧平铺 import/源码路径在全仓 Kotlin 检索为 0。
+- 仅统计生产 feature 的显式 import，155 个导出中 65 个由至少两个 feature 使用、53 个仅一个 feature、37 个无直接 feature import。后者有 26 个仍被 core/宿主生产代码直接 import；其余 11 个当前没有显式 import。它们依 §3 作为共享图标资产保留，不因零命中删除，也不据此声称所有业务代码可留 core。
+- 11 个零显式 import 的保留资产为 social.DiscordIcon、navigation.arrow_left、chat.doneAll、media.pictureInPicture、settings.formatListNumbered、settings.bluetooth、utility.receiptLong、utility.addComment、utility.keepOff、utility.locationOn、automation.accessibility；保留理由是共享语义图标目录的现有资产兼容，未取得可安全删除的证据。
+- 分类表达图形/动作语义，不表示消费者只能属于同名 feature；utility 承载跨场景的增删改、剪贴板、搜索、状态、开发/命令等通用符号。只移动 Kotlin 包及 imports；assets 品牌图标、Material/Mochi API 与 material3 submodule 均未在本批改动。
+
+下表逐项列出 153 个文件。每个文件的旧位置均为 core/ui/icons/文件名，目标为 core/ui/icons/表中语义目录/同名文件；对应 package 同步增加该语义目录。下表共 153 个逐文件映射，无省略项。
+
+| 原平铺目录中的文件名 | 目标语义目录 | 当前文件 |
+|---|---|---|
+| AutoAwesome.kt | ai | [AutoAwesome.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/AutoAwesome.kt) |
+| AutoFixHigh.kt | ai | [AutoFixHigh.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/AutoFixHigh.kt) |
+| EmojiObjects.kt | ai | [EmojiObjects.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/EmojiObjects.kt) |
+| Lightbulb.kt | ai | [Lightbulb.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/Lightbulb.kt) |
+| Neurology.kt | ai | [Neurology.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/Neurology.kt) |
+| Psychology.kt | ai | [Psychology.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/Psychology.kt) |
+| Reasoning.kt | ai | [Reasoning.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/Reasoning.kt) |
+| RocketLaunch.kt | ai | [RocketLaunch.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/RocketLaunch.kt) |
+| SearchInsights.kt | ai | [SearchInsights.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/ai/SearchInsights.kt) |
+| Accessibility.kt | automation | [Accessibility.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Accessibility.kt) |
+| AdsClick.kt | automation | [AdsClick.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/AdsClick.kt) |
+| Bolt.kt | automation | [Bolt.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Bolt.kt) |
+| ConversionPath.kt | automation | [ConversionPath.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/ConversionPath.kt) |
+| Power.kt | automation | [Power.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Power.kt) |
+| Schedule.kt | automation | [Schedule.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Schedule.kt) |
+| Smartphone.kt | automation | [Smartphone.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Smartphone.kt) |
+| Timer.kt | automation | [Timer.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/automation/Timer.kt) |
+| Chat.kt | chat | [Chat.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/Chat.kt) |
+| ChatBubble.kt | chat | [ChatBubble.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/ChatBubble.kt) |
+| CommentsDisabled.kt | chat | [CommentsDisabled.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/CommentsDisabled.kt) |
+| DoneAll.kt | chat | [DoneAll.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/DoneAll.kt) |
+| Forward.kt | chat | [Forward.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/Forward.kt) |
+| Groups.kt | chat | [Groups.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/Groups.kt) |
+| QuestionAnswer.kt | chat | [QuestionAnswer.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/QuestionAnswer.kt) |
+| Sms.kt | chat | [Sms.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/chat/Sms.kt) |
+| CreateNewFolder.kt | files | [CreateNewFolder.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/CreateNewFolder.kt) |
+| Description.kt | files | [Description.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Description.kt) |
+| Download.kt | files | [Download.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Download.kt) |
+| DownloadForOffline.kt | files | [DownloadForOffline.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/DownloadForOffline.kt) |
+| Folder.kt | files | [Folder.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Folder.kt) |
+| FolderCopy.kt | files | [FolderCopy.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/FolderCopy.kt) |
+| FolderManaged.kt | files | [FolderManaged.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/FolderManaged.kt) |
+| FolderOpen.kt | files | [FolderOpen.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/FolderOpen.kt) |
+| InsertDriveFile.kt | files | [InsertDriveFile.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/InsertDriveFile.kt) |
+| Inventory2.kt | files | [Inventory2.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Inventory2.kt) |
+| Package2.kt | files | [Package2.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Package2.kt) |
+| Save.kt | files | [Save.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Save.kt) |
+| Shelves.kt | files | [Shelves.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Shelves.kt) |
+| Upload.kt | files | [Upload.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/Upload.kt) |
+| UploadFile.kt | files | [UploadFile.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/files/UploadFile.kt) |
+| AddPhotoAlternate.kt | media | [AddPhotoAlternate.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/AddPhotoAlternate.kt) |
+| Fullscreen.kt | media | [Fullscreen.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Fullscreen.kt) |
+| GraphicEq.kt | media | [GraphicEq.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/GraphicEq.kt) |
+| Image.kt | media | [Image.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Image.kt) |
+| Mic.kt | media | [Mic.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Mic.kt) |
+| MusicNote.kt | media | [MusicNote.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/MusicNote.kt) |
+| Pause.kt | media | [Pause.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Pause.kt) |
+| Photo.kt | media | [Photo.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Photo.kt) |
+| PhotoCamera.kt | media | [PhotoCamera.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/PhotoCamera.kt) |
+| PictureInPicture.kt | media | [PictureInPicture.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/PictureInPicture.kt) |
+| PlayArrow.kt | media | [PlayArrow.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/PlayArrow.kt) |
+| Stop.kt | media | [Stop.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Stop.kt) |
+| StopCircle.kt | media | [StopCircle.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/StopCircle.kt) |
+| Videocam.kt | media | [Videocam.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/Videocam.kt) |
+| VolumeUp.kt | media | [VolumeUp.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/media/VolumeUp.kt) |
+| ArrowBack.kt | navigation | [ArrowBack.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/ArrowBack.kt) |
+| ArrowForward.kt | navigation | [ArrowForward.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/ArrowForward.kt) |
+| ArrowLeft.kt | navigation | [ArrowLeft.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/ArrowLeft.kt) |
+| ArrowUpward.kt | navigation | [ArrowUpward.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/ArrowUpward.kt) |
+| ChevronRight.kt | navigation | [ChevronRight.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/ChevronRight.kt) |
+| Close.kt | navigation | [Close.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/Close.kt) |
+| KeyboardArrowDown.kt | navigation | [KeyboardArrowDown.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/KeyboardArrowDown.kt) |
+| KeyboardArrowUp.kt | navigation | [KeyboardArrowUp.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/KeyboardArrowUp.kt) |
+| KeyboardDoubleArrowDown.kt | navigation | [KeyboardDoubleArrowDown.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/KeyboardDoubleArrowDown.kt) |
+| KeyboardDoubleArrowUp.kt | navigation | [KeyboardDoubleArrowUp.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/KeyboardDoubleArrowUp.kt) |
+| Menu.kt | navigation | [Menu.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/Menu.kt) |
+| MoreVert.kt | navigation | [MoreVert.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/MoreVert.kt) |
+| Refresh.kt | navigation | [Refresh.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/Refresh.kt) |
+| Undo.kt | navigation | [Undo.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/navigation/Undo.kt) |
+| BarChart.kt | settings | [BarChart.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/BarChart.kt) |
+| Bluetooth.kt | settings | [Bluetooth.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Bluetooth.kt) |
+| BrightnessAuto.kt | settings | [BrightnessAuto.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/BrightnessAuto.kt) |
+| DarkMode.kt | settings | [DarkMode.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/DarkMode.kt) |
+| Database.kt | settings | [Database.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Database.kt) |
+| Favorite.kt | settings | [Favorite.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Favorite.kt) |
+| FormatListBulleted.kt | settings | [FormatListBulleted.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/FormatListBulleted.kt) |
+| FormatListNumbered.kt | settings | [FormatListNumbered.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/FormatListNumbered.kt) |
+| Language.kt | settings | [Language.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Language.kt) |
+| LightMode.kt | settings | [LightMode.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/LightMode.kt) |
+| Memory.kt | settings | [Memory.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Memory.kt) |
+| Notifications.kt | settings | [Notifications.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Notifications.kt) |
+| OpenInNew.kt | settings | [OpenInNew.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/OpenInNew.kt) |
+| Palette.kt | settings | [Palette.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Palette.kt) |
+| Settings.kt | settings | [Settings.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Settings.kt) |
+| ShowChart.kt | settings | [ShowChart.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/ShowChart.kt) |
+| Table.kt | settings | [Table.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Table.kt) |
+| Title.kt | settings | [Title.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Title.kt) |
+| Tune.kt | settings | [Tune.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/Tune.kt) |
+| VpnKey.kt | settings | [VpnKey.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/VpnKey.kt) |
+| WavingHand.kt | settings | [WavingHand.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/settings/WavingHand.kt) |
+| DiscordIcon.kt | social | [DiscordIcon.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/DiscordIcon.kt) |
+| Heart.kt | social | [Heart.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/Heart.kt) |
+| IosShare.kt | social | [IosShare.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/IosShare.kt) |
+| Public.kt | social | [Public.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/Public.kt) |
+| Share.kt | social | [Share.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/Share.kt) |
+| TencentQQIcon.kt | social | [TencentQQIcon.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/social/TencentQQIcon.kt) |
+| Add.kt | utility | [Add.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Add.kt) |
+| AddComment.kt | utility | [AddComment.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/AddComment.kt) |
+| Book2.kt | utility | [Book2.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Book2.kt) |
+| Book3.kt | utility | [Book3.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Book3.kt) |
+| Book4.kt | utility | [Book4.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Book4.kt) |
+| Book5.kt | utility | [Book5.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Book5.kt) |
+| BugReport.kt | utility | [BugReport.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/BugReport.kt) |
+| Build.kt | utility | [Build.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Build.kt) |
+| CalendarAddOn.kt | utility | [CalendarAddOn.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/CalendarAddOn.kt) |
+| CalendarMonth.kt | utility | [CalendarMonth.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/CalendarMonth.kt) |
+| Campaign.kt | utility | [Campaign.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Campaign.kt) |
+| Celebration.kt | utility | [Celebration.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Celebration.kt) |
+| Check.kt | utility | [Check.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Check.kt) |
+| CheckCircle.kt | utility | [CheckCircle.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/CheckCircle.kt) |
+| CleaningServices.kt | utility | [CleaningServices.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/CleaningServices.kt) |
+| Code.kt | utility | [Code.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Code.kt) |
+| Construction.kt | utility | [Construction.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Construction.kt) |
+| ContentCopy.kt | utility | [ContentCopy.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/ContentCopy.kt) |
+| ContentPaste.kt | utility | [ContentPaste.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/ContentPaste.kt) |
+| Dashboard.kt | utility | [Dashboard.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Dashboard.kt) |
+| Delete.kt | utility | [Delete.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Delete.kt) |
+| DeleteForever.kt | utility | [DeleteForever.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/DeleteForever.kt) |
+| DeployedCode.kt | utility | [DeployedCode.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/DeployedCode.kt) |
+| Dns.kt | utility | [Dns.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Dns.kt) |
+| DragHandle.kt | utility | [DragHandle.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/DragHandle.kt) |
+| DragIndicator.kt | utility | [DragIndicator.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/DragIndicator.kt) |
+| Edit.kt | utility | [Edit.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Edit.kt) |
+| EditDocument.kt | utility | [EditDocument.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/EditDocument.kt) |
+| EditNote.kt | utility | [EditNote.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/EditNote.kt) |
+| EditSquare.kt | utility | [EditSquare.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/EditSquare.kt) |
+| Error.kt | utility | [Error.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Error.kt) |
+| Extension.kt | utility | [Extension.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Extension.kt) |
+| HighlightAlt.kt | utility | [HighlightAlt.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/HighlightAlt.kt) |
+| InkEraser.kt | utility | [InkEraser.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/InkEraser.kt) |
+| KeepOff.kt | utility | [KeepOff.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/KeepOff.kt) |
+| Link.kt | utility | [Link.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Link.kt) |
+| LocationOn.kt | utility | [LocationOn.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/LocationOn.kt) |
+| MenuBook.kt | utility | [MenuBook.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/MenuBook.kt) |
+| NoteAdd.kt | utility | [NoteAdd.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/NoteAdd.kt) |
+| Payments.kt | utility | [Payments.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Payments.kt) |
+| Preview.kt | utility | [Preview.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Preview.kt) |
+| PushPin.kt | utility | [PushPin.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/PushPin.kt) |
+| ReceiptLong.kt | utility | [ReceiptLong.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/ReceiptLong.kt) |
+| ScatterPlot.kt | utility | [ScatterPlot.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/ScatterPlot.kt) |
+| School.kt | utility | [School.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/School.kt) |
+| Search.kt | utility | [Search.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Search.kt) |
+| SettingsBackupRestore.kt | utility | [SettingsBackupRestore.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/SettingsBackupRestore.kt) |
+| Sort.kt | utility | [Sort.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Sort.kt) |
+| Sync.kt | utility | [Sync.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Sync.kt) |
+| Terminal.kt | utility | [Terminal.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Terminal.kt) |
+| Translate.kt | utility | [Translate.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Translate.kt) |
+| TravelExplore.kt | utility | [TravelExplore.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/TravelExplore.kt) |
+| VerifiedUser.kt | utility | [VerifiedUser.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/VerifiedUser.kt) |
+| Visibility.kt | utility | [Visibility.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Visibility.kt) |
+| VisibilityOff.kt | utility | [VisibilityOff.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/VisibilityOff.kt) |
+| Warning.kt | utility | [Warning.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Warning.kt) |
+| Web.kt | utility | [Web.kt](../app/src/main/java/heizige/kk/khatkit/app/core/ui/icons/utility/Web.kt) |
+
+### 11.3 t26/t27/t28 已接收证据与未闭合结构
+
+| 来源 | 已接收证据 | 明确剩余工作与承接 |
+|---|---|---|
+| t26：/tmp/khatkit-data-auditor-ownership.md | 217 个 core/data 文件、1058 条生产引用；14 条 core → feature import / 4 个文件；3 个生产不可达候选 | t38 与 t35–t37 按各合同处理数据归属和跨 feature 接口；需实际迁移或建立窄接口，不能把 DI/统一根导航当共享证据 |
+| t27：/tmp/khatkit-verifier-ownership.md | 212 文件：UI 166（共享106/单功能42/app-root3/未触达15）、network17、util25、DI4；逐文件触点已给出 | t39 承接 core UI 与全 app 引用整合；单功能 UI/helper 应内聚，留 core 必须有真实两功能生产消费者或具体公开契约 |
+| t28：/tmp/khatkit-reviewer-ownership.md | 29/29 功能包、57 组映射/判定；6 组共享提升证据、3 个停用/临时候选 | t35/t36/t37 分批执行 feature 真实源码迁移与职责命名；保留 Android 入口和持久化兼容，t40–t44 负责独立评审 |
+
+- 数据/方向缺口包括 FavoriteRepository/Adapters、OAuth 设置会话、backup importers/sync、chat transformers/TavernChatCodec/ChatToolFactory；KhatKitTools 对 automation 和 ChatManager 的反向依赖需按报告区分共享协议与功能实现，保留 lazy/DI 环路处理。
+- UI/helper 缺口包括 chat 输入/附件/搜索/补全、assistant MCP/扩展、settings provider/QR/share、debug Mermaid 等单功能候选；McpPicker、ReasoningPicker、TextArea 等不能以“上游同步成本”或“共享 host 壳”代替具体消费者证据。
+- feature 根层次缺口包括 chat 有状态流程、automation Manager/Repository/Helper 拆分、workflow data/helper、共享导航壳及跨功能编辑表单、工具目录扩展、各功能专属导入/导出/文件操作；逐文件目标以 t26/t27/t28 和新合同为准，本批未声称这些已完成。
+- 无生产触达证据的对象暂不删除：录制链、ProxyTestState 和临时 PaddingValues.plus shim 按 t28 逐项裁定；后者被同包页面真实使用，须先补正确 import。t26 的 3 个不可达候选及 t27 的 no-touch 集合仍是待判定项，不以“已审查”替代整改。
+- 以上旧审计的共享计数只是候选分析，不构成全量留 core 的合规证据。t2 完成仅关闭本合同的图标/3 Repository 收口；整仓 §1–§4 验收仍依赖 t35–t39 的实际差异和后续独立验证。
+
+### 11.4 验证事实与后续边界
+
+- 历史证据：原 t2 曾执行 ./gradlew :app:compileDebugKotlin，退出码 0（139 actionable tasks：2 executed、137 up-to-date）；此前 wildcard/嵌套 import 失败修正后编译通过。它仅证明当时字节，不是本次或最终工作树的编译通过证据。
+- 历史 JVM 证据：原 t2 的 ./gradlew :app:testDebugUnitTest 退出码 1，1164 tests completed、9 failed：BrowserExampleCardsTest×3、CardRunsSchemaTest、ConversationGroupCardsSchemaTest、BottomSheetScrollSourceGuardTest、PrimaryBottomSheetIconSourceGuardTest、AIIconAssetsTest×2。失败根因尚待最终验证区分，不预先归因给并行 WIP，也不宣称本批已修复。
+- 本次只做静态收口：153 个图标的 package/字节映射、155 导出与 669 导入解析、3 Repository 的仅类型名差异及旧名清零均通过；git diff --check 退出码 0。图标旧路径和三旧类型名在 app 测试中无残留，现有上述 guard 失败不因此被当作已通过。
+- 本次未运行共享 Gradle、Lint、assemble、设备或 androidTest。最终构建/JVM/资源验证由包含完整前置的 t45 及修订 t13/t25 门禁负责；UI 运行时/视觉状态未验证。实现不自批 review。
+- 文案迁移消费当前 Repository 和 core/ui/icons/<semantic>/ 路径；后续结构批次继续同步移动后的引用与资源，不能恢复旧类型/平铺路径。t33/t34 的完整 YunX 和 t29 的导航规范另有合同，不在本 t2 完成声明内。
+
+## t39 结构集成结果（2026-11-28）
+
+- **共享提升落位**：`core/ui/shell`（MochiShell/MochiNavPages，2 文件）、`core/ui/components/ai/PropertyEditor.kt`（M02）、
+  `core/ui/components/theme/ThemePickers.kt`（M03）、`core/ui/components/ai/mcp/`（3 文件，M04）、
+  `core/data/terminal/TerminalPluginInfo.kt`（M05）、`core/data/model/ToolCategory.kt` + `core/util/ToolCatalogueExtensions.kt`（M06）；
+  M07 ToolHeaderExtensions 归 `feature/chat/helper`（仅 chat 消费）。
+- **单功能下放**：t27 的 42 条 core UI 候选（chat 输入/附件/搜索/补全、assistant 扩展、settings QR/share、backup/log/extensions 等）
+  已按目标 feature 落位；`KkScrollEdgeFade` / `MorphPolygonShape` 因 core 消费者回迁 core。
+  settings 的 workflow/automation 页面与 workflow 偏好/文案归 `feature/workflow`、`feature/automation`。
+- **实况计数**：core/ui 286、core/data 212、core/network 17、core/util 26、core/di 4；feature 29 包 345 kt；
+  `feature/ui` 已清空。逐文件映射、保留证据与跨批引用修复见 `docs/refactor-core-ui-integration.md`。
+- **引用一致性**：t35–t38 旧符号/import 106 条清零（app main/test/androidTest 与 DI/routes 同步）；
+  平台类名/authority/Worker FQCN、Room/DataStore/@SerialName/wire、R.string 与既有 WIP 未改。

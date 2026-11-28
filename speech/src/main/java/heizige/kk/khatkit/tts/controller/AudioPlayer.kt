@@ -31,7 +31,7 @@ import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class AudioPlayer(context: Context) {
+class AudioPlayer(private val context: Context) {
     private val player = ExoPlayer.Builder(context).build()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -114,7 +114,7 @@ class AudioPlayer(context: Context) {
             override fun onPlayerError(error: PlaybackException) {
                 player.removeListener(this)
                 stopPositionUpdates()
-                _playbackState.update { it.copy(status = PlaybackStatus.Error, errorMessage = error.message) }
+                _playbackState.update { it.copy(status = PlaybackStatus.Error, errorMessage = context.getString(heizige.kk.khatkit.speech.R.string.speech_error_playback)) }
                 if (cont.isActive) cont.resumeWithException(error)
             }
 

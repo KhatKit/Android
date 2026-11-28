@@ -12,10 +12,10 @@ import heizige.kk.khatkit.app.LocalPageRoute
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.LocalSettingFocusKey
 import heizige.kk.khatkit.app.core.ui.components.ui.rememberSettingFocusKey
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import ui.feice.mochi.theme.MochiTheme
 
 /**

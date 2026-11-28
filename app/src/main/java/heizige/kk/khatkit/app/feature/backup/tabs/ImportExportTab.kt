@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.backup.tabs
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,15 +41,15 @@ import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.WebDavConfig
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.components.ui.StickyHeader
+import heizige.kk.khatkit.app.feature.backup.components.ui.StickyHeader
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import heizige.kk.khatkit.app.core.ui.icons.description
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.files.description
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
@@ -63,6 +64,7 @@ fun ImportExportTab(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     val backupPageBackupSuccess = stringResource(R.string.backup_page_backup_success)
     val backupPageRestoreFailed = stringResource(R.string.backup_page_restore_failed)
@@ -166,13 +168,13 @@ fun ImportExportTab(
                             try {
                                 withContext(Dispatchers.IO) {
                                     val input = context.contentResolver.openInputStream(sourceUri)
-                                        ?: error(context.getString(R.string.backup_page_import_deepseek_read_error))
+                                        ?: error(resources.getString(R.string.backup_page_import_deepseek_read_error))
                                     input.use { source ->
                                         tempFile.outputStream().use { source.copyTo(it) }
                                     }
                                 }
                                 deepSeekImportResult = vm.restoreFromDeepSeek(tempFile) { fileName ->
-                                    context.getString(R.string.backup_page_import_deepseek_missing_attachment, fileName)
+                                    resources.getString(R.string.backup_page_import_deepseek_missing_attachment, fileName)
                                 }
                                 showDeepSeekImportResult = true
                             } finally {

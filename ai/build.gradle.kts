@@ -39,9 +39,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // kotlinx
-    api(libs.kotlinx.serialization.json)
-    api(libs.kotlinx.coroutines.core)
-    api(libs.kotlinx.datetime)
+    api(libs.bundles.kotlinx.api)
 
     // tests
     testImplementation(libs.junit)

@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.workspace
 
+import androidx.compose.ui.platform.LocalResources
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
@@ -20,6 +23,7 @@ import androidx.compose.material3.TextField
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 
 /**
  * 工作区文本文件编辑/预览页.
@@ -55,6 +59,8 @@ fun WorkspaceFileEditorPage(
     path: String,
 ) {
     val repository = rememberAppEntryPoint().workspaceRepository()
+    val context = LocalContext.current
+    val resources = LocalResources.current
 
     val scope = rememberCoroutineScope()
     val editable = area == WorkspaceStorageArea.FILES
@@ -79,7 +85,7 @@ fun WorkspaceFileEditorPage(
             textState.setTextAndPlaceCursorAtEnd(content)
             loading = false
         }.onFailure {
-            loadError = it.message ?: "读取文件失败"
+            loadError = it.message ?: resources.getString(R.string.workspace_read_file_failed)
             loading = false
         }
     }
@@ -91,7 +97,7 @@ fun WorkspaceFileEditorPage(
         actions = {
             if (supportsPreview && !loading && loadError == null) {
                 MochiTextButton(onClick = { showPreview = !showPreview }) {
-                    Text(if (showPreview) "源码" else "预览")
+                    Text(if (showPreview) stringResource(R.string.workspace_source) else stringResource(R.string.workspace_preview))
                 }
             }
             if (editable && !loading && loadError == null) {
@@ -109,9 +115,9 @@ fun WorkspaceFileEditorPage(
                                     overwrite = true,
                                 )
                             }.onSuccess {
-                                Toast.show("已保存", isError = false)
+                                Toast.show(resources.getString(R.string.workspace_saved), isError = false)
                             }.onFailure {
-                                Toast.show(it.message ?: "保存失败", isError = true)
+                                Toast.show(it.message ?: resources.getString(R.string.workspace_save_failed), isError = true)
                             }
                             saving = false
                         }

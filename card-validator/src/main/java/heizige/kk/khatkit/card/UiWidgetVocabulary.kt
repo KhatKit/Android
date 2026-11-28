@@ -9,9 +9,13 @@ package heizige.kk.khatkit.card
 object UiWidgetVocabulary {
     val NODES = setOf(
         "Column", "Row", "Box", "Spacer", "Divider", "Card", "Section",
+        // 设置页式分组与行（NodeTreeRenderer 已实现，见 docs/card-design-spec.md §2）
+        "Group", "ListRow",
         "Text", "Markdown", "Image", "Icon", "Badge", "ProgressBar", "TextField", "NumberField",
         "Switch", "Checkbox", "Slider", "Select", "RadioGroup", "FilePicker", "DirPicker", "Button",
         "IconButton", "CounterButton",
+        // 数值步进与选择控件（ChipRow / Dropdown 见 docs/card-dsl-chip-and-dropdown.md）
+        "Stepper", "Selector", "ChipRow", "Dropdown",
     )
     val LEGACY = setOf(
         "text", "input", "number", "switch", "slider", "select", "radio",

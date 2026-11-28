@@ -3,6 +3,7 @@ package heizige.kk.khatkit.asr.providers
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import heizige.kk.khatkit.speech.R
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -66,7 +67,7 @@ class DashScopeASRController(
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            setError("Microphone permission is required")
+            setError(context.getString(R.string.speech_error_microphone_permission))
             return
         }
 
@@ -113,7 +114,7 @@ class DashScopeASRController(
                 finishTimeoutJob = null
                 this@DashScopeASRController.webSocket = null
                 releaseRecorder()
-                setError(t.message ?: "ASR websocket failed")
+                setError(context.getString(R.string.speech_error_connection))
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -249,7 +250,7 @@ class DashScopeASRController(
             } catch (e: Exception) {
                 if (isActive) {
                     Log.e(TAG, "Audio recording failed", e)
-                    setError(e.message ?: "Audio recording failed")
+                    setError(context.getString(R.string.speech_error_recording))
                 }
             } finally {
                 releaseRecorder()
@@ -306,7 +307,7 @@ class DashScopeASRController(
             "conversation.item.input_audio_transcription.failed" -> {
                 val itemId = event.optString("item_id", "default")
                 val error = event.optJSONObject("error")
-                val message = error?.optString("message") ?: "ASR transcription failed"
+                val message = error?.optString("message") ?: context.getString(R.string.speech_error_transcription)
                 Log.e(TAG, "DashScope ASR transcription failed: $message")
                 partialTranscripts.remove(itemId)
                 publishTranscript()
@@ -315,7 +316,7 @@ class DashScopeASRController(
 
             "error" -> {
                 val error = event.optJSONObject("error")
-                val message = error?.optString("message") ?: "ASR realtime error"
+                val message = error?.optString("message") ?: context.getString(R.string.speech_error_realtime)
                 Log.e(TAG, "DashScope ASR server error: $message")
                 setError(message)
             }

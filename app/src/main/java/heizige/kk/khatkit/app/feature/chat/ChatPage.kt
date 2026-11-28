@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.effect.content.mochiBlurReveal
 import ui.feice.mochi.effect.content.mochiBlur
@@ -21,11 +22,10 @@ import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.effect.glass.LocalMochiBackdrop
-
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import android.net.Uri
@@ -61,7 +61,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
-import heizige.kk.khatkit.app.core.ui.components.ui.greetingMessage
+import heizige.kk.khatkit.app.feature.chat.components.ui.greetingMessage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -90,6 +90,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -117,24 +118,24 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
-import heizige.kk.khatkit.app.feature.chat.ChatError
-import heizige.kk.khatkit.app.core.ui.components.ai.ChatAttachmentPickerActions
-import heizige.kk.khatkit.app.core.ui.components.ai.ChatInput
-import heizige.kk.khatkit.app.core.ui.components.ai.editorBackdropProgress
+import heizige.kk.khatkit.app.feature.chat.data.ChatError
+import heizige.kk.khatkit.app.feature.chat.components.ai.ChatAttachmentPickerActions
+import heizige.kk.khatkit.app.feature.chat.components.ai.ChatInput
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorBackdropProgress
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPickerSheet
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
-import heizige.kk.khatkit.app.core.ui.components.ai.FilesPicker
-import heizige.kk.khatkit.app.core.ui.components.ai.SearchMode
-import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatCompletionProvider
-import heizige.kk.khatkit.app.core.ui.components.ai.completion.WorkspaceCompletionProvider
-import heizige.kk.khatkit.app.core.ui.components.ai.completion.ChatInputCommand
-import heizige.kk.khatkit.app.core.ui.components.ai.CompressContextDialog
-import heizige.kk.khatkit.app.core.ui.components.ai.rememberChatAttachmentPickerActions
+import heizige.kk.khatkit.app.feature.chat.components.ai.FilesPicker
+import heizige.kk.khatkit.app.feature.chat.components.ai.SearchMode
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.ChatCompletionProvider
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.WorkspaceCompletionProvider
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.ChatInputCommand
+import heizige.kk.khatkit.app.feature.chat.components.ai.CompressContextDialog
+import heizige.kk.khatkit.app.feature.chat.components.ai.rememberChatAttachmentPickerActions
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
-import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
+import heizige.kk.khatkit.app.feature.chat.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.ui.modifier.shimmer
 import heizige.kk.khatkit.app.core.util.base64Decode
@@ -143,18 +144,25 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.arrowBack
-import heizige.kk.khatkit.app.core.ui.icons.close
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import ui.feice.mochi.basic.mochiSheetBackdrop
-import heizige.kk.khatkit.app.core.ui.icons.menu
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-
-
-
+import heizige.kk.khatkit.app.core.ui.icons.navigation.menu
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
+import heizige.kk.khatkit.app.feature.chat.data.VoicePhase
+import heizige.kk.khatkit.app.LocalPageRoute
+import heizige.kk.khatkit.app.PageBackInterceptor
+
+
+
+
+
+
+
+
 
 @Composable
 fun ChatPage(id: Uuid, text: String?, files: List<Uri>, nodeId: Uuid? = null, messageId: Uuid? = null) {
@@ -355,6 +363,8 @@ internal fun ChatScaffold(
     onClearAllErrors: () -> Unit,
     archived: Boolean = false,
 ) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
@@ -436,7 +446,7 @@ internal fun ChatScaffold(
             val voiceState by vm.voiceSession.state.collectAsStateWithLifecycle()
             if (archived) {
                 Text(
-                    "历史群聊已归档",
+                    stringResource(R.string.chat_page_archived_group_banner),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
@@ -451,7 +461,7 @@ internal fun ChatScaffold(
                 onRemoveQueuedMessage = vm::removeQueuedMessage,
                 onBeginEditQueuedMessage = vm::beginEditQueuedMessage,
                 onFinishEditQueuedMessage = vm::finishEditQueuedMessage,
-                onResumeMessageQueue = vm::resumeMessageQueue,
+                onResumeMessageQueue = vm::resumeMessageQueueManager,
                 onSendQueuedMessageNow = vm::sendQueuedMessageNow,
                 loading = loadingJob != null,
                 settings = setting,
@@ -460,7 +470,7 @@ internal fun ChatScaffold(
                     ChatInputCommand("compress", stringResource(R.string.chat_page_compress_context)) {
                         showCompressDialog = true
                     },
-                    ChatInputCommand("skill", "载入技能到草稿") { skillSheet.show() },
+                    ChatInputCommand("skill", stringResource(R.string.chat_skill_load_to_draft)) { skillSheet.show() },
                     ChatInputCommand("skills", stringResource(R.string.skills_page_title)) {
                         navController.navigate(Screen.Skills)
                     },
@@ -501,7 +511,7 @@ internal fun ChatScaffold(
                 },
                 onSendClick = {
                     if (currentChatModel == null) {
-                        Toast.show("请先为角色配置模型", isError = true)
+                        Toast.show(resources.getString(R.string.chat_page_configure_model_first), isError = true)
                         return@ChatInput
                     }
                     if (inputState.isEditing()) {
@@ -740,7 +750,7 @@ internal fun ChatScaffold(
                         } catch (cancelled: kotlinx.coroutines.CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            Toast.show("复制对话失败", isError = true)
+                            Toast.show(resources.getString(R.string.chat_page_copy_conversation_failed), isError = true)
                         }
                     }
                 }) else null,
@@ -801,11 +811,12 @@ private fun ChatFilesPickerSheet(
     androidx.compose.runtime.CompositionLocalProvider(
         ui.feice.mochi.navigation.LocalMochiPredictiveBack provides setting.displaySetting.mochiPredictiveBack,
     ) {
-        MochiSheet(
+        PrimaryBottomSheet(
             state = sheetState,
+            title = stringResource(R.string.more_options),
+            imageVector = add,
             onDismiss = { dismissAll() },
-        ) {
-        MochiSheetHeader(title = stringResource(R.string.more_options))
+        ) { _ ->
         FilesPicker(
             conversation = conversation,
             state = inputState,
@@ -1047,7 +1058,7 @@ private fun TopBar(
                             if (!bigScreen) {
                                 Icon(
                                     imageVector = menu,
-                                    contentDescription = "Messages",
+                                    contentDescription = stringResource(R.string.chat_page_messages_menu),
                                     tint = cs.onSurface,
                                     modifier = Modifier.size(22.dp).graphicsLayer {
                                         alpha = 1f - searchProgress.value
@@ -1081,8 +1092,8 @@ private fun TopBar(
                         if (searching) 1 else 0,
                     ) { icon ->
                         when (icon) {
-                            0 -> Icon(search, "搜索消息")
-                            else -> Icon(close, "取消搜索")
+                            0 -> Icon(search, stringResource(R.string.chat_page_search_messages))
+                            else -> Icon(close, stringResource(R.string.chat_page_cancel_search))
                         }
                     }
                 }

@@ -40,7 +40,6 @@ import ui.feice.mochi.navigation.MochiTitleBarDefaults
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.emphasized
-
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.animation.core.LinearEasing
@@ -95,25 +94,22 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
 import heizige.kk.khatkit.app.core.ui.hooks.rememberColorMode
-import heizige.kk.khatkit.app.feature.settings.components.PresetThemeColorDots
-import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.core.ui.components.theme.PresetThemeColorDots
+import heizige.kk.khatkit.app.core.ui.components.theme.ThemeCustomColorSheet
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.KkOptionsText
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
-import heizige.kk.khatkit.uikit.mochi.MochiModalBottomSheet
 import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.neurology
-import heizige.kk.khatkit.app.core.ui.icons.smartphone
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.ai.neurology
+import heizige.kk.khatkit.app.core.ui.icons.automation.smartphone
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import androidx.compose.runtime.DisposableEffect
@@ -131,6 +127,12 @@ import ui.feice.mochi.basic.MochiSelectionCheck
 import ui.feice.mochi.basic.MochiSwitch
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
+
+
+
 
 private enum class GreetingStep { Welcome, Agreement, Permissions, AiSetup, Settings }
 
@@ -849,11 +851,9 @@ private fun GreetingAiSetupScreen(t: () -> Float) {
         }
         val sheetTitle = provider?.name ?: stringResource(R.string.greeting_ai_custom_key)
         val closeSheet = { sheetProvider = null; customSheetVisible = false }
-        val sheetBody: @Composable (showSaveButton: Boolean) -> Unit = { showSaveButton ->
+        val sheetBody: @Composable () -> Unit = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (provider == null) {
@@ -897,38 +897,16 @@ private fun GreetingAiSetupScreen(t: () -> Float) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 )
-                if (showSaveButton) {
-                    MochiButton(
-                        onClick = save,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.greeting_ai_save))
-                    }
-                }
             }
         }
-        if (false) {
-            MochiModalBottomSheet(
-                show = true,
-                title = sheetTitle,
-                onDismissRequest = closeSheet,
-                // 本处的 MD3 分支（下面的 PrimaryBottomSheet）走的是 Khromia
-                // PrimaryBottomSheet，其内容容器横向零内缩；Miuix 的
-                // WindowBottomSheet 缺省会缩 16dp。这里显式归零，两侧贴边就都等于
-                // sheetBody 自己的 16dp（0+16 = 0+16），不会因切风格而跳一下。
-                miuixInsideMarginWidth = 0.dp,
-            ) { sheetBody(true) }
-        } else {
-            PrimaryBottomSheet(
-                visible = true,
-                title = sheetTitle,
-                imageVector = smartphone,
-                confirmText = stringResource(R.string.greeting_ai_save),
-                onConfirm = { save() },
-                onDismiss = closeSheet,
-                scrollable = false,
-            ) { _ -> sheetBody(false) }
-        }
+        PrimaryBottomSheet(
+            visible = true,
+            title = sheetTitle,
+            imageVector = smartphone,
+            confirmText = stringResource(R.string.greeting_ai_save),
+            onConfirm = { save() },
+            onDismiss = closeSheet,
+        ) { _ -> sheetBody() }
     }
 }
 

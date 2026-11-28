@@ -4,6 +4,7 @@ import heizige.kk.khatkit.uikit.mochi.MochiButton
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 import android.Manifest
@@ -49,12 +50,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.automation.data.ApprovalCategory
-import heizige.kk.khatkit.app.feature.automation.data.ApprovalPolicy
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.core.data.automation.ApprovalCategory
+import heizige.kk.khatkit.app.core.data.automation.ApprovalPolicy
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.automation.KhatKitAccessibilityService
-import heizige.kk.khatkit.app.core.ui.icons.bolt
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
 import heizige.kk.khatkit.app.core.util.hasUsageStatsPermission
 import heizige.kk.khatkit.bridge.impl.AllFilesAccess
 import heizige.kk.khatkit.bridge.impl.ClipboardAccess
@@ -394,7 +395,7 @@ fun PermissionChecklist(
         header()
 
         if (section == null || section == PermissionChecklistSection.BASIC) {
-            // 顶部状态卡：还有缺失就走「一键授权」，全齐就给一行对勾。
+            // 一键授权只覆盖 Android 运行时权限，不包含系统级访问。
             MochiListSection {
                 if (missingRuntime.isNotEmpty()) {
                     MochiListRow(
@@ -422,13 +423,13 @@ fun PermissionChecklist(
             // 常规权限：运行时权限，点了直接弹系统授权框。
             MochiListSection(header = stringResource(R.string.greeting_permissions_normal)) {
                 runtimeItems.forEach { item -> PermissionRow(item) }
-                // 剪贴板不是 Android 运行时权限（系统只允许前台读取），放在常规组作为应用级开关
+                // 剪贴板是应用级开关；Android 只允许在前台读取。
                 MochiListRow(
-                    title = "剪贴板读取",
+                    title = stringResource(R.string.permission_clipboard_title),
                     subtitle = if (clipboardEnabled) {
-                        "允许卡片和工具读取剪贴板 · 系统只允许前台读取"
+                        stringResource(R.string.permission_clipboard_desc)
                     } else {
-                        "已关闭：卡片读取剪贴板会直接报错"
+                        stringResource(R.string.permission_clipboard_disabled)
                     },
                     checked = clipboardEnabled,
                     onClick = {
@@ -464,7 +465,7 @@ fun PermissionChecklist(
                     subtitle = if (rootAvailable) {
                         stringResource(R.string.greeting_permission_root_desc)
                     } else {
-                        stringResource(R.string.greeting_permission_root_desc) + " · 未检测到 root"
+                        stringResource(R.string.greeting_permission_root_desc) + stringResource(R.string.permission_root_not_detected)
                     },
                     selected = rootAvailable && rootEnabled,
                     enabled = rootAvailable,
@@ -480,7 +481,7 @@ fun PermissionChecklist(
                     subtitle = if (shizukuAvailable) {
                         stringResource(R.string.greeting_permission_shizuku_desc)
                     } else {
-                        stringResource(R.string.greeting_permission_shizuku_desc) + " · 未运行"
+                        stringResource(R.string.greeting_permission_shizuku_desc) + stringResource(R.string.permission_shizuku_not_running)
                     },
                     selected = shizukuGranted,
                     enabled = shizukuAvailable,
@@ -539,18 +540,14 @@ private fun ApprovalPolicySheet(
     // U7b-6：直连 MochiSheet（state 由调用方持有）。
     MochiSheet(state = sheetState, onDismiss = onDismiss) {
         MochiSheetHeader(title = stringResource(R.string.approval_sheet_title))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
+        MochiSheetContent(
+            modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
             MochiListSection(footer = stringResource(R.string.approval_sheet_desc)) {
                 ApprovalCategory.entries.forEach { category ->
                     var policy by remember(category) {
-                        mutableStateOf(AutomationBus.policyOf(category))
+                        mutableStateOf(AutomationManager.policyOf(category))
                     }
                     val options = ApprovalPolicy.entries
                     Column(
@@ -569,7 +566,7 @@ private fun ApprovalPolicySheet(
                             onSelect = { index ->
                                 val next = options.getOrNull(index) ?: return@MochiSegmentedControl
                                 policy = next
-                                AutomationBus.setPolicy(category, next)
+                                AutomationManager.setPolicy(category, next)
                             },
                             items = options.map { stringResource(it.labelRes) }.toImmutableList(),
                             modifier = Modifier.fillMaxWidth(),

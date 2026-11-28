@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,8 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import kotlinx.collections.immutable.ImmutableList
@@ -81,7 +83,7 @@ fun <T> Select(
             trailing()
             Icon(
                 imageVector = keyboardArrowDown,
-                contentDescription = "expand",
+                contentDescription = stringResource(R.string.select_expand),
                 modifier = Modifier.rotate(arrowRotation),
             )
         },
@@ -134,7 +136,7 @@ fun <T> SelectTextField(
                     MochiIconButton(onClick = { expanded = !expanded }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = if (expanded) keyboardArrowUp else keyboardArrowDown,
-                            contentDescription = "expand",
+                            contentDescription = stringResource(R.string.select_expand),
                         )
                     }
                 },

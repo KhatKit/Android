@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -66,6 +67,7 @@ import ui.feice.mochi.navigation.rememberMochiTabScaffoldState
 @Composable
 fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val tabs = rememberMochiTabScaffoldState()
     val qrSheet = rememberMochiSheetState()
@@ -85,10 +87,10 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
     fun saveQr(selected: DonationChannel) {
         if (!vm.prepareExport(selected.qr)) return
         try {
-            exportLauncher.launch(context.getString(R.string.donate_page_export_file_name, context.getString(selected.label)))
+            exportLauncher.launch(resources.getString(R.string.donate_page_export_file_name, resources.getString(selected.label)))
         } catch (_: ActivityNotFoundException) {
             vm.cancelExport()
-            Toast.show(context.getString(R.string.donate_page_save_failed), isError = true)
+            Toast.show(resources.getString(R.string.donate_page_save_failed), isError = true)
         }
     }
 
@@ -99,14 +101,14 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
             try {
                 val link = withContext(Dispatchers.IO) { DonationPaymentLinkHelper.read(context, selected.qr) }
                 if (link != null && context.writeClipboardText(link)) {
-                    Toast.show(context.getString(R.string.sponsor_link_copied, context.getString(selected.label)))
+                    Toast.show(resources.getString(R.string.sponsor_link_copied, resources.getString(selected.label)))
                 } else {
-                    Toast.show(context.getString(R.string.sponsor_copy_failed), isError = true)
+                    Toast.show(resources.getString(R.string.sponsor_copy_failed), isError = true)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                Toast.show(context.getString(R.string.sponsor_copy_failed), isError = true)
+                Toast.show(resources.getString(R.string.sponsor_copy_failed), isError = true)
             } finally {
                 copying = false
             }
@@ -135,10 +137,10 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
                         try {
                             context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, context.getString(R.string.sponsor_share_text, profile?.projectUrl ?: DonationChannels.projectUrl))
+                                putExtra(Intent.EXTRA_TEXT, resources.getString(R.string.sponsor_share_text, profile?.projectUrl ?: DonationChannels.projectUrl))
                             }, shareLabel))
                         } catch (_: ActivityNotFoundException) {
-                            Toast.show(context.getString(R.string.setting_page_no_share_app), isError = true)
+                            Toast.show(resources.getString(R.string.setting_page_no_share_app), isError = true)
                         }
                     },
                     modifier = Modifier.semantics { contentDescription = shareLabel },

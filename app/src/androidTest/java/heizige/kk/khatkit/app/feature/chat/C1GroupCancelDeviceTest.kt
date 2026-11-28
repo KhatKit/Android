@@ -14,8 +14,8 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
-import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
@@ -65,6 +65,10 @@ import java.io.File
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.feature.chat.helper.isUngeneratedAssistantMessage
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-06「取消」半条的真机证据：**边流式边取消**，断言契约

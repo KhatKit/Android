@@ -44,6 +44,8 @@ class OAuthLoopbackCallbackServer(
     callbackPath: String = "/oauth/callback",
     /** redirect URI 的主机名；预注册了 redirect URI 的客户端（如 ChatGPT 的 Codex）必须按注册值传 */
     private val redirectHost: String = "localhost",
+    /** Headless SDK callers supply copy; Android callers use openSession(context, state). */
+    private val stringResolver: ((Int) -> String)? = null,
 ) {
     private class CallbackRegistration {
         val result = CompletableDeferred<OAuthCallback>()
@@ -64,6 +66,7 @@ class OAuthLoopbackCallbackServer(
     }
 
     suspend fun openSession(expectedState: String): OAuthLoopbackCallbackSession {
+        checkNotNull(stringResolver) { "Headless OAuth sessions require a string resolver" }
         return openSession(expectedState, foregroundServiceContext = null)
     }
 
@@ -98,7 +101,7 @@ class OAuthLoopbackCallbackServer(
                             context = foregroundServiceContext,
                             sessionId = expectedState,
                         )
-                    ) { "无法启动 OAuth 回调前台服务" }
+                    ) { foregroundServiceContext.getString(R.string.oauth_error_foreground_service) }
                 }
                 OAuthLoopbackCallbackSession(
                     redirectUri = uri,
@@ -235,67 +238,40 @@ class OAuthLoopbackCallbackServer(
     private fun successHtml() = callbackPage(
         tone = "success",
         symbol = "&#10003;",
-        title = localizedString(R.string.oauth_callback_success_title, "Authorization complete"),
-        message = localizedString(
-            R.string.oauth_callback_success_message,
-            "The account has been connected successfully.",
-        ),
-        hint = localizedString(
-            R.string.oauth_callback_success_hint,
-            "You can close this tab and return to KhatKit.",
-        ),
+        title = localizedString(R.string.oauth_callback_success_title),
+        message = localizedString(R.string.oauth_callback_success_message),
+        hint = localizedString(R.string.oauth_callback_success_hint),
     )
 
     private fun errorHtml() = callbackPage(
         tone = "error",
         symbol = "&#10005;",
-        title = localizedString(R.string.oauth_callback_error_title, "Authorization failed"),
-        message = localizedString(
-            R.string.oauth_callback_error_message,
-            "The authorization provider did not approve this request.",
-        ),
-        hint = localizedString(
-            R.string.oauth_callback_error_hint,
-            "Close this tab and try again from KhatKit.",
-        ),
+        title = localizedString(R.string.oauth_callback_error_title),
+        message = localizedString(R.string.oauth_callback_error_message),
+        hint = localizedString(R.string.oauth_callback_error_hint),
     )
 
     private fun invalidCallbackHtml() = callbackPage(
         tone = "warning",
         symbol = "!",
-        title = localizedString(
-            R.string.oauth_callback_invalid_title,
-            "Invalid authorization callback",
-        ),
-        message = localizedString(
-            R.string.oauth_callback_invalid_message,
-            "The authorization callback is missing information or has expired.",
-        ),
-        hint = localizedString(
-            R.string.oauth_callback_invalid_hint,
-            "Return to KhatKit and start the authorization again.",
-        ),
+        title = localizedString(R.string.oauth_callback_invalid_title),
+        message = localizedString(R.string.oauth_callback_invalid_message),
+        hint = localizedString(R.string.oauth_callback_invalid_hint),
     )
 
     private fun callbackAlreadyHandledHtml() = callbackPage(
         tone = "info",
         symbol = "i",
-        title = localizedString(
-            R.string.oauth_callback_handled_title,
-            "Authorization already handled",
-        ),
-        message = localizedString(
-            R.string.oauth_callback_handled_message,
-            "This authorization callback has already been handled.",
-        ),
-        hint = localizedString(
-            R.string.oauth_callback_handled_hint,
-            "You can safely close this tab and return to KhatKit.",
-        ),
+        title = localizedString(R.string.oauth_callback_handled_title),
+        message = localizedString(R.string.oauth_callback_handled_message),
+        hint = localizedString(R.string.oauth_callback_handled_hint),
     )
 
-    private fun localizedString(@StringRes resourceId: Int, fallback: String): String =
-        localizedContext?.getString(resourceId) ?: fallback
+    private fun localizedString(@StringRes resourceId: Int): String =
+        localizedContext?.getString(resourceId)
+            ?: checkNotNull(stringResolver) {
+                "Headless OAuth callback rendering requires a string resolver"
+            }.invoke(resourceId)
 
     private fun callbackPage(
         tone: String,
@@ -307,6 +283,11 @@ class OAuthLoopbackCallbackServer(
         val safeTitle = title.escapeHtml()
         val safeMessage = message.escapeHtml()
         val safeHint = hint.escapeHtml()
+        val brand = localizedString(R.string.oauth_app_name)
+        val safeBrand = brand.escapeHtml()
+        val safeDocumentTitle = String.format(
+            localizedString(R.string.oauth_callback_document_title), title, brand,
+        ).escapeHtml()
         val languageTag = localizedContext
             ?.resources
             ?.configuration
@@ -322,7 +303,7 @@ class OAuthLoopbackCallbackServer(
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
               <meta name="color-scheme" content="light dark">
-              <title>$safeTitle · KhatKit</title>
+              <title>$safeDocumentTitle</title>
               <style>
                 :root {
                   color-scheme: light dark;
@@ -411,7 +392,7 @@ class OAuthLoopbackCallbackServer(
             </head>
             <body class="$tone">
               <main role="status" aria-live="polite">
-                <p class="brand">KhatKit</p>
+                <p class="brand">$safeBrand</p>
                 <div class="status">
                   <div class="icon" aria-hidden="true">$symbol</div>
                   <h1>$safeTitle</h1>

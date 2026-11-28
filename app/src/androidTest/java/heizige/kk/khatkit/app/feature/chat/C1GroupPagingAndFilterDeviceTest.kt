@@ -20,8 +20,8 @@ import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
-import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
@@ -76,6 +76,12 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.asConversationTypeArgument
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-10「单聊/群聊筛选」的第 6 轮设备侧补充：**分页数据源**与**混合列表渲染**。

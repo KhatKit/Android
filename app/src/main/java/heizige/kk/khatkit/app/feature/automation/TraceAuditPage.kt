@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import android.content.Context
@@ -27,10 +30,10 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import java.io.File
-import heizige.kk.khatkit.app.feature.automation.data.TraceBrowseState
-import heizige.kk.khatkit.app.feature.automation.data.TraceStepView
-import heizige.kk.khatkit.app.feature.automation.data.toStepViews
-import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
+import heizige.kk.khatkit.app.feature.automation.helper.TraceBrowseState
+import heizige.kk.khatkit.app.feature.automation.helper.TraceStepView
+import heizige.kk.khatkit.app.feature.automation.helper.toStepViews
+import heizige.kk.khatkit.app.core.data.automation.AutomationTraceManager
 
 @Composable
 fun TraceAuditPage() {
@@ -44,7 +47,7 @@ fun TraceAuditPage() {
     val current = views.getOrNull(cursor.index)
 
     MochiSettingsPageScaffold(
-        title = "轨迹审计",
+        title = stringResource(R.string.trace_audit_title),
         navigationIcon = { BackButton() },
     ) { padding ->
         LazyColumn(
@@ -58,7 +61,7 @@ fun TraceAuditPage() {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (traces.isEmpty()) {
-                item { Text("还没有轨迹。设备动作执行后会出现在这里。") }
+                item { Text(stringResource(R.string.trace_audit_empty)) }
             }
             items(traces, key = { it.id }) { meta ->
                 KkCard(
@@ -67,7 +70,7 @@ fun TraceAuditPage() {
                 ) {
                     Column(Modifier.padding(12.dp)) {
                         Text(meta.label.ifBlank { meta.id }, style = MaterialTheme.typography.titleMedium)
-                        Text("${meta.stepCount} 步", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(pluralStringResource(R.plurals.trace_audit_steps, meta.stepCount, meta.stepCount), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -77,9 +80,9 @@ fun TraceAuditPage() {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(step.title, style = MaterialTheme.typography.titleMedium)
                             if (step.detail.isNotBlank()) Text(step.detail)
-                            Text(if (step.success) "成功" else "失败")
+                            Text(if (step.success) stringResource(R.string.trace_audit_success) else stringResource(R.string.trace_audit_failure))
                             if (step.result.isNotBlank()) Text(step.result)
-                            step.hit?.let { Text("命中 $it") }
+                            step.hit?.let { Text(stringResource(R.string.trace_audit_hit, it)) }
                             step.screenshotPath?.let { Text(it) }
                             Text("${cursor.index + 1} / ${cursor.count}")
                         }
@@ -87,12 +90,12 @@ fun TraceAuditPage() {
                 }
                 item {
                     MochiButton(onClick = { cursor = cursor.previous() }, enabled = cursor.hasPrevious) {
-                        Text("上一步")
+                        Text(stringResource(R.string.trace_audit_previous))
                     }
                 }
                 item {
                     MochiButton(onClick = { cursor = cursor.next() }, enabled = cursor.hasNext) {
-                        Text("下一步")
+                        Text(stringResource(R.string.trace_audit_next))
                     }
                 }
             }
@@ -100,5 +103,5 @@ fun TraceAuditPage() {
     }
 }
 
-internal fun tracerFor(context: Context): AutomationTracer =
-    AutomationTracer(File(context.filesDir, "khatkit/traces"))
+internal fun tracerFor(context: Context): AutomationTraceManager =
+    AutomationTraceManager(File(context.filesDir, "khatkit/traces"))

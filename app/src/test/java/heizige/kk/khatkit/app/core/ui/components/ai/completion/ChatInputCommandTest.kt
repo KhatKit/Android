@@ -1,10 +1,16 @@
 package heizige.kk.khatkit.app.core.ui.components.ai.completion
 
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.suggestCommands
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.findCommand
 import androidx.compose.ui.text.TextRange
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.ChatCompletionContext
+import heizige.kk.khatkit.app.feature.chat.components.ai.completion.ChatInputCommand
+
+
 
 class ChatInputCommandTest {
     private val compress = ChatInputCommand("compress", "Compress") {}

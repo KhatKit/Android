@@ -1228,7 +1228,9 @@
   <string name="setting_update_reminder_paused_until">%1$s까지 일시 중지됨</string>
   <string name="setting_update_reminder_pause_title">업데이트 알림 일시중지</string>
   <string name="setting_update_reminder_pause_description">선택한 시간만큼 멈춘 뒤 재개</string>
-  <string name="setting_update_reminder_pause_days">%1$d일</string>
+  <plurals name="setting_update_reminder_pause_days">
+    <item quantity="other">%1$d일</item>
+  </plurals>
   <string name="setting_update_reminder_resume_now">지금 재개</string>
   <string name="reasoning_max">최대</string>
   <string name="backup_page_import_overwrite_confirm">백업을 가져오면 앱 데이터가 덮어써집니다. 계속하시겠습니까?</string>
@@ -1253,7 +1255,9 @@
   <string name="chat_generation_network_unreachable">서버에 연결할 수 없습니다</string>
   <string name="chat_generation_network_disconnected">네트워크 연결이 끊어졌습니다</string>
   <string name="setting_files_page_clean_all">모든 파일</string>
-  <string name="setting_files_page_clean_older_than_days">%1$d일 이상 지난 파일</string>
+  <plurals name="setting_files_page_clean_older_than_days">
+    <item quantity="other">%1$d일 이상 지난 파일</item>
+  </plurals>
   <string name="setting_files_page_clean_range_description">선택한 파일이 영구 삭제됩니다.</string>
   <string name="setting_page_preferences_network_auto_retry">자동 재시도</string>
   <string name="setting_page_preferences_network_auto_retry_desc">실패한 요청을 최대 3회 재시도</string>

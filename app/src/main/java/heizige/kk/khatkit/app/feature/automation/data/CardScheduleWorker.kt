@@ -1,4 +1,8 @@
 package heizige.kk.khatkit.app.feature.automation.data
+
+import heizige.kk.khatkit.app.core.data.automation.CardScheduleRepository
+
+import heizige.kk.khatkit.app.core.data.automation.CardScheduleJob
 import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
@@ -12,7 +16,7 @@ import heizige.kk.khatkit.app.core.di.appEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
-import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeImpl
+import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeHelper
 
 /**
  * 卡片定时任务的执行体：取出任务元数据 → 用 payload 当 `args` 跑卡片 → 排下一次。
@@ -51,7 +55,7 @@ class CardScheduleWorker(
         val request = OneTimeWorkRequestBuilder<CardScheduleWorker>()
             .setInitialDelay(CardScheduleRepository.nextDelayMs(job), TimeUnit.MILLISECONDS)
             .setInputData(Data.Builder().putString(KEY_JOB_ID, job.jobId).build())
-            .addTag(ScheduleBridgeImpl.TAG_CARD_SCHEDULE)
+            .addTag(ScheduleBridgeHelper.TAG_CARD_SCHEDULE)
             .build()
         runCatching {
             WorkManager.getInstance(applicationContext)

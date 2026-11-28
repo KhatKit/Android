@@ -27,6 +27,8 @@ import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,8 +61,8 @@ import heizige.kk.khatkit.search.SearchRepository
 import heizige.kk.khatkit.search.SearchOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.media.playArrow
 import heizige.kk.khatkit.app.feature.settings.search.TavilyOptions
 import heizige.kk.khatkit.app.feature.settings.search.ExaOptions
 import heizige.kk.khatkit.app.feature.settings.search.ZhipuOptions
@@ -80,7 +82,7 @@ import heizige.kk.khatkit.app.feature.settings.search.KhatKitOptions
 import heizige.kk.khatkit.app.feature.settings.search.TinyfishOptions
 import heizige.kk.khatkit.app.feature.settings.search.GrokOptions
 import heizige.kk.khatkit.app.feature.settings.search.CustomJsOptions
-import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
+import heizige.kk.khatkit.app.feature.settings.helper.removeSearchService
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 @Composable
@@ -96,6 +98,8 @@ fun SettingSearchDetailPage(
     val service = settings.searchServices.find { it.id == serviceId } ?: return
     val serviceIndex = settings.searchServices.indexOf(service)
     var options by remember(service) { mutableStateOf(service) }
+    val context = LocalContext.current
+    val displayName = remember(options, LocalConfiguration.current) { options.localizedDisplayName(context) }
 
     fun save(updated: SearchOptions) {
         options = updated
@@ -105,14 +109,14 @@ fun SettingSearchDetailPage(
     }
 
     MochiSettingsPageScaffold(
-        title = options.displayName,
+        title = displayName,
         scrollBehavior = scrollBehavior,
         actions = {
             if (settings.searchServices.size > 1) {
                 MochiIconButton(
                     onClick = {
                         // 走统一入口：删掉的服务若正好是「当前使用的搜索服务」，选中下标要跟着重绑。
-                        removeSearchRepository(vm = vm, settings = settings, service = service)
+                        removeSearchService(vm = vm, settings = settings, service = service)
                         nav.popBackStack()
                     },
                     shapes = IconButtonDefaults.shapes(),
@@ -357,7 +361,7 @@ internal fun SearchTestSection(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "${index + 1}. ${item.title}",
+                                    text = stringResource(R.string.setting_search_result_title, index + 1, item.title),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(

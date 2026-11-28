@@ -144,12 +144,45 @@ data class ScrapedResultMetadata(
 sealed class SearchOptions {
     abstract val id: Uuid
 
+    /** Resolve at the presentation boundary, never store translated provider identities. */
+    fun localizedDisplayName(context: Context): String =
+        (this as? CustomJsOptions)?.name?.takeIf { it.isNotBlank() }
+            ?: context.getString(TYPE_LABELS[this::class] ?: R.string.search_provider_unknown)
+
+    /** Stable SDK identity; UI callers use [localizedDisplayName]. */
     open val displayName: String
         get() = TYPES[this::class] ?: "Unknown"
 
     companion object {
         val DEFAULT = BingLocalOptions()
 
+        fun localizedTypes(context: Context): Map<kotlin.reflect.KClass<out SearchOptions>, String> =
+            TYPE_LABELS.mapValues { (_, label) -> context.getString(label) }
+
+        private val TYPE_LABELS: Map<kotlin.reflect.KClass<out SearchOptions>, Int> = mapOf(
+            BingLocalOptions::class to R.string.search_provider_bing,
+            KhatKitOptions::class to R.string.search_provider_khatkit,
+            ZhipuOptions::class to R.string.search_provider_zhipu,
+            DoubaoOptions::class to R.string.search_provider_doubao,
+            TavilyOptions::class to R.string.search_provider_tavily,
+            ExaOptions::class to R.string.search_provider_exa,
+            SearXNGOptions::class to R.string.search_provider_searxng,
+            LinkUpOptions::class to R.string.search_provider_linkup,
+            BraveOptions::class to R.string.search_provider_brave,
+            MetasoOptions::class to R.string.search_provider_metaso,
+            OllamaOptions::class to R.string.search_provider_ollama,
+            PerplexityOptions::class to R.string.search_provider_perplexity,
+            FirecrawlOptions::class to R.string.search_provider_firecrawl,
+            JinaOptions::class to R.string.search_provider_jina,
+            BochaOptions::class to R.string.search_provider_bocha,
+            GrokOptions::class to R.string.search_provider_grok,
+            TinyfishOptions::class to R.string.search_provider_tinyfish,
+            SerperOptions::class to R.string.search_provider_serper,
+            CustomJsOptions::class to R.string.search_provider_custom_js,
+            DeepSeekOptions::class to R.string.search_provider_deepseek,
+        )
+
+        /** Stable SDK names, not localized display labels. */
         val TYPES = mapOf(
             BingLocalOptions::class to "Bing",
             KhatKitOptions::class to "KhatKit",

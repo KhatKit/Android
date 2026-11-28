@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.icons.error
+import heizige.kk.khatkit.app.core.ui.icons.utility.error
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiDialog
 import ui.feice.mochi.basic.MochiDialogAction

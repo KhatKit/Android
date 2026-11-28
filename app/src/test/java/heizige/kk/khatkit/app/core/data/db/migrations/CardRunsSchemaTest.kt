@@ -62,7 +62,12 @@ class CardRunsSchemaTest {
         assertTrue(factory.contains("Migration_33_34"))
         assertTrue(factory.contains("Migration_34_35"))
         assertTrue(factory.contains("Migration_35_36"))
-        assertTrue(File("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabase.kt").readText().contains("version = 37"))
+        // 版本号随 schema 演进：HEAD（855da8f5f 起）AppDatabase.kt:70 为 38。
+        // 本断言仍钉住「仓库最新 schema 版本」这一事实，来源为 HEAD 的 AppDatabase.kt。
+        assertTrue(
+            "AppDatabase 版本必须是 38（来源：HEAD AppDatabase.kt:70 version = 38）",
+            File("src/main/java/heizige/kk/khatkit/app/core/data/db/AppDatabase.kt").readText().contains("version = 38"),
+        )
     }
 
     private fun schemaFile(version: Int = 33): File {

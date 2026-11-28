@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.ui.platform.LocalResources
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -24,10 +27,10 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.core.util.toDp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.payments
-import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.khatkit.app.core.ui.icons.utility.payments
+import heizige.kk.khatkit.app.core.ui.icons.utility.sync
 import heizige.kk.khatkit.app.feature.balance.data.BalanceReading
-import heizige.kk.khatkit.app.feature.balance.data.isLow
+import heizige.kk.khatkit.app.feature.balance.helper.isLow
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.coroutines.launch
@@ -41,6 +44,8 @@ fun ProviderBalanceText(
     color: Color = Color.Unspecified,
     showRefresh: Boolean = false,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resources = LocalResources.current
     if (!providerSetting.balanceOption.enabled || providerSetting !is ProviderSetting.OpenAI) return
     val entry = rememberAppEntryPoint()
     val repository = entry.providerBalanceRepository()
@@ -58,7 +63,7 @@ fun ProviderBalanceText(
         val low = providerSetting.balanceOption.isLow(raw)
         LaunchedEffect(low) {
             if (repository.episodes.enteredLow(providerSetting.id, low)) {
-                Toast.show("${providerSetting.name} 余额偏低：$raw", isError = true)
+                Toast.show(resources.getString(R.string.provider_balance_low_toast, providerSetting.name, raw), isError = true)
             }
         }
         val tint = if (low == true) MochiTheme.colorScheme.error else color.takeOrElse { LocalContentColor.current }
@@ -66,18 +71,18 @@ fun ProviderBalanceText(
             Icon(payments, null, Modifier.size(style.fontSize.toDp()), tint = tint)
             Text(
                 text = when {
-                    low == true -> "低余额 · $raw"
+                    low == true -> stringResource(R.string.provider_balance_low, raw.orEmpty())
                     raw != null -> raw
-                    reading == BalanceReading.NotQueried -> "待刷新"
+                    reading == BalanceReading.NotQueried -> stringResource(R.string.provider_balance_pending)
                     reading == BalanceReading.Loading -> "…"
-                    else -> "余额不可用"
+                    else -> stringResource(R.string.provider_balance_unavailable)
                 },
                 modifier = Modifier.weight(1f, fill = false),
                 style = style, maxLines = 1, overflow = TextOverflow.Ellipsis, color = tint,
             )
             if (showRefresh) {
                 MochiIconButton(onClick = { scope.launch { refresh(true) } }, enabled = reading != BalanceReading.Loading) {
-                    Icon(sync, contentDescription = "刷新余额")
+                    Icon(sync, contentDescription = stringResource(R.string.provider_balance_refresh))
                 }
             }
         }

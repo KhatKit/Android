@@ -6,6 +6,9 @@ import heizige.kk.khatkit.search.SearchOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.settings.search.ExaOptions
+
+
 
 class SearchToolsTest {
     @Test

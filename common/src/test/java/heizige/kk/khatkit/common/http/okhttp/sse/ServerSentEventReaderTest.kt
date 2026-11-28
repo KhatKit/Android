@@ -62,7 +62,8 @@ class ServerSentEventReaderTest {
 
     @Test
     fun `joins multiline data and ignores comments plus retry`() {
-        val raw = """: ping
+        val raw = """
+            : ping
             retry: 3000
             id: 42
             event: response.output_text.delta

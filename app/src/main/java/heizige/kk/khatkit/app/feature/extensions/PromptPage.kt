@@ -28,9 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -76,15 +76,15 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.export.LorebookSerializer
-import heizige.kk.khatkit.app.core.data.export.ModeInjectionSerializer
+import heizige.kk.khatkit.app.feature.extensions.data.export.LorebookSerializer
+import heizige.kk.khatkit.app.feature.extensions.data.export.ModeInjectionSerializer
 import heizige.kk.khatkit.app.core.data.export.rememberExporter
 import heizige.kk.khatkit.app.core.data.export.rememberImporter
 import heizige.kk.khatkit.app.core.data.model.InjectionPosition
 import heizige.kk.khatkit.app.core.data.model.Lorebook
 import heizige.kk.khatkit.app.core.data.model.PromptInjection
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.ExportDialog
+import heizige.kk.khatkit.app.feature.extensions.components.ui.ExportDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.Select
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
@@ -96,20 +96,20 @@ import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.autoFixHigh
-import heizige.kk.khatkit.app.core.ui.icons.book2
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.iosShare
-import heizige.kk.khatkit.app.core.ui.icons.menuBook
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.components.ui.MochiSwitchFormRow
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.ai.autoFixHigh
+import heizige.kk.khatkit.app.core.ui.icons.utility.book2
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.social.iosShare
+import heizige.kk.khatkit.app.core.ui.icons.utility.menuBook
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.feature.extensions.components.ui.MochiSwitchFormRow
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabColumn
@@ -279,7 +279,7 @@ private fun ModeInjectionTab(
         MochiFabColumn {
             MochiSmallFab(
                 icon = uploadFile,
-                contentDescription = "从文件导入",
+                contentDescription = stringResource(R.string.extensions_prompt_import_from_file),
                 onClick = { importer.importFromFile() },
             )
             MochiFab(
@@ -409,7 +409,7 @@ private fun ModeInjectionFields(injection: PromptInjection.ModeInjection, onEdit
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.9f),
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(
@@ -655,7 +655,7 @@ private fun LorebookTab(
         MochiFabColumn {
             MochiSmallFab(
                 icon = uploadFile,
-                contentDescription = "从文件导入",
+                contentDescription = stringResource(R.string.extensions_prompt_import_from_file),
                 onClick = { importer.importFromFile() },
             )
             MochiFab(
@@ -807,7 +807,7 @@ private fun LorebookFields(book: Lorebook, onEdit: (Lorebook) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.95f),
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(

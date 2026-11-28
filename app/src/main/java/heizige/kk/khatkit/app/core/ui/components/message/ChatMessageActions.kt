@@ -17,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
@@ -52,18 +53,18 @@ import heizige.kk.khatkit.app.core.util.removeBracketedContent
 import heizige.kk.khatkit.app.core.util.toLocalString
 import heizige.kk.khatkit.app.core.util.toMessageTimeString
 import java.util.Locale
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.conversionPath
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.highlightAlt
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.app.core.ui.icons.stopCircle
-import heizige.kk.khatkit.app.core.ui.icons.sync
-import heizige.kk.khatkit.app.core.ui.icons.translate
-import heizige.kk.khatkit.app.core.ui.icons.volumeUp
-import heizige.kk.khatkit.app.core.ui.icons.web
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.automation.conversionPath
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.utility.highlightAlt
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.social.share
+import heizige.kk.khatkit.app.core.ui.icons.media.stopCircle
+import heizige.kk.khatkit.app.core.ui.icons.utility.sync
+import heizige.kk.khatkit.app.core.ui.icons.utility.translate
+import heizige.kk.khatkit.app.core.ui.icons.media.volumeUp
+import heizige.kk.khatkit.app.core.ui.icons.utility.web
 
 @Composable
 fun ColumnScope.ChatMessageActionButtons(
@@ -322,12 +323,9 @@ fun ChatMessageActionsSheet(
     // U7b-6：直连 MochiSheet（state 由调用方持有）；原来内容里的 dismiss() 统一走 onDismissRequest()。
     MochiSheet(state = sheetState, onDismiss = onDismissRequest) {
         MochiSheetHeader(title = stringResource(R.string.more_options))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+        MochiSheetContent(
+            modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Select and Copy
             KkCard(

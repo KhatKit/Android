@@ -78,11 +78,22 @@ diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
 # 本地源码库产物（mavenLocal，由 .github/scripts/build-mochi.sh 生成）
-mochi = "0.4.0-khatkit.3"
+mochi = "0.4.0-khatkit.6"
 richeditorCompose = "1.0.0"
+exifinterface = "1.4.2"
+guava = "33.6.0-jre"
+mlkitTextRecognitionChinese = "16.0.1"
+foojayResolver = "1.0.0"
+xz = "1.12"
+slf4jAndroid = "2.0.17-0"
+# Sentinel artifact prevents duplicate ListenableFuture classes; not a Guava release.
+guavaListenablefuture = "9999.0-empty-to-avoid-conflict-with-guava"
 
 [libraries]
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
+guava-core = { module = "com.google.guava:guava", version.ref = "guava" }
+mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "mlkitTextRecognitionChinese" }
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-compose-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -202,13 +213,13 @@ ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
 sqlite-vector = { module = "ai.sqlite:vector", version.ref = "sqlite-vector" }
 jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
-xz = { module = "org.tukaani:xz", version = "1.12" }
+xz = { module = "org.tukaani:xz", version.ref = "xz" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
-slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version = "2.0.17-0" }
+slf4j-android = { module = "uk.uuid.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
 sqlite-android = { module = "com.github.rikkahub:sqlite-android", version.ref = "sqlite-android" }
 termux-terminal-view = { module = "com.termux.termux-app:terminal-view", version.ref = "termux" }
 sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
-guava-listenablefuture = { module = "com.google.guava:listenablefuture", version = "9999.0-empty-to-avoid-conflict-with-guava" }
+guava-listenablefuture = { module = "com.google.guava:listenablefuture", version.ref = "guavaListenablefuture" }
 shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 # mochi-compose：UI 外壳/组件目标库（Maven Central，io.github.feice11）
@@ -220,13 +231,20 @@ mochi-icons = { module = "io.github.feice11:mochi-icons", version.ref = "mochi" 
 # 依赖分组。只收「同一组 >=2 个 artifact」且「各模块配置名与 api/implementation 语义
 # 完全一致」的组合——bundle 会把组内所有成员绑到同一个 configuration 上,只要有一处
 # 是 api(...) 其余是 implementation(...),打包成 bundle 就会悄悄改动模块的 API surface。
-# 逐组取舍与被否掉的候选见 docs/architecture-map.md「版本目录与 bundles」一节。
+# 本次分组与保留独立声明的原因见 docs/refactor-version-catalog.md。
 [bundles]
 # 仪器测试(javax/androidx 两件套)。7 个模块重复声明同一对,故分组。
 androidTest = ["androidx-junit", "androidx-espresso-core"]
+# common / document / web / workspace: implementation only.
+android-view-support = ["androidx-core-ktx", "androidx-appcompat", "material"]
+# ai / common: all three remain public API; implementation consumers stay separate.
+kotlinx-api = ["kotlinx-serialization-json", "kotlinx-coroutines-core", "kotlinx-datetime"]
+# app / khatkit: JSON plugins only; common exposes client-core via api, so no broad Ktor bundle.
+ktor-client-json = ["ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
@@ -236,3 +254,4 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics" }
 android-test = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+foojay-resolver = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojayResolver" }

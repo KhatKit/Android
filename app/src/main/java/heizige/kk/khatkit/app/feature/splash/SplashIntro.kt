@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.theme.GoogleSansFlex
+import heizige.kk.khatkit.app.feature.splash.theme.GoogleSansFlex
 import heizige.kk.khatkit.app.feature.splash.SplashGlyph.drawSplashGlyph
 import ui.feice.mochi.theme.MochiTheme
 import kotlinx.coroutines.delay

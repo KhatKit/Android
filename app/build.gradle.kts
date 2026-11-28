@@ -174,16 +174,14 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
 // 同样报这两条），但它会让 :app:debugCompileClasspath 在 --offline 下直接失败，
 // 因此必须在此处钉死。
 //
-// - exifinterface：app 显式声明了 1.4.1（ImageHelper 读 EXIF 方向），
-//   而 debugRuntimeClasspath 实际解析到的是 1.4.2。编译期与运行期选到不同版本，
-//   离线时编译期找不到 1.4.1 的 aar 就整包失败。这里统一顶到 1.4.2（补丁版本，
-//   API 兼容），顺带消除这个长期存在的编译/运行不一致。
+// - exifinterface：历史声明与 force 不一致；现在显式依赖和解析约束共用 catalog，
+//   保持原先 force 后的有效版本，避免编译期与运行期分叉。
 // - guava：camera-camera2-pipe 会引入 32.0.1-android，本地缓存只有 32.0.1-jre，
 //   没有 -android 的 jar。运行期本来就经 ktor 解析到 33.6.0-jre，统一到它即可。
 configurations.configureEach {
     resolutionStrategy {
-        force("androidx.exifinterface:exifinterface:1.4.2")
-        force("com.google.guava:guava:33.6.0-jre")
+        force(libs.androidx.exifinterface.get().toString())
+        force(libs.guava.core.get().toString())
     }
 }
 
@@ -193,7 +191,7 @@ dependencies {
     // AppCompatResources（RabbitLoading 用）需要 appcompat
     implementation(libs.androidx.appcompat)
     // ImageHelper 读 EXIF 方向，靠显式声明避免依赖树变化时断掉
-    implementation("androidx.exifinterface:exifinterface:1.4.1")
+    implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.work.runtime.ktx)
@@ -248,8 +246,7 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.websockets)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.bundles.ktor.client.json)
 
     // pebble (template engine)
     implementation(libs.pebble)

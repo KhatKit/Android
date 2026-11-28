@@ -22,9 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -84,22 +84,22 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelTypeTag
 import heizige.kk.khatkit.app.core.ui.components.ai.ProviderBalanceText
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.ShareSheet
+import heizige.kk.khatkit.app.feature.settings.components.ui.ShareSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.SiliconFlowPowerByIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
-import heizige.kk.khatkit.app.core.ui.components.ui.rememberShareSheetState
+import heizige.kk.khatkit.app.feature.settings.components.ui.rememberShareSheetState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.feature.assistant.detail.CustomBodies
-import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
-import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountManager
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomBodies
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomHeaders
+import heizige.kk.khatkit.app.feature.settings.data.oauth.ProviderAccountManager
 import heizige.kk.khatkit.app.feature.settings.components.ProviderAccountSection
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConnectionTester
 import heizige.kk.khatkit.app.feature.settings.components.SettingProviderBalanceOption
-import heizige.kk.khatkit.app.feature.settings.components.isUsingDefaultBaseUrl
-import heizige.kk.khatkit.app.feature.settings.components.resetBaseUrlToDefault
+import heizige.kk.khatkit.app.feature.settings.helper.isUsingDefaultBaseUrl
+import heizige.kk.khatkit.app.feature.settings.helper.resetBaseUrlToDefault
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.util.UiState
@@ -109,21 +109,21 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.package2
-import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.files.package2
+import heizige.kk.khatkit.app.core.ui.icons.social.share
+import heizige.kk.khatkit.app.core.ui.icons.utility.sync
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.app.feature.settings.provider.ModelList
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
 import heizige.kk.khatkit.app.feature.settings.components.ProviderSectionGap
-import heizige.kk.khatkit.app.core.ui.icons.tune
-import heizige.kk.khatkit.app.core.ui.icons.vpnKey
+import heizige.kk.khatkit.app.core.ui.icons.settings.tune
+import heizige.kk.khatkit.app.core.ui.icons.settings.vpnKey
 import androidx.compose.foundation.layout.ColumnScope
 import ui.feice.mochi.list.MochiListButton
 import ui.feice.mochi.list.MochiListRow
@@ -358,13 +358,13 @@ internal fun SettingProviderConfigPage(
             )
         }
 
-        MochiListSection(header = "工具") {
+        MochiListSection(header = stringResource(R.string.setting_provider_detail_page_tools)) {
             ProviderConnectionTester(
                 internalProvider = internalProvider,
                 trigger = { open ->
                     MochiListRow(
-                        title = "测试连接",
-                        subtitle = "用一个模型试发消息，检查非流式、流式和工具调用",
+                        title = stringResource(R.string.setting_provider_page_test_connection),
+                        subtitle = stringResource(R.string.setting_provider_detail_page_test_connection_desc),
                         onClick = open,
                         chevron = true,
                     )
@@ -373,7 +373,7 @@ internal fun SettingProviderConfigPage(
             if (currentProvider !is ProviderSetting.Account) {
                 MochiListRow(
                     title = stringResource(R.string.setting_model_page_reset_to_default),
-                    subtitle = "把 Base URL 恢复成这个提供商的默认地址",
+                    subtitle = stringResource(R.string.setting_provider_detail_page_reset_base_url_desc),
                     // 立即落库：不再是「只改本地草稿」
                     onClick = { commit(internalProvider.resetBaseUrlToDefault()) },
                     enabled = !internalProvider.isUsingDefaultBaseUrl(),
@@ -384,7 +384,7 @@ internal fun SettingProviderConfigPage(
         if (!internalProvider.builtIn) {
             MochiListSection {
                 MochiListButton(
-                    text = "删除提供商",
+                    text = stringResource(R.string.setting_page_search_delete_provider),
                     onClick = { showDeleteDialog = true },
                     destructive = true,
                     centered = true,

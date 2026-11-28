@@ -42,7 +42,7 @@ import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
-import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
 import heizige.kk.khatkit.uikit.mochi.MochiSnackbarHost
@@ -51,9 +51,10 @@ import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissBox
 import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSwipeToDismissValue
 import heizige.kk.khatkit.uikit.mochi.rememberKkSwipeToDismissState
+import heizige.kk.khatkit.app.feature.favorite.data.NodeFavoriteListItem
 
 @Composable
-fun FavoritePage(vm: FavoriteVM = hiltViewModel()) {
+fun FavoritePage(vm: FavoriteViewModel = hiltViewModel()) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()

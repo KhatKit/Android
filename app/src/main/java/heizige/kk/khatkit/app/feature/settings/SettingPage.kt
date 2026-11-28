@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
+import heizige.kk.khatkit.app.feature.settings.data.SettingLeafEntries
 import heizige.kk.khatkit.app.core.ui.components.ui.InlineCardGroup
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -56,7 +58,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.isNotConfigured
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
-import heizige.kk.khatkit.app.core.ui.icons.TencentQQIcon
+import heizige.kk.khatkit.app.core.ui.icons.social.TencentQQIcon
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
@@ -69,31 +71,35 @@ import heizige.kk.khatkit.app.core.util.writeClipboardText
 import ui.feice.mochi.basic.MochiSearchBar
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.addPhotoAlternate
-import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.book2
-import heizige.kk.khatkit.app.core.ui.icons.campaign
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.celebration
-import heizige.kk.khatkit.app.core.ui.icons.database
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.favorite
-import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.khatkit.app.core.ui.icons.language
-import heizige.kk.khatkit.app.core.ui.icons.notifications
-import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
-import heizige.kk.khatkit.app.core.ui.icons.share as shareIcon
-import heizige.kk.khatkit.app.core.ui.icons.shelves
-import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.khatkit.app.core.ui.icons.verifiedUser
-import heizige.kk.khatkit.app.core.ui.icons.warning
-import heizige.kk.khatkit.app.core.ui.icons.wavingHand
-import heizige.kk.khatkit.app.core.ui.icons.inventory2
+import heizige.kk.khatkit.app.core.ui.icons.media.addPhotoAlternate
+import heizige.kk.khatkit.app.core.ui.icons.ai.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.settings.barChart
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
+import heizige.kk.khatkit.app.core.ui.icons.utility.book2
+import heizige.kk.khatkit.app.core.ui.icons.utility.campaign
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.utility.celebration
+import heizige.kk.khatkit.app.core.ui.icons.settings.database
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.settings.favorite
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
+import heizige.kk.khatkit.app.core.ui.icons.settings.language
+import heizige.kk.khatkit.app.core.ui.icons.settings.notifications
+import heizige.kk.khatkit.app.core.ui.icons.settings.palette
+import heizige.kk.khatkit.app.core.ui.icons.ai.psychology
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.icons.social.share as shareIcon
+import heizige.kk.khatkit.app.core.ui.icons.files.shelves
+import heizige.kk.khatkit.app.core.ui.icons.utility.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.utility.verifiedUser
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
+import heizige.kk.khatkit.app.core.ui.icons.settings.wavingHand
+import heizige.kk.khatkit.app.core.ui.icons.files.inventory2
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
@@ -296,15 +302,15 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                         onClick = { navController.navigate(Screen.ExploreMarket) },
                         chevron = true,
                         leadingContent = { Icon(inventory2, null) },
-                        supportingContent = { Text("浏览工具、技能与脚本卡片") },
-                        headlineContent = { Text("探索市场") },
+                        supportingContent = { Text(stringResource(R.string.setting_market_desc)) },
+                        headlineContent = { Text(stringResource(R.string.explore_market_title)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingTriggers) },
                         chevron = true,
                         leadingContent = { Icon(bolt, null) },
-                        supportingContent = { Text("定时、事件自动运行卡片") },
-                        headlineContent = { Text("自动化触发器") },
+                        supportingContent = { Text(stringResource(R.string.setting_triggers_desc)) },
+                        headlineContent = { Text(stringResource(R.string.setting_triggers_title)) },
                     )
                     item(
                         onClick = { navController.navigate(Screen.SettingWeb) },
@@ -363,6 +369,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
 
             item("aboutSettings") {
                 val context = LocalContext.current
+                val resources = LocalResources.current
                 val shareText = stringResource(R.string.setting_page_share_text)
                 val share = stringResource(R.string.setting_page_share)
                 val noShareApp = stringResource(R.string.setting_page_no_share_app)
@@ -387,7 +394,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                                 ) {
                                     Icon(
                                         imageVector = TencentQQIcon,
-                                        contentDescription = "QQ",
+                                        contentDescription = stringResource(R.string.setting_qq_a11y),
                                         tint = MaterialTheme.colorScheme.secondary
                                     )
                                 }
@@ -401,7 +408,7 @@ fun SettingPage(vm: SettingViewModel = hiltViewModel()) {
                     )
                     item(
                         onClick = {
-                            val docUrl = if (java.util.Locale.getDefault().language == "zh") {
+                            val docUrl = if (resources.configuration.locales[0].language == "zh") {
                                 "https://docs.rikka-ai.com/zh/introduction"
                             } else {
                                 "https://docs.rikka-ai.com/introduction"
@@ -508,14 +515,14 @@ internal fun ProviderConfigWarningCard(navController: Navigator) {
 }
 
 private data class QQGroup(
-    val name: String,
+    @androidx.annotation.StringRes val name: Int,
     val key: String? = null,
     val number: String? = null,
     val icon: ImageVector = TencentQQIcon,
 )
 
 private val QQ_GROUPS = listOf(
-    QQGroup("KhatKit QQ 群", number = "186172128"),
+    QQGroup(R.string.setting_qq_group, number = "186172128"),
 )
 
 @Composable
@@ -524,9 +531,10 @@ internal fun QQGroupBottomSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     PrimaryBottomSheet(
         state = sheetState,
-        title = "加入群聊",
+        title = stringResource(R.string.setting_join_group),
         imageVector = groups,
         onDismiss = onDismiss,
     ) { dismiss ->
@@ -540,7 +548,7 @@ internal fun QQGroupBottomSheet(
                     shape = cards.indexedShape(index, QQ_GROUPS.size),
                     onClick = {
                         if (group.number != null) {
-                            if (context.writeClipboardText(group.number)) Toast.show("群号已复制")
+                            if (context.writeClipboardText(group.number)) Toast.show(resources.getString(R.string.setting_group_copied))
                         } else {
                             context.joinQQGroup(group.key)
                         }
@@ -553,7 +561,7 @@ internal fun QQGroupBottomSheet(
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     },
-                    titleContent = { Text(group.name) },
+                    titleContent = { Text(stringResource(group.name)) },
                     supportingContent = group.number?.let { number ->
                         { Text(number) }
                     },

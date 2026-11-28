@@ -10,9 +10,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
+import heizige.kk.khatkit.app.feature.chat.helper.MessageQueueManager
 import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
-import heizige.kk.khatkit.app.feature.chat.data.unreferencedQueuedAttachmentUrls
+import heizige.kk.khatkit.app.feature.chat.helper.unreferencedQueuedAttachmentUrls
 
 class QueuedAttachmentCleanupTest {
     private val image = UIMessagePart.Image("file:///upload/image.png")
@@ -20,7 +20,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `revoking a message cleans only local attachments and deduplicates URLs`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(
             listOf(
                 image, image, video,
@@ -42,7 +42,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `saving edits cleans removed attachments but retains unchanged ones`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(listOf(image, video))
         val id = queue.state.value.messages.single().id
         queue.beginEdit(id)
@@ -57,7 +57,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `cancelled and rejected edits do not return attachments for cleanup`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(listOf(image))
         val id = queue.state.value.messages.single().id
         queue.beginEdit(id)
@@ -72,7 +72,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `shared queued attachments are retained until the last reference is revoked`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(listOf(image, video))
         queue.enqueue(listOf(image))
         val first = queue.remove(queue.state.value.messages.first().id)!!
@@ -127,7 +127,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `a dequeued message retains attachments before history is saved`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(listOf(image))
         val submitting = queue.takeNext()!!
         val removed = QueuedMessage(parts = listOf(image, video))
@@ -141,7 +141,7 @@ class QueuedAttachmentCleanupTest {
 
     @Test
     fun `text-only edits keep all attachment files`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(listOf(UIMessagePart.Text("original"), image))
         val id = queue.state.value.messages.single().id
         queue.beginEdit(id)

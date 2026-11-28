@@ -224,7 +224,7 @@ internal fun FormWidget(
             val current = (values[id] as? Number)?.toFloat()
                 ?: (item["default"] as? Number)?.toFloat() ?: min
             Column {
-                Text("$label: ${current.toInt()}")
+                Text(stringResource(R.string.khatkit_form_label_value, label, current.toInt()))
                 KkSlider(
                     value = current,
                     onValueChange = { value ->

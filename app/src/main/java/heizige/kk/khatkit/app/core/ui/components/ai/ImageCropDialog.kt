@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import androidx.compose.ui.platform.LocalResources
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
@@ -77,6 +80,7 @@ fun ImageCropDialog(
     onConfirm: (Bitmap) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var source by remember(image) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(image) {
         val decoded = withContext(Dispatchers.IO) {
@@ -87,7 +91,7 @@ fun ImageCropDialog(
             }.getOrNull()
         }
         if (decoded == null) {
-            Toast.show("Failed to load image for cropping", isError = true)
+            Toast.show(resources.getString(R.string.crop_load_failed), isError = true)
             onDismiss()
         } else {
             source = decoded
@@ -119,14 +123,14 @@ fun ImageCropDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                MochiTextButton(onClick = onDismiss) { Text("取消") }
-                Text("裁剪", color = Color.White, style = MochiTheme.textStyles.navTitle)
+                MochiTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+                Text(stringResource(R.string.crop_title), color = Color.White, style = MochiTheme.textStyles.navTitle)
                 MochiTextButton(onClick = {
                     bitmap = rotateBitmap(bitmap, 90)
                     scale = 1f
                     offset = Offset.Zero
                     freeRect = null
-                }) { Text("旋转") }
+                }) { Text(stringResource(R.string.crop_rotate)) }
             }
 
             BoxWithConstraints(
@@ -221,7 +225,7 @@ fun ImageCropDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AspectChoice("自由", selected = effectiveAspect == null) {
+                        AspectChoice(stringResource(R.string.crop_free), selected = effectiveAspect == null) {
                             freeRect = null
                         }
                         listOf(1f, 4f / 3f, 3f / 4f, 16f / 9f).forEach { a ->
@@ -239,7 +243,7 @@ fun ImageCropDialog(
                             scale = 1f
                             offset = Offset.Zero
                             freeRect = null
-                        }) { Text("重置") }
+                        }) { Text(stringResource(R.string.crop_reset)) }
                         MochiButton(
                             onClick = {
                                 val out = cropSourceRect(
@@ -261,12 +265,12 @@ fun ImageCropDialog(
                                             out.height.roundToInt().coerceIn(1, bitmap.height),
                                         )
                                     }.onSuccess(onConfirm).onFailure {
-                                        Toast.show("Failed to crop image", isError = true)
+                                        Toast.show(resources.getString(R.string.crop_failed), isError = true)
                                     }
                                 }
                             },
                             variant = MochiButtonVariant.Primary,
-                        ) { Text("完成") }
+                        ) { Text(stringResource(R.string.crop_done)) }
                     }
                 }
             }

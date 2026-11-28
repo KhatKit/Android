@@ -3,7 +3,9 @@ package heizige.kk.khatkit.app.core.data.ssh
 import android.content.Context
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.core.di.appEntryPoint
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.hub.HubClient
+import heizige.kk.khatkit.localization.localizedMessage
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,12 +25,12 @@ object SshPluginHub {
     ): Result<SshPluginRecord> = withContext(Dispatchers.IO) {
         runCatching {
             val base = hubBaseUrl.trim().trimEnd('/')
-            require(base.isNotEmpty()) { "Hub 地址未配置，先在设置里填写" }
-            require(itemId.isNotBlank()) { "插件条目 id 为空" }
+            require(base.isNotEmpty()) { context.getString(R.string.plugin_hub_url_missing) }
+            require(itemId.isNotBlank()) { context.getString(R.string.plugin_item_id_empty) }
             val tmp = appEntryPoint(context).khatKitToolProvider().downloadFile(
                 "$base/api/items/$itemId/download",
                 "ssh_plugin_$itemId.zip",
-            ) ?: error("插件下载失败")
+            ) ?: error(context.getString(R.string.plugin_download_failed))
             try {
                 SshPluginInstaller.install(context, tmp, null, itemId).getOrThrow()
             } finally {
@@ -43,16 +45,16 @@ object SshPluginHub {
         hubBaseUrl: String,
     ): Result<SshPluginRecord> = withContext(Dispatchers.IO) {
         val base = hubBaseUrl.trim().trimEnd('/')
-        if (base.isEmpty()) return@withContext Result.failure(IllegalStateException("Hub 地址未配置，先在设置里填写"))
+        if (base.isEmpty()) return@withContext Result.failure(IllegalStateException(context.getString(R.string.plugin_hub_url_missing)))
         val appVersion = runCatching { BuildConfig.VERSION_NAME }.getOrDefault("")
         val item = runCatching {
-            HubClient(base)
+            HubClient(base, messageResolver = { it.localizedMessage(context) })
                 .extensionItems(kind = "dependency", appVersion = appVersion)
                 .filter { it.name == SshPluginInfo.MARKET_NAME }
                 .sortedByDescending { it.preferred }
                 .firstOrNull()
         }.getOrNull() ?: return@withContext Result.failure(
-            IllegalStateException("服务器上还没有「" + SshPluginInfo.DISPLAY_NAME + "」插件条目"),
+            IllegalStateException(context.getString(R.string.plugin_entry_missing, SshPluginInfo.displayName(context))),
         )
         install(context, base, item.id)
     }

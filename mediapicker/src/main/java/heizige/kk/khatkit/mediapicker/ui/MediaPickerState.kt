@@ -7,6 +7,7 @@ package heizige.kk.khatkit.mediapicker.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -58,10 +59,18 @@ import java.util.Locale
 class MediaPickerState(
     private val retriever: MediaRetriever,
     scope: CoroutineScope,
-    private val todayLabel: String,
-    private val yesterdayLabel: String,
+    todayLabel: String,
+    yesterdayLabel: String,
+    errorLabel: String = "",
 ) {
     private var scope: CoroutineScope = scope
+    private val labels = MutableStateFlow(Triple(todayLabel, yesterdayLabel, errorLabel))
+
+    fun updateLabels(today: String, yesterday: String, error: String) {
+        labels.value = Triple(today, yesterday, error)
+        _albumsState.value = _albumsState.value.let { it.copy(error = if (it.error.isNotBlank()) error else "") }
+        sourceMediaState.value = sourceMediaState.value.let { it.copy(error = if (it.error.isNotBlank()) error else "") }
+    }
 
     /** 换成宿主给的、跟随界面生命周期的作用域。 */
     fun attachScope(scope: CoroutineScope) {
@@ -191,7 +200,7 @@ class MediaPickerState(
                     }
                 }
 
-            combine(sortedMedia, settingsAndKeyword) { (sortedState, order), (settings, keyword) ->
+            combine(sortedMedia, settingsAndKeyword, labels) { (sortedState, order), (settings, keyword), _ ->
                 Triple(sortedState, order, settings to keyword)
             }.collectLatest { (sortedState, order, settingsAndKw) ->
                 val (settings, keyword) = settingsAndKw
@@ -226,8 +235,8 @@ class MediaPickerState(
                     SimpleDateFormat("LLLL yyyy", Locale.getDefault()).format(Date(timestamp * 1000))
 
                 else -> timestamp.mediaDateLabel(
-                    stringToday = todayLabel,
-                    stringYesterday = yesterdayLabel,
+                    stringToday = labels.value.first,
+                    stringYesterday = labels.value.second,
                 )
             }
         }
@@ -248,7 +257,7 @@ class MediaPickerState(
     }
 
     private fun Result<*>.errorMessage(): String =
-        if (isFailure) exceptionOrNull()?.message ?: "An error occurred" else ""
+        if (isFailure) labels.value.third else ""
 }
 
 /**
@@ -263,6 +272,7 @@ fun rememberMediaPickerState(): MediaPickerState {
     val lifecycleOwner = LocalLifecycleOwner.current
     val todayLabel = stringResource(R.string.media_picker_today)
     val yesterdayLabel = stringResource(R.string.media_picker_yesterday)
+    val errorLabel = stringResource(R.string.media_picker_load_error)
 
     val state = remember {
         MediaPickerState(
@@ -270,9 +280,11 @@ fun rememberMediaPickerState(): MediaPickerState {
             scope = CoroutineScope(Dispatchers.Main.immediate),
             todayLabel = todayLabel,
             yesterdayLabel = yesterdayLabel,
+            errorLabel = errorLabel,
         )
     }
 
+    SideEffect { state.updateLabels(todayLabel, yesterdayLabel, errorLabel) }
     val scope = remember { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
     state.attachScope(scope)
 

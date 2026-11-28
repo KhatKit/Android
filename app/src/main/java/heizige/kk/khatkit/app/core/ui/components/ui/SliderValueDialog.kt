@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -146,8 +148,8 @@ fun SliderValueInputDialog(
     val target = parsed?.let { it / editor.displayScale }
     val error = when {
         text.isBlank() -> null // 空着不算错，确认按钮自己置灰
-        parsed == null -> "请输入数字"
-        target == null || target < editor.valueRange.start || target > editor.valueRange.endInclusive -> "范围 " + rangeText
+        parsed == null -> stringResource(R.string.slider_invalid_number)
+        target == null || target < editor.valueRange.start || target > editor.valueRange.endInclusive -> stringResource(R.string.slider_out_of_range, rangeText)
         else -> null
     }
     val canConfirm = parsed != null && target != null &&
@@ -166,9 +168,9 @@ fun SliderValueInputDialog(
         onDismissRequest = onDismiss,
         title = title,
         actions = persistentListOf(
-            MochiDialogAction(label = "取消", role = MochiDialogActionRole.Cancel),
+            MochiDialogAction(label = stringResource(R.string.cancel), role = MochiDialogActionRole.Cancel),
             MochiDialogAction(
-                label = "确定",
+                label = stringResource(R.string.slider_confirm),
                 role = MochiDialogActionRole.Primary,
                 enabled = canConfirm,
                 onClick = { target?.let(::apply) },
@@ -188,7 +190,7 @@ fun SliderValueInputDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focus),
-                placeholder = "输入数值",
+                placeholder = stringResource(R.string.slider_input_placeholder),
                 singleLine = true,
                 error = error,
                 keyboardOptions = KeyboardOptions(
@@ -224,7 +226,7 @@ fun SliderValueInputDialog(
                 }
                 if (editor.defaultValue != null && !atDefault) {
                     Text(
-                        text = "恢复默认",
+                        text = stringResource(R.string.setting_provider_page_restore_defaults),
                         style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.Medium),
                         color = MochiTheme.colorScheme.primary,
                         modifier = Modifier

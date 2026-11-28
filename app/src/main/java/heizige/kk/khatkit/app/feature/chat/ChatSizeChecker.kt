@@ -12,27 +12,15 @@ import ui.feice.mochi.basic.MochiDialogActionRole
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.model.Conversation
-import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
+import heizige.kk.khatkit.app.feature.chat.data.ConversationSizeInfo
+
+
 
 // 消息节点数量警告阈值
 const val MESSAGE_NODE_WARNING_THRESHOLD = 768
+
 const val LAST_ASSISTANT_INPUT_TOKEN_WARNING_THRESHOLD = 300_000
-
-data class ConversationSizeInfo(
-    val nodeCount: Int,
-    val lastAssistantInputTokens: Int,
-    val exceedNodeCountThreshold: Boolean,
-    val exceedInputTokenThreshold: Boolean,
-    val showWarning: Boolean
-)
-
-private val DefaultSizeInfo = ConversationSizeInfo(
-    nodeCount = 0,
-    lastAssistantInputTokens = 0,
-    exceedNodeCountThreshold = false,
-    exceedInputTokenThreshold = false,
-    showWarning = false
-)
 
 @Composable
 fun rememberConversationSizeInfo(conversation: Conversation): ConversationSizeInfo {

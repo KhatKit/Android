@@ -2,6 +2,7 @@
 package heizige.kk.khatkit.yunx
 
 import android.content.Context
+import com.yunx.app.R
 import com.yunx.app.data.network.*
 import com.yunx.app.data.network.model.*
 import com.yunx.app.data.network.video.*
@@ -56,18 +57,18 @@ class YunxParserManager(private val context: Context) {
                         "list" -> list(p)
                         "resolve" -> resolve(p)
                         "close" -> { sessions.remove(p.optString("session")); json("ok" to true) }
-                        else -> error("未知解析操作")
+                        else -> error(context.getString(R.string.error_yunx_unknown_operation))
                     }.toString()
                 }
             } catch (e: CancellationException) {
-                json("error" to "解析已取消或超时，请重试").toString()
+                json("error" to context.getString(R.string.error_yunx_cancelled)).toString()
             } catch (e: Exception) {
                 // Never propagate upstream HTTP requests, credentials, or signed URLs into UI/logs.
                 val message = if (e is VideoParseException) e.userMessage() else e.message.orEmpty()
                 json("error" to message.takeIf {
                     it.length in 1..240 && !it.contains("http") &&
                         !Regex("cookie|token|authorization", RegexOption.IGNORE_CASE).containsMatchIn(it)
-                }.orEmpty().ifBlank { "解析失败，请检查链接、提取码和账号登录状态后重试" }).toString()
+                }.orEmpty().ifBlank { context.getString(R.string.error_yunx_parse_failed) }).toString()
             }
         }
     }
@@ -75,13 +76,13 @@ class YunxParserManager(private val context: Context) {
     private fun detect(text: String): String {
         val url = Regex("https?://[^\\s]+").find(text)?.value
             ?.trimEnd('。', '，', ',', '；', ';', ')', ']', '}', '"', '\'')
-            ?: error("请粘贴完整的分享链接")
+            ?: error(context.getString(R.string.error_yunx_full_link_required))
         val uri = URI(url)
-        require(uri.userInfo == null && uri.port in listOf(-1, 80, 443)) { "分享地址不合法" }
+        require(uri.userInfo == null && uri.port in listOf(-1, 80, 443)) { context.getString(R.string.error_yunx_invalid_share_url) }
         val host = uri.host?.lowercase().orEmpty()
         val provider = VideoLinkParser.parse(text)?.platform?.name?.lowercase()
             ?: ShareLinkParser.parse(text)?.platform?.name?.lowercase()
-            ?: if (GitHubLinkParser.parse(text) != null) "github" else error("未识别到 YunX 支持的分享链接")
+            ?: if (GitHubLinkParser.parse(text) != null) "github" else error(context.getString(R.string.error_yunx_unsupported_link))
         val domains = when (provider) {
             "quark" -> listOf("quark.cn")
             "uc" -> listOf("uc.cn")
@@ -106,7 +107,7 @@ class YunxParserManager(private val context: Context) {
             else -> emptyList()
         }
         require(domains.any { it.isNotBlank() && (host == it || host.endsWith(".$it")) }) {
-            "分享链接域名与平台不符"
+            context.getString(R.string.error_yunx_domain_mismatch)
         }
         return provider
     }
@@ -127,11 +128,11 @@ class YunxParserManager(private val context: Context) {
                         val next = VideoHttp.expandRedirect(resolved.url, mapOf("User-Agent" to
                             if (resolved.platform in listOf(VideoPlatform.DOUYIN, VideoPlatform.KUAISHOU))
                                 VideoHttp.UA_IPHONE else VideoHttp.UA_CHROME)) ?: break
-                        require(URI(next).scheme in listOf("http", "https")) { "短链返回了无效地址" }
-                        require(detect(next) == provider) { "短链跳转到了其他平台" }
+                        require(URI(next).scheme in listOf("http", "https")) { context.getString(R.string.error_yunx_invalid_redirect) }
+                        require(detect(next) == provider) { context.getString(R.string.error_yunx_cross_platform_redirect) }
                         val identified = VideoLinkParser.parse(next)
                         if (identified == null) { resolved = resolved.copy(url = next); break }
-                        require(identified.platform == video.platform) { "短链跳转到了其他平台" }
+                        require(identified.platform == video.platform) { context.getString(R.string.error_yunx_cross_platform_redirect) }
                         detect(next)
                         resolved = identified
                         if (!resolved.isShortLink) break
@@ -146,8 +147,8 @@ class YunxParserManager(private val context: Context) {
                 val api = ILanzouApi()
                 val uuid = credential.optString("uuid").ifBlank { api.getUuid() }
                 val parsed = requireNotNull(ShareLinkParser.parse(text))
-                Session(provider, "蓝奏优享分享", credential, cookie,
-                    share = ShareSession(parsed.shareId, parsed.shareId, "蓝奏优享分享"), ilanzou = api, uuid = uuid)
+                Session(provider, context.getString(R.string.yunx_ilanzou_share_title), credential, cookie,
+                    share = ShareSession(parsed.shareId, parsed.shareId, context.getString(R.string.yunx_ilanzou_share_title)), ilanzou = api, uuid = uuid)
             }
             else -> {
                 val quark = QuarkApi()
@@ -166,7 +167,7 @@ class YunxParserManager(private val context: Context) {
                         { credential.optString("device_id").ifBlank { null } },
                         { credential.optString("captcha_token") },
                     )
-                    else -> error("不支持的网盘")
+                    else -> error(context.getString(R.string.error_yunx_unsupported_drive))
                 }
                 val share = repo.createSession(text, p.optString("password").ifBlank { null }, cookie).getOrThrow()
                 Session(provider, share.title, credential, cookie, repo, share).also { session ->
@@ -185,7 +186,7 @@ class YunxParserManager(private val context: Context) {
 
     private fun session(p: JSONObject): Session = sessions[p.getString("session")]?.takeIf {
         System.nanoTime() - it.born <= 30L * 60 * 1_000_000_000
-    } ?: error("解析会话已过期，请重新解析分享")
+    } ?: error(context.getString(R.string.error_yunx_session_expired))
 
     private suspend fun list(p: JSONObject): JSONObject {
         val s = session(p)
@@ -204,7 +205,7 @@ class YunxParserManager(private val context: Context) {
                     directory.removePrefix("d:").takeUnless { it.isBlank() || it == "0" }, s.uuid)
                     ?: s.repo!!.listFiles(s.share!!, directory, s.cookie).getOrThrow()
                 ).also { fetched ->
-                    require(fetched.size <= 10000 && s.files.size + fetched.size <= 30000) { "目录过大，请分开解析子目录" }
+                    require(fetched.size <= 10000 && s.files.size + fetched.size <= 30000) { context.getString(R.string.error_yunx_directory_too_large) }
                     s.directories[directory] = fetched
                     fetched.forEach { s.files[it.fid] = it }
                 }
@@ -218,16 +219,16 @@ class YunxParserManager(private val context: Context) {
     private suspend fun resolve(p: JSONObject): JSONObject {
         val s = session(p)
         if (s.repo == null && s.ilanzou == null) {
-            val m = s.media.getOrNull(p.getString("file_id").toInt()) ?: error("文件不在解析结果中")
+            val m = s.media.getOrNull(p.getString("file_id").toInt()) ?: error(context.getString(R.string.error_yunx_file_not_in_results))
             return json("url" to m.url, "name" to m.fileName, "headers" to JSONObject(m.headers),
                 "hls" to m.isHls, "audio_url" to m.audioUrl, "audio_headers" to JSONObject(m.audioHeaders),
                 "motion_url" to m.motionUrl)
         }
-        val file = s.files[p.getString("file_id")] ?: error("请先打开文件所在目录")
-        require(!file.isdir) { "请进入文件夹后选择文件" }
+        val file = s.files[p.getString("file_id")] ?: error(context.getString(R.string.error_yunx_open_directory_first))
+        require(!file.isdir) { context.getString(R.string.error_yunx_select_file) }
         val transfer = s.provider in listOf("baidu", "xunlei", "pan115", "guangya") ||
             (s.provider == "quark" && s.cookie.isNotBlank())
-        require(!transfer || p.optBoolean("allow_transfer")) { "此平台可能需要临时转存，请先确认" }
+        require(!transfer || p.optBoolean("allow_transfer")) { context.getString(R.string.error_yunx_transfer_confirmation) }
         val link = if (s.ilanzou != null) {
             s.ilanzou.shareDownload(s.share!!.shareId, file.fid.removePrefix("f:"),
                 s.credential.optString("user_id"), s.uuid)
@@ -237,24 +238,24 @@ class YunxParserManager(private val context: Context) {
         val headers = downloadHeaders(s.provider, s.cookie, link)
         return json("url" to link.downloadUrl, "name" to file.fname, "headers" to JSONObject(headers),
             "hls" to link.isHls, "notice" to if (link.cleanupDirFid != null)
-                "已创建临时转存目录。下载完成后可在网盘中清理 YunX 临时文件。" else "")
+                context.getString(R.string.yunx_temporary_files_notice) else "")
     }
 
     private suspend fun openGitHub(text: String, token: String, credentials: JSONObject): Session {
         val api = GitHubApi(tokenProvider = { token.ifBlank { null } })
         val media = mutableListOf<VideoMedia>()
-        val link = GitHubLinkParser.parse(text) ?: error("GitHub 链接无法识别")
+        val link = GitHubLinkParser.parse(text) ?: error(context.getString(R.string.error_yunx_invalid_github_link))
         val title = when (link) {
             is GitHubLinkType.DirectFile -> {
                 media += VideoMedia(link.url, VideoMediaKind.IMAGE, link.fileName)
                 link.fileName
             }
             is GitHubLinkType.Repository -> {
-                val repo = api.getRepo(link.owner, link.repo) ?: error("无法读取仓库")
+                val repo = api.getRepo(link.owner, link.repo) ?: error(context.getString(R.string.error_yunx_github_repository))
                 media += VideoMedia("https://github.com/${repo.fullName}/archive/refs/heads/${repo.defaultBranch}.zip",
-                    VideoMediaKind.IMAGE, "${repo.name}-${repo.defaultBranch.replace('/', '-')}.zip", quality = "源码")
+                    VideoMediaKind.IMAGE, "${repo.name}-${repo.defaultBranch.replace('/', '-')}.zip", quality = context.getString(R.string.yunx_github_source_code))
                 for (page in 1..10) {
-                    val releases = api.getReleases(link.owner, link.repo, page) ?: error("无法读取 Releases")
+                    val releases = api.getReleases(link.owner, link.repo, page) ?: error(context.getString(R.string.error_yunx_github_releases))
                     releases.forEach { release -> release.assets.forEach {
                         media += VideoMedia(it.downloadUrl, VideoMediaKind.IMAGE, it.name, it.size, quality = release.tagName)
                     } }
@@ -266,7 +267,7 @@ class YunxParserManager(private val context: Context) {
                 val org = api.getUserType(link.owner) == "Organization"
                 for (page in 1..10) {
                     val repos = (if (org) api.getOrgRepos(link.owner, page) else api.getUserRepos(link.owner, page))
-                        ?: error("无法读取账号仓库")
+                        ?: error(context.getString(R.string.error_yunx_github_account_repositories))
                     repos.forEach { repo -> media += VideoMedia(
                         "https://github.com/${repo.fullName}/archive/refs/heads/${repo.defaultBranch}.zip",
                         VideoMediaKind.IMAGE, "${repo.name}.zip", quality = repo.fullName)
@@ -277,7 +278,7 @@ class YunxParserManager(private val context: Context) {
             }
         }
         return Session("github", title, credentials, token, media = media,
-            notice = "GitHub：下载公开仓库源码包和 Release 附件")
+            notice = context.getString(R.string.yunx_github_download_notice))
     }
 
     companion object {

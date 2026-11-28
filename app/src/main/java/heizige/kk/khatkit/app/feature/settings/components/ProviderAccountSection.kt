@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.oauth.AccountQuota
-import heizige.kk.khatkit.app.core.data.oauth.AccountVendor
-import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountManager
-import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountState
+import heizige.kk.khatkit.app.feature.settings.data.oauth.AccountQuota
+import heizige.kk.khatkit.app.feature.settings.data.oauth.AccountVendor
+import heizige.kk.khatkit.app.feature.settings.data.oauth.ProviderAccountManager
+import heizige.kk.khatkit.app.feature.settings.data.oauth.ProviderAccountState
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.uikit.mochi.MochiButton
 import heizige.kk.khatkit.uikit.mochi.MochiButtonVariant
@@ -53,6 +53,7 @@ fun ProviderAccountSection(
     val accounts by manager.accounts.collectAsStateWithLifecycle()
     val state = accounts[vendor] ?: ProviderAccountState(loggedIn = provider.credential != null)
     val scope = rememberCoroutineScope()
+    val loginFailedText = stringResource(R.string.setting_provider_account_login_failed)
 
     CardGroup(
         modifier = modifier,
@@ -82,7 +83,7 @@ fun ProviderAccountSection(
                             } else {
                                 manager.login(vendor)
                                     .onFailure { error ->
-                                        Toast.show(error.message ?: "登录失败", isError = true)
+                                        Toast.show(error.message ?: loginFailedText, isError = true)
                                     }
                             }
                         }

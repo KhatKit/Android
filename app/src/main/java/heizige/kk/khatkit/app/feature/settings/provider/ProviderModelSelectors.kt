@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,14 +41,17 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelAbilityTag
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelModalityTag
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.package2
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.files.package2
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 
 @Composable
@@ -100,15 +102,13 @@ internal fun ModelPicker(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.9f)
-                    .padding(8.dp)
-                    .imePadding(),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -140,7 +140,7 @@ internal fun ModelPicker(
                         .fillMaxWidth()
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
                     items(filteredModels) {
                         KkCard {

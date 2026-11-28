@@ -26,7 +26,7 @@ class RoleMemoryDocumentsProvider : DocumentsProvider() {
             newRow().apply {
                 add(Root.COLUMN_ROOT_ID, "role-memory")
                 add(Root.COLUMN_DOCUMENT_ID, "root")
-                add(Root.COLUMN_TITLE, "KhatKit 记忆")
+                add(Root.COLUMN_TITLE, requireNotNull(context).getString(R.string.role_memory_provider_title))
                 add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY or Root.FLAG_SUPPORTS_IS_CHILD)
                 add(Root.COLUMN_ICON, R.mipmap.ic_launcher)
                 add(Root.COLUMN_MIME_TYPES, "text/markdown")
@@ -76,7 +76,7 @@ class RoleMemoryDocumentsProvider : DocumentsProvider() {
     private fun row(cursor: MatrixCursor, id: String, file: File) {
         cursor.newRow().apply {
             add(Document.COLUMN_DOCUMENT_ID, id)
-            add(Document.COLUMN_DISPLAY_NAME, if (id == "root") "KhatKit 记忆" else file.name)
+            add(Document.COLUMN_DISPLAY_NAME, if (id == "root") requireNotNull(context).getString(R.string.role_memory_provider_title) else file.name)
             add(Document.COLUMN_MIME_TYPE, if (file.isDirectory) Document.MIME_TYPE_DIR else "text/markdown")
             add(Document.COLUMN_FLAGS, 0)
             add(Document.COLUMN_SIZE, if (file.isDirectory) null else file.length())

@@ -3,9 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.ai
 import heizige.kk.khatkit.uikit.mochi.KkGroupedColumn
 import ui.feice.mochi.list.MochiListDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import ui.feice.mochi.basic.MochiBarButton
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.LaunchedEffect
@@ -16,7 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -56,10 +54,10 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAssistantState
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
 
 @Composable
 fun AssistantPicker(
@@ -164,23 +162,24 @@ fun AssistantPickerSheet(
 
     val navController = LocalNavController.current
 
-    // U7b-6：直连 MochiSheet；「管理助手」移到 header 右侧。
+    // 管理动作保留在共享 header 右侧，列表独占剩余高度。
     val manageAssistants = {
         onDismiss()
         navController.navigate(conversationId?.let {
             Screen.RoleChatPanel(currentAssistant.id.toString(), it.toString())
         } ?: Screen.Assistant)
     }
-    MochiSheet(state = sheetState, onDismiss = onDismiss) {
-        MochiSheetHeader(
-            title = stringResource(R.string.assistant_page_title),
-            actions = { MochiBarButton(stringResource(R.string.assistant_page_manage), onClick = manageAssistants) },
-        )
+    PrimaryBottomSheet(
+        state = sheetState,
+        title = stringResource(R.string.assistant_page_title),
+        imageVector = groups,
+        confirmText = stringResource(R.string.assistant_page_manage),
+        onConfirm = manageAssistants,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.8f)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 标签过滤器
@@ -212,6 +211,7 @@ fun AssistantPickerSheet(
             val cards = listCardStyle()
             LazyColumn(
                 modifier = Modifier.weight(1f),
+                flingBehavior = MochiScrollDefaults.flingBehavior(),
             ) {
                 itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->
                     val checked = assistant.id == currentAssistant.id
@@ -239,7 +239,7 @@ fun AssistantPickerSheet(
                                 Column {
                                     Text(
                                         listOfNotNull(
-                                            if (assistant.canManageRoles) "主管" else null,
+                                            if (assistant.canManageRoles) stringResource(R.string.assistant_manager) else null,
                                             settings.findModelById(assistant.chatModelId ?: settings.chatModelId)?.displayName,
                                         ).joinToString(" · "),
                                         maxLines = 1,
@@ -255,7 +255,7 @@ fun AssistantPickerSheet(
                                     if (checked) {
                                         Icon(
                                             imageVector = check,
-                                            contentDescription = "当前角色",
+                                            contentDescription = stringResource(R.string.assistant_current_role),
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(end = 4.dp).size(18.dp),
                                         )

@@ -21,19 +21,22 @@ import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.construction
-import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.menuBook
-import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.khatkit.app.core.ui.icons.settings
-import heizige.kk.khatkit.app.core.ui.icons.sms
+import heizige.kk.khatkit.app.core.ui.icons.utility.code
+import heizige.kk.khatkit.app.core.ui.icons.utility.construction
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import heizige.kk.khatkit.app.core.ui.icons.utility.menuBook
+import heizige.kk.khatkit.app.core.ui.icons.ai.psychology
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
+import heizige.kk.khatkit.app.core.ui.icons.chat.sms
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+
+
 
 /**
  * 角色详情：头像 + 名字 + 人格摘要，下面一整张 Mochi 分组卡片列出七个子页入口。

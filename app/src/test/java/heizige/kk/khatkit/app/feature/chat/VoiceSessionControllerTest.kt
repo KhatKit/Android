@@ -15,9 +15,13 @@ import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.asr.ASRStatus
 import heizige.kk.khatkit.asr.ASRVoiceTurn
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
+import heizige.kk.khatkit.app.feature.chat.helper.MessageQueueManager
 import org.junit.Assert.*
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.data.VoicePhase
+import heizige.kk.khatkit.app.feature.chat.helper.VoiceSessionManager
+
+
 
 class VoiceSessionControllerTest {
     private class FakeAsr : ASRController {
@@ -40,14 +44,14 @@ class VoiceSessionControllerTest {
 
     private class Rig {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val asrs = mutableListOf<FakeAsr>()
         val replies = mutableListOf<CompletableDeferred<String?>>()
         val spoken = mutableListOf<String>()
         val playback = CompletableDeferred<Unit>()
         var stopCount = 0
         var failPlayback = false
-        val voice = VoiceSessionController(scope, getString = { it.toString() }) { text ->
+        val voice = VoiceSessionManager(scope, getString = { it.toString() }) { text ->
             assertTrue(asrs.last().disposed)
             CompletableDeferred<String?>().also {
                 replies.add(it)

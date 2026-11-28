@@ -53,10 +53,10 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.db.dao.UsageBySource
 import heizige.kk.khatkit.app.core.data.db.dao.UsageTrendPoint
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
+import heizige.kk.khatkit.app.core.ui.icons.settings.barChart
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.ai.rocketLaunch
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiEmptyState
@@ -74,6 +74,12 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import heizige.kk.khatkit.app.feature.stats.data.UsageRange
+import heizige.kk.khatkit.app.feature.stats.data.UsageStats
+import heizige.kk.khatkit.app.feature.stats.data.AppStats
+import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
+
+
 
 /**
  * 统计页（Mochi / iOS 26 分组列表）。
@@ -88,7 +94,7 @@ import java.time.temporal.TemporalAdjusters
  * 和 MochiListSection 统一给，页面自己不再画卡片底。
  */
 @Composable
-fun StatsPage(vm: StatsVM = hiltViewModel()) {
+internal fun StatsPage(vm: StatsViewModel = hiltViewModel()) {
     val stats by vm.stats.collectAsStateWithLifecycle()
     val usage by vm.usage.collectAsStateWithLifecycle()
     val usageRange by vm.range.collectAsStateWithLifecycle()
@@ -190,7 +196,7 @@ private fun OverviewCard(stats: AppStats) {
     val cs = MochiTheme.colorScheme
     val divider = cs.outlineVariant.copy(alpha = 0.5f)
 
-    MochiListSection(header = "概览") {
+    MochiListSection(header = stringResource(R.string.stats_page_overview)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -274,7 +280,7 @@ private fun HeatmapCard(conversationsPerDay: Map<LocalDate, Int>) {
 
     MochiListSection(
         header = stringResource(R.string.stats_page_heatmap_title),
-        footer = if (streak > 0) "连续 " + streak + " 天" else "活跃 " + activeDays + " 天",
+        footer = if (streak > 0) stringResource(R.string.stats_page_streak, streak) else stringResource(R.string.stats_page_active_days, activeDays),
     ) {
         Column(
             modifier = Modifier
@@ -491,7 +497,7 @@ private fun UsageCard(
                     usage.trend.isEmpty() && usage.byModel.isEmpty() -> {
                         MochiEmptyState(
                             title = stringResource(R.string.stats_page_no_usage),
-                            message = "在这个时间窗口里发一条消息，曲线和排行就会出现",
+                            message = stringResource(R.string.stats_page_empty_window),
                             icon = {
                                 Icon(
                                     imageVector = barChart,
@@ -695,7 +701,7 @@ private fun TrendAreaChart(points: List<UsageTrendPoint>) {
                 color = cs.onSurfaceVariant,
             )
             Text(
-                text = "峰值 " + formatTokens(maxValue),
+                text = stringResource(R.string.stats_page_peak, formatTokens(maxValue)),
                 style = labelStyle,
                 color = cs.onSurfaceVariant,
             )
@@ -737,33 +743,33 @@ private fun RankingRow(
 /* 4. 任务路由                                                                                   */
 /* -------------------------------------------------------------------------------------------- */
 
-private data class RouteSummary(val label: String, val count: Int)
+private data class RouteSummary(val task: String, val labelRes: Int?, val count: Int)
 
 /** TaskRoutes 的 key 是「任务:模型ID」，这里只按任务聚合，把 UUID 从界面上拿掉。 */
 private fun routeSummary(): List<RouteSummary> =
     heizige.kk.khatkit.app.core.data.ai.TaskRoutes.snapshot()
         .entries
         .groupBy { it.key.substringBefore(':') }
-        .map { (task, entries) -> RouteSummary(taskLabel(task), entries.sumOf { it.value }) }
+        .map { (task, entries) -> RouteSummary(task, taskLabelRes(task), entries.sumOf { it.value }) }
         .sortedByDescending { it.count }
 
-private fun taskLabel(task: String): String = when (task) {
-    "CHAT" -> "对话"
-    "MEMORY" -> "记忆"
-    "SUMMARY" -> "摘要"
-    "TITLE" -> "标题"
-    "OCR" -> "OCR"
-    "TRANSLATION" -> "翻译"
-    "UI_CONTROL" -> "界面操作"
-    else -> task
+private fun taskLabelRes(task: String): Int? = when (task) {
+    "CHAT" -> R.string.stats_page_task_chat
+    "MEMORY" -> R.string.stats_page_task_memory
+    "SUMMARY" -> R.string.stats_page_task_summary
+    "TITLE" -> R.string.stats_page_task_title
+    "OCR" -> null
+    "TRANSLATION" -> R.string.stats_page_task_translation
+    "UI_CONTROL" -> R.string.stats_page_task_ui_control
+    else -> null
 }
 
 @Composable
 private fun RouteCard(rows: List<RouteSummary>) {
-    MochiListSection(header = "任务路由", footer = "按任务聚合的模型路由次数，进程内计数器。") {
+    MochiListSection(header = stringResource(R.string.stats_page_task_routes), footer = stringResource(R.string.stats_page_task_routes_footer)) {
         rows.forEach { row ->
             MochiListRow(
-                title = row.label,
+                title = row.labelRes?.let { stringResource(it) } ?: row.task,
                 leading = {
                     Icon(
                         imageVector = bolt,

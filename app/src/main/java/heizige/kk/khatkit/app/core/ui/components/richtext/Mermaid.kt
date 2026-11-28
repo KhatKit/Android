@@ -36,8 +36,8 @@ import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.escapeHtml
 import heizige.kk.khatkit.app.core.util.exportImage
 import heizige.kk.khatkit.app.core.util.toCssHex
-import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
 
 @Composable
 fun Mermaid(
@@ -136,7 +136,7 @@ fun Mermaid(
                 ) {
                     Icon(
                         visibility,
-                        contentDescription = "Preview"
+                        contentDescription = stringResource(R.string.editor_preview_preview)
                     )
                 }
                 MochiIconButton(

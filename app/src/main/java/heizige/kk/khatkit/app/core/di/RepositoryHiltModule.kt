@@ -38,8 +38,6 @@ import heizige.kk.khatkit.workspace.RootfsInstaller
 import heizige.kk.khatkit.workspace.WorkspaceBindMount
 import heizige.kk.khatkit.workspace.WorkspaceManager
 import java.io.File
-import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
-import heizige.kk.khatkit.app.core.data.repository.FavoriteRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -72,11 +70,6 @@ object RepositoryHiltModule {
         folderDAO: FolderDAO,
         conversationDAO: ConversationDAO,
     ): FolderRepository = FolderRepository(folderDAO, conversationDAO)
-
-    @Provides
-    @Singleton
-    fun provideFavoriteRepository(favoriteDAO: FavoriteDAO): FavoriteRepository =
-        FavoriteRepository(favoriteDAO)
 
     /**
      * 群聊轮次运行记录（run token / 运行日志）。

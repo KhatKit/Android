@@ -53,10 +53,10 @@ import heizige.kk.khatkit.app.core.data.model.AssistantRegex
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
-import heizige.kk.khatkit.app.core.ui.components.ui.TextArea
+import heizige.kk.khatkit.app.feature.assistant.components.ui.TextArea
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.icons.dragHandle
-import heizige.kk.khatkit.app.core.ui.icons.sync
+import heizige.kk.khatkit.app.core.ui.icons.utility.dragHandle
+import heizige.kk.khatkit.app.core.ui.icons.utility.sync
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
@@ -301,8 +301,8 @@ private fun AssistantPromptContent(
 
             item("templatePreview") {
                 val rawMessages = listOf(
-                    UIMessage.user("你好啊"),
-                    UIMessage.assistant("你好，有什么我可以帮你的吗？"),
+                    UIMessage.user(stringResource(R.string.assistant_prompt_page_preview_user)),
+                    UIMessage.assistant(stringResource(R.string.assistant_prompt_page_preview_assistant)),
                 )
                 val preview by produceState<UiState<List<UIMessage>>>(
                     UiState.Success(rawMessages),
@@ -615,7 +615,7 @@ private fun AssistantRegexCard(
                     onValueChange = { replaceString -> updateRegex { it.copy(replaceString = replaceString) } },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = stringResource(R.string.assistant_page_regex_replace_string),
-                    supportingText = "e.g., [EMAIL]",
+                    supportingText = stringResource(R.string.assistant_prompt_page_regex_example_replace),
                 )
             }
 

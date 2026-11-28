@@ -50,9 +50,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.scatter_plot
-import heizige.kk.khatkit.app.core.ui.icons.show_chart
+import heizige.kk.khatkit.app.core.ui.icons.settings.barChart
+import heizige.kk.khatkit.app.core.ui.icons.utility.scatter_plot
+import heizige.kk.khatkit.app.core.ui.icons.settings.show_chart
 import heizige.kk.khatkit.common.http.jsonObjectOrNull
 import heizige.kk.khatkit.highlight.CodeHighlightText
 import heizige.kk.khatkit.app.R
@@ -74,20 +74,20 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import heizige.kk.khatkit.app.core.ui.icons.autoFixHigh
-import heizige.kk.khatkit.app.core.ui.icons.calendarAddOn
-import heizige.kk.khatkit.app.core.ui.icons.calendarMonth
-import heizige.kk.khatkit.app.core.ui.icons.contentPaste
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.inkEraser
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.smartphone
-import heizige.kk.khatkit.app.core.ui.icons.sms
-import heizige.kk.khatkit.app.core.ui.icons.timer
-import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.khatkit.app.core.ui.icons.ai.autoFixHigh
+import heizige.kk.khatkit.app.core.ui.icons.utility.calendarAddOn
+import heizige.kk.khatkit.app.core.ui.icons.utility.calendarMonth
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentPaste
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.utility.inkEraser
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.automation.smartphone
+import heizige.kk.khatkit.app.core.ui.icons.chat.sms
+import heizige.kk.khatkit.app.core.ui.icons.automation.timer
+import heizige.kk.khatkit.app.core.ui.icons.utility.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.media.volumeUp
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 /**
@@ -613,8 +613,7 @@ private fun ScreenTimePreview(content: JsonElement, apps: List<JsonElement>) {
     val maxAppMs = apps.maxOfOrNull { it.appMs() }?.takeIf { it > 0 } ?: 1L
     LazyColumn(
         modifier = Modifier
-            .fillMaxHeight(0.8f)
-            .padding(16.dp),
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -729,8 +728,7 @@ private fun SearchWebPreview(
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxHeight(0.8f)
-            .padding(16.dp),
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -884,8 +882,7 @@ private fun ScrapeWebPreview(content: JsonElement) {
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxHeight(0.8f)
-            .padding(16.dp),
+            .fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {

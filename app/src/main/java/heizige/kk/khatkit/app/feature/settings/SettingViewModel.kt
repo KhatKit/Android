@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
-import heizige.kk.khatkit.app.core.data.oauth.ProviderAccountManager
+import heizige.kk.khatkit.app.feature.settings.data.oauth.ProviderAccountManager
 
 @HiltViewModel
 class SettingViewModel @Inject constructor(

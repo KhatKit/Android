@@ -27,7 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import heizige.kk.khatkit.app.core.data.files.FileFolders
 import heizige.kk.khatkit.app.core.data.remote.ModelsDevUpdater
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.chat.helper.ChatNotificationManager
 import java.io.File
@@ -53,6 +53,9 @@ import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import javax.inject.Singleton
+import heizige.kk.khatkit.app.core.data.db.dao.CardRunDAO
+
+
 
 private const val TAG = "KhatKitApp"
 
@@ -75,10 +78,10 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
     lateinit var settingsStore: SettingsRepository
 
     // FLOAT2：悬浮窗宿主。构造即按 settings 的开关跟随前后台与生成状态；关掉时不 install 任何窗口。
-    // 这里只做「持有 + 触发构造」，窗口本身由 ChatFloatingWindows 自己管理。
+    // 这里只做「持有 + 触发构造」，窗口本身由 ChatFloatingManager 自己管理。
     @Suppress("unused")
     @Inject
-    lateinit var chatFloatingWindows: heizige.kk.khatkit.app.feature.chat.ChatFloatingWindows
+    lateinit var chatFloatingManager: heizige.kk.khatkit.app.feature.chat.helper.ChatFloatingManager
 
     @Inject
     lateinit var ktorHttpClient: HttpClient
@@ -116,7 +119,7 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
             }
         } catch (e: RestoreFailedException) {
             Log.e(TAG, "Backup restore rolled back", e)
-            Toast.makeText(this, "备份恢复失败，已保留原数据。请重新导入备份。", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.khatkit_backup_restore_failed), Toast.LENGTH_LONG).show()
         }
         runCatching {
             runBlocking(Dispatchers.IO) {
@@ -160,8 +163,8 @@ class KhatKitApp : Application(), SingletonImageLoader.Factory {
         startWebServerIfEnabled()
 
         // 自动化状态看板：状态出现时拉起悬浮窗服务（未授予悬浮权限时静默跳过）
-        AutomationBus.install(this)
-        AutomationBus.setHandsOffProvider { khatKitToolProvider.handsOffMode }
+        AutomationManager.install(this)
+        AutomationManager.setHandsOffProvider { khatKitToolProvider.handsOffMode }
 
         // Increment launch count
         incrementLaunchCount()

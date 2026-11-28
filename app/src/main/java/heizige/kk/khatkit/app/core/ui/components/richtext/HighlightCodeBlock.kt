@@ -74,12 +74,12 @@ import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.util.toDp
 import kotlin.time.Clock
-import heizige.kk.khatkit.app.core.ui.icons.code as codeIcon
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.code as codeIcon
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.files.downloadForOffline
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 private const val COLLAPSE_LINES = 10

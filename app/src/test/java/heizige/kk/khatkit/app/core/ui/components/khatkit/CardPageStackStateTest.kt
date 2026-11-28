@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.khatkit
 
+import heizige.kk.khatkit.app.feature.chat.components.khatkit.isCardPage
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiRequest
 import heizige.kk.khatkit.ui.UiScreenPage
@@ -7,6 +8,11 @@ import heizige.kk.khatkit.ui.UiSheetOptions
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.*
 import org.junit.Test
+import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.feature.chat.components.khatkit.CardPageMotion
+import heizige.kk.khatkit.app.feature.chat.components.khatkit.CardPageStackState
+
+
 
 class CardPageStackStateTest {
     private fun screen(title: String, text: String, push: Boolean = false, layer: Boolean = false, root: Boolean = false) =

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ssh_error_host_required">主机地址不能为空</string>
+    <string name="ssh_error_username_required">用户名不能为空</string>
+    <string name="ssh_error_password_required">密码不能为空</string>
+    <string name="ssh_error_command_required">命令不能为空</string>
+    <string name="ssh_error_port_range">端口范围必须是 1-65535</string>
+    <string name="ssh_error_timeout_range">超时时间必须大于 0</string>
+    <string name="ssh_error_command_timeout">命令执行超过 %1$dms，已断开连接</string>
+    <string name="ssh_error_host_key_changed">SSH 主机密钥已变更（%1$s:%2$d），为避免中间人攻击已拒绝连接</string>
+</resources>

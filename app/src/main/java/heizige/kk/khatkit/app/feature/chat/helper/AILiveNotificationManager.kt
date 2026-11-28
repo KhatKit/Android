@@ -30,13 +30,12 @@ class AILiveNotificationManager(
         private const val NOTIFICATION_ID = 1001
         private const val TAG = "AILiveNotification"
 
-        // 通知文案
-        private const val NOTIFICATION_TITLE = "KhatKit AI 正在思考..."
-        private val THINKING_STATES = listOf(
-            "正在理解您的问题",
-            "正在分析上下文",
-            "正在组织回复",
-            "正在生成回复"
+        // 通知文案（按当前 locale 解析）
+        private val THINKING_STATE_RES = listOf(
+            R.string.notification_ai_state_understanding,
+            R.string.notification_ai_state_analyzing,
+            R.string.notification_ai_state_composing,
+            R.string.notification_ai_state_generating,
         )
     }
 
@@ -55,10 +54,10 @@ class AILiveNotificationManager(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "AI 生成通知",
+                context.getString(R.string.notification_ai_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "显示 AI 正在生成回复的实时状态"
+                description = context.getString(R.string.notification_ai_channel_desc)
                 setShowBadge(false)
                 enableVibration(false)
                 setSound(null, null)
@@ -95,7 +94,7 @@ class AILiveNotificationManager(
 
                 // 每 4 秒切换一次思考状态文案
                 if (elapsedSeconds % 4 == 0) {
-                    thinkingStateIndex = (thinkingStateIndex + 1) % THINKING_STATES.size
+                    thinkingStateIndex = (thinkingStateIndex + 1) % THINKING_STATE_RES.size
                 }
 
                 showNotification(getThinkingText(), elapsedSeconds, conversationId)
@@ -113,7 +112,7 @@ class AILiveNotificationManager(
             return
         }
 
-        val content = "已生成 $tokenCount 个 token"
+        val content = context.getString(R.string.notification_ai_tokens_generated, tokenCount)
         showNotification(content, elapsedSeconds, conversationId, isGenerating = true)
     }
 
@@ -163,7 +162,7 @@ class AILiveNotificationManager(
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_khatkit)
-            .setContentTitle(if (isGenerating) "KhatKit AI 正在生成" else NOTIFICATION_TITLE)
+            .setContentTitle(if (isGenerating) context.getString(R.string.notification_ai_generating_title) else context.getString(R.string.notification_ai_thinking_title))
             .setContentText(content)
             .setSubText(formatElapsedTime(elapsedSeconds))
             .setOngoing(true)
@@ -180,7 +179,7 @@ class AILiveNotificationManager(
 
         // Android 16+ 状态栏 chip 文本
         if (Build.VERSION.SDK_INT >= 36) {
-            builder.setShortCriticalText("AI 中")
+            builder.setShortCriticalText(context.getString(R.string.notification_ai_short_critical))
         }
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -191,7 +190,7 @@ class AILiveNotificationManager(
      * 获取当前思考状态文案
      */
     private fun getThinkingText(): String {
-        return THINKING_STATES[thinkingStateIndex]
+        return context.getString(THINKING_STATE_RES[thinkingStateIndex])
     }
 
     /**
@@ -199,11 +198,11 @@ class AILiveNotificationManager(
      */
     private fun formatElapsedTime(seconds: Int): String {
         return if (seconds < 60) {
-            "${seconds}秒"
+            context.getString(R.string.notification_ai_elapsed_seconds, seconds)
         } else {
             val minutes = seconds / 60
             val remainingSeconds = seconds % 60
-            "${minutes}分${remainingSeconds}秒"
+            context.getString(R.string.notification_ai_elapsed_minutes_seconds, minutes, remainingSeconds)
         }
     }
 }

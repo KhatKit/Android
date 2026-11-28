@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.merge
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import heizige.kk.khatkit.app.core.util.JsonInstant
-import heizige.kk.khatkit.app.feature.workflow.WorkflowEventBus
+import heizige.kk.khatkit.app.feature.workflow.helper.WorkflowEventManager
 import heizige.kk.khatkit.app.core.network.dto.ConversationListInvalidateEvent
 import heizige.kk.khatkit.app.core.network.dto.FolderListEvent
 import heizige.kk.khatkit.app.core.network.dto.toDto
@@ -105,7 +105,7 @@ fun Route.eventsRoutes(
                 }
             }
 
-        val workflowEvents = WorkflowEventBus.events.map { json ->
+        val workflowEvents = WorkflowEventManager.events.map { json ->
             EventPayload(event = "workflow_run", json = json)
         }
 

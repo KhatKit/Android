@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import heizige.kk.khatkit.uikit.R
 import androidx.compose.ui.Modifier
 import kotlinx.collections.immutable.persistentListOf
 // 同包里还有项目内的兼容壳 MochiDialog（Popup 版），这里要的是 Mochi 库的警告框，用别名避开重名
@@ -53,11 +55,11 @@ fun KkEditDialog(
         title = title,
         actions = persistentListOf(
             MochiDialogAction(
-                label = dismissText ?: "Cancel",
+                label = dismissText ?: stringResource(R.string.khatkit_form_cancel),
                 role = MochiDialogActionRole.Cancel,
             ),
             MochiDialogAction(
-                label = confirmText ?: "OK",
+                label = confirmText ?: stringResource(R.string.khatkit_form_confirm),
                 role = MochiDialogActionRole.Primary,
                 // 校验没过就不给点：MochiDialog 点按钮后必关，这里靠 enabled 把关闭口收在按钮状态上
                 enabled = errors.all { it == null },

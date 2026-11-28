@@ -1238,7 +1238,9 @@
   <string name="setting_update_reminder_paused_until">已暫停至 %1$s</string>
   <string name="setting_update_reminder_pause_title">暫停更新提醒</string>
   <string name="setting_update_reminder_pause_description">按所選時長暫停，到期自動恢復</string>
-  <string name="setting_update_reminder_pause_days">%1$d 天</string>
+  <plurals name="setting_update_reminder_pause_days">
+    <item quantity="other">%1$d 天</item>
+  </plurals>
   <string name="setting_update_reminder_resume_now">立即恢復</string>
   <string name="reasoning_max">最大</string>
   <string name="backup_page_import_overwrite_confirm">匯入備份將覆寫應用程式資料。是否繼續？</string>
@@ -1263,7 +1265,9 @@
   <string name="chat_generation_network_unreachable">無法連線到伺服器</string>
   <string name="chat_generation_network_disconnected">網路連線已中斷</string>
   <string name="setting_files_page_clean_all">所有檔案</string>
-  <string name="setting_files_page_clean_older_than_days">%1$d 天前</string>
+  <plurals name="setting_files_page_clean_older_than_days">
+    <item quantity="other">%1$d 天前</item>
+  </plurals>
   <string name="setting_files_page_clean_range_description">選取的檔案將被永久刪除。</string>
   <string name="setting_page_preferences_network_auto_retry">自動重試</string>
   <string name="setting_page_preferences_network_auto_retry_desc">請求失敗自動重試，最多 3 次</string>

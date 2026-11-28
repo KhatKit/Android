@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.asr.sherpa
 
 import android.content.Context
+import heizige.kk.khatkit.speech.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -11,6 +12,7 @@ import java.io.File
 /** 可下载的 sherpa-onnx 本地识别模型。 */
 data class SherpaModelPreset(
     val id: String,
+    /** Stable SDK metadata for compatibility; UI uses [localizedDisplayName]. */
     val displayName: String,
     /** paraformer / whisper / transducer / sense_voice */
     val type: String,
@@ -19,7 +21,20 @@ data class SherpaModelPreset(
     val defaultLanguage: String = "auto",
     /** true = 流式（边说边出字，走 OnlineRecognizer）；false = 录完再识别 */
     val streaming: Boolean = false,
-)
+) {
+    /** UI resolves labels on every locale-aware render; preset metadata stays stable. */
+    val displayNameRes: Int? get() = when (id) {
+        "sherpa-onnx-streaming-zipformer-zh-14M-2023-02-23" -> R.string.speech_model_zipformer_zh
+        "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17" -> R.string.speech_model_zipformer_en
+        "sherpa-onnx-paraformer-zh-small-2024-03-09" -> R.string.speech_model_paraformer_zh
+        "sherpa-onnx-whisper-tiny" -> R.string.speech_model_whisper_multilingual
+        "sherpa-onnx-whisper-tiny.en" -> R.string.speech_model_whisper_en
+        else -> null
+    }
+
+    fun localizedDisplayName(context: Context): String =
+        displayNameRes?.let { context.getString(it) } ?: displayName
+}
 
 object SherpaModels {
     private const val BASE = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models"
@@ -120,7 +135,7 @@ class SherpaModelManager(private val context: Context) {
                 entry = zip.nextEntry
             }
         }
-        require(extracted) { "引擎包中未找到 $abi 原生库" }
+        require(extracted) { context.getString(R.string.speech_error_engine_library, abi) }
         engineLib.setExecutable(true)
         engineLib
     }

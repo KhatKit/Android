@@ -3,6 +3,7 @@ package heizige.kk.khatkit.search
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalUriHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,7 +31,7 @@ object DoubaoSearchRepository : SearchRepository<SearchOptions.DoubaoOptions> {
         TextButton(onClick = {
             uriHandler.openUri("https://console.volcengine.com/search-infinity/api-key")
         }) {
-            Text("豆包搜索 API Key")
+            Text(stringResource(R.string.search_doubao_api_key))
         }
     }
 

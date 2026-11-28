@@ -30,6 +30,10 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernGroupMessage
+
+
 
 class TavernCompatTest {
     private val json = Json { encodeDefaults = false }

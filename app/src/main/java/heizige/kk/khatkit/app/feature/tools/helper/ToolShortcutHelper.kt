@@ -8,7 +8,7 @@ import android.graphics.drawable.Icon
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.RouteActivity
 import heizige.kk.khatkit.app.Screen
-import java.util.UUID
+import heizige.kk.khatkit.app.feature.tools.data.ToolShortcutTokenRepository
 
 internal object ToolShortcutHelper {
     const val ACTION = "heizige.kk.khatkit.app.action.OPEN_PINNED_TOOL"
@@ -21,10 +21,7 @@ internal object ToolShortcutHelper {
         val manager = context.getSystemService(ShortcutManager::class.java) ?: return false
         return runCatching {
             if (!manager.isRequestPinShortcutSupported) return false
-            val preferences = preferences(context)
-            val token = preferences.getString(name, null) ?: UUID.randomUUID().toString().also {
-                preferences.edit().putString(name, it).apply()
-            }
+            val token = ToolShortcutTokenRepository.ensureToken(context, name)
             val launch = Intent(context, RouteActivity::class.java)
                 .setAction(ACTION)
                 .putExtra(EXTRA_NAME, name)
@@ -42,7 +39,7 @@ internal object ToolShortcutHelper {
     fun resolve(context: Context, intent: Intent): Screen.CardWidget? {
         val name = intent.getStringExtra(EXTRA_NAME)?.takeIf(cardName::matches) ?: return null
         val token = intent.getStringExtra(EXTRA_TOKEN) ?: return null
-        if (token != preferences(context).getString(name, null)) return null
+        if (!ToolShortcutTokenRepository.matches(context, name, token)) return null
         val manager = context.getSystemService(ShortcutManager::class.java) ?: return null
         val shortcut = runCatching { manager.pinnedShortcuts.firstOrNull { it.id == id(name) && it.isEnabled } }
             .getOrNull() ?: return null
@@ -50,5 +47,4 @@ internal object ToolShortcutHelper {
     }
 
     private fun id(name: String) = "tool-card:$name"
-    private fun preferences(context: Context) = context.getSharedPreferences("tool_shortcuts", Context.MODE_PRIVATE)
 }

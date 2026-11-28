@@ -48,7 +48,7 @@ fun KhatKitSecretsDialog(
         title = stringResource(R.string.khatkit_secrets_title, cardName),
         imageVector = Icons.Filled.Lock,
         onDismiss = onDismiss,
-        scrollable = false,
+        scrollable = true,
     ) { _ ->
         if (secrets.isEmpty()) {
             Text(stringResource(R.string.khatkit_secrets_empty))

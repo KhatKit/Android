@@ -11,8 +11,8 @@ import heizige.kk.khatkit.common.http.isJsonExprValid
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.feature.balance.data.isUsageOnly
-import heizige.kk.khatkit.app.feature.balance.data.thresholdAmount
+import heizige.kk.khatkit.app.feature.balance.helper.isUsageOnly
+import heizige.kk.khatkit.app.feature.balance.helper.thresholdAmount
 import ui.feice.mochi.basic.MochiListTextFieldRow
 import ui.feice.mochi.list.MochiListButton
 import ui.feice.mochi.list.MochiListRow
@@ -43,13 +43,13 @@ fun SettingProviderBalanceOption(
     }
     MochiListSection(
         modifier = modifier,
-        header = "余额",
+        header = stringResource(R.string.setting_provider_page_balance_title),
         footer = when {
-            !balanceOption.enabled -> "在提供商详情和模型选择器显示余额"
-            pathInvalid -> "API 路径要以 / 开头且不能有空格"
-            keyInvalid -> "结果 JSON 键的表达式无效"
-            balanceOption.isUsageOnly -> "当前结果是累计用量，不能用于低余额告警"
-            balanceOption.lowBalanceAlert && balanceOption.thresholdAmount() == null -> "阈值须为大于 0 的数字；当前不会触发告警"
+            !balanceOption.enabled -> stringResource(R.string.setting_provider_page_balance_disabled_desc)
+            pathInvalid -> stringResource(R.string.setting_provider_page_balance_api_path_invalid)
+            keyInvalid -> stringResource(R.string.setting_provider_page_balance_json_key_invalid)
+            balanceOption.isUsageOnly -> stringResource(R.string.setting_provider_page_balance_usage_only_desc)
+            balanceOption.lowBalanceAlert && balanceOption.thresholdAmount() == null -> stringResource(R.string.setting_provider_page_balance_threshold_invalid)
             else -> null
         },
     ) {
@@ -62,23 +62,23 @@ fun SettingProviderBalanceOption(
             MochiListTextFieldRow(
                 value = balanceOption.apiPath,
                 onValueChange = { update(balanceOption.copy(apiPath = it)) },
-                label = "API 路径",
+                label = stringResource(R.string.setting_provider_page_balance_api_path),
                 placeholder = "/credits",
             )
             MochiListTextFieldRow(
                 value = balanceOption.resultPath,
                 onValueChange = { update(balanceOption.copy(resultPath = it)) },
-                label = "结果键",
+                label = stringResource(R.string.setting_provider_page_balance_json_key),
                 placeholder = "data.total",
             )
             if (balance != null) {
-                MochiListRow(title = "当前余额", trailing = balance)
+                MochiListRow(title = stringResource(R.string.setting_provider_page_balance_current), trailing = balance)
             }
             if (balanceOption.isUsageOnly || keyInvalid) {
-                MochiListRow(title = "低余额告警", subtitle = "需要有效的剩余额度结果键", enabled = false)
+                MochiListRow(title = stringResource(R.string.setting_provider_page_low_balance_alert), subtitle = stringResource(R.string.setting_provider_page_low_balance_requires_key), enabled = false)
             } else {
                 ProviderSwitchRow(
-                    title = "低余额告警",
+                    title = stringResource(R.string.setting_provider_page_low_balance_alert),
                     checked = balanceOption.lowBalanceAlert,
                     onCheckedChange = { update(balanceOption.copy(lowBalanceAlert = it)) },
                 )
@@ -86,14 +86,14 @@ fun SettingProviderBalanceOption(
                     MochiListTextFieldRow(
                         value = balanceOption.lowBalanceThreshold,
                         onValueChange = { update(balanceOption.copy(lowBalanceThreshold = it)) },
-                        label = "低于此值提醒",
+                        label = stringResource(R.string.setting_provider_page_low_balance_threshold),
                         placeholder = "5",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     )
                 }
             }
             MochiListButton(
-                text = "恢复默认",
+                text = stringResource(R.string.setting_provider_page_restore_defaults),
                 onClick = {
                     val defaultProvider = DEFAULT_PROVIDERS.find { it.id == provider.id }
                     update(defaultProvider?.balanceOption?.copy() ?: BalanceOption())

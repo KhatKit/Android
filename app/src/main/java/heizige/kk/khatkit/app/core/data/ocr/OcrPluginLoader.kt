@@ -27,7 +27,7 @@ object OcrPluginLoader {
 
     /** 冷启动时从 DataStore 取一次记录（installer/UI 都可调用）。 */
     suspend fun prepare(context: Context) {
-        if (record == null) updateRecord(OcrPluginStore(context).read())
+        if (record == null) updateRecord(OcrPluginRepository(context).read())
     }
 
     /** 当前可用的插件引擎；没有安装、dex/so 缺失或实例化失败都返回 null。 */

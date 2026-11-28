@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,7 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.data.sync.S3BackupItem
+import heizige.kk.khatkit.app.feature.backup.data.remote.S3BackupItem
 import heizige.kk.khatkit.app.core.data.sync.s3.S3Config
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.feature.backup.BackupViewModel
@@ -64,16 +63,19 @@ import heizige.kk.khatkit.app.core.util.onLoading
 import heizige.kk.khatkit.app.core.util.onSuccess
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import java.time.Instant
-import heizige.kk.khatkit.app.core.ui.icons.settingsBackupRestore
-import heizige.kk.khatkit.app.core.ui.icons.upload
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.utility.settingsBackupRestore
+import heizige.kk.khatkit.app.core.ui.icons.files.upload
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun S3Tab(
@@ -349,14 +351,13 @@ fun S3Tab(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 backupItemsState.onSuccess {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(it) { item ->

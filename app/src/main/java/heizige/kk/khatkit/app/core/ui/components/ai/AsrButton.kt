@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.asr.ASRState
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.asr.ASRStatus
-import heizige.kk.khatkit.app.core.ui.icons.graphicEq
+import heizige.kk.khatkit.app.core.ui.icons.media.graphicEq
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
 private enum class AsrDisplayState {

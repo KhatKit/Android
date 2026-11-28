@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
+import heizige.kk.khatkit.app.feature.automation.eventTypeLabel
+
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.KkRichFilterChip
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
@@ -27,6 +31,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.runtime.getValue
@@ -44,10 +49,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.feature.automation.data.CardTriggerOverride
 import heizige.kk.khatkit.app.feature.automation.KhatKitNotificationListenerService
-import heizige.kk.khatkit.app.feature.automation.TriggerController
-import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmScheduler
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerAlarmHelper
 import heizige.kk.khatkit.app.feature.automation.TriggerService
-import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
+import heizige.kk.khatkit.app.feature.automation.data.TriggerSettingsRepository
 import heizige.kk.khatkit.app.feature.automation.data.computeTriggerLogStats
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
@@ -56,10 +61,10 @@ import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionInfo
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionManager
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionNotification
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.rememberPermissionState
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.cleaningServices
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.notifications
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
+import heizige.kk.khatkit.app.core.ui.icons.utility.cleaningServices
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.settings.notifications
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
@@ -67,37 +72,40 @@ import heizige.kk.khatkit.card.CardManifest
 import heizige.kk.khatkit.trigger.TriggerCard
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.feature.settings.data.WorkflowPreferencesRepository
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.feature.workflow.data.WorkflowPreferencesRepository
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.feature.automation.TriggerCardEditorSheet
+
+
 
 private val PermissionFineLocation = PermissionInfo(
     permission = Manifest.permission.ACCESS_FINE_LOCATION,
-    displayName = { Text("位置权限（可选）") },
-    usage = { Text("位置触发器需要定位权限；不授权时位置事件会被跳过") },
+    displayName = { Text(stringResource(R.string.setting_trigger_permission_location)) },
+    usage = { Text(stringResource(R.string.setting_trigger_permission_location_desc)) },
     required = false,
 )
 
 private val PermissionBluetoothConnect = PermissionInfo(
     permission = Manifest.permission.BLUETOOTH_CONNECT,
-    displayName = { Text("蓝牙权限（可选）") },
-    usage = { Text("蓝牙触发器需要连接权限；不授权时蓝牙事件会被跳过") },
+    displayName = { Text(stringResource(R.string.setting_trigger_permission_bluetooth)) },
+    usage = { Text(stringResource(R.string.setting_trigger_permission_bluetooth_desc)) },
     required = false,
 )
 
 /** 自动化触发器设置：总开关、事件卡片编辑、执行日志、通知监听/电池优化入口。 */
 @Composable
 fun SettingTriggersPage() {
-    val controller: TriggerController = rememberAppEntryPoint().triggerController()
+    val controller: TriggerManager = rememberAppEntryPoint().triggerController()
     val navController = LocalNavController.current
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val triggerState by controller.settings.state.collectAsStateWithLifecycle()
@@ -119,10 +127,13 @@ fun SettingTriggersPage() {
     val editingOverride = remember(editingCard) {
         editingCard?.let { controller.settings.overrideFor(it.name) } ?: CardTriggerOverride.NONE
     }
-    val timeFormat = remember { SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()) }
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val timeFormat = remember(locale) {
+        SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(locale, "MMddHHmmss"), locale)
+    }
     val logStats = remember(logEntries) { computeTriggerLogStats(logEntries) }
     val exactAlarmAllowed = runCatching {
-        TriggerExactAlarmScheduler.canScheduleExact(context)
+        TriggerAlarmHelper.canScheduleExact(context)
     }.getOrDefault(true)
 
     LaunchedEffect(Unit) {
@@ -180,17 +191,17 @@ fun SettingTriggersPage() {
     if (showAiDialog) {
         AppDialog(
             onDismissRequest = { showAiDialog = false },
-            title = { Text("AI 介入点") },
+            title = { Text(stringResource(R.string.setting_trigger_ai_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "让 AI 在流程中负责识别、判断或生成参数。执行前仍会遵循当前自动化授权策略。",
+                        stringResource(R.string.setting_trigger_ai_desc),
                         style = MochiTheme.textStyles.body,
                     )
                     listOf(
-                        "识别当前页面并选择下一步",
-                        "根据通知内容生成回复参数",
-                        "失败时分析原因并给出重试建议",
+                        stringResource(R.string.setting_trigger_ai_screen),
+                        stringResource(R.string.setting_trigger_ai_reply),
+                        stringResource(R.string.setting_trigger_ai_retry),
                     ).forEach { suggestion ->
                         KkCard(
                             colors = CardDefaults.cardColors(
@@ -208,13 +219,13 @@ fun SettingTriggersPage() {
                 }
             },
             confirmButton = {
-                MochiTextButton(onClick = { showAiDialog = false }) { Text("知道了") }
+                MochiTextButton(onClick = { showAiDialog = false }) { Text(stringResource(R.string.setting_trigger_ai_acknowledge)) }
             },
         )
     }
 
     MochiSettingsPageScaffold(
-        title = "自动化触发器",
+        title = stringResource(R.string.setting_triggers_title),
         scrollBehavior = scrollBehavior,
     ) { innerPadding ->
         LazyColumn(
@@ -232,9 +243,9 @@ fun SettingTriggersPage() {
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
                     item(
-                        headlineContent = { Text("启用自动化触发器") },
+                        headlineContent = { Text(stringResource(R.string.setting_trigger_master)) },
                         supportingContent = {
-                            Text("按事件自动运行卡片")
+                            Text(stringResource(R.string.setting_trigger_master_desc))
                         },
                         trailingContent = {
                             KkSwitch(
@@ -244,11 +255,11 @@ fun SettingTriggersPage() {
                         },
                     )
                     item(
-                        headlineContent = { Text("运行并发上限") },
-                        supportingContent = { Text("默认 1（串行），最高 3") },
+                        headlineContent = { Text(stringResource(R.string.setting_trigger_parallel)) },
+                        supportingContent = { Text(stringResource(R.string.setting_trigger_parallel_desc)) },
                         trailingContent = {
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                (TriggerSettings.MIN_MAX_PARALLEL..TriggerSettings.MAX_MAX_PARALLEL).forEach { value ->
+                                (TriggerSettingsRepository.MIN_MAX_PARALLEL..TriggerSettingsRepository.MAX_MAX_PARALLEL).forEach { value ->
                                     KkFilterChip(
                                         selected = triggerState.maxParallel == value,
                                         onClick = { controller.setMaxParallel(value) },
@@ -274,7 +285,7 @@ fun SettingTriggersPage() {
                 if (workflows.isNotEmpty()) {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = 8.dp),
-                        title = { Text("我的工作流") },
+                        title = { Text(stringResource(R.string.setting_trigger_my_workflows)) },
                     ) {
                         workflows.forEach { workflow ->
                             item(
@@ -284,7 +295,7 @@ fun SettingTriggersPage() {
                                 chevron = true,
                                 headlineContent = { Text(workflow.name) },
                                 supportingContent = {
-                                    Text("${workflow.nodes.size} 个节点 · ${if (workflow.enabled) "已启用" else "已停用"}")
+                                    Text(androidx.compose.ui.res.pluralStringResource(R.plurals.setting_trigger_workflow_nodes, workflow.nodes.size, workflow.nodes.size, stringResource(if (workflow.enabled) R.string.setting_trigger_enabled else R.string.setting_trigger_disabled)))
                                 },
                                 trailingContent = {
                                     MochiTextButton(
@@ -292,7 +303,7 @@ fun SettingTriggersPage() {
                                             WorkflowPreferencesRepository.delete(context, workflow.id)
                                             workflows = WorkflowPreferencesRepository.load(context)
                                         },
-                                    ) { Text("删除") }
+                                    ) { Text(stringResource(R.string.common_delete)) }
                                 },
                             )
                         }
@@ -303,13 +314,13 @@ fun SettingTriggersPage() {
             item("cards") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("工作流节点（点击编辑）") },
+                    title = { Text(stringResource(R.string.setting_trigger_workflow_nodes)) },
                 ) {
                     if (cards.isEmpty()) {
                         item(
-                            headlineContent = { Text("暂无已安装卡片") },
+                            headlineContent = { Text(stringResource(R.string.setting_trigger_no_cards)) },
                             supportingContent = {
-                                Text("为已装卡片配置触发器")
+                                Text(stringResource(R.string.setting_trigger_cards_desc))
                             },
                         )
                     }
@@ -331,11 +342,13 @@ fun SettingTriggersPage() {
                             supportingContent = {
                                 Text(
                                     if (card.events.isEmpty()) {
-                                        "未配置事件，点击添加"
+                                        stringResource(R.string.setting_trigger_no_events)
                                     } else {
                                         card.events.mapIndexed { index, event ->
-                                            "· ${eventSummary(event)}" +
-                                                if (index in card.disabledIndexes) "（已停用）" else ""
+                                            resources.getString(R.string.setting_trigger_list_summary,
+                                                eventSummary(context, event).let { summary ->
+                                                    if (index in card.disabledIndexes) resources.getString(R.string.setting_trigger_disabled_label, summary) else summary
+                                                })
                                         }.joinToString("\n")
                                     }
                                 )
@@ -360,31 +373,29 @@ fun SettingTriggersPage() {
                 if (logEntries.isNotEmpty()) {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = 8.dp),
-                        title = { Text("运行统计（最近 ${logEntries.size} 条记录）") },
+                        title = { Text(androidx.compose.ui.res.pluralStringResource(R.plurals.setting_trigger_stats_records, logEntries.size, logEntries.size)) },
                     ) {
                         item(
                             headlineContent = {
-                                Text("今日运行 ${logStats.todayRuns} 次 · 成功率 ${logStats.successRate}%")
+                                Text(androidx.compose.ui.res.pluralStringResource(R.plurals.setting_trigger_today_runs, logStats.todayRuns, logStats.todayRuns, logStats.successRate))
                             },
                             supportingContent = {
                                 Text(
                                     buildString {
                                         if (logStats.topCards.isNotEmpty()) {
-                                            append("最常触发：")
-                                            append(
-                                                logStats.topCards.joinToString("、") {
-                                                    "${it.first}（${it.second}）"
+                                            append(resources.getString(R.string.setting_trigger_top_cards,
+                                                logStats.topCards.joinToString(resources.getString(R.string.setting_trigger_summary_separator)) {
+                                                    resources.getString(R.string.setting_trigger_card_count, it.first, it.second)
                                                 }
-                                            )
+                                            ))
                                         }
                                         if (logStats.typeCounts.isNotEmpty()) {
                                             if (isNotEmpty()) append("\n")
-                                            append("类型分布：")
-                                            append(
-                                                logStats.typeCounts.joinToString("、") {
-                                                    "${eventTypeLabel(it.first)} ${it.second}"
+                                            append(resources.getString(R.string.setting_trigger_type_distribution,
+                                                logStats.typeCounts.joinToString(resources.getString(R.string.setting_trigger_summary_separator)) {
+                                                    resources.getString(R.string.setting_trigger_type_count, eventTypeLabel(context, it.first), it.second)
                                                 }
-                                            )
+                                            ))
                                         }
                                     }
                                 )
@@ -397,25 +408,25 @@ fun SettingTriggersPage() {
             item("logs") {
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("执行日志（最近 ${minOf(logEntries.size, LOG_UI_LIMIT)} / ${logEntries.size} 条）") },
+                    title = { Text(androidx.compose.ui.res.pluralStringResource(R.plurals.setting_trigger_log_records, logEntries.size, minOf(logEntries.size, LOG_UI_LIMIT), logEntries.size)) },
                 ) {
                     if (logEntries.isEmpty()) {
                         item(
-                            headlineContent = { Text("暂无执行记录") },
-                            supportingContent = { Text("触发后的运行结果") },
+                            headlineContent = { Text(stringResource(R.string.setting_trigger_no_logs)) },
+                            supportingContent = { Text(stringResource(R.string.setting_trigger_logs_desc)) },
                         )
                     } else {
                         item(
                             onClick = { controller.logs.clear() },
                             leadingContent = { Icon(cleaningServices, contentDescription = null) },
-                            headlineContent = { Text("清空日志") },
-                            supportingContent = { Text("仅清本地记录") },
+                            headlineContent = { Text(stringResource(R.string.setting_trigger_logs_clear)) },
+                            supportingContent = { Text(stringResource(R.string.setting_trigger_logs_clear_desc)) },
                         )
                         logEntries.asReversed().take(LOG_UI_LIMIT).forEach { entry ->
                             item(
                                 headlineContent = {
                                     Text(
-                                        "${if (entry.ok) "成功" else "失败"} · ${entry.card}",
+                                        stringResource(R.string.setting_trigger_log_result, stringResource(if (entry.ok) R.string.setting_trigger_success else R.string.setting_trigger_failure), entry.card),
                                         color = if (entry.ok) {
                                             MochiTheme.colorScheme.onSurface
                                         } else {
@@ -428,7 +439,7 @@ fun SettingTriggersPage() {
                                         buildString {
                                             append(timeFormat.format(Date(entry.at)))
                                             append(" · ")
-                                            append(eventTypeLabel(entry.type))
+                                            append(eventTypeLabel(context, entry.type))
                                             if (entry.payload.isNotBlank()) {
                                                 append(" · ")
                                                 append(entry.payload)
@@ -454,7 +465,7 @@ fun SettingTriggersPage() {
                 }
                 CardGroup(
                     modifier = Modifier.padding(horizontal = 8.dp),
-                    title = { Text("权限与保活") },
+                    title = { Text(stringResource(R.string.setting_trigger_permissions)) },
                 ) {
                     item(
                         onClick = {
@@ -466,11 +477,11 @@ fun SettingTriggersPage() {
                             }
                         },
                         leadingContent = { Icon(notifications, null) },
-                        headlineContent = { Text("通知监听权限") },
+                        headlineContent = { Text(stringResource(R.string.setting_trigger_notification_access)) },
                         supportingContent = {
                             Text(
-                                if (listenerEnabled) "已授予"
-                                else "未授予，点此开启"
+                                if (listenerEnabled) stringResource(R.string.setting_trigger_permission_granted)
+                                else stringResource(R.string.setting_trigger_permission_not_granted)
                             )
                         },
                     )
@@ -490,14 +501,14 @@ fun SettingTriggersPage() {
                             }
                         },
                         leadingContent = { Icon(bolt, null) },
-                        headlineContent = { Text("忽略电池优化") },
-                        supportingContent = { Text("避免被系统后台限制") },
+                        headlineContent = { Text(stringResource(R.string.setting_trigger_ignore_battery)) },
+                        supportingContent = { Text(stringResource(R.string.setting_trigger_ignore_battery_desc)) },
                     )
                     item(
                         onClick = { permissionState.requestPermissions() },
-                        headlineContent = { Text("请求位置 / 蓝牙等运行时权限") },
+                        headlineContent = { Text(stringResource(R.string.setting_trigger_runtime_permissions)) },
                         supportingContent = {
-                            Text("未授权时相应事件自动跳过")
+                            Text(stringResource(R.string.setting_trigger_runtime_permissions_desc))
                         },
                     )
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !exactAlarmAllowed) {
@@ -513,16 +524,16 @@ fun SettingTriggersPage() {
                                 }
                             },
                             leadingContent = { Icon(bolt, null) },
-                            headlineContent = { Text("精确闹钟权限（未授予）") },
+                            headlineContent = { Text(stringResource(R.string.setting_trigger_exact_alarm)) },
                             supportingContent = {
-                                Text("未授予时退回 60 秒轮询")
+                                Text(stringResource(R.string.setting_trigger_exact_alarm_desc))
                             },
                         )
                     }
                     item(
                         headlineContent = {
                             Text(
-                                text = "触发器服务是常驻前台服务，会显示一条低优先级通知；关闭总开关即可停止。",
+                                text = stringResource(R.string.setting_trigger_service_hint),
                                 style = MochiTheme.textStyles.body,
                                 color = MochiTheme.colorScheme.onSurfaceVariant,
                             )
@@ -556,22 +567,22 @@ private fun FlowOverviewCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("自动化工作流", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.setting_workflow_title), style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (enabled) "监听事件 → 执行动作 → 记录结果" else "总开关已关闭，工作流暂不监听系统事件",
+                        if (enabled) stringResource(R.string.setting_workflow_listening) else stringResource(R.string.setting_workflow_paused),
                         style = MochiTheme.textStyles.body,
                         color = MochiTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Text(
-                    "${cards.count { it.events.isNotEmpty() }} 个流程",
+                    androidx.compose.ui.res.pluralStringResource(R.plurals.setting_workflow_count, cards.count { it.events.isNotEmpty() }, cards.count { it.events.isNotEmpty() }),
                     style = MochiTheme.textStyles.body,
                     color = MochiTheme.colorScheme.primary,
                 )
             }
             if (cards.isEmpty()) {
                 Text(
-                    "从卡片市场安装一个工作流，或先录制一组操作。",
+                    stringResource(R.string.setting_workflow_install_hint),
                     style = MochiTheme.textStyles.body,
                     color = MochiTheme.colorScheme.onSurfaceVariant,
                 )
@@ -593,17 +604,17 @@ private fun FlowOverviewCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.size(4.dp))
-                            Text("创建工作流")
+                            Text(stringResource(R.string.setting_workflow_create))
                         }
                     },
                 )
                 KkFilterChip(
                     selected = false,
                     onClick = onAddAi,
-                    label = "AI 介入",
+                    label = stringResource(R.string.setting_workflow_ai),
                 )
                 Text(
-                    "节点可在下方逐个展开编辑",
+                    stringResource(R.string.setting_workflow_nodes_hint),
                     modifier = Modifier.align(Alignment.CenterVertically),
                     style = MochiTheme.textStyles.labelSmall,
                     color = MochiTheme.colorScheme.onSurfaceVariant,
@@ -621,7 +632,7 @@ private fun FlowNodeStrip(
 ) {
     if (events.isEmpty()) {
         Text(
-            "未配置触发节点",
+            stringResource(R.string.setting_workflow_no_trigger),
             style = MochiTheme.textStyles.labelSmall,
             color = MochiTheme.colorScheme.onSurfaceVariant,
         )
@@ -678,7 +689,7 @@ private fun FlowNodeStrip(
                 }
                 if (showLabels) {
                     Text(
-                        eventTypeLabel(event.type),
+                        eventTypeLabel(LocalContext.current, event.type),
                         style = MochiTheme.textStyles.labelSmall,
                         color = if (active) {
                             MochiTheme.colorScheme.onSurface
@@ -692,7 +703,7 @@ private fun FlowNodeStrip(
         }
         if (events.size > 5) {
             Text(
-                "+${events.size - 5}",
+                stringResource(R.string.setting_trigger_more_count, events.size - 5),
                 style = MochiTheme.textStyles.labelSmall,
                 color = MochiTheme.colorScheme.onSurfaceVariant,
             )
@@ -703,116 +714,78 @@ private fun FlowNodeStrip(
 
 private const val LOG_UI_LIMIT = 50
 
-internal fun eventSummary(event: CardManifest.Event): String = when (event.type) {
-    CardManifest.EVENT_SCHEDULE -> buildString {
-        append("定时 ")
-        when {
-            event.times.isNotEmpty() -> append(event.times.joinToString("、"))
-            event.intervalMinutes > 0 -> append("每 ${event.intervalMinutes} 分钟")
-        }
-        if (event.days.isNotEmpty()) {
-            append(" ")
-            append(event.days.joinToString("") { weekdayName(it) })
-        } else {
-            append(" 每天")
-        }
-        when (event.calendar) {
-            CardManifest.CALENDAR_WORKDAY -> append(" · 仅工作日")
-            CardManifest.CALENDAR_WEEKEND -> append(" · 仅休息日")
-            CardManifest.CALENDAR_HOLIDAY -> append(" · 仅节假日")
-        }
-    }
-
-    CardManifest.EVENT_NOTIFICATION,
-    CardManifest.EVENT_NOTIFICATION_CLICK,
-    CardManifest.EVENT_NOTIFICATION_REPLY -> buildString {
-        append(
-            when (event.type) {
-                CardManifest.EVENT_NOTIFICATION_CLICK -> "通知点击 "
-                CardManifest.EVENT_NOTIFICATION_REPLY -> "通知回复 "
-                else -> "通知 "
+internal fun eventSummary(context: android.content.Context, event: CardManifest.Event): String {
+    fun label(id: Int) = context.getString(id)
+    fun join(parts: List<String>) = parts.filter { it.isNotBlank() }
+        .joinToString(label(R.string.setting_trigger_summary_separator))
+    fun detail(value: String) = context.getString(
+        R.string.setting_trigger_summary_detail, eventTypeLabel(context, event.type), value,
+    )
+    val anyApp = label(R.string.setting_trigger_any_app)
+    fun connection() = label(when (event.state) {
+        CardManifest.STATE_CONNECTED -> R.string.setting_trigger_connected
+        CardManifest.STATE_DISCONNECTED -> R.string.setting_trigger_disconnected
+        else -> R.string.setting_trigger_any
+    })
+    return when (event.type) {
+        CardManifest.EVENT_SCHEDULE -> {
+            val timing = if (event.times.isNotEmpty()) join(event.times) else if (event.intervalMinutes > 0)
+                context.resources.getQuantityString(R.plurals.setting_trigger_interval_minutes, event.intervalMinutes, event.intervalMinutes)
+            else ""
+            val days = if (event.days.isEmpty()) label(R.string.setting_trigger_every_day) else join(event.days.map { day ->
+                val weekdays = listOf(R.string.setting_trigger_monday, R.string.setting_trigger_tuesday,
+                    R.string.setting_trigger_wednesday, R.string.setting_trigger_thursday,
+                    R.string.setting_trigger_friday, R.string.setting_trigger_saturday, R.string.setting_trigger_sunday)
+                weekdays.getOrNull(day - 1)?.let { label(it) } ?: label(R.string.setting_trigger_unknown_value)
+            })
+            val calendar = when (event.calendar) {
+                CardManifest.CALENDAR_WORKDAY -> label(R.string.setting_trigger_workday)
+                CardManifest.CALENDAR_WEEKEND -> label(R.string.setting_trigger_day_off)
+                CardManifest.CALENDAR_HOLIDAY -> label(R.string.setting_trigger_holiday)
+                else -> ""
             }
-        )
-        append(event.packageName.ifBlank { "任意应用" })
-        val conds = buildList {
-            if (event.titleContains.isNotBlank()) add("标题含「${event.titleContains}」")
-            if (event.textContains.isNotBlank()) add("正文含「${event.textContains}」")
+            detail(join(listOf(timing, days, calendar)))
         }
-        if (conds.isNotEmpty()) append(" · ${conds.joinToString("，")}")
-    }
-
-    CardManifest.EVENT_APP_LAUNCH ->
-        "应用启动 ${event.packageName.ifBlank { "任意应用" }}"
-
-    CardManifest.EVENT_APP_EXIT ->
-        "应用退出 ${event.packageName.ifBlank { "（未填包名）" }}"
-
-    CardManifest.EVENT_APP_INSTALL ->
-        "应用安装 ${event.packageName.ifBlank { "任意应用" }}"
-
-    CardManifest.EVENT_APP_UNINSTALL ->
-        "应用卸载 ${event.packageName.ifBlank { "任意应用" }}"
-
-    CardManifest.EVENT_SHORTCUT ->
-        "桌面快捷方式「${event.name.ifBlank { "未命名" }}」"
-
-    CardManifest.EVENT_TILE ->
-        "快捷设置磁贴「${event.name.ifBlank { "未命名" }}」"
-
-    CardManifest.EVENT_CHARGING ->
-        if (event.state == CardManifest.CHARGING_DISCONNECTED) "充电 · 断开电源" else "充电 · 接入电源"
-
-    CardManifest.EVENT_WIFI -> buildString {
-        append("Wi-Fi ")
-        append(event.ssid.ifBlank { "任意热点" })
-        when (event.state) {
-            CardManifest.STATE_CONNECTED -> append(" · 已连接")
-            CardManifest.STATE_DISCONNECTED -> append(" · 已断开")
-            else -> append(" · 任意状态")
-        }
-    }
-
-    CardManifest.EVENT_NETWORK ->
-        if (event.state == CardManifest.NETWORK_OFFLINE) "网络 · 离线" else "网络 · 在线"
-
-    CardManifest.EVENT_BATTERY -> buildString {
-        append("电量")
-        val conds = buildList {
-            if (event.levelBelow >= 0) add("低于 ${event.levelBelow}%")
-            if (event.levelAbove >= 0) add("高于 ${event.levelAbove}%")
+        CardManifest.EVENT_NOTIFICATION, CardManifest.EVENT_NOTIFICATION_CLICK,
+        CardManifest.EVENT_NOTIFICATION_REPLY -> detail(join(buildList {
+            add(event.packageName.ifBlank { anyApp })
+            if (event.titleContains.isNotBlank()) add(context.getString(R.string.setting_trigger_title_filter, event.titleContains))
+            if (event.textContains.isNotBlank()) add(context.getString(R.string.setting_trigger_body_filter, event.textContains))
+        }))
+        CardManifest.EVENT_APP_LAUNCH, CardManifest.EVENT_APP_INSTALL, CardManifest.EVENT_APP_UNINSTALL ->
+            detail(event.packageName.ifBlank { anyApp })
+        CardManifest.EVENT_APP_EXIT -> detail(event.packageName.ifBlank { label(R.string.setting_trigger_package_missing) })
+        CardManifest.EVENT_SHORTCUT, CardManifest.EVENT_TILE -> detail(event.name.ifBlank { label(R.string.setting_trigger_unnamed) })
+        CardManifest.EVENT_CHARGING -> detail(label(if (event.state == CardManifest.CHARGING_DISCONNECTED)
+            R.string.setting_trigger_power_disconnected else R.string.setting_trigger_power_connected))
+        CardManifest.EVENT_WIFI -> detail(join(listOf(event.ssid.ifBlank { label(R.string.setting_trigger_any_hotspot) }, connection())))
+        CardManifest.EVENT_NETWORK -> detail(label(if (event.state == CardManifest.NETWORK_OFFLINE)
+            R.string.setting_trigger_offline else R.string.setting_trigger_online))
+        CardManifest.EVENT_BATTERY -> detail(join(buildList {
+            if (event.levelBelow >= 0) add(context.getString(R.string.setting_trigger_summary_battery_below, event.levelBelow))
+            if (event.levelAbove >= 0) add(context.getString(R.string.setting_trigger_summary_battery_above, event.levelAbove))
             when (event.state) {
-                CardManifest.BATTERY_CHARGING -> add("充电中")
-                CardManifest.BATTERY_DISCHARGING -> add("放电中")
+                CardManifest.BATTERY_CHARGING -> add(label(R.string.setting_trigger_charging))
+                CardManifest.BATTERY_DISCHARGING -> add(label(R.string.setting_trigger_discharging))
             }
+        }).ifBlank { label(R.string.setting_trigger_any) })
+        CardManifest.EVENT_SCREEN -> {
+            val state = when (event.state) {
+                CardManifest.SCREEN_ON -> R.string.setting_trigger_screen_on
+                CardManifest.SCREEN_OFF -> R.string.setting_trigger_screen_off
+                CardManifest.SCREEN_UNLOCKED -> R.string.setting_trigger_screen_unlocked
+                CardManifest.SCREEN_LOCKED -> R.string.setting_trigger_screen_locked
+                else -> null
+            }
+            state?.let { detail(label(it)) } ?: eventTypeLabel(context, event.type)
         }
-        if (conds.isNotEmpty()) append(" · ${conds.joinToString("，")}") else append(" · 任意")
+        CardManifest.EVENT_CLIPBOARD -> context.getString(R.string.setting_trigger_clipboard_filter, event.textContains)
+        CardManifest.EVENT_BLUETOOTH -> detail(join(listOf(event.device,
+            label(if (event.state == CardManifest.STATE_DISCONNECTED) R.string.setting_trigger_disconnected else R.string.setting_trigger_connected))))
+        CardManifest.EVENT_LOCATION -> context.getString(R.string.setting_trigger_location_summary,
+            label(if (event.state == CardManifest.LOCATION_EXIT) R.string.setting_trigger_exit else R.string.setting_trigger_enter),
+            event.lat?.toString() ?: label(R.string.setting_trigger_unknown_value),
+            event.lon?.toString() ?: label(R.string.setting_trigger_unknown_value), event.radiusM)
+        else -> event.type
     }
-
-    CardManifest.EVENT_SCREEN -> when (event.state) {
-        CardManifest.SCREEN_ON -> "屏幕 · 点亮"
-        CardManifest.SCREEN_OFF -> "屏幕 · 熄灭"
-        CardManifest.SCREEN_UNLOCKED -> "屏幕 · 解锁"
-        CardManifest.SCREEN_LOCKED -> "屏幕 · 锁屏"
-        else -> "屏幕"
-    }
-
-    CardManifest.EVENT_CLIPBOARD -> "剪贴板含「${event.textContains}」"
-
-    CardManifest.EVENT_BLUETOOTH -> buildString {
-        append("蓝牙")
-        if (event.device.isNotBlank()) append(" ${event.device}")
-        append(
-            if (event.state == CardManifest.STATE_DISCONNECTED) " · 已断开" else " · 已连接"
-        )
-    }
-
-    CardManifest.EVENT_LOCATION -> buildString {
-        append("位置 · ${if (event.state == CardManifest.LOCATION_EXIT) "离开" else "进入"}")
-        append(" ${event.lat ?: "-"},${event.lon ?: "-"} 半径 ${event.radiusM}m")
-    }
-
-    else -> event.type
 }
-
-private fun weekdayName(day: Int): String =
-    listOf("一", "二", "三", "四", "五", "六", "日").getOrElse(day - 1) { "?" }

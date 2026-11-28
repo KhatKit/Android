@@ -42,6 +42,10 @@ object SshPluginInfo {
     const val DISPLAY_NAME = "远程 SSH"
     const val DESCRIPTION = "连接远程 Linux 主机并执行命令"
 
+    /** UI resolves the current locale; protocol/market constants above stay stable. */
+    fun displayName(context: Context): String = context.getString(heizige.kk.khatkit.common.R.string.common_ssh_name)
+    fun description(context: Context): String = context.getString(heizige.kk.khatkit.common.R.string.common_ssh_description)
+
     /** 插件实现类名；改包名时只改这里（打包脚本里的 entry_class 必须一致）。 */
     const val ENTRY_CLASS = "heizige.kk.khatkit.plugins.ssh.SshEngineImpl"
 }

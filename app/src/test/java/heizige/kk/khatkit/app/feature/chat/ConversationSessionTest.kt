@@ -25,8 +25,8 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
-import heizige.kk.khatkit.app.feature.chat.data.afterPreviousGeneration
+import heizige.kk.khatkit.app.feature.chat.helper.ConversationRuntimeManager
+import heizige.kk.khatkit.app.feature.chat.helper.afterPreviousGeneration
 
 class ConversationSessionTest {
     @Test
@@ -35,7 +35,7 @@ class ConversationSessionTest {
         val oldAssistant = Uuid.random()
         val targetAssistant = Uuid.random()
         var persisted = Conversation.ofId(id, assistantId = oldAssistant).copy(folderId = Uuid.random())
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         val streaming = session.state.value.updateCurrentMessages(listOf(partialReply()))
         session.updateConversation(streaming)
@@ -68,7 +68,7 @@ class ConversationSessionTest {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id, assistantId = Uuid.random())
             .updateCurrentMessages(listOf(UIMessage.user("existing history")))
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         session.updateMetadata(
             update = { it.copy(isPinned = !it.isPinned) },
@@ -83,7 +83,7 @@ class ConversationSessionTest {
     fun `concurrent pin toggles persist in order without replacing streamed messages`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, persisted, this, {})
+        val session = ConversationRuntimeManager(id, persisted, this, {})
         session.initialize { persisted }
         val allowFirstSave = CompletableDeferred<Unit>()
         val writtenPins = mutableListOf<Boolean>()
@@ -123,13 +123,13 @@ class ConversationSessionTest {
     fun `returning to a generating conversation retains reasoning and partial reply`() = runBlocking {
         val id = Uuid.random()
         val persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, persisted, this, {})
+        val session = ConversationRuntimeManager(id, persisted, this, {})
         session.initialize { persisted }
         val streaming = persisted.updateCurrentMessages(listOf(partialReply()))
         session.updateConversation(streaming)
 
         val otherId = Uuid.random()
-        val other = ConversationSession(otherId, Conversation.ofId(otherId), this, {})
+        val other = ConversationRuntimeManager(otherId, Conversation.ofId(otherId), this, {})
         other.initialize { Conversation.ofId(otherId, assistantId = Uuid.random()) }
 
         // Android 重新创建 ViewModel、Web 重连及再次发送都会调用初始化。
@@ -142,7 +142,7 @@ class ConversationSessionTest {
     fun `concurrent initialization loads once without blocking another conversation`() = runBlocking {
         val id = Uuid.random()
         val initial = Conversation.ofId(id)
-        val session = ConversationSession(id, initial, this, {})
+        val session = ConversationRuntimeManager(id, initial, this, {})
         val loaded = CompletableDeferred<Conversation>()
         var loads = 0
         val first = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -152,7 +152,7 @@ class ConversationSessionTest {
             session.initialize { loads++; initial }
         }
         val otherId = Uuid.random()
-        val other = ConversationSession(otherId, Conversation.ofId(otherId), this, {})
+        val other = ConversationRuntimeManager(otherId, Conversation.ofId(otherId), this, {})
         other.initialize { Conversation.ofId(otherId) }
         assertFalse(first.isCompleted)
         assertFalse(second.isCompleted)
@@ -169,7 +169,7 @@ class ConversationSessionTest {
     fun `late database load cannot overwrite a newer conversation update`() = runBlocking {
         val id = Uuid.random()
         val initial = Conversation.ofId(id)
-        val session = ConversationSession(id, initial, this, {})
+        val session = ConversationRuntimeManager(id, initial, this, {})
         val loaded = CompletableDeferred<Conversation>()
         val loading = launch(start = CoroutineStart.UNDISPATCHED) {
             session.initialize { loaded.await() }
@@ -185,7 +185,7 @@ class ConversationSessionTest {
     fun `cancelled initial load can be retried`() = runBlocking {
         val id = Uuid.random()
         val initial = Conversation.ofId(id)
-        val session = ConversationSession(id, initial, this, {})
+        val session = ConversationRuntimeManager(id, initial, this, {})
         val loading = launch(start = CoroutineStart.UNDISPATCHED) {
             session.initialize { awaitCancellation() }
         }
@@ -200,7 +200,7 @@ class ConversationSessionTest {
     fun `failed stream persists partial content for a recreated session`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, persisted, this, {})
+        val session = ConversationRuntimeManager(id, persisted, this, {})
         session.initialize { persisted }
         val failure = IllegalStateException("connection lost")
         val result = runCatching {
@@ -214,7 +214,7 @@ class ConversationSessionTest {
             }
         }
         assertSame(failure, result.exceptionOrNull())
-        val reopened = ConversationSession(id, Conversation.ofId(id), this, {})
+        val reopened = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         reopened.initialize { persisted }
         val parts = reopened.state.value.currentMessages.single().parts
         assertEquals("thinking so far", (parts[0] as UIMessagePart.Reasoning).reasoning)
@@ -229,7 +229,7 @@ class ConversationSessionTest {
     fun `cancelled generation waits for partial content to be persisted`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, persisted, this, {})
+        val session = ConversationRuntimeManager(id, persisted, this, {})
         session.initialize { persisted }
         val saving = CompletableDeferred<Unit>()
         val allowSave = CompletableDeferred<Unit>()
@@ -278,7 +278,7 @@ class ConversationSessionTest {
     fun `stop does not resume queued approval when predecessor cancels immediately`() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val id = Uuid.random()
-        val session = ConversationSession(id, Conversation.ofId(id), scope, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), scope, {})
         try {
             var saved = false
             val first = scope.launch(start = CoroutineStart.LAZY) { awaitCancellation() }
@@ -302,7 +302,7 @@ class ConversationSessionTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val id = Uuid.random()
         val completions = mutableListOf<Throwable?>()
-        val session = ConversationSession(id, Conversation.ofId(id), scope, {},
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), scope, {},
             { _, cause -> completions.add(cause) })
         try {
             val save = CompletableDeferred<Unit>()
@@ -335,7 +335,7 @@ class ConversationSessionTest {
     fun `stopping queued approvals waits for all predecessors to stop`() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val id = Uuid.random()
-        val session = ConversationSession(id, Conversation.ofId(id), scope, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), scope, {})
         try {
             val cleanup = CompletableDeferred<Unit>()
             val first = scope.launch(start = CoroutineStart.LAZY) {
@@ -377,7 +377,7 @@ class ConversationSessionTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val completions = mutableListOf<Throwable?>()
         val id = Uuid.random()
-        val session = ConversationSession(
+        val session = ConversationRuntimeManager(
             id,
             Conversation.ofId(id),
             scope,
@@ -416,7 +416,7 @@ class ConversationSessionTest {
     fun `instant completion does not leave a stale generation job`() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val id = Uuid.random()
-        val session = ConversationSession(id, Conversation.ofId(id), scope, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), scope, {})
         try {
             session.setJob(scope.launch(start = CoroutineStart.LAZY) {})
             assertNull(session.getJob())
@@ -431,7 +431,7 @@ class ConversationSessionTest {
     fun `pending messages retain session even when queue is paused and page has no references`() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val id = Uuid.random()
-        val session = ConversationSession(id, Conversation.ofId(id), scope, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), scope, {})
         try {
             assertFalse(session.isInUse)
             session.messageQueue.enqueue(listOf(UIMessagePart.Text("next")))

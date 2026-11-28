@@ -24,7 +24,7 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.network.dto.ErrorResponse
 import heizige.kk.khatkit.app.core.network.dto.WebAuthTokenRequest

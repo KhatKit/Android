@@ -1,11 +1,17 @@
 package heizige.kk.khatkit.app.core.ui.components.explore
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.app.core.ui.icons.*
+import heizige.kk.khatkit.app.core.ui.icons.files.description
+import heizige.kk.khatkit.app.core.ui.icons.settings.title
+import heizige.kk.khatkit.app.core.ui.icons.utility.code
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
 import heizige.kk.khatkit.card.CardManifest
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.theme.MochiTheme
@@ -39,7 +45,7 @@ fun SimpleMarketCardRow(
                 modifier = Modifier.size(28.dp)
             )
         },
-        value = if (isInstalled) "已安装" else null,
+        value = if (isInstalled) stringResource(R.string.tools_installed) else null,
         chevron = true,
         onClick = onClick
     )
@@ -89,7 +95,7 @@ fun SimpleMcpServerRow(
     MochiListRow(
         modifier = modifier,
         title = name,
-        subtitle = "MCP 服务",
+        subtitle = stringResource(R.string.market_mcp_service),
         leading = {
             Icon(
                 imageVector = dns,

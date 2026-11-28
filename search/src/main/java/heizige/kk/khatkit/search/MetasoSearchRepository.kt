@@ -2,6 +2,7 @@ package heizige.kk.khatkit.search
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
@@ -27,8 +28,9 @@ object MetasoSearchRepository : SearchRepository<SearchOptions.MetasoOptions> {
 
     @Composable
     override fun Description() {
+        val label = stringResource(R.string.search_metaso_description)
         Text(buildAnnotatedString {
-            append("秘塔搜索: ")
+            append(label)
             withLink(LinkAnnotation.Url("https://metaso.cn/")) {
                 append("https://metaso.cn/")
             }

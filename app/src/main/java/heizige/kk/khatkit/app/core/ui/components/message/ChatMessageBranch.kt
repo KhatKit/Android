@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.message
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,8 +21,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.model.MessageNode
-import heizige.kk.khatkit.app.core.ui.icons.arrowBack
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
 
 @Composable
 fun ChatMessageBranchSelector(
@@ -38,7 +40,7 @@ fun ChatMessageBranchSelector(
 
             Icon(
                 imageVector = arrowBack,
-                contentDescription = "Prev",
+                contentDescription = stringResource(R.string.chat_branch_previous),
                 modifier = Modifier
                     .clip(CircleShape)
                     .alpha(if (node.selectIndex == 0) 0.5f else 1f)
@@ -68,7 +70,7 @@ fun ChatMessageBranchSelector(
 
             Icon(
                 imageVector = arrowForward,
-                contentDescription = "Next",
+                contentDescription = stringResource(R.string.chat_branch_next),
                 modifier = Modifier
                     .clip(CircleShape)
                     .alpha(if (node.selectIndex == node.messages.lastIndex) 0.5f else 1f)

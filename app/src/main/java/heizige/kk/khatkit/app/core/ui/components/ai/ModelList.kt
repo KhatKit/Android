@@ -1,6 +1,12 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
-import heizige.kk.khatkit.uikit.mochi.Md3SearchBar
+import ui.feice.mochi.basic.MochiTextField
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.effect.mask.mochiScrollFadeMask
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -16,10 +22,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,7 +37,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import heizige.kk.khatkit.app.core.ui.context.NoHeroTransition
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -80,7 +83,7 @@ import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
-import heizige.kk.khatkit.app.core.ui.icons.HeartIcon
+import heizige.kk.khatkit.app.core.ui.icons.social.HeartIcon
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSharedPreferenceString
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
@@ -90,20 +93,22 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.dragIndicator
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.favorite as favoriteIcon
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.photo
-import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.title
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.navigation.chevronRight
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.dragIndicator
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.settings.favorite as favoriteIcon
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.media.photo
+import heizige.kk.khatkit.app.core.ui.icons.ai.psychology
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.settings.title
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import heizige.kk.khatkit.uikit.mochi.KkAssistChip
+
+
 
 class ModelListState internal constructor(
     modelId: Uuid?,
@@ -243,7 +248,7 @@ internal fun ModelSelectorButton(
                 ) {
                     Icon(
                         imageVector = close,
-                        contentDescription = "Clear"
+                        contentDescription = stringResource(R.string.model_list_clear_model)
                     )
                 }
             }
@@ -292,10 +297,7 @@ fun ModelListSheet(
         scrollable = false,
     ) { dismiss ->
         Column(
-            modifier = Modifier
-                .padding(8.dp)
-                .fillMaxHeight(0.8f)
-                .imePadding(),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ModelList(
@@ -338,8 +340,6 @@ private fun ColumnScope.ModelList(
     }
 
     var searchKeywords by remember { mutableStateOf("") }
-    // 搜索框展开态（KSU SuperSearchBar 那种全屏搜索）
-    var searchExpanded by remember { mutableStateOf(false) }
 
     // 折叠的供应商（持久化），搜索时全部展开
     var collapsedProvidersPref by rememberSharedPreferenceString("model_list_collapsed_providers", "")
@@ -453,7 +453,7 @@ private fun ColumnScope.ModelList(
         }.toMap()
     }
 
-    // 模型列表：折叠态挂在面板里，展开态搬进搜索框的全屏槽，所以抽成一个 lambda 复用。
+    // 列表独立占用搜索框和供应商筛选条之间的剩余高度。
     val modelList: @Composable (Modifier) -> Unit = { listModifier ->
         // 行的圆角与行间空隙全部取全局列表卡片样式：收藏组、每个供应商组各自成组，
         // 组内首项只圆上边、末项只圆下边（MD3 20dp/gap 2dp，Miuix 同组同色/gap 0）。
@@ -461,7 +461,8 @@ private fun ColumnScope.ModelList(
         LazyColumn(
             state = lazyListState,
             verticalArrangement = Arrangement.spacedBy(cards.gap),
-            contentPadding = PaddingValues(8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
             // U8：长列表底部淡出，和 Mochi 的滚动边缘观感一致（顶部有 sticky 分组标题，不加顶边淡出）。
             modifier = listModifier.fadingEdge(bottom = 8.dp),
         ) {
@@ -573,8 +574,7 @@ private fun ColumnScope.ModelList(
                     MochiOptionItem(
                         onClick = { toggleCollapsed(providerSetting) },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
+                            .fillMaxWidth(),
                         shape = cards.indexedShape(
                             index = 0,
                             count = 1 + visibleModelsByProvider[providerSetting.id].orEmpty().size,
@@ -591,6 +591,8 @@ private fun ColumnScope.ModelList(
                         titleContent = {
                             Text(
                                 text = providerSetting.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -697,54 +699,39 @@ private fun ColumnScope.ModelList(
             }
     }
 
-    Md3SearchBar(
+    val focusManager = LocalFocusManager.current
+    MochiTextField(
         value = searchKeywords,
         onValueChange = { searchKeywords = it },
         placeholder = stringResource(R.string.model_list_search_placeholder),
-        active = searchExpanded,
-        onActiveChange = { searchExpanded = it },
-        cancelLabel = stringResource(R.string.cancel),
-        // 模型表本身就是主 UI，空关键词时也要摊开，不走「先输入再展示」。
-        showResultsWhenEmpty = true,
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        expandedContent = {
-            NoHeroTransition {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    modelList(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    )
-                    if (providers.isNotEmpty()) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                            state = providerBadgeListState,
-                        ) {
-                            items(providers) { provider ->
-                                KkAssistChip(
-                                    onClick = {
-                                        val position = providerPositions[provider.id] ?: 0
-                                        coroutineScope.launch {
-                                            lazyListState.animateScrollToItem(position)
-                                        }
-                                    },
-                                    label = provider.name,
-                                    leadingIcon = {
-                                        AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
     )
+    modelList(Modifier.weight(1f).fillMaxWidth())
+    if (providers.isNotEmpty()) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .mochiScrollFadeMask(providerBadgeListState, vertical = false),
+            state = providerBadgeListState,
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
+        ) {
+            items(providers, key = { it.id }) { provider ->
+                KkAssistChip(
+                    onClick = {
+                        val position = providerPositions[provider.id] ?: 0
+                        coroutineScope.launch { lazyListState.animateScrollToItem(position) }
+                    },
+                    label = provider.name,
+                    leadingIcon = {
+                        AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

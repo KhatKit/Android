@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.app.LocalPageRoute
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import android.content.Intent
@@ -35,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.uikit.mochi.MochiTooltipIconButton
 import heizige.kk.khatkit.app.core.data.model.Assistant
@@ -45,11 +48,11 @@ import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.ui.icons.arrowBack
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.save as saveIcon
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.files.folder
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.files.save as saveIcon
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.collections.immutable.toImmutableList
@@ -76,6 +79,7 @@ internal fun RoleMemoryPanel(
     assistant: Assistant,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var files by remember(assistant.id) { mutableStateOf(listOf("MEMORY.md")) }
     var document by remember(assistant.id) { mutableStateOf<RoleMemoryDocument?>(null) }
@@ -109,7 +113,7 @@ internal fun RoleMemoryPanel(
             document = vm.readRoleMemory(path)
             draft = document!!.content
         } catch (e: Exception) {
-            Toast.show("读取失败：${e.message}")
+            Toast.show(resources.getString(R.string.role_memory_read_failed, e.message))
         }
     }
     fun save(overwrite: Boolean = false) {
@@ -122,11 +126,11 @@ internal fun RoleMemoryPanel(
                 draft = saved.content
                 files = vm.roleMemoryFiles()
                 conflict = null
-                Toast.show("已保存")
+                Toast.show(resources.getString(R.string.role_memory_saved))
             } catch (e: RoleMemoryConflict) {
                 conflict = e.current
             } catch (e: Exception) {
-                Toast.show("保存失败：${e.message}")
+                Toast.show(resources.getString(R.string.role_memory_save_failed, e.message))
             } finally {
                 busy = false
             }
@@ -139,16 +143,16 @@ internal fun RoleMemoryPanel(
     }
 
     MochiSettingsPageScaffold(
-        title = "记忆",
+        title = stringResource(R.string.role_memory_page_title),
         scrollBehavior = scrollBehavior,
         navigationIcon = {
             MochiIconButton(onClick = {
                 if (dirty) confirmExit = true else navigator.popBackStack()
-            }, enabled = !busy) { Icon(arrowBack, "返回") }
+            }, enabled = !busy) { Icon(arrowBack, stringResource(R.string.back)) }
         },
         actions = {
-            MochiTooltipIconButton("新建主题笔记", onClick = { newTopic = "" }, enabled = !busy) { Icon(add, null) }
-            MochiTooltipIconButton("打开记忆文件夹", onClick = {
+            MochiTooltipIconButton(stringResource(R.string.role_memory_new_topic), onClick = { newTopic = "" }, enabled = !busy) { Icon(add, null) }
+            MochiTooltipIconButton(stringResource(R.string.role_memory_open_folder), onClick = {
                 val uri = DocumentsContract.buildDocumentUri(context.packageName + ".memory.documents", assistant.id.toString())
                 val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -159,7 +163,7 @@ internal fun RoleMemoryPanel(
                         context.startActivity(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                             .putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri))
                     } catch (_: android.content.ActivityNotFoundException) {
-                        Toast.show("未找到系统文件管理器")
+                        Toast.show(resources.getString(R.string.role_memory_open_folder_failed))
                     }
                 }
             }) { Icon(folder, null) }
@@ -184,7 +188,7 @@ internal fun RoleMemoryPanel(
                 item(key = "switches") {
                     MochiListSection {
                         MochiListRow(
-                            title = "角色记忆",
+                            title = stringResource(R.string.role_memory_section_title),
                             onClick = { vm.update(assistant.copy(enableMemory = !assistant.enableMemory, useGlobalMemory = false)) },
                             trailing = {
                                 MochiSwitch(checked = assistant.enableMemory, onCheckedChange = {
@@ -193,7 +197,7 @@ internal fun RoleMemoryPanel(
                             },
                         )
                         MochiListRow(
-                            title = "自动整理",
+                            title = stringResource(R.string.role_memory_auto_organize),
                             onClick = { vm.update(assistant.copy(autoExtractMemory = !assistant.autoExtractMemory)) },
                             trailing = {
                                 MochiSwitch(checked = assistant.autoExtractMemory, onCheckedChange = {
@@ -207,7 +211,7 @@ internal fun RoleMemoryPanel(
                 item(key = "file") {
                     MochiListSection {
                         MochiListPickerRow(
-                            title = "记忆文件",
+                            title = stringResource(R.string.role_memory_files),
                             options = options,
                             selectedIndex = options.indexOf(current?.path ?: "MEMORY.md"),
                             onSelect = { index ->
@@ -218,7 +222,7 @@ internal fun RoleMemoryPanel(
                             enabled = !busy,
                         )
                         MochiListRow(
-                            title = "重新加载",
+                            title = stringResource(R.string.role_memory_reload),
                             leading = { MemoryEntryIcon(refresh) },
                             enabled = !busy,
                             onClick = {
@@ -228,7 +232,7 @@ internal fun RoleMemoryPanel(
                             },
                         )
                         MochiListRow(
-                            title = "保存",
+                            title = stringResource(R.string.role_memory_save),
                             leading = { MemoryEntryIcon(saveIcon) },
                             enabled = !busy && dirty,
                             onClick = { save() },
@@ -246,13 +250,13 @@ internal fun RoleMemoryPanel(
                                 ) {
                                     Row(Modifier.fillMaxWidth()) {
                                         MochiText(
-                                            "加载预算",
+                                            stringResource(R.string.role_memory_budget),
                                             style = MochiTheme.textStyles.body,
                                             color = MochiTheme.colorScheme.onSurface,
                                             modifier = Modifier.weight(1f).alignByBaseline(),
                                         )
                                         MochiText(
-                                            "$loaded / ${RoleMemoryRepository.CURATED_BUDGET} 字符",
+                                            stringResource(R.string.role_memory_budget_chars, loaded, RoleMemoryRepository.CURATED_BUDGET),
                                             style = MochiTheme.textStyles.subhead,
                                             color = MochiTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.alignByBaseline(),
@@ -265,14 +269,14 @@ internal fun RoleMemoryPanel(
                     }
                     item(key = "editor") {
                         val label = when {
-                            current.path == "MEMORY.md" -> "精选记忆"
-                            current.path.startsWith("daily/") -> "每日日志"
-                            else -> "主题笔记"
+                            current.path == "MEMORY.md" -> stringResource(R.string.role_memory_curated)
+                            current.path.startsWith("daily/") -> stringResource(R.string.role_memory_daily_log)
+                            else -> stringResource(R.string.role_memory_topic)
                         }
                         // 小标题 = 原输入框的 label，说明 = 保存状态 / 字数；输入框底色交给卡片
                         MochiListSection(
                             header = label,
-                            footer = if (busy) "正在保存…" else if (dirty) "未保存" else "${current.content.length} 字符",
+                            footer = if (busy) stringResource(R.string.role_memory_saving) else if (dirty) stringResource(R.string.role_memory_unsaved) else stringResource(R.string.role_memory_chars, current.content.length),
                         ) {
                             MochiTextField(
                                 value = draft,
@@ -298,55 +302,55 @@ internal fun RoleMemoryPanel(
     if (confirmExit) {
         AppDialog(
             onDismissRequest = { confirmExit = false },
-            title = { Text("放弃未保存的更改？") },
+            title = { Text(stringResource(R.string.role_memory_discard_changes)) },
             confirmButton = { MochiTextButton(onClick = {
                 confirmExit = false
                 navigator.popBackStack()
-            }) { Text("放弃并返回") } },
-            dismissButton = { MochiTextButton(onClick = { confirmExit = false }) { Text("继续编辑") } },
+            }) { Text(stringResource(R.string.role_memory_discard_and_back)) } },
+            dismissButton = { MochiTextButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.role_memory_keep_editing)) } },
         )
     }
     pendingOpen?.let { target ->
         AppDialog(
             onDismissRequest = { pendingOpen = null },
-            title = { Text("放弃未保存的更改？") },
+            title = { Text(stringResource(R.string.role_memory_discard_changes)) },
             confirmButton = { MochiTextButton(onClick = {
                 pendingOpen = null
                 scope.launch { open(target) }
-            }) { Text("放弃并打开") } },
-            dismissButton = { MochiTextButton(onClick = { pendingOpen = null }) { Text("取消") } },
+            }) { Text(stringResource(R.string.role_memory_discard_and_open)) } },
+            dismissButton = { MochiTextButton(onClick = { pendingOpen = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
     conflict?.let { latest ->
         AppDialog(
             onDismissRequest = { conflict = null },
-            title = { Text("文件已被修改") },
+            title = { Text(stringResource(R.string.role_memory_file_changed)) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text("磁盘版本", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.role_memory_disk_version), style = MaterialTheme.typography.titleMedium)
                     Text(latest.content, style = MaterialTheme.typography.bodyMedium)
                 }
             },
             confirmButton = { MochiTextButton(onClick = {
                 document = latest; draft = latest.content; conflict = null
-            }) { Text("重新加载") } },
-            dismissButton = { MochiTextButton(onClick = { save(overwrite = true) }, enabled = !busy) { Text("覆盖磁盘版本") } },
+            }) { Text(stringResource(R.string.role_memory_reload)) } },
+            dismissButton = { MochiTextButton(onClick = { save(overwrite = true) }, enabled = !busy) { Text(stringResource(R.string.role_memory_overwrite_disk)) } },
         )
     }
     newTopic?.let { name ->
         AppDialog(
             onDismissRequest = { newTopic = null },
-            title = { Text("新建主题笔记") },
+            title = { Text(stringResource(R.string.role_memory_new_topic)) },
             text = {
                 MochiDialogTextField(value = name, onValueChange = { newTopic = it },
-                    placeholder = "文件名", autoFocus = false)
+                    placeholder = stringResource(R.string.role_memory_filename), autoFocus = false)
             },
             confirmButton = { MochiTextButton(onClick = {
                 val path = "topics/$name.md"
                 newTopic = null
                 if (document?.content != draft) pendingOpen = path else scope.launch { open(path) }
-            }, enabled = Regex("[A-Za-z0-9_-]{1,80}").matches(name)) { Text("创建") } },
-            dismissButton = { MochiTextButton(onClick = { newTopic = null }) { Text("取消") } },
+            }, enabled = Regex("[A-Za-z0-9_-]{1,80}").matches(name)) { Text(stringResource(R.string.role_memory_create)) } },
+            dismissButton = { MochiTextButton(onClick = { newTopic = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

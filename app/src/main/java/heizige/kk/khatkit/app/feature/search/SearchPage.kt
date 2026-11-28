@@ -31,7 +31,7 @@ import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.sort
+import heizige.kk.khatkit.app.core.ui.icons.utility.sort
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -53,6 +53,7 @@ import ui.feice.mochi.list.mochiListSection
 import ui.feice.mochi.list.rows
 import ui.feice.mochi.theme.MochiTheme
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.search.data.MessageSearchScope
 
 @Composable
 fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
@@ -122,8 +123,8 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
                 onQueryChange = { vm.onQueryChange(it) },
                 placeholder = when (vm.mode) {
                     MessageSearchMode.KEYWORDS -> stringResource(R.string.search_page_placeholder)
-                    MessageSearchMode.REGEX -> "正则表达式"
-                    MessageSearchMode.ANY_TEXT -> "文本一，文本二"
+                    MessageSearchMode.REGEX -> stringResource(R.string.search_page_mode_regex_placeholder)
+                    MessageSearchMode.ANY_TEXT -> stringResource(R.string.search_page_mode_any_text_placeholder)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,7 +134,11 @@ fun SearchPage(vm: SearchViewModel = hiltViewModel()) {
             MochiSegmentedControl(
                 selectedIndex = vm.mode.ordinal,
                 onSelect = { MessageSearchMode.entries.getOrNull(it)?.let(vm::onModeChange) },
-                items = persistentListOf("关键词", "正则", "多文本"),
+                items = persistentListOf(
+                    stringResource(R.string.search_page_mode_keywords),
+                    stringResource(R.string.search_page_mode_regex),
+                    stringResource(R.string.search_page_mode_multi),
+                ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
             SearchResultSection(vm = vm, onOpen = onOpenResult)

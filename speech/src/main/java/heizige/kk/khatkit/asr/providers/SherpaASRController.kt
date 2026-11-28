@@ -3,6 +3,7 @@ package heizige.kk.khatkit.asr.providers
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import heizige.kk.khatkit.speech.R
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -90,13 +91,13 @@ class SherpaASRController(
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            setError("需要麦克风权限")
+            setError(context.getString(R.string.speech_error_microphone_permission))
             return
         }
 
         val store = SherpaModelManager(context)
         if (!store.isEngineReady()) {
-            setError("请先在设置里下载本地识别引擎")
+            setError(context.getString(R.string.speech_error_engine_missing))
             return
         }
         NativeLibLoader.libPath = store.engineLib.absolutePath
@@ -130,7 +131,7 @@ class SherpaASRController(
                     transcribeOffline()
                 } catch (e: Exception) {
                     Log.e(TAG, "Local transcription failed", e)
-                    setError(e.message ?: "本地识别失败")
+                    setError(context.getString(R.string.speech_error_local_recognition))
                 } finally {
                     _state.update { it.copy(status = ASRStatus.Idle) }
                 }
@@ -159,7 +160,7 @@ class SherpaASRController(
                 createOnlineRecognizer(modelDir)
             } catch (e: Exception) {
                 Log.e(TAG, "Load online model failed", e)
-                setError(e.message ?: "模型加载失败")
+                setError(context.getString(R.string.speech_error_model_load))
                 return@launch
             }
             onlineRecognizer = recognizer
@@ -234,7 +235,7 @@ class SherpaASRController(
             } catch (e: Exception) {
                 if (e !is kotlinx.coroutines.CancellationException) {
                     Log.e(TAG, "Streaming recognition failed", e)
-                    setError(e.message ?: "识别失败")
+                    setError(context.getString(R.string.speech_error_local_recognition))
                 }
             } finally {
                 releaseRecorder()
@@ -328,7 +329,7 @@ class SherpaASRController(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Audio recording failed", e)
-                setError(e.message ?: "录音失败")
+                setError(context.getString(R.string.speech_error_recording))
             } finally {
                 releaseRecorder()
             }

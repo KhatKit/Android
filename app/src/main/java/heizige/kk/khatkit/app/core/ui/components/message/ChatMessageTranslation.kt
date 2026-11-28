@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,12 +45,13 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import java.util.Locale
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.translate
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.utility.translate
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
@@ -100,18 +99,16 @@ fun LanguageSelectionDialog(
     // U7b-6：直连 MochiSheet（state 由调用方持有）。
     MochiSheet(state = sheetState, onDismiss = onDismissRequest) {
         MochiSheetHeader(title = stringResource(R.string.translation_language_selection_title))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+        MochiSheetContent(
+            modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // 语言列表
-            LazyColumn(
+            Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(languages) { language ->
+                languages.forEach { language ->
                     KkCard(
                         onClick = {
                             onLanguageSelected(language)
@@ -139,30 +136,28 @@ fun LanguageSelectionDialog(
                     }
                 }
 
-                item {
-                    KkCard(
-                        onClick = {
-                            onClearTranslation()
-                            onDismissRequest()
-                        },
-                        shape = MaterialTheme.shapes.medium
+                KkCard(
+                    onClick = {
+                        onClearTranslation()
+                        onDismissRequest()
+                    },
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = close,
-                                contentDescription = null,
-                            )
-                            Text(
-                                text = stringResource(R.string.translation_clear),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        }
+                        Icon(
+                            imageVector = close,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = stringResource(R.string.translation_clear),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                     }
                 }
             }

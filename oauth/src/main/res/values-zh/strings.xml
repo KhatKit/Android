@@ -15,5 +15,8 @@
   <string name="oauth_callback_handled_title">授权已处理</string>
   <string name="oauth_callback_handled_message">此授权回调已被处理。</string>
   <string name="oauth_callback_handled_hint">你可以安全地关闭此标签页并返回 KhatKit。</string>
+  <string name="oauth_app_name">KhatKit</string>
+  <string name="oauth_error_foreground_service">无法启动授权回调服务，请返回应用后重试。</string>
+  <string name="oauth_callback_document_title">%1$s — %2$s</string>
 </resources>
 

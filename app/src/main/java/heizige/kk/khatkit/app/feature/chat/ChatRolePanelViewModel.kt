@@ -23,18 +23,10 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.data.RolePanelRenameTarget
 
-/**
- * 「重命名当前聊天」这一行的可用性。
- *
- * @param title 当前标题（弹窗初始值）。
- * @param canRename 会话已落库**且**至少有一条消息。旧行为（顶栏长按标题）在空会话上给的是
- *   「请先聊天再编辑标题吧」的提示而不是把入口藏掉，这里用 [canRename] 表达同一件事。
- */
-data class RolePanelRenameTarget(
-    val title: String,
-    val canRename: Boolean,
-)
+
 
 /**
  * 角色聊天面板（[ChatRolePanelPage]）的状态。

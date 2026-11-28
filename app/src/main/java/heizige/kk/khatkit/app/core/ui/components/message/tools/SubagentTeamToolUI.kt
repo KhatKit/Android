@@ -1,8 +1,9 @@
 package heizige.kk.khatkit.app.core.ui.components.message.tools
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -12,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
-import heizige.kk.khatkit.app.core.ui.icons.groups
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
 import heizige.kk.khatkit.app.feature.chat.helper.DELEGATE_TEAM_TASKS
 import heizige.kk.khatkit.app.feature.chat.helper.TEMPORARY_SUBAGENT
 import kotlinx.serialization.json.JsonArray
@@ -27,7 +28,7 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
     override fun icon(context: ToolUIContext) = groups
 
     @Composable
-    override fun title(context: ToolUIContext) = "子代理任务"
+    override fun title(context: ToolUIContext) = stringResource(R.string.subagent_task_title)
 
     private fun tasks(context: ToolUIContext) =
         ((context.arguments as? JsonObject)?.get("tasks") as? JsonArray)
@@ -55,7 +56,6 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
         }
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             flingBehavior = MochiScrollDefaults.flingBehavior(),
         ) {
@@ -73,14 +73,14 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
         val profile = (task as? JsonObject)?.get("temporary_role") as? JsonObject
         val name = result.getStringContent("role")?.takeIf { it.isNotBlank() }
             ?: profile.getStringContent("name")?.takeIf { it.isNotBlank() } ?: when (uid) {
-            TEMPORARY_SUBAGENT -> "临时子代理 ${index + 1}"
-            null -> "未指定角色"
+            TEMPORARY_SUBAGENT -> stringResource(R.string.subagent_temporary, index + 1)
+            null -> stringResource(R.string.subagent_role_unspecified)
             else -> LocalSettings.current.assistants.find { it.id.toString() == uid }
                 ?.name?.takeIf { it.isNotBlank() } ?: uid
         }
         val maxLines = if (compact) 2 else Int.MAX_VALUE
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(if (profile != null) "$name（临时角色）" else name, style = MochiTheme.textStyles.titleSmall)
+            Text(if (profile != null) stringResource(R.string.subagent_named_temporary, name) else name, style = MochiTheme.textStyles.titleSmall)
             profile.getStringContent("description")?.let { duties ->
                 Text(duties, style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.onSurfaceVariant,
                     maxLines = maxLines, overflow = TextOverflow.Ellipsis)
@@ -91,7 +91,7 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
             val answer = result.getStringContent("text")
             if (error != null || answer != null) {
                 Text(
-                    text = if (error != null) "失败：$error" else "结果：$answer",
+                    text = if (error != null) stringResource(R.string.subagent_failed, error.orEmpty()) else stringResource(R.string.subagent_result, answer.orEmpty()),
                     style = MochiTheme.textStyles.body,
                     color = if (error != null) MochiTheme.colorScheme.error else MochiTheme.colorScheme.onSurface,
                     maxLines = maxLines, overflow = TextOverflow.Ellipsis,

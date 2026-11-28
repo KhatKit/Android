@@ -1,0 +1,546 @@
+package heizige.kk.khatkit.app.feature.chat.components.ai
+
+import heizige.kk.khatkit.app.LocalPageRoute
+import heizige.kk.khatkit.uikit.mochi.MochiTextButton
+import heizige.kk.khatkit.uikit.mochi.MochiIconButton
+import heizige.kk.khatkit.uikit.mochi.KkCard
+import heizige.kk.khatkit.uikit.mochi.KkSurface
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import androidx.compose.material3.Text
+import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.ai.provider.BuiltInTools
+import heizige.kk.khatkit.ai.provider.Model
+import heizige.kk.khatkit.ai.provider.ProviderSetting
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.Screen
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.findProvider
+import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
+import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
+import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
+import heizige.kk.khatkit.app.core.ui.context.LocalNavController
+import heizige.kk.khatkit.app.feature.settings.SearchAbilityTagLine
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.utility.checkCircle
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.ai.searchInsights
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.icons.utility.travelExplore
+import androidx.compose.runtime.DisposableEffect
+import heizige.kk.khatkit.app.PageBackInterceptor
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
+
+enum class SearchMode {
+    OFF,
+    LOCAL,
+    BUILT_IN,
+}
+
+@Composable
+fun SearchPickerButton(
+    enableSearch: Boolean,
+    settings: Settings,
+    modifier: Modifier = Modifier,
+    onUpdateSearchMode: (SearchMode) -> Unit,
+    onUpdateSearchRepository: (Int) -> Unit,
+    model: Model?,
+    chip: Boolean = false,
+) {
+    var showSearchPicker by remember { mutableStateOf(false) }
+    val currentService = settings.searchServices.getOrNull(settings.searchServiceSelected)
+
+    val checked = enableSearch || model?.tools?.contains(BuiltInTools.Search) == true
+    val iconContent: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { iconSize ->
+        Box(
+            modifier = Modifier.size(iconSize),
+            contentAlignment = Alignment.Center
+        ) {
+            if (model?.tools?.contains(BuiltInTools.Search) == true) {
+                Icon(
+                    imageVector = searchInsights,
+                    contentDescription = stringResource(R.string.use_web_search),
+                )
+            } else if (enableSearch && currentService != null) {
+                AutoAIIcon(
+                    name = currentService.localizedDisplayName(androidx.compose.ui.platform.LocalContext.current),
+                    color = Color.Transparent
+                )
+            } else {
+                Icon(
+                    imageVector = search,
+                    contentDescription = stringResource(R.string.use_web_search),
+                )
+            }
+        }
+    }
+
+    if (chip) {
+        KkSurface(
+            onClick = { showSearchPicker = true },
+            modifier = modifier,
+            shape = RoundedCornerShape(50),
+            color = Color.Transparent,
+            contentColor = if (checked) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            border = BorderStroke(
+                1.dp,
+                if (checked) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
+            ),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                iconContent(18.dp)
+                Text(stringResource(R.string.search_picker_search), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    } else {
+        ToggleSurface(
+            modifier = modifier,
+            checked = checked,
+            onClick = {
+                showSearchPicker = true
+            }
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                iconContent(24.dp)
+            }
+        }
+    }
+
+        PrimaryBottomSheet(
+            visible = showSearchPicker,
+            title = stringResource(R.string.search_picker_title),
+            imageVector = searchInsights,
+            onDismiss = { showSearchPicker = false },
+            scrollable = false,
+        ) { _ ->
+            var selectingProvider by remember { mutableStateOf(false) }
+            // 系统返回：在「服务商选择」子页时先退回选择器列表，而不是把整个搜索弹层关掉
+            // （照上游 db1ce811 的 BackHandler 部分；该提交同时把列表改成 MD3 分段列表，
+            // 那部分与本地 KSU 式全屏搜索互斥，**未采用**）。
+            //
+            // enabled = selectingProvider ⇒ 只在子页接管返回：列表态不拦截，返回交给弹层自身
+            // （Miuix 侧 `WindowBottomSheet` 用 platform `Dialog(onDismissRequest = …)`；
+            // MD3 侧 Khromia `BasicBottomSheet` 注册了 PredictiveBackHandler/BackHandler，
+            // 两者都把返回变成「关闭弹层」而不是退出页面）。BackHandler 只在本 `if
+            // (showSearchPicker)` 分支里组合，弹层收起后整个不注册 ⇒ 不会全 App 吞返回。
+            // U7a-6：只在该子页接管返回（登记到 PageBackInterceptor），不再挂页面级 BackHandler。
+            // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
+            val pickerBackTokenRoute = LocalPageRoute.current
+            val pickerBackToken = remember { Any() }
+            DisposableEffect(selectingProvider) {
+                if (selectingProvider) {
+                    PageBackInterceptor.push(pickerBackToken, pickerBackTokenRoute) {
+                        selectingProvider = false
+                        true
+                    }
+                } else {
+                    PageBackInterceptor.pop(pickerBackToken)
+                }
+                onDispose { PageBackInterceptor.pop(pickerBackToken) }
+            }
+            AnimatedContent(
+                targetState = selectingProvider,
+                transitionSpec = {
+                    if (targetState) {
+                        slideInHorizontally { it } + fadeIn() togetherWith
+                            slideOutHorizontally { -it } + fadeOut()
+                    } else {
+                        slideInHorizontally { -it } + fadeIn() togetherWith
+                            slideOutHorizontally { it } + fadeOut()
+                    }
+                },
+                label = "SearchPickerPage"
+            ) { selecting ->
+                if (selecting) {
+                    SearchProviderPicker(
+                        settings = settings,
+                        onUpdateSearchRepository = { index ->
+                            onUpdateSearchRepository(index)
+                            selectingProvider = false
+                        },
+                        onBack = { selectingProvider = false }
+                    )
+                } else {
+                    SearchPicker(
+                        enableSearch = enableSearch,
+                        settings = settings,
+                        onUpdateSearchMode = onUpdateSearchMode,
+                        model = model,
+                        onSelectProvider = { selectingProvider = true },
+                        onDismiss = { showSearchPicker = false }
+                    )
+                }
+            }
+        }
+}
+
+@Composable
+private fun SearchPicker(
+    enableSearch: Boolean,
+    settings: Settings,
+    model: Model?,
+    onUpdateSearchMode: (SearchMode) -> Unit,
+    onSelectProvider: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val navBackStack = LocalNavController.current
+
+    val provider = model?.findProvider(settings.providers)
+    // Google 和使用 Responses API 的 OpenAI Provider 支持内置搜索
+    val supportsBuiltInSearch = provider is ProviderSetting.Google ||
+        provider is ProviderSetting.OpenAI && provider.useResponseApi
+    // 模型是否已开启内置搜索（可能是不支持的模型残留的孤儿状态）
+    val hasBuiltInSearchEnabled = model?.tools?.contains(BuiltInTools.Search) == true
+    // 模型支持内置搜索，或已开启内置搜索（后者保证残留状态也能被关闭）时显示模型搜索卡片
+    val showModelSearch = model != null && (supportsBuiltInSearch || hasBuiltInSearchEnabled)
+    val isLocalSearchSelected = enableSearch && !hasBuiltInSearchEnabled
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            MochiIconButton(
+                onClick = {
+                    onDismiss()
+                    navBackStack.navigate(Screen.SettingSearch)
+                },
+                shapes = IconButtonDefaults.shapes(),
+            ) {
+                Icon(settingsIcon, contentDescription = null)
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SearchModeCard(
+                title = stringResource(R.string.search_picker_local_title),
+                description = stringResource(R.string.search_picker_local_description),
+                icon = travelExplore,
+                selected = isLocalSearchSelected,
+                onClick = {
+                    if (isLocalSearchSelected) {
+                        onUpdateSearchMode(SearchMode.OFF)
+                    } else {
+                        onUpdateSearchMode(SearchMode.LOCAL)
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+            if (showModelSearch) {
+                SearchModeCard(
+                    title = stringResource(R.string.search_picker_model_title),
+                    description = stringResource(R.string.search_picker_model_description),
+                    icon = searchInsights,
+                    selected = hasBuiltInSearchEnabled,
+                    onClick = {
+                        onUpdateSearchMode(
+                            if (hasBuiltInSearchEnabled) SearchMode.OFF else SearchMode.BUILT_IN
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+        }
+
+        if (enableSearch || hasBuiltInSearchEnabled) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (isLocalSearchSelected) {
+                    val currentService = settings.searchServices.getOrNull(settings.searchServiceSelected)
+                    MochiTextButton(onClick = onSelectProvider, shapes = ButtonDefaults.shapes()) {
+                        Text(
+                            text = buildString {
+                                append(stringResource(R.string.search_picker_select_provider))
+                                currentService?.let { append(" · " + it.localizedDisplayName(androidx.compose.ui.platform.LocalContext.current)) }
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Icon(
+                            imageVector = arrowForward,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .size(16.dp)
+                        )
+                    }
+                }
+                MochiTextButton(
+                    onClick = { onUpdateSearchMode(SearchMode.OFF) },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(
+                        imageVector = close,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.search_picker_turn_off),
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchModeCard(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor by animateColorAsState(
+        if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        }
+    )
+    // 圆角来源统一到 listCardStyle()：这是网格里的独立大卡（不是选项行，结构与内容不动），
+    // 只把写死的 m3 大圆角换成与全仓卡片同一套表达式。
+    val cards = listCardStyle()
+    KkCard(
+        onClick = onClick,
+        modifier = modifier,
+        shape = cards.groupItemShape(isFirst = true, isLast = true),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = if (selected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            null
+        }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                            },
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (selected) {
+                Icon(
+                    imageVector = checkCircle,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchProviderPicker(
+    settings: Settings,
+    onUpdateSearchRepository: (Int) -> Unit,
+    onBack: () -> Unit,
+) {
+    val cards = listCardStyle()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MochiIconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
+                Icon(arrowBack, contentDescription = null)
+            }
+            Text(
+                text = stringResource(R.string.search_picker_select_provider),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        LazyVerticalGrid(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            columns = GridCells.Adaptive(150.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            itemsIndexed(settings.searchServices) { index, service ->
+                val containerColor = animateColorAsState(
+                    if (settings.searchServiceSelected == index) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+                )
+                val textColor = animateColorAsState(
+                    if (settings.searchServiceSelected == index) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                MochiOptionItem(
+                    onClick = { onUpdateSearchRepository(index) },
+                    modifier = Modifier.fillMaxWidth(),
+                    // 网格里每张卡是独立一格、不参与纵向分组，取 listCardStyle 的完整圆角
+                    // （Miuix 的 largeCorner=20dp；MD3 走同一表达式，不再写死 m3 的 large 形状）。
+                    shape = cards.groupItemShape(isFirst = true, isLast = true),
+                    backgroundColor = containerColor.value,
+                    leadingContent = {
+                        AutoAIIcon(
+                            name = service.localizedDisplayName(androidx.compose.ui.platform.LocalContext.current),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    titleContent = {
+                        Text(
+                            text = service.localizedDisplayName(androidx.compose.ui.platform.LocalContext.current),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = textColor.value,
+                        )
+                    },
+                    supportingContent = {
+                        // 卡片的 contentColor 以前由 KkCard 的 colors 下发，走
+                        // LocalContentColor 落到标签上；MochiOptionItem 不接管这个，
+                        // 这里显式补一层，选中态下标签才跟着变 onPrimaryContainer。
+                        CompositionLocalProvider(LocalContentColor provides textColor.value) {
+                            SearchAbilityTagLine(
+                                options = service,
+                                modifier = Modifier
+                            )
+                        }
+                    },
+                )
+            }
+        }
+    }
+}

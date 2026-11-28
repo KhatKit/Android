@@ -6,6 +6,10 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.helper.GroupMemoryScope
+import heizige.kk.khatkit.app.feature.chat.helper.MemoryToolScopeResolver
+
+
 
 /**
  * C1-M 纯 JVM 证据：群聊时记忆工具（`memory_search` / `memory_add` / `memory_link` /

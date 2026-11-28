@@ -59,14 +59,17 @@ import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.memory
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 internal fun ModelCard(
@@ -207,8 +210,8 @@ internal fun ModelCard(
                         Tag(type = TagType.SUCCESS) {
                             Text(
                                 when (account) {
-                                    is ProviderSetting.ChatGPT -> "ChatGPT 账号"
-                                    is ProviderSetting.Grok -> "Grok 账号"
+                                    is ProviderSetting.ChatGPT -> stringResource(R.string.setting_provider_page_chatgpt_account)
+                                    is ProviderSetting.Grok -> stringResource(R.string.setting_provider_page_grok_account)
                                     else -> account.name
                                 }
                             )
@@ -351,7 +354,7 @@ internal fun ProviderOverrideSettings(
                             },
                             shapes = IconButtonDefaults.shapes(),
                         ) {
-                            Icon(build, contentDescription = "Edit override")
+                            Icon(build, contentDescription = stringResource(R.string.setting_provider_page_edit_override))
                         }
                         MochiIconButton(
                             onClick = {
@@ -359,7 +362,7 @@ internal fun ProviderOverrideSettings(
                             },
                             shapes = IconButtonDefaults.shapes(),
                         ) {
-                            Icon(close, contentDescription = "Remove override")
+                            Icon(close, contentDescription = stringResource(R.string.setting_provider_page_remove_override))
                         }
                     }
                 },
@@ -417,7 +420,7 @@ internal fun ProviderOverrideSettings(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.9f),
+                        .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column(

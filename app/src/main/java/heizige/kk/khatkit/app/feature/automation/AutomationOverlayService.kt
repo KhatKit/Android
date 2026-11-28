@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import androidx.compose.ui.res.stringResource
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -65,7 +66,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
 import heizige.kk.khatkit.uikit.mochi.KkToastDefaults
@@ -80,6 +81,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import heizige.kk.khatkit.app.core.data.automation.AutomationStatus
+import heizige.kk.khatkit.app.core.data.automation.ApprovalRequest
 
 private const val TAG = "AutomationOverlay"
 
@@ -98,12 +101,12 @@ private const val EXIT_SETTLE_MS = 200L
 /**
  * 自动化状态悬浮看板：自动化（卡片 / 事件触发 / AI 设备工具）运行期间，
  * 仅显示当前步骤；授权请求期间显示请求文本、倒计时与 Mochi 审批按钮。
- * 一次运行结束（[AutomationBus.finish]）
+ * 一次运行结束（[AutomationManager.finish]）
  * 后先展示「任务完成」约 [IDLE_EXIT_DELAY_MS]，再播放 Khromia Toast（ImageToolbox 规格）同款
  * 退场动画并等待 [EXIT_SETTLE_MS] 后移除视图、[stopSelf]。空闲或结束提示期间出现新活动会取消退场。
- * 直接 AI 工具序列不调用 [AutomationBus.finish]：看板在有活动后超过 [SESSION_END_IDLE_MS]
- * 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由 [AutomationBus.begin]
- * 会话持有标记保护，但持有超过 [AutomationBus.SESSION_HOLD_TTL_MS] 无活动（含异常路径
+ * 直接 AI 工具序列不调用 [AutomationManager.finish]：看板在有活动后超过 [SESSION_END_IDLE_MS]
+ * 无更新即判定会话结束并走同样的完成态退场；卡片/触发运行由 [AutomationManager.begin]
+ * 会话持有标记保护，但持有超过 [AutomationManager.SESSION_HOLD_TTL_MS] 无活动（含异常路径
  * 泄漏的陈旧持有）也会被强制收尾，保证悬浮板必定消失。
  * 运行期间窗口保持常亮并持有 [PowerManager.WakeLock]，空闲或销毁时释放。
  *
@@ -137,8 +140,8 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private var overlayBridge: AccessibilityBridgeImpl? = null
     private val overlayVisible = mutableStateOf(false)
     private val overlayHidden = mutableStateOf(false)
-    private val overlayStatus = mutableStateOf<AutomationBus.AutomationStatus?>(null)
-    private val overlayApproval = mutableStateOf<AutomationBus.ApprovalRequest?>(null)
+    private val overlayStatus = mutableStateOf<AutomationStatus?>(null)
+    private val overlayApproval = mutableStateOf<ApprovalRequest?>(null)
     private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -221,11 +224,11 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         approval = overlayApproval.value,
                         visible = overlayVisible.value,
                         hidden = overlayHidden.value,
-                        onApprove = AutomationBus::approve,
-                        onDeny = AutomationBus::deny,
-                        onRemember = AutomationBus::approveAndRemember,
+                        onApprove = AutomationManager::approve,
+                        onDeny = AutomationManager::deny,
+                        onRemember = AutomationManager::approveAndRemember,
                         systemWindow = true,
-                        onDismiss = { AutomationBus.hideOverlayTemporarily() },
+                        onDismiss = { AutomationManager.hideOverlayTemporarily() },
                     )
                 }
             }
@@ -245,7 +248,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT,
         ).apply {
-            title = "KhatKit automation"
+            title = getString(R.string.automation_overlay_title)
             // 定位由 WindowManager 提供，窗口本身只包住可见内容，不包含底部空白。
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             x = 0
@@ -297,7 +300,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun observeStatus() {
         if (observeJob != null) return
         observeJob = scope.launch {
-            combine(AutomationBus.status, AutomationBus.pendingApproval) { status, approval ->
+            combine(AutomationManager.status, AutomationManager.pendingApproval) { status, approval ->
                 status to approval
             }.collect { (status, approval) ->
                 if (status != null || approval != null) {
@@ -314,9 +317,9 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                                 releaseWakeLock()
                                 hideJob = scope.launch {
                                     delay(IDLE_EXIT_DELAY_MS)
-                                    if (AutomationBus.status.value?.finished != true) return@launch
+                                    if (AutomationManager.status.value?.finished != true) return@launch
                                     hideBoard()
-                                    AutomationBus.clear()
+                                    AutomationManager.clear()
                                 }
                             }
 
@@ -326,12 +329,12 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                                 acquireWakeLock()
                                 hideJob = scope.launch {
                                     delay(SESSION_END_IDLE_MS)
-                                    val holdRemaining = AutomationBus.sessionHoldRemainingMs()
+                                    val holdRemaining = AutomationManager.sessionHoldRemainingMs()
                                     if (holdRemaining > 0) delay(holdRemaining)
-                                    val current = AutomationBus.status.value
+                                    val current = AutomationManager.status.value
                                     if (current == null || current.finished) return@launch
-                                    if (AutomationBus.pendingApproval.value != null) return@launch
-                                    AutomationBus.finish()
+                                    if (AutomationManager.pendingApproval.value != null) return@launch
+                                    AutomationManager.finish()
                                 }
                             }
 
@@ -339,7 +342,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         }
                     } else if (status?.finished == true && approval == null) {
                         // 窗口未能挂载：完成态不会自行退场，直接复位总线并结束服务
-                        AutomationBus.clear()
+                        AutomationManager.clear()
                         stopSelf()
                     }
                 } else {
@@ -350,7 +353,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
                         // 空闲：保留最后一帧内容，先停留 IDLE_EXIT_DELAY_MS，再播退场动画并 detach
                         hideJob = scope.launch {
                             delay(IDLE_EXIT_DELAY_MS)
-                            if (AutomationBus.status.value != null || AutomationBus.pendingApproval.value != null) {
+                            if (AutomationManager.status.value != null || AutomationManager.pendingApproval.value != null) {
                                 return@launch
                             }
                             hideBoard()
@@ -381,7 +384,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
     private fun observeHidden() {
         if (hiddenJob != null) return
         hiddenJob = scope.launch {
-            AutomationBus.overlayHidden.collect { hidden ->
+            AutomationManager.overlayHidden.collect { hidden ->
                 overlayHidden.value = hidden
             }
         }
@@ -449,7 +452,7 @@ class AutomationOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner,
             }.onFailure { Log.e(TAG, "start failed", it) }
         }
 
-        /** 应用回到前台时移除后台悬浮看板，状态仍保留在 AutomationBus。 */
+        /** 应用回到前台时移除后台悬浮看板，状态仍保留在 AutomationManager。 */
         fun stop(context: Context) {
             runCatching {
                 context.applicationContext.stopService(
@@ -484,8 +487,8 @@ internal fun AutomationOverlayTheme(content: @Composable () -> Unit) {
 
 @Composable
 internal fun AutomationStatusBoard(
-    status: AutomationBus.AutomationStatus?,
-    approval: AutomationBus.ApprovalRequest?,
+    status: AutomationStatus?,
+    approval: ApprovalRequest?,
     visible: Boolean,
     hidden: Boolean,
     onApprove: (String) -> Unit,
@@ -522,11 +525,11 @@ internal fun AutomationStatusBoard(
 }
 
 /**
- * 授权剩余秒数：以 [AutomationBus.ApprovalRequest.requestedAt] 为起点每秒刷新，
- * 与总线 [AutomationBus.APPROVAL_TIMEOUT_MS] 同基准，归零即自动拒绝触发点。
+ * 授权剩余秒数：以 [ApprovalRequest.requestedAt] 为起点每秒刷新，
+ * 与总线 [AutomationManager.APPROVAL_TIMEOUT_MS] 同基准，归零即自动拒绝触发点。
  */
 @Composable
-private fun rememberApprovalRemainingSeconds(approval: AutomationBus.ApprovalRequest?): Int {
+private fun rememberApprovalRemainingSeconds(approval: ApprovalRequest?): Int {
     val request = approval
     val remaining by produceState(
         initialValue = request?.let { remainingApprovalSeconds(it.requestedAt) } ?: 0,
@@ -548,7 +551,7 @@ private fun rememberApprovalRemainingSeconds(approval: AutomationBus.ApprovalReq
 
 /** 向上取整的剩余秒数（0..60）。 */
 private fun remainingApprovalSeconds(requestedAt: Long): Int {
-    val remainingMs = (requestedAt + AutomationBus.APPROVAL_TIMEOUT_MS - System.currentTimeMillis())
+    val remainingMs = (requestedAt + AutomationManager.APPROVAL_TIMEOUT_MS - System.currentTimeMillis())
         .coerceAtLeast(0L)
     return ((remainingMs + 999L) / 1_000L).toInt()
 }
@@ -560,7 +563,7 @@ private fun remainingApprovalSeconds(requestedAt: Long): Int {
 private sealed interface BoardContent {
     data object Finished : BoardContent
 
-    data class Approval(val request: AutomationBus.ApprovalRequest) : BoardContent
+    data class Approval(val request: ApprovalRequest) : BoardContent
 
     data object Status : BoardContent
 }
@@ -575,8 +578,8 @@ private sealed interface BoardContent {
  */
 @Composable
 internal fun AutomationToast(
-    status: AutomationBus.AutomationStatus?,
-    approval: AutomationBus.ApprovalRequest?,
+    status: AutomationStatus?,
+    approval: ApprovalRequest?,
     onApprove: (String) -> Unit,
     onDeny: (String) -> Unit,
     onRemember: (String) -> Unit,
@@ -620,7 +623,7 @@ internal fun AutomationToast(
                     BoardContent.Finished -> {
                         // 纯文本提示，不出现任何图标/按钮
                         Text(
-                            text = "任务完成",
+                            text = stringResource(R.string.automation_task_finished),
                             style = KkToastDefaults.textStyle,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
@@ -646,7 +649,7 @@ internal fun AutomationToast(
                             label = "approvalTitle",
                         ) { title ->
                             Text(
-                                text = "$title（${remainingSeconds}s）",
+                                text = stringResource(R.string.automation_approval_countdown, title, remainingSeconds),
                                 style = KkToastDefaults.textStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

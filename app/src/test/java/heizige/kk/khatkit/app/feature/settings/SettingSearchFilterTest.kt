@@ -1,11 +1,12 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import heizige.kk.khatkit.app.Screen
-import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.settings.data.SettingSearchEntry
 
 /**
  * 设置搜索「能搜到最小选项」的过滤口径护栏。

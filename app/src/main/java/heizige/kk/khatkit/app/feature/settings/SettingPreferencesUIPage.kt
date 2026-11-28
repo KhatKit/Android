@@ -17,10 +17,10 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.chatBubble
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
-import heizige.kk.khatkit.app.core.ui.icons.title
+import heizige.kk.khatkit.app.core.ui.icons.chat.chatBubble
+import heizige.kk.khatkit.app.core.ui.icons.utility.code
+import heizige.kk.khatkit.app.core.ui.icons.utility.dashboard
+import heizige.kk.khatkit.app.core.ui.icons.settings.title
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import ui.feice.mochi.icons.MochiIonicon

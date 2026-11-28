@@ -12,7 +12,7 @@ import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
 import heizige.kk.khatkit.app.core.data.ai.TaskRoutes
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.ai.taskBinding
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
@@ -31,7 +31,7 @@ import heizige.kk.khatkit.app.core.data.model.VoteOutcome
 import heizige.kk.khatkit.app.core.data.model.toMessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FilesRepository
-import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.GroupTurnCoordinator
 import heizige.kk.khatkit.app.feature.chat.data.resolveGroupTurnModelId
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json

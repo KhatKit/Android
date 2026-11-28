@@ -124,6 +124,145 @@ patch(
     """                                .fillMaxSize()""",
 )
 
+# Preserve the original content signature; the explicit overload also supports lazy bodies.
+# Reuse the pinned library's header geometry without adding an outer scrolling viewport.
+patch(
+    "MochiSheet.kt",
+    """public fun MochiSheetContent(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(16.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val corner = LocalMochiSheetCorner.current
+    val metrics = corner as? SheetLayoutMetrics
+    Column(
+        modifier
+            .fillMaxWidth()
+            // 放不下时能竖着滚：滚到顶再往下拖、往上推还没到最高一档时，拖的是面板（见 MochiSheet）
+            .verticalScroll(rememberScrollState())
+            .layout { m, c ->
+                val horizontal = sheetStableHorizontalInset(metrics, corner)
+                val vertical = sheetStableTopInset(metrics, corner)
+                val w = (c.maxWidth - horizontal * 2).coerceAtLeast(0)
+                val p = m.measure(c.copy(minWidth = w, maxWidth = w))
+                layout(c.maxWidth, p.height + vertical * 2) { p.place(horizontal, vertical) }
+            },
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
+}""",
+    """public fun MochiSheetContent(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(16.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    MochiSheetContent(
+        modifier = modifier,
+        verticalArrangement = verticalArrangement,
+        scrollable = true,
+        content = content,
+    )
+}
+
+/**
+ * The original overload keeps library-owned scrolling. Pass [scrollable] = false for a
+ * caller-owned lazy list or scroller. Its finite viewport excludes the concentric insets;
+ * the surrounding sheet remains the owner of IME, navigation safety and drag coordination.
+ */
+@Composable
+public fun MochiSheetContent(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(16.dp),
+    scrollable: Boolean,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val corner = LocalMochiSheetCorner.current
+    val metrics = corner as? SheetLayoutMetrics
+    Column(
+        modifier
+            .fillMaxWidth()
+            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            .layout { m, c ->
+                val horizontal = sheetStableHorizontalInset(metrics, corner)
+                val vertical = sheetStableTopInset(metrics, corner)
+                val w = (c.maxWidth - horizontal * 2).coerceAtLeast(0)
+                val p = if (scrollable) {
+                    // Keep the original scroll viewport, measurement and nested-scroll behavior.
+                    m.measure(c.copy(minWidth = w, maxWidth = w))
+                } else {
+                    check(c.hasBoundedHeight) { "Non-scrolling sheet content requires a bounded height" }
+                    m.measure(
+                        c.copy(
+                            minWidth = w,
+                            maxWidth = w,
+                            minHeight = (c.minHeight - vertical * 2).coerceAtLeast(0),
+                            maxHeight = (c.maxHeight - vertical * 2).coerceAtLeast(0),
+                        ),
+                    )
+                }
+                val height = if (scrollable) p.height + vertical * 2 else
+                    (p.height + vertical * 2).coerceIn(c.minHeight, c.maxHeight)
+                layout(c.maxWidth, height) { p.place(horizontal, vertical) }
+            },
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
+}""",
+)
+
+# The sheet already lifts/shrinks its content for the keyboard. Consume that bottom
+# IME inset for descendants without adding padding or consuming other system sides.
+patch(
+    "MochiSheet.kt",
+    "import androidx.compose.foundation.layout.displayCutout\n",
+    "import androidx.compose.foundation.layout.consumeWindowInsets\n"
+    "import androidx.compose.foundation.layout.displayCutout\n",
+)
+patch(
+    "MochiSheet.kt",
+    """                                    layout(p.width, p.height + k) { p.place(0, 0) }
+                                },""",
+    """                                    layout(p.width, p.height + k) { p.place(0, 0) }
+                                }
+                                .consumeWindowInsets(WindowInsets.ime.only(WindowInsetsSides.Bottom)),""",
+)
+
+# Keep the upstream picker body; consumers may supply transactional header/footer actions.
+patch(
+    "../picker/MochiColorPicker.kt",
+    """    recents: List<Color> = emptyList(),
+    onDismiss: () -> Unit = {},
+) {""",
+    """    recents: List<Color> = emptyList(),
+    onDismiss: () -> Unit = {},
+    header: (@Composable () -> Unit)? = null,
+    footer: (@Composable () -> Unit)? = null,
+) {""",
+)
+patch(
+    "../picker/MochiColorPicker.kt",
+    """        MochiSheetScaffold(
+            header = {""",
+    """        MochiSheetScaffold(
+            header = header ?: {""",
+)
+patch(
+    "../picker/MochiColorPicker.kt",
+    """            }
+        }
+    }
+}
+
+/** 网格：第一行灰阶，下面 12 种色相从深到浅 */""",
+    """            }
+            footer?.invoke()
+        }
+    }
+}
+
+/** 网格：第一行灰阶，下面 12 种色相从深到浅 */""",
+)
+
 # Expose the exact Depth implementation already used by MochiTabScaffold.
 patch(
     "../navigation/MochiTabPageTransition.kt",
@@ -218,4 +357,18 @@ public fun <T : Any> MochiPeerTransition(
 
 /**
  * 这一页此刻是否在场（在 [MochiTabPageTransition] 里显示或正在过渡）。""",
+)
+
+# Keep the shared toolbar's glass layer populated while its page is carried.
+# Suppressing LiquidGlassNode during recording can leave its cached layer empty
+# after the navigation host returns the button to normal page drawing.
+patch(
+    "../navigation/MochiNavBarItem.kt",
+    """            GlassDrawSuppression.depth++
+            try {
+                layer.record { this@draw.drawContent() }
+            } finally {
+                GlassDrawSuppression.depth--
+            }""",
+    """            layer.record { this@draw.drawContent() }""",
 )

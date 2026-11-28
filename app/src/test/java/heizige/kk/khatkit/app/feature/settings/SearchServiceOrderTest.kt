@@ -4,7 +4,12 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.search.SearchOptions
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import heizige.kk.khatkit.app.feature.settings.data.replacingSearchServices
+import heizige.kk.khatkit.app.feature.settings.helper.replacingSearchServices
+import heizige.kk.khatkit.app.feature.settings.search.DeepSeekOptions
+import heizige.kk.khatkit.app.feature.settings.search.ExaOptions
+import heizige.kk.khatkit.app.feature.settings.search.ZhipuOptions
+
+
 
 /**
  * 搜索服务列表变动后，`Settings.searchServiceSelected` 必须继续指着**同一条服务**。

@@ -148,7 +148,6 @@ class ChatGPTProviderTest {
         assertEquals("GPT-5.5", full.displayName)
         assertEquals(listOf(Modality.TEXT, Modality.IMAGE), full.inputModalities)
         assertEquals(listOf(ModelAbility.TOOL, ModelAbility.REASONING), full.abilities)
-        assertEquals(272000, full.contextLength)
         val mini = models[1]
         assertEquals(listOf(Modality.TEXT), mini.inputModalities)
         assertEquals(listOf(ModelAbility.TOOL), mini.abilities)

@@ -57,7 +57,7 @@ internal fun rememberProxyTestState(): ProxyTestState {
                             .build()
                     ).execute().use { response ->
                         if (response.code != 204) {
-                            throw IOException("HTTP ${response.code} ${response.message}")
+                            throw IOException(resources.getString(R.string.setting_proxy_http_error, response.code, response.message))
                         }
                     }
                 }

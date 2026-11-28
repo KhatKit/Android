@@ -51,16 +51,18 @@ import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.feature.tools.ToolCatalogueWidget
-import heizige.kk.khatkit.app.feature.extensions.TerminalPluginInfo
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginInfo
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.dashboard
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.utility.terminal
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
+import androidx.compose.ui.platform.LocalContext
 import heizige.kk.khatkit.ui.CardWidgetLayout
+import heizige.kk.khatkit.ui.localizedErrors
 import heizige.kk.khatkit.ui.WidgetFrame
 import heizige.kk.khatkit.uikit.Render
 import heizige.kk.khatkit.uikit.mochi.KkHaptics
@@ -77,6 +79,22 @@ import ui.feice.mochi.shape.MochiConcentricContainer
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.shape.mochiBorder
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.feature.chat.data.ALL_TOOLS
+import heizige.kk.khatkit.app.feature.chat.data.ALL_TOOLS_WIDGET
+import heizige.kk.khatkit.app.feature.chat.helper.ChatWelcomeManager
+import heizige.kk.khatkit.app.feature.chat.data.TERMINAL
+import heizige.kk.khatkit.app.feature.chat.data.TERMINAL_WIDGET
+import heizige.kk.khatkit.app.feature.chat.data.WelcomeWidget
+import heizige.kk.khatkit.app.feature.chat.data.WidgetCells
+import heizige.kk.khatkit.app.feature.chat.data.WidgetGridGeometry
+import heizige.kk.khatkit.app.feature.chat.data.WidgetSizeLimits
+import heizige.kk.khatkit.app.feature.chat.helper.widgetRects
+import heizige.kk.khatkit.app.feature.chat.helper.WidgetMoveState
+import heizige.kk.khatkit.app.feature.chat.helper.WidgetResizeState
+
+
+
+
 
 /** 外框内边距，和设置行（[MochiOptionItem]）的水平内边距一致；PLAIN / HEADER 的内容按它取同心圆角。 */
 private val TilePadding: Dp = 16.dp
@@ -210,7 +228,7 @@ internal fun WelcomeWidgetBoard(
                                     onResizeEnd = { manager.setSize(name, size, persist = true) },
                                 )
                                 RemoveBadge(
-                                    stringResource(R.string.chat_widget_remove, "终端"),
+                                    stringResource(R.string.chat_widget_remove, stringResource(R.string.chat_widget_terminal_name)),
                                     { 1f },
                                 ) {
                                     manager.setTerminalEnabled(false)
@@ -623,7 +641,7 @@ private fun TerminalShortcutWidget(
         },
         supportingContent = {
             Text(
-                "打开独立 Termux 终端",
+                stringResource(R.string.chat_welcome_open_terminal),
                 style = MochiTheme.textStyles.body,
                 color = MochiTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -647,6 +665,7 @@ private fun WidgetTileContent(
     readOnly: Boolean,
     manager: ChatWelcomeManager,
 ) {
+    val context = LocalContext.current
     val name = widget.card.manifest.name
     val content = widget.content
     val values = remember(content) {
@@ -671,7 +690,7 @@ private fun WidgetTileContent(
             onRefresh = {
                 val root = layout?.root
                 errors.clear()
-                root?.errors(values)?.let(errors::putAll)
+                root?.localizedErrors(context, values)?.let(errors::putAll)
                 if (errors.isEmpty()) manager.refreshFromHeader(name, root?.collect(values).orEmpty())
             },
             modifier = Modifier.fillMaxSize(),
@@ -695,6 +714,7 @@ private fun WidgetBody(
     readOnly: Boolean,
     manager: ChatWelcomeManager,
 ) {
+    val context = LocalContext.current
     val root = layout?.root
     if (root == null) {
         // 还没内容：失败给原因，空给一句说明；加载中只有标题行的转圈。
@@ -725,7 +745,7 @@ private fun WidgetBody(
         onAction = { action ->
             if (!readOnly) {
                 errors.clear()
-                errors.putAll(root.errors(values))
+                errors.putAll(root.localizedErrors(context, values))
                 if (errors.isEmpty()) manager.refresh(widget.card.manifest.name, action, root.collect(values))
             }
         },

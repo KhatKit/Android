@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.feature.chat
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Assistant
@@ -20,6 +20,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_EXTENSION
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_FALLBACK_NAME
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_FALLBACK_USER
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_MIME_TYPE
+import heizige.kk.khatkit.app.feature.chat.helper.groupExportFileName
+import heizige.kk.khatkit.app.feature.chat.helper.groupExportName
+import heizige.kk.khatkit.app.feature.chat.helper.groupExportRoleCards
+import heizige.kk.khatkit.app.feature.chat.helper.groupExportUserName
+import heizige.kk.khatkit.app.feature.chat.helper.isGroupConversation
+import heizige.kk.khatkit.app.feature.chat.helper.resolveGroupExportNodes
+
+
 
 /**
  * 群聊「导出 Tavern 群聊」入口（[GroupTavernExportCard]）里那些**不依赖 Context / Compose**
@@ -311,31 +323,6 @@ class GroupTavernExportTest {
         )
     }
 
-    // ---------------- 提示文案 ----------------
-
-    @Test
-    fun `the all-failed message names how many messages could not be resolved`() {
-        val selection = GroupExportSelection(nodes = emptyList(), skipped = 4)
-
-        val message = groupExportAllFailedMessage(selection)
-
-        assertTrue(message.contains("4"))
-        assertTrue(message.contains("无法导出"))
-    }
-
-    @Test
-    fun `the success message reports the skipped count only when something was skipped`() {
-        val clean = GroupExportSelection(nodes = List(3) { MessageNode.of(message(MessageRole.USER, "m$it")) }, skipped = 0)
-        val partial = GroupExportSelection(nodes = clean.nodes, skipped = 2)
-
-        assertFalse(
-            "没有跳过时不该提「跳过」，否则用户会以为漏了东西",
-            groupExportSuccessMessage(clean).contains("跳过"),
-        )
-        assertTrue(groupExportSuccessMessage(clean).contains("3"))
-        assertTrue(groupExportSuccessMessage(partial).contains("跳过"))
-        assertTrue(groupExportSuccessMessage(partial).contains("2"))
-    }
 
     // ---------------- 端到端：从面板选中到可回导的文件 ----------------
 

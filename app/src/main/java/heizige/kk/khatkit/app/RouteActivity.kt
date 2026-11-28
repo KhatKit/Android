@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app
 
+import heizige.kk.khatkit.app.R
 import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import android.annotation.SuppressLint
@@ -142,14 +143,14 @@ import heizige.kk.khatkit.app.feature.settings.SettingSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingFeatureSearchPage
 import heizige.kk.khatkit.app.feature.settings.SettingSpeechPage
 import heizige.kk.khatkit.app.feature.settings.SettingTriggersPage
-import heizige.kk.khatkit.app.feature.settings.CreateWorkflowPage
+import heizige.kk.khatkit.app.feature.workflow.CreateWorkflowPage
 import heizige.kk.khatkit.app.feature.settings.SettingWebPage
 import heizige.kk.khatkit.app.feature.share.handler.ShareHandlerPage
 import heizige.kk.khatkit.app.feature.translator.TranslatorPage
 import heizige.kk.khatkit.app.feature.webview.WebViewPage
 import heizige.kk.khatkit.app.feature.splash.SplashIntroHost
 import heizige.kk.khatkit.app.feature.splash.SplashIntroState
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import heizige.kk.khatkit.app.feature.automation.AutomationInAppHost
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.util.CrashHandler
@@ -158,6 +159,16 @@ import dagger.hilt.android.AndroidEntryPoint
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+import heizige.kk.khatkit.app.core.ui.components.webview.WebView
+import heizige.kk.khatkit.app.feature.automation.TraceAuditPage
+import heizige.kk.khatkit.app.feature.lanshare.LanSharePage
+import heizige.kk.khatkit.app.feature.tools.ToolApiHealthPage
+import heizige.kk.khatkit.app.feature.tools.ToolCataloguePage
+import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogue
+
+
 
 private const val TAG = "RouteActivity"
 
@@ -165,7 +176,6 @@ private const val TAG = "RouteActivity"
 class RouteActivity : ComponentActivity() {
     @Inject
     lateinit var settingsStore: SettingsRepository
-
 
     /**
      * 深链 / ACTION_SEND 等 Intent 的目标 route。
@@ -239,11 +249,11 @@ class RouteActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        AutomationBus.setAppInForeground(true)
+        AutomationManager.setAppInForeground(true)
     }
 
     override fun onPause() {
-        AutomationBus.setAppInForeground(false)
+        AutomationManager.setAppInForeground(false)
         super.onPause()
     }
 
@@ -488,7 +498,7 @@ class RouteActivity : ComponentActivity() {
                     }
                     if (BuildConfig.DEBUG) {
                         Text(
-                            text = "[开发模式]",
+                            text = stringResource(R.string.dev_mode_badge),
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .padding(top = 4.dp),
@@ -534,10 +544,6 @@ class RouteActivity : ComponentActivity() {
         }
     }
 }
-
-
-
-
 
 /**
  * 供需要「卡片/行 → 整页」morph 的入口使用：拿到 [KkNavController] 后调 navigate(screen, source = 锚点)，
@@ -604,6 +610,13 @@ private fun PageBackGuard(route: String, predictiveBackEnabled: Boolean, onPop: 
 
     // 浮层需要跟手返回时，由页面的唯一返回 owner 分发整条预测手势；普通浮层继续走 BackHandler。
     // MochiNavHost 在有浮层时已关闭 route 预测处理，避免同一手势同时驱动浮层和页面转场。
+    //
+    // ARCH §8 的三条铁律在这里的落点：
+    //  - 松手续播：事件流正常结束 = 系统判定 commit（浮层自己收尾，route 不 pop）；
+    //    事件流抛 CancellationException = 系统判定 cancel（浮层回弹，route 同样不 pop）。
+    //  - 跟手效果：progress 只驱动浮层自己的本地进度，不驱动 route 过渡；route 过渡仍由
+    //    MochiNavHost 内部持有（本函数只在「没有浮层」时由宿主接管手势）。
+    //  - 终态幅度：浮层把 event.progress 归一化到 0..1 后映射自己的终态，不读取额外字段。
     PredictiveBackHandler(enabled = predictiveBackEnabled && hasPredictiveOverlay) { events ->
         val handled = PageBackInterceptor.interceptPredictiveFor(route, events)
         if (!handled) {
@@ -615,7 +628,6 @@ private fun PageBackGuard(route: String, predictiveBackEnabled: Boolean, onPop: 
         if (!PageBackInterceptor.interceptFor(route)) onPop()
     }
 }
-
 
 sealed interface Screen : NavKey {
     @Serializable
@@ -710,7 +722,6 @@ sealed interface Screen : NavKey {
     /** 主题页二级：导航栏（底部导航栏样式 + 栏玻璃通透度 / 仅模糊，照 Mochi demo）。 */
     @Serializable
     data object SettingThemeNavBar : Screen
-
 
     @Serializable
     data object SettingPreferencesNotification : Screen
@@ -887,6 +898,15 @@ internal object PageBackInterceptor {
     /** token -> 登记时正在组合的那一页 route；返回只问「本页」登记的浮层。 */
     private val owners = mutableStateMapOf<Any, String?>()
 
+    /**
+     * token -> 单调递增的登记序号。SnapshotStateMap 的迭代顺序不保证等于插入顺序
+     * （底层是持久化哈希结构），而 [push] 的契约是「后登记者优先」，所以顺序必须显式记录，
+     * 否则 [interceptPredictiveFor]/[interceptWhere] 的「最新优先」在 JVM 单测里会随
+     * identity hash 抖动（PageBackInterceptorTest.mostRecentlyRegisteredPredictiveOverlayWins）。
+     */
+    private val order = mutableStateMapOf<Any, Long>()
+    private var nextOrder = 0L
+
     /** 全仓是否还有浮层登记（诊断用；返回接管只看 [hasHandlersFor]）。 */
     val hasHandlers: Boolean get() = handlers.isNotEmpty()
 
@@ -905,6 +925,7 @@ internal object PageBackInterceptor {
     fun push(token: Any, ownerRoute: String?, handler: () -> Boolean) {
         handlers[token] = handler
         owners[token] = ownerRoute
+        order[token] = nextOrder++
     }
 
     /** 需要跟手预览的浮层：由 PageBackGuard 的唯一 PredictiveBackHandler 分发事件流。 */
@@ -922,6 +943,7 @@ internal object PageBackInterceptor {
         predictiveHandlers.remove(token)
         handlers.remove(token)
         owners.remove(token)
+        order.remove(token)
     }
 
     fun hasPredictiveHandlersFor(route: String?): Boolean =
@@ -933,10 +955,11 @@ internal object PageBackInterceptor {
         route: String?,
         events: kotlinx.coroutines.flow.Flow<androidx.activity.BackEventCompat>,
     ): Boolean {
-        val pending = handlers.entries.filter {
-            (owners[it.key] == null || owners[it.key] == route) && predictiveHandlers.containsKey(it.key)
+        val pending = handlers.keys.filter {
+            (owners[it] == null || owners[it] == route) && predictiveHandlers.containsKey(it)
         }
-        val entry = pending.lastOrNull() ?: return false
+        val token = pending.maxByOrNull { order[it] ?: Long.MIN_VALUE } ?: return false
+        val entry = handlers.entries.first { it.key == token }
         val predictiveHandler = predictiveHandlers[entry.key] ?: return false
         predictiveHandler(events)
         return true
@@ -949,11 +972,12 @@ internal object PageBackInterceptor {
     fun interceptFor(route: String?): Boolean = interceptWhere(route)
 
     private fun interceptWhere(route: String?): Boolean {
-        val pending = handlers.entries.filter {
-            route == null || owners[it.key] == null || owners[it.key] == route
+        val pending = handlers.keys.filter {
+            route == null || owners[it] == null || owners[it] == route
         }
-        for (entry in pending.asReversed()) {
-            if (entry.value.invoke()) return true
+        // 显式按登记序号倒序，避免依赖 SnapshotStateMap 的迭代顺序（见 [order] 注释）。
+        for (token in pending.sortedByDescending { order[it] ?: Long.MIN_VALUE }) {
+            if (handlers[token]?.invoke() == true) return true
         }
         return false
     }

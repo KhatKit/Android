@@ -23,27 +23,14 @@ import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchResult
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchMode
 import heizige.kk.khatkit.app.core.data.db.fts.MessageSearchSort
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.core.ui.hooks.readStringPreference
-import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
+import heizige.kk.khatkit.app.R
 import kotlin.uuid.Uuid
-
-private const val SORT_ORDER_PREF_KEY = "search_page_sort_order"
-
-enum class MessageSearchScope {
-    CURRENT_ASSISTANT,
-    ALL_ASSISTANTS,
-}
-
-private data class SearchRequest(
-    val query: String,
-    val sort: MessageSearchSort,
-    val scope: MessageSearchScope,
-    val assistantId: Uuid?,
-    val debounce: Boolean,
-    val mode: MessageSearchMode,
-)
+import heizige.kk.khatkit.app.feature.search.data.MessageSearchScope
+import heizige.kk.khatkit.app.feature.search.data.SearchPreferencesRepository
+import heizige.kk.khatkit.app.feature.search.data.SearchRequest
 
 @HiltViewModel
+
 class SearchViewModel @Inject constructor(
     private val context: Application,
     private val conversationRepo: ConversationRepository,
@@ -60,13 +47,7 @@ class SearchViewModel @Inject constructor(
         private set
     var searchError by mutableStateOf<String?>(null)
         private set
-    var sortOrder by mutableStateOf(
-        runCatching {
-            MessageSearchSort.valueOf(
-                context.readStringPreference(SORT_ORDER_PREF_KEY, MessageSearchSort.RELEVANCE.name)!!
-            )
-        }.getOrDefault(MessageSearchSort.RELEVANCE)
-    )
+    var sortOrder by mutableStateOf(SearchPreferencesRepository.readSortOrder(context))
         private set
     var results by mutableStateOf<List<MessageSearchResult>>(emptyList())
         private set
@@ -114,7 +95,7 @@ class SearchViewModel @Inject constructor(
     fun onSortChange(sort: MessageSearchSort) {
         if (sortOrder == sort) return
         sortOrder = sort
-        context.writeStringPreference(SORT_ORDER_PREF_KEY, sort.name)
+        SearchPreferencesRepository.writeSortOrder(context, sort)
         search()
     }
 
@@ -171,9 +152,9 @@ class SearchViewModel @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: IllegalArgumentException) {
-            searchError = if (request.mode == MessageSearchMode.KEYWORDS) "搜索失败" else e.message ?: "搜索失败"
+            searchError = if (request.mode == MessageSearchMode.KEYWORDS) context.getString(R.string.search_page_error_failed) else e.message ?: context.getString(R.string.search_page_error_failed)
         } catch (_: Exception) {
-            searchError = "搜索失败"
+            searchError = context.getString(R.string.search_page_error_failed)
         } finally {
             isLoading = false
         }

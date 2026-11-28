@@ -60,7 +60,7 @@ class LegacyGroupArchiveTest {
         val drawer = File(feature, "ChatDrawer.kt").readText()
         assertFalse(drawer.contains("createGroup"))
         assertFalse(File(feature, "RoleDrawerList.kt").readText().contains("新建群聊"))
-        val manager = File(feature, "ChatManager.kt").readText()
+        val manager = File(feature, "helper/ChatManager.kt").readText()
         assertFalse(manager.contains("fun createGroup("))
         assertTrue(manager.contains("requireActiveRoleConversation(initialConversation)"))
         assertTrue(manager.contains("requireActiveRoleConversation(currentConversation)"))

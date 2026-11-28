@@ -1,11 +1,9 @@
 package heizige.kk.khatkit.app.feature.chat
 
-
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -41,16 +39,22 @@ import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
-import heizige.kk.khatkit.app.feature.chat.ChatError
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.data.ChatError
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
-import heizige.kk.khatkit.app.core.ui.hooks.ChatInputState
+import heizige.kk.khatkit.app.feature.chat.hooks.ChatInputState
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.UpdateChecker
 import java.util.Locale
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.feature.chat.data.selectRoleChat
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
+import heizige.kk.khatkit.app.feature.chat.helper.ChatWelcomeManager
+import heizige.kk.khatkit.app.feature.chat.helper.VoiceSessionManager
+
+
+
+
 
 private const val TAG = "ChatViewModel"
 
@@ -97,7 +101,7 @@ class ChatViewModel @AssistedInject constructor(
     // 聊天输入状态 - 保存在 ViewModel 中避免 TransactionTooLargeException
     val inputState = ChatInputState()
 
-    val voiceSession = VoiceSessionController(viewModelScope, context::getString) {
+    val voiceSession = VoiceSessionManager(viewModelScope, context::getString) {
         chatService.enqueueVoiceMessage(_conversationId, it)
     }
 
@@ -165,7 +169,7 @@ class ChatViewModel @AssistedInject constructor(
     fun finishEditQueuedMessage(id: Uuid, parts: List<UIMessagePart>?) =
         chatService.finishEditQueuedMessage(_conversationId, id, parts)
 
-    fun resumeMessageQueue() = chatService.resumeMessageQueue(_conversationId)
+    fun resumeMessageQueueManager() = chatService.resumeMessageQueueManager(_conversationId)
 
     fun sendQueuedMessageNow(id: Uuid) = chatService.sendQueuedMessageNow(_conversationId, id)
 

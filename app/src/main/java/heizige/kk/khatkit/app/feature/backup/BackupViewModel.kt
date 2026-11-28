@@ -21,14 +21,15 @@ import heizige.kk.khatkit.app.core.data.files.saveUploadFromBytes
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.feature.backup.data.DeepSeekImportResult
 import heizige.kk.khatkit.app.feature.backup.helper.DeepSeekImportHelper
-import heizige.kk.khatkit.app.core.data.sync.importer.ChatboxImporter
-import heizige.kk.khatkit.app.core.data.sync.importer.CherryStudioProviderImporter
-import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavBackupItem
-import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavSync
-import heizige.kk.khatkit.app.core.data.sync.S3BackupItem
-import heizige.kk.khatkit.app.core.data.sync.S3Sync
+import heizige.kk.khatkit.app.feature.backup.data.importer.ChatboxImporter
+import heizige.kk.khatkit.app.feature.backup.data.importer.CherryStudioProviderImporter
+import heizige.kk.khatkit.app.feature.backup.data.remote.webdav.WebDavBackupItem
+import heizige.kk.khatkit.app.feature.backup.data.remote.webdav.WebDavSync
+import heizige.kk.khatkit.app.feature.backup.data.remote.S3BackupItem
+import heizige.kk.khatkit.app.feature.backup.data.remote.S3Sync
 import heizige.kk.khatkit.app.core.util.UiState
 import java.io.File
+import heizige.kk.khatkit.app.feature.backup.data.ChatboxRestoreResult
 
 private const val TAG = "BackupViewModel"
 
@@ -258,14 +259,3 @@ class BackupViewModel @Inject constructor(
         }
     }
 }
-
-data class ChatboxRestoreResult(
-    val importedProviders: Int,
-    val importedConversations: Int,
-    val skippedExistingConversations: Int,
-    val importedImageParts: Int,
-    val skippedImageParts: Int,
-    val skippedEmptyMessages: Int,
-    val skippedForkMessages: Int,
-    val skippedSessions: Int,
-)

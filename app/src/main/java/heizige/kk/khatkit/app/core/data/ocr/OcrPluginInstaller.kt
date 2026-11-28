@@ -98,7 +98,7 @@ object OcrPluginInstaller {
                         itemId = itemId,
                         installedAt = System.currentTimeMillis(),
                     )
-                    OcrPluginStore(context).write(record)
+                    OcrPluginRepository(context).write(record)
                     OcrPluginLoader.invalidate()
                     record
                 } finally {
@@ -113,7 +113,7 @@ object OcrPluginInstaller {
         val root = pluginsRoot(context)
         val targets = if (version == null) root.listFiles()?.toList().orEmpty() else listOf(versionDir(context, version))
         val ok = targets.all { dir -> !dir.exists() || dir.deleteRecursively() }
-        OcrPluginStore(context).clear()
+        OcrPluginRepository(context).clear()
         OcrPluginLoader.invalidate()
         ok
     }

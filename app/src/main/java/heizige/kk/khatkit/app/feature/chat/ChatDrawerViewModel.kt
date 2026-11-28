@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.feature.chat
 
-
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import android.app.Application
@@ -32,8 +31,11 @@ import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.DrawerMessageSearchState
+
+
 
 @HiltViewModel
 class ChatDrawerViewModel @Inject constructor(
@@ -136,25 +138,6 @@ class ChatDrawerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 }
 
-
-/**
- * 抽屉搜索态的一次快照（消息正文检索 + 标题降级）。
- *
- * - [keyword]：本次命中对应的关键字（UI 用它判断「这份状态是不是当前输入框的」，避免
- *   防抖窗口内把上一轮结果当成本轮结果渲染）
- * - [searching]：查询进行中（UI 显示「正在检索…」而不是闪一下空态）
- * - [hits]：FTS 命中（[MessageSearchResult] 带 nodeId / conversationId / 标题 / 片段 / 时间），
- *   最多 [DRAWER_SEARCH_HIT_LIMIT] 条（与 FTS 查询的 LIMIT 对齐）
- * - [titleFallback]：FTS 没命中时的标题兜底（索引未建 / 老数据没进索引时不至于一条都没有）。
- *   这是**降级路**，UI 用一个可见的分节标题明确标注「以下为标题匹配」，不与消息命中混淆。
- */
-data class DrawerMessageSearchState(
-    val keyword: String = "",
-    val searching: Boolean = false,
-    val hits: List<MessageSearchResult> = emptyList(),
-    val titleFallback: List<Conversation> = emptyList(),
-)
-
 /** 抽屉搜索防抖窗口（毫秒）。 */
 private const val SEARCH_DEBOUNCE_MS = 300L
 
@@ -169,12 +152,3 @@ internal const val DRAWER_SEARCH_HIT_LIMIT = 50
 
 /** 降级路最多列出的标题匹配会话数。 */
 private const val MAX_TITLE_FALLBACK = 30
-
-/**
- * 抽屉 chip 的筛选值 → DAO 的 type 参数。
- *
- * `FILTER_ALL`（以及任何空白值）折成空串，即 DAO 里 `AND (:type = '' OR type = :type)`
- * 的「不筛」分支——和未归档路同一套语义，不在这里发明第二种表达。
- */
-internal fun String.asConversationTypeArgument(): String =
-    takeUnless { it == GroupChat.FILTER_ALL || it.isBlank() }.orEmpty()

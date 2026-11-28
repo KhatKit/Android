@@ -17,6 +17,7 @@ import heizige.kk.khatkit.app.core.data.files.SkillMetadata
 import heizige.kk.khatkit.hub.HubActionResult
 import heizige.kk.khatkit.hub.HubCardMarketInfo
 import heizige.kk.khatkit.hub.HubClient
+import heizige.kk.khatkit.localization.localizedMessage
 import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.hub.HubResourcePackage
 import heizige.kk.khatkit.hub.CardIndexEntry
@@ -24,12 +25,12 @@ import heizige.kk.khatkit.uikit.CardRunResult
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginInstaller
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRecord
-import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRepository
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginHub
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginInstaller
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
-import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginRepository
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,6 +41,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.explore.data.McpInstallPlan
+import heizige.kk.khatkit.app.feature.explore.helper.planMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.mcpMissingRequiredKeys
+import heizige.kk.khatkit.app.feature.explore.helper.rePlanMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.maskedMcpSummary
 
 /**
  * 探索市场（唯一市场页）的数据中枢：
@@ -112,9 +118,9 @@ class ExploreMarketViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             OcrPluginLoader.prepare(appContext)
-            _ocrPlugin.value = OcrPluginStore(appContext).read()
+            _ocrPlugin.value = OcrPluginRepository(appContext).read()
             SshPluginLoader.prepare(appContext)
-            _sshPlugin.value = SshPluginStore(appContext).read()
+            _sshPlugin.value = SshPluginRepository(appContext).read()
         }
         refreshExtensionItems()
     }
@@ -128,7 +134,10 @@ class ExploreMarketViewModel @Inject constructor(
     fun refreshExtensionItems() = viewModelScope.launch(Dispatchers.IO) {
         val appVersion = runCatching { heizige.kk.khatkit.app.BuildConfig.VERSION_NAME }.getOrDefault("")
         val items = runCatching {
-            HubClient(provider.hubBaseUrl.trim().trimEnd('/'))
+            HubClient(
+                provider.hubBaseUrl.trim().trimEnd('/'),
+                messageResolver = { it.localizedMessage(appContext) },
+            )
                 .extensionItems(kind = "dependency", appVersion = appVersion)
                 .filter { it.status.isBlank() || it.status == "approved" }
                 // 同一个插件可能有多代版本条目；只留服务端标记的首选版本，避免市场里一行变两行。
@@ -163,22 +172,22 @@ class ExploreMarketViewModel @Inject constructor(
             val message = withContext(Dispatchers.IO) {
                 runCatching {
                     val base = provider.hubBaseUrl.trim().trimEnd('/')
-                    require(base.isNotEmpty()) { "Hub 未配置" }
+                    require(base.isNotEmpty()) { appContext.getString(R.string.explore_hub_not_configured) }
                     val tmp = provider.downloadFile(
                         "$base/api/items/${entry.slug}/download",
                         "ocr_plugin_${entry.slug}.zip",
-                    ) ?: error("下载失败")
+                    ) ?: error(appContext.getString(R.string.explore_market_download_failed_prefix))
                     try {
                         OcrPluginInstaller.install(appContext, tmp, null, entry.slug).getOrThrow()
                     } finally {
                         tmp.delete()
                     }
                 }.fold(
-                    onSuccess = { "OCR 插件已安装 " + it.version },
-                    onFailure = { "OCR 插件安装失败：" + (it.message ?: it.javaClass.simpleName) },
+                    onSuccess = { appContext.getString(R.string.explore_ocr_install_success, it.version) },
+                    onFailure = { appContext.getString(R.string.explore_ocr_install_failed, it.message ?: it.javaClass.simpleName) },
                 )
             }
-            _ocrPlugin.value = OcrPluginStore(appContext).read()
+            _ocrPlugin.value = OcrPluginRepository(appContext).read()
             _busyResource.value = null
             onResult(message)
         }
@@ -189,12 +198,12 @@ class ExploreMarketViewModel @Inject constructor(
             _busyResource.value = entry.slug
             val message = withContext(Dispatchers.IO) {
                 SshPluginHub.install(appContext, provider.hubBaseUrl, entry.slug).fold(
-                    onSuccess = { "远程 SSH 插件已安装 " + it.version },
-                    onFailure = { "远程 SSH 插件安装失败：" + (it.message ?: it.javaClass.simpleName) },
+                    onSuccess = { appContext.getString(R.string.explore_ssh_install_success, it.version) },
+                    onFailure = { appContext.getString(R.string.explore_ssh_install_failed, it.message ?: it.javaClass.simpleName) },
                 )
             }
-            SshPluginLoader.updateRecord(SshPluginStore(appContext).read())
-            _sshPlugin.value = SshPluginStore(appContext).read()
+            SshPluginLoader.updateRecord(SshPluginRepository(appContext).read())
+            _sshPlugin.value = SshPluginRepository(appContext).read()
             _busyResource.value = null
             onResult(message)
         }
@@ -203,14 +212,14 @@ class ExploreMarketViewModel @Inject constructor(
     fun uninstallSshPlugin(onResult: (String) -> Unit = {}) = viewModelScope.launch {
         val ok = withContext(Dispatchers.IO) { SshPluginInstaller.uninstall(appContext) }
         _sshPlugin.value = null
-        onResult(if (ok) "远程 SSH 插件已卸载" else "远程 SSH 插件卸载失败")
+        onResult(if (ok) appContext.getString(R.string.explore_ssh_uninstall_success) else appContext.getString(R.string.explore_ssh_uninstall_failed))
     }
 
     /** 卸载 OCR 插件（删目录 + 清 DataStore + 清加载器缓存）。 */
     fun uninstallOcrPlugin(onResult: (String) -> Unit = {}) = viewModelScope.launch {
         val ok = withContext(Dispatchers.IO) { OcrPluginInstaller.uninstall(appContext) }
-        _ocrPlugin.value = OcrPluginStore(appContext).read()
-        onResult(if (ok) "OCR 插件已卸载" else "OCR 插件卸载失败")
+        _ocrPlugin.value = OcrPluginRepository(appContext).read()
+        onResult(if (ok) appContext.getString(R.string.explore_ocr_uninstall_success) else appContext.getString(R.string.explore_ocr_uninstall_failed))
     }
 
     init {

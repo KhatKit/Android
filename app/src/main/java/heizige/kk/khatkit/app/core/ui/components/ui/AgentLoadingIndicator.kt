@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -132,7 +134,7 @@ fun AgentLoadingIndicator(
 @Composable
 fun AgentLoadingIndicatorWithText(
     modifier: Modifier = Modifier,
-    text: String = "思考中",
+    text: String? = null,
     color: Color = MochiTheme.colorScheme.onSurfaceVariant,
 ) {
     Row(
@@ -141,7 +143,7 @@ fun AgentLoadingIndicatorWithText(
         verticalAlignment = Alignment.CenterVertically
     ) {
         ui.feice.mochi.basic.Text(
-            text = text,
+            text = text ?: stringResource(R.string.agent_loading_thinking),
             style = MochiTheme.textStyles.body,
             color = color
         )

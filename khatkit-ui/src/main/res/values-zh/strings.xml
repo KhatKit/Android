@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="khatkit_color_picker_title">颜色</string>
   <string name="khatkit_form_cancel">取消</string>
   <string name="khatkit_form_confirm">确定</string>
   <string name="khatkit_form_path_label">%1$s（路径）</string>
@@ -81,4 +82,27 @@
   <string name="khatkit_market_fork_need_changelog">请填写更新说明</string>
   <string name="khatkit_market_fork_action">提交</string>
   <string name="khatkit_market_fork_failed">提交失败</string>
+  <string name="khatkit_form_label_value">%1$s：%2$d</string>
+  <string name="khatkit_form_submit">提交</string>
+  <string name="khatkit_counter_increment">+1</string>
+  <string name="khatkit_counter_unknown">—</string>
+  <string name="khatkit_a11y_slider">滑块</string>
+  <string name="khatkit_market_filter_all">全部</string>
+  <string name="khatkit_market_filter_installed">已安装</string>
+  <string name="khatkit_market_featured">精选卡片</string>
+  <string name="khatkit_market_local_version">本地卡片，v%1$s</string>
+  <string name="khatkit_market_metadata">%1$s，%2$s，%3$s</string>
+  <string name="khatkit_hub_unavailable">当前版本未接入 Hub 套餐</string>
+  <string name="khatkit_hub_activation_unsupported">当前版本不支持套餐激活</string>
+  <string name="khatkit_hub_publish_unsupported">当前版本不支持发布卡片</string>
+  <string name="khatkit_hub_fork_unsupported">当前版本不支持提交改进</string>
+  <string name="khatkit_hub_vote_unsupported">当前版本不支持投票</string>
+  <plurals name="khatkit_market_card_count">
+    <item quantity="other">共 %1$d 个卡片</item>
+  </plurals>
+  <plurals name="khatkit_counter_local_count">
+    <item quantity="other">本机 %1$d 次</item>
+  </plurals>
+  <string name="khatkit_field_value">%1$s：%2$s</string>
+  <string name="khatkit_field_label">%1$s：</string>
 </resources>

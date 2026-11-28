@@ -1,6 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui.mochi
 
-import heizige.kk.khatkit.app.core.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import androidx.compose.foundation.clickable
@@ -353,7 +353,7 @@ fun PreferenceDropdown(
                         icon = { color ->
                             if (items.indexOf(label) == selectedIndex) {
                                 androidx.compose.material3.Icon(
-                                    imageVector = heizige.kk.khatkit.app.core.ui.icons.check,
+                                    imageVector = heizige.kk.khatkit.app.core.ui.icons.utility.check,
                                     contentDescription = null,
                                     tint = color,
                                 )

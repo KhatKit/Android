@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.exec
 
+import heizige.kk.khatkit.localization.RuntimeText
 import heizige.kk.khatkit.bridge.BridgeRegistry
 import heizige.kk.khatkit.bridge.ApprovalGate
 import heizige.kk.khatkit.bridge.CardCallChain
@@ -69,6 +70,7 @@ class CardExecutor(
     private val dependencyManager: DependencyManager? = null,
     private val onDependencyStatus: ((String) -> Unit)? = null,
     private val approvalGate: ApprovalGate? = null,
+    private val messageResolver: (RuntimeText) -> String = RuntimeText::diagnosticMessage,
 ) {
     suspend fun execute(
         card: LoadedCard,
@@ -101,8 +103,7 @@ class CardExecutor(
         val manager = dependencyManager
             ?: return EngineResult.Err(
                 "DEPENDENCY_UNAVAILABLE",
-                "卡片 ${manifest.name} 依赖原生依赖包（${requirements.joinToString { it.name }}），" +
-                    "但当前宿主不支持依赖包运行时；请升级 KhatKit 后重试。",
+                messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_HOST_UNSUPPORTED, listOf(manifest.name, requirements.joinToString { it.name }))),
             )
         // 同名依赖可声明多个版本（回滚清单）：某个版本被 Hub 撤销/下架时，按清单顺序尝试备用版本，
         // 每个候选版本的 sha256 + ECDSA 签名都由 DependencyManager 强制校验，安全边界不变。
@@ -112,9 +113,9 @@ class CardExecutor(
             for ((index, req) in candidates.withIndex()) {
                 onDependencyStatus?.invoke(
                     if (index == 0) {
-                        "正在准备依赖包：${req.name} ${req.version}"
+                        messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_PREPARING, listOf(req.name, req.version)))
                     } else {
-                        "原依赖版本不可用，正在尝试备用版本：${req.name} ${req.version}"
+                        messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_FALLBACK, listOf(req.name, req.version)))
                     },
                 )
                 when (val result = manager.ensure(req)) {
@@ -126,19 +127,19 @@ class CardExecutor(
 
                     is DependencyEnsureResult.Err -> {
                         lastError = result
-                        onDependencyStatus?.invoke("依赖包 ${req.name} ${req.version} 不可用：${result.code}")
+                        onDependencyStatus?.invoke(messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_UNAVAILABLE, listOf(req.name, req.version, result.code))))
                         if (!result.retryable) return EngineResult.Err(result.code, result.message)
                     }
                 }
             }
             if (lastError != null) {
                 val tried = if (candidates.size > 1) {
-                    "；已尝试清单中的 ${candidates.size} 个版本 ${candidates.joinToString { it.version }}"
+                    messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_TRIED_VERSIONS, listOf(candidates.size, candidates.joinToString { it.version })))
                 } else {
-                    "；请更新卡片或从卡片市场安装最新版本"
+                    messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_UPDATE_CARD))
                 }
-                onDependencyStatus?.invoke("依赖包 ${name} 全部候选版本均不可用")
-                return EngineResult.Err(lastError.code, lastError.message + tried)
+                onDependencyStatus?.invoke(messageResolver(RuntimeText(RuntimeText.Code.DEPENDENCY_ALL_UNAVAILABLE, listOf(name))))
+                return EngineResult.Err(lastError.code, listOf(lastError.message, tried).joinToString("\n"))
             }
         }
         return null
@@ -151,7 +152,7 @@ class CardExecutor(
         if (missing.isNotEmpty()) {
             return EngineResult.Err(
                 "BRIDGE_UNAVAILABLE",
-                "设备缺少卡片所需能力：$missing。请在聊天输入框「+」面板中开启对应权限（root / Shizuku / 无障碍 / 所有文件访问）后重试。",
+                messageResolver(RuntimeText(RuntimeText.Code.RUNTIME_MISSING_CAPABILITIES, listOf(missing))),
             )
         }
 
@@ -178,7 +179,7 @@ class CardExecutor(
                     cardCallChain = options.cardCallChain,
                 )
             ) {
-                EngineResult.Err("BRIDGE_INJECT_FAILED", "bridge 注入失败")
+                EngineResult.Err("BRIDGE_INJECT_FAILED", messageResolver(RuntimeText(RuntimeText.Code.RUNTIME_BRIDGE_INJECTION)))
             } else {
                 modules.forEach { lib -> engine.defineModule(lib.name, lib.source) }
                 if (card.widgetExecution && engine is heizige.kk.khatkit.engine.WasmScriptEngine) {
@@ -196,15 +197,15 @@ class CardExecutor(
 
     private fun executeCommand(manifest: CardManifest, args: Map<String, Any?>): EngineResult {
         val template = manifest.command
-            ?: return EngineResult.Err("COMMAND_MISSING", "command 字段为空")
+            ?: return EngineResult.Err("COMMAND_MISSING", messageResolver(RuntimeText(RuntimeText.Code.RUNTIME_COMMAND_MISSING)))
         val runner = commandRunner
-            ?: return EngineResult.Err("COMMAND_UNAVAILABLE", "宿主未提供命令执行能力")
+            ?: return EngineResult.Err("COMMAND_UNAVAILABLE", messageResolver(RuntimeText(RuntimeText.Code.RUNTIME_COMMAND_UNAVAILABLE)))
         return runCatching {
             val command = renderCommand(template, args)
             runner.run(command)
         }.fold(
             onSuccess = { EngineResult.Ok(mapOf("output" to it)) },
-            onFailure = { EngineResult.Err("COMMAND_FAILED", it.message ?: "命令执行失败") },
+            onFailure = { EngineResult.Err("COMMAND_FAILED", it.message ?: messageResolver(RuntimeText(RuntimeText.Code.RUNTIME_COMMAND_FAILED))) },
         )
     }
 

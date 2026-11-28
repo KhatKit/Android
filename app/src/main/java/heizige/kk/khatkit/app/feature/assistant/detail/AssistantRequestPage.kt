@@ -18,6 +18,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomBodies
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomHeaders
+
+
 
 @Composable
 fun AssistantRequestPage(id: String) {

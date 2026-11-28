@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,9 +29,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.asr.sherpa.SherpaModelManager
 import heizige.kk.khatkit.asr.sherpa.SherpaModels
@@ -74,22 +75,13 @@ fun ASRProviderConfigure(
             // 类型只读展示：创建时已经选定，这里不能切换
             MochiListRow(
                 title = providerTypeLabel,
-                value = when (setting) {
-                    is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
-                    is ASRProviderSetting.DashScope -> "DashScope"
-                    is ASRProviderSetting.Volcengine -> "Volcengine"
-                    is ASRProviderSetting.MiMo -> "MiMo"
-                    is ASRProviderSetting.Step -> "Step"
-                    is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
-                    is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
-                    is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
-                },
+                value = setting.localizedName(LocalContext.current),
             )
             SpeechTextFieldRow(
                 label = nameLabel,
                 value = setting.name,
                 onValueChange = { onValueChange(setting.copyProvider(name = it)) },
-                placeholder = "OpenAI Realtime",
+                placeholder = stringResource(R.string.setting_asr_configure_name_placeholder),
             )
         }
 
@@ -163,7 +155,7 @@ private fun GeminiTranscribeASRConfiguration(
                     onValueChange(setting.copy(sampleRate = value))
                 }
             },
-            placeholder = "Sample Rate",
+            placeholder = stringResource(R.string.setting_asr_configure_sample_rate),
         )
     }
 }
@@ -225,7 +217,7 @@ private fun OpenAITranscribeASRConfiguration(
                     onValueChange(setting.copy(sampleRate = value))
                 }
             },
-            placeholder = "Sample Rate",
+            placeholder = stringResource(R.string.setting_asr_configure_sample_rate),
         )
     }
 }
@@ -284,7 +276,7 @@ private fun OpenAIRealtimeASRConfiguration(
             label = promptLabel,
             value = setting.prompt,
             onValueChange = { onValueChange(setting.copy(prompt = it)) },
-            placeholder = "Optional",
+            placeholder = stringResource(R.string.setting_asr_configure_optional),
             singleLine = false,
         )
     }
@@ -307,7 +299,7 @@ private fun OpenAIRealtimeASRConfiguration(
                     onValueChange(setting.copy(vadThreshold = value))
                 }
             },
-            placeholder = "VAD Threshold",
+            placeholder = stringResource(R.string.setting_asr_configure_vad_threshold),
         )
         SpeechNumberFieldRow(
             label = prefixLabel,
@@ -317,7 +309,7 @@ private fun OpenAIRealtimeASRConfiguration(
                     onValueChange(setting.copy(prefixPaddingMs = value))
                 }
             },
-            placeholder = "Prefix Padding",
+            placeholder = stringResource(R.string.setting_asr_configure_prefix_padding),
         )
         SpeechNumberFieldRow(
             label = silenceLabel,
@@ -327,7 +319,7 @@ private fun OpenAIRealtimeASRConfiguration(
                     onValueChange(setting.copy(silenceDurationMs = value))
                 }
             },
-            placeholder = "Silence Duration",
+            placeholder = stringResource(R.string.setting_asr_configure_silence_duration),
         )
     }
 }
@@ -397,7 +389,7 @@ private fun DashScopeASRConfiguration(
                     onValueChange(setting.copy(vadThreshold = value))
                 }
             },
-            placeholder = "VAD Threshold",
+            placeholder = stringResource(R.string.setting_asr_configure_vad_threshold),
         )
         SpeechNumberFieldRow(
             label = silenceLabel,
@@ -407,7 +399,7 @@ private fun DashScopeASRConfiguration(
                     onValueChange(setting.copy(silenceDurationMs = value))
                 }
             },
-            placeholder = "Silence Duration",
+            placeholder = stringResource(R.string.setting_asr_configure_silence_duration),
         )
     }
 }
@@ -537,7 +529,7 @@ private fun MiMoASRConfiguration(
                     onValueChange(setting.copy(sampleRate = value))
                 }
             },
-            placeholder = "Sample Rate",
+            placeholder = stringResource(R.string.setting_asr_configure_sample_rate),
         )
         SpeechNumberFieldRow(
             label = segmentLabel,
@@ -547,7 +539,7 @@ private fun MiMoASRConfiguration(
                     onValueChange(setting.copy(segmentDurationSec = value))
                 }
             },
-            placeholder = "Segment Duration (s)",
+            placeholder = stringResource(R.string.setting_asr_configure_segment_duration),
         )
     }
 }
@@ -611,7 +603,7 @@ private fun StepASRConfiguration(
                     .filter { it.isNotEmpty() }
                 onValueChange(setting.copy(hotwords = list))
             },
-            placeholder = "热词1, 热词2, 热词3",
+            placeholder = stringResource(R.string.setting_asr_configure_hotwords_placeholder),
         )
     }
 
@@ -631,7 +623,7 @@ private fun StepASRConfiguration(
                     onValueChange(setting.copy(sampleRate = value))
                 }
             },
-            placeholder = "Sample Rate",
+            placeholder = stringResource(R.string.setting_asr_configure_sample_rate),
         )
         SpeechNumberFieldRow(
             label = segmentLabel,
@@ -641,7 +633,7 @@ private fun StepASRConfiguration(
                     onValueChange(setting.copy(segmentDurationSec = value))
                 }
             },
-            placeholder = "Segment Duration (s)",
+            placeholder = stringResource(R.string.setting_asr_configure_segment_duration),
         )
     }
 
@@ -667,6 +659,7 @@ private fun SherpaLocalASRConfiguration(
     onValueChange: (ASRProviderSetting) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val appEntryPoint = rememberAppEntryPoint()
     val downloadProvider = appEntryPoint.khatKitToolProvider()
     val store = remember { SherpaModelManager(context) }
@@ -686,14 +679,22 @@ private fun SherpaLocalASRConfiguration(
     var engineProgress by remember { mutableFloatStateOf(0f) }
     var engineError by remember { mutableStateOf<String?>(null) }
 
+    val engineInstalledText = stringResource(R.string.setting_asr_engine_installed)
+    val engineNotInstalledText = stringResource(R.string.setting_asr_engine_not_installed)
+    val engineDownloadFailedText = stringResource(R.string.setting_asr_engine_download_failed)
+    val downloadFailedText = stringResource(R.string.setting_asr_download_failed)
+    val streamingText = stringResource(R.string.setting_asr_model_streaming)
+    val offlineText = stringResource(R.string.setting_asr_model_offline)
+    val inUseText = stringResource(R.string.setting_asr_model_in_use)
+    val useText = stringResource(R.string.setting_asr_model_use)
+
     MochiListSection(
-        header = "识别引擎",
-        footer = "原生库不进安装包，首次使用需要下载一次；之后完全离线",
+        header = stringResource(R.string.setting_asr_configure_engine),
+        footer = stringResource(R.string.setting_asr_configure_engine_desc),
     ) {
         MochiListRow(
             title = "sherpa-onnx ${SherpaModels.ENGINE_VERSION}",
-            subtitle = "约 ${SherpaModels.ENGINE_SIZE_BYTES / 1024 / 1024} MB · " +
-                if (engineReady) "已安装" else "未安装",
+            subtitle = stringResource(R.string.setting_asr_configure_engine_size, SherpaModels.ENGINE_SIZE_BYTES / 1024 / 1024, if (engineReady) engineInstalledText else engineNotInstalledText),
             trailing = {
                 when {
                     engineDownloading -> MochiProgressRing(
@@ -702,7 +703,7 @@ private fun SherpaLocalASRConfiguration(
                     )
 
                     engineReady -> SherpaActionButton(
-                        text = "删除",
+                        text = stringResource(R.string.common_delete),
                         destructive = true,
                         onClick = {
                             store.deleteEngine()
@@ -711,7 +712,7 @@ private fun SherpaLocalASRConfiguration(
                     )
 
                     else -> SherpaActionButton(
-                        text = "下载",
+                        text = stringResource(R.string.setting_asr_download),
                         onClick = {
                             engineError = null
                             scope.launch {
@@ -721,12 +722,12 @@ private fun SherpaLocalASRConfiguration(
                                     val archive = downloadProvider.downloadFile(
                                         SherpaModels.ENGINE_URL,
                                         "sherpa-onnx-${SherpaModels.ENGINE_VERSION}.aar",
-                                    ) ?: error("下载失败")
+                                    ) ?: error(downloadFailedText)
                                     store.installEngineArchive(archive).also { archive.delete() }
                                 }.onSuccess {
                                     engineReady = true
                                 }.onFailure {
-                                    engineError = it.message ?: "引擎下载失败"
+                                    engineError = it.message ?: engineDownloadFailedText
                                 }
                                 engineDownloading = false
                             }
@@ -747,17 +748,17 @@ private fun SherpaLocalASRConfiguration(
     }
 
     MochiListSection(
-        header = "本地模型",
-        footer = "下载后保存在应用内部存储，识别全程离线、不上传音频",
+        header = stringResource(R.string.setting_asr_configure_local_models),
+        footer = stringResource(R.string.setting_asr_configure_local_models_desc),
     ) {
         SherpaModels.PRESETS.forEach { preset ->
             val isDownloaded = preset.id in downloadedIds
             val isSelected = setting.modelId == preset.id
             // 已下载的模型整行可点：选用该模型，选中项行尾显示对勾（原单选按钮「当前使用 / 使用该模型」）
             MochiListRow(
-                title = preset.displayName,
-                subtitle = "${preset.sizeBytes / 1024 / 1024} MB · ${if (preset.streaming) "流式" else "离线"} · ${preset.type}" +
-                    if (isDownloaded) " · " + (if (isSelected) "当前使用" else "使用该模型") else "",
+                title = preset.localizedDisplayName(context),
+                subtitle = resources.getString(R.string.setting_asr_configure_model_meta, preset.sizeBytes / 1024 / 1024, if (preset.streaming) streamingText else offlineText, preset.type) +
+                    if (isDownloaded) " · " + (if (isSelected) inUseText else useText) else "",
                 onClick = if (isDownloaded) {
                     {
                         onValueChange(
@@ -779,7 +780,7 @@ private fun SherpaLocalASRConfiguration(
                         )
 
                         isDownloaded -> SherpaActionButton(
-                            text = "删除",
+                            text = stringResource(R.string.common_delete),
                             destructive = true,
                             onClick = {
                                 store.delete(preset.id)
@@ -791,7 +792,7 @@ private fun SherpaLocalASRConfiguration(
                         )
 
                         else -> SherpaActionButton(
-                            text = "下载",
+                            text = stringResource(R.string.setting_asr_download),
                             onClick = {
                                 errorMessage = null
                                 scope.launch {
@@ -801,7 +802,7 @@ private fun SherpaLocalASRConfiguration(
                                         val archive = downloadProvider.downloadFile(
                                             preset.url,
                                             "${preset.id}.tar.bz2",
-                                        ) ?: error("下载失败")
+                                        ) ?: error(downloadFailedText)
                                         store.installModelArchive(preset, archive).also { archive.delete() }
                                     }.onSuccess {
                                         downloadedIds = downloadedIds + preset.id
@@ -812,7 +813,7 @@ private fun SherpaLocalASRConfiguration(
                                             )
                                         )
                                     }.onFailure {
-                                        errorMessage = it.message ?: "下载失败"
+                                        errorMessage = it.message ?: downloadFailedText
                                     }
                                     downloadingId = null
                                 }
@@ -837,12 +838,12 @@ private fun SherpaLocalASRConfiguration(
 
     MochiListSection(
         footer = speechFooter(
-            "线程数" to "识别占用的 CPU 线程，越大越快但更耗电",
-            *(if (setting.modelType == "whisper") arrayOf("识别语言" to "auto 自动检测；也可填 zh / en 等") else emptyArray()),
+            stringResource(R.string.setting_asr_configure_threads) to stringResource(R.string.setting_asr_configure_threads_desc),
+            *(if (setting.modelType == "whisper") arrayOf(stringResource(R.string.setting_asr_configure_recognition_language) to resources.getString(R.string.setting_asr_configure_recognition_language_desc)) else emptyArray()),
         ),
     ) {
         SpeechNumberFieldRow(
-            label = "线程数",
+            label = stringResource(R.string.setting_asr_configure_threads),
             value = setting.threads,
             onValueChange = { value ->
                 if (value in 1..8) {
@@ -852,7 +853,7 @@ private fun SherpaLocalASRConfiguration(
         )
         if (setting.modelType == "whisper") {
             SpeechTextFieldRow(
-                label = "识别语言",
+                label = stringResource(R.string.setting_asr_configure_recognition_language),
                 value = setting.language,
                 onValueChange = { onValueChange(setting.copy(language = it)) },
                 placeholder = "auto",
@@ -977,7 +978,7 @@ internal fun SpeechSecretFieldRow(
         ) {
             Icon(
                 imageVector = if (visible) visibilityOff else visibility,
-                contentDescription = if (visible) "隐藏 $label" else "显示 $label",
+                contentDescription = if (visible) stringResource(R.string.a11y_hide_named, label) else stringResource(R.string.a11y_show_named, label),
                 tint = MochiTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )

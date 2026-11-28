@@ -56,11 +56,10 @@ import heizige.kk.khatkit.search.SearchRepository
 import heizige.kk.khatkit.search.SearchOptions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.media.playArrow
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.Md3SwitchFormRow
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
 @Composable
@@ -92,7 +91,12 @@ internal fun TavilyOptions(
         KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
-                    label = depth.replaceFirstChar { it.uppercase() },
+                    label = stringResource(when (depth) {
+                        "basic" -> R.string.setting_search_depth_basic
+                        "advanced" -> R.string.setting_search_depth_advanced
+                        "deep" -> R.string.setting_search_depth_deep
+                        else -> R.string.setting_search_depth_standard
+                    }),
                     selected = options.depth == depth,
                     onClick = { onUpdateOptions(options.copy(depth = depth)) },
                 )
@@ -172,12 +176,15 @@ internal fun DoubaoOptions(
         )
     }
 
-    MochiFormRow(label = { Text("Mode") }) {
+    MochiFormRow(label = { Text(stringResource(R.string.setting_search_mode)) }) {
         val modes = DoubaoSearchMode.entries
         KkSingleChoiceSegmentedRow(
             items = modes.map { mode ->
                 SegmentedItem(
-                    label = mode.name.lowercase().replaceFirstChar(Char::uppercase),
+                    label = stringResource(when (mode) {
+                        DoubaoSearchMode.GLOBAL -> R.string.setting_search_mode_global
+                        DoubaoSearchMode.CUSTOM -> R.string.setting_search_mode_custom
+                    }),
                     selected = options.mode == mode,
                     onClick = { onUpdateOptions(options.copy(mode = mode)) },
                 )
@@ -296,7 +303,12 @@ internal fun SearchLinkUpOptions(
         KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
-                    label = depth.replaceFirstChar { it.uppercase() },
+                    label = stringResource(when (depth) {
+                        "basic" -> R.string.setting_search_depth_basic
+                        "advanced" -> R.string.setting_search_depth_advanced
+                        "deep" -> R.string.setting_search_depth_deep
+                        else -> R.string.setting_search_depth_standard
+                    }),
                     selected = options.depth == depth,
                     onClick = { onUpdateOptions(options.copy(depth = depth)) },
                 )
@@ -494,7 +506,7 @@ internal fun JinaOptions(
                 onUpdateOptions(options.copy(searchUrl = it.trim()))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://s.jina.ai/",
+            placeholder = stringResource(R.string.setting_search_jina_search_example),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -510,7 +522,7 @@ internal fun JinaOptions(
                 onUpdateOptions(options.copy(scrapeUrl = it.trim()))
             },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "https://r.jina.ai/",
+            placeholder = stringResource(R.string.setting_search_jina_reader_example),
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -579,7 +591,12 @@ internal fun KhatKitOptions(
         KkSingleChoiceSegmentedRow(
             items = depthOptions.map { depth ->
                 SegmentedItem(
-                    label = depth.replaceFirstChar { it.uppercase() },
+                    label = stringResource(when (depth) {
+                        "basic" -> R.string.setting_search_depth_basic
+                        "advanced" -> R.string.setting_search_depth_advanced
+                        "deep" -> R.string.setting_search_depth_deep
+                        else -> R.string.setting_search_depth_standard
+                    }),
                     selected = options.depth == depth,
                     onClick = { onUpdateOptions(options.copy(depth = depth)) },
                 )

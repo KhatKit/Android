@@ -9,6 +9,25 @@ sealed class TTSProviderSetting {
     abstract val id: Uuid
     abstract val name: String
 
+    /** Translate only built-in defaults; user-defined and persisted names remain untouched. */
+    fun localizedName(context: android.content.Context): String {
+        val (storedDefault, label) = when (this) {
+            is OpenAI -> "OpenAI TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_openai_tts
+            is Gemini -> "Gemini TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_gemini_tts
+            is SystemTTS -> "System TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_system_tts
+            is MiniMax -> "MiniMax TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_minimax_tts
+            is Qwen -> "Qwen TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_qwen_tts
+            is Groq -> "Groq TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_groq_tts
+            is XAI -> "xAI TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_xai_tts
+            is MiMo -> "MiMo TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_mimo_tts
+            is ElevenLabs -> "ElevenLabs TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_elevenlabs_tts
+            is Step -> "Step TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_step_tts
+            is FishAudio -> "Fish Audio TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_fish_audio_tts
+            is Volcengine -> "Volcengine TTS" to heizige.kk.khatkit.speech.R.string.speech_provider_volcengine_tts
+        }
+        return if (name == storedDefault) context.getString(label) else name
+    }
+
     abstract fun copyProvider(
         id: Uuid = this.id,
         name: String = this.name,

@@ -23,6 +23,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.security.MessageDigest
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernGroupChatDocument
+
+
 
 /**
  * C1-09「Tavern/QR 往返」的**导出哈希证据**（零设备）。

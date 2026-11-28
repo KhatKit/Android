@@ -40,10 +40,10 @@ import heizige.kk.khatkit.app.core.ui.components.richtext.parseDiffStats
 import heizige.kk.khatkit.app.core.ui.modifier.shimmer
 import heizige.kk.khatkit.app.core.util.generateUnifiedDiff
 import heizige.kk.khatkit.app.core.util.jsonPrimitiveOrNull
-import heizige.kk.khatkit.app.core.ui.icons.editDocument
-import heizige.kk.khatkit.app.core.ui.icons.noteAdd
-import heizige.kk.khatkit.app.core.ui.icons.preview
-import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.khatkit.app.core.ui.icons.utility.editDocument
+import heizige.kk.khatkit.app.core.ui.icons.utility.noteAdd
+import heizige.kk.khatkit.app.core.ui.icons.utility.preview
+import heizige.kk.khatkit.app.core.ui.icons.utility.terminal
 
 /**
  * 工作空间编辑文件: 摘要显示增删统计与精简 diff, 详情为完整 diff view
@@ -114,8 +114,7 @@ object EditFileToolUI : ToolUIRenderer {
         val stats = remember(diff) { parseDiffStats(diff) }
         Column(
             modifier = Modifier
-                .fillMaxHeight(0.8f)
-                .padding(16.dp)
+                .fillMaxHeight()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -262,8 +261,7 @@ private fun FileContentSummary(text: String, path: String?, loading: Boolean) {
 private fun FileContentPreview(path: String?, code: String) {
     Column(
         modifier = Modifier
-            .fillMaxHeight(0.8f)
-            .padding(16.dp)
+            .fillMaxHeight()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -349,8 +347,7 @@ object ShellToolUI : ToolUIRenderer {
         val stderr = content.getStringContent("stderr").orEmpty()
         Column(
             modifier = Modifier
-                .fillMaxHeight(0.8f)
-                .padding(16.dp)
+                .fillMaxHeight()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {

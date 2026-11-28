@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.dependency
 
 import android.content.Context
+import heizige.kk.khatkit.R
 import android.util.Log
 import dalvik.system.DexClassLoader
 import heizige.kk.khatkit.card.CardManifest
@@ -103,27 +104,26 @@ class DependencyManager(
         if (!SHA256_REGEX.matches(req.sha256)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_SHA256_INVALID",
-                "依赖包 ${req.name} 的 sha256 非法（必须是 64 位小写十六进制）：${req.sha256}",
+                appContext.getString(R.string.khatkit_dependency_sha_invalid, req.name, req.sha256),
             )
         }
         val signature = req.signature.trim()
         if (signature.isEmpty()) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_SIGNATURE_MISSING",
-                "依赖包 ${req.name} ${req.version} 缺少 ECDSA 签名（signature），无法确认发布者身份；" +
-                    "已拒绝加载，请更新卡片或从卡片市场重新安装",
+                appContext.getString(R.string.khatkit_dependency_signature_missing, req.name, req.version),
             )
         }
         if (!DependencySignature.isWellFormedBase64(signature)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_SIGNATURE_INVALID",
-                "依赖包 ${req.name} ${req.version} 的签名不是合法 base64，清单可能已损坏；已拒绝加载",
+                appContext.getString(R.string.khatkit_dependency_signature_malformed, req.name, req.version),
             )
         }
         if (pinnedKeyDer.isEmpty()) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_PUBKEY_INVALID",
-                "App 内置的依赖签名公钥非法（构建配置错误），拒绝加载任何依赖包；请重新安装正式版本",
+                appContext.getString(R.string.khatkit_dependency_key_invalid),
             )
         }
         val expected = req.sha256.lowercase()
@@ -162,8 +162,7 @@ class DependencyManager(
             Log.w(TAG, "依赖包加载前复核失败：name=${req.name} version=${req.version} fingerprint=$pinnedFingerprintSha256")
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_SIGNATURE_INVALID",
-                "依赖包 ${req.name} ${req.version} 在加载前 sha256/签名复核失败（可能被篡改），已删除缓存产物并拒绝加载；" +
-                    "请重试或从卡片市场重新安装",
+                appContext.getString(R.string.khatkit_dependency_recheck_failed, req.name, req.version),
             )
         }
         return load(req, artifact, expected, key)
@@ -196,8 +195,7 @@ class DependencyManager(
         if (!DependencySignature.matchesPinnedFingerprint(remote, pinnedFingerprintSha256)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_PUBKEY_MISMATCH",
-                "服务端依赖签名公钥与 App 内置公钥不一致（服务端 $remote ≠ 内置 $pinnedFingerprintSha256），" +
-                    "可能为中间人攻击或服务端更换了发布密钥；已拒绝加载任何依赖包，请从官方渠道更新 App",
+                appContext.getString(R.string.khatkit_dependency_key_mismatch, remote, pinnedFingerprintSha256),
             )
         }
         return null
@@ -212,18 +210,18 @@ class DependencyManager(
         if (!path.startsWith("/")) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_URL_INVALID",
-                "依赖包 ${req.name} 的下载地址必须是相对 Hub 的路径（以 / 开头），不允许任意外部镜像：$path",
+                appContext.getString(R.string.khatkit_dependency_url_invalid, req.name, path),
             )
         }
         val hub = hubBaseUrl().trim().trimEnd('/')
         if (hub.isBlank()) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HUB_UNCONFIGURED",
-                "未配置 Hub 地址，无法下载依赖包 ${req.name}；请在卡片市场设置中填写 Hub 地址后重试",
+                appContext.getString(R.string.khatkit_dependency_hub_missing, req.name),
             )
         }
         val url = hub + path
-        onStatus("正在下载依赖包：${req.name} ${req.version}")
+        onStatus(appContext.getString(R.string.khatkit_dependency_downloading, req.name, req.version))
         val bytes = try {
             fetchBytes(url)
         } catch (e: CancellationException) {
@@ -232,28 +230,26 @@ class DependencyManager(
             val spec = DependencyFallback.classifyHttp(e.status)
             val message = when (spec.code) {
                 "DEPENDENCY_REVOKED" ->
-                    "依赖包 ${req.name} ${req.version} 已被服务端撤销（revoked），为保障安全已拒绝加载；" +
-                        "请更新卡片或从卡片市场安装使用新依赖版本的卡片"
+                    appContext.getString(R.string.khatkit_dependency_revoked, req.name, req.version)
 
                 "DEPENDENCY_VERSION_UNAVAILABLE" ->
-                    "依赖包 ${req.name} ${req.version} 不存在或已下架（HTTP 404），无法下载；" +
-                        "请更新卡片或从卡片市场安装最新版本"
+                    appContext.getString(R.string.khatkit_dependency_version_missing, req.name, req.version)
 
                 else ->
-                    "依赖包下载失败：${req.name} ${req.version}（HTTP ${e.status}）。请检查网络与 Hub 地址后重试"
+                    appContext.getString(R.string.khatkit_dependency_download_http, req.name, req.version, e.status)
             }
             return DependencyEnsureResult.Err(spec.code, message, retryable = spec.retryable)
         } catch (e: Throwable) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_DOWNLOAD_FAILED",
-                "依赖包下载失败：${req.name} ${req.version}（${e.message ?: e.javaClass.simpleName}）。请检查网络与 Hub 地址后重试",
+                appContext.getString(R.string.khatkit_dependency_download_error, req.name, req.version, e.message ?: e.javaClass.simpleName),
                 retryable = true,
             )
         }
         if (bytes.isEmpty()) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_DOWNLOAD_FAILED",
-                "依赖包下载失败：${req.name} ${req.version} 返回空内容",
+                appContext.getString(R.string.khatkit_dependency_download_empty, req.name, req.version),
                 retryable = true,
             )
         }
@@ -261,7 +257,7 @@ class DependencyManager(
         if (!actual.equals(req.sha256, ignoreCase = true)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HASH_MISMATCH",
-                "依赖包 sha256 校验失败：期望 ${req.sha256}，实际 $actual。已拒绝加载，请更新卡片或联系发布者",
+                appContext.getString(R.string.khatkit_dependency_hash_failed, req.sha256, actual),
             )
         }
         // sha256 之后再做 ECDSA 签名校验：sha256 防传输损坏，签名防服务端/Hub 被篡改后投毒
@@ -273,15 +269,14 @@ class DependencyManager(
             )
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_SIGNATURE_INVALID",
-                "依赖包 ${req.name} ${req.version} 的 ECDSA 签名校验失败（sha256 虽匹配但签名不符，可能被篡改）；" +
-                    "已拒绝落盘与加载。固定公钥指纹 $pinnedFingerprintSha256，请从卡片市场重新安装",
+                appContext.getString(R.string.khatkit_dependency_signature_failed, req.name, req.version, pinnedFingerprintSha256),
             )
         }
         val parent = target.parentFile
         if (!ensureWritableDir(parent)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_STORAGE_FAILED",
-                "依赖包 ${req.name} 无法写入应用私有目录：${parent?.absolutePath}",
+                appContext.getString(R.string.khatkit_dependency_storage_failed, req.name, parent?.absolutePath),
             )
         }
         DependencyArtifactHelper.writeAtomically(target, bytes)
@@ -290,14 +285,13 @@ class DependencyManager(
             target.delete()
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_HASH_MISMATCH",
-                "依赖包 ${req.name} ${req.version} 落盘后 sha256 复核失败，已删除缓存产物，请重试",
+                appContext.getString(R.string.khatkit_dependency_saved_hash_failed, req.name, req.version),
             )
         }
         if (!DependencyArtifactHelper.markReadOnly(target)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_READONLY_FAILED",
-                "依赖包 ${req.name} 已下载但无法置为只读（Android 14+ 要求动态代码文件只读）：" +
-                    "${target.absolutePath}；已中止加载，请重试",
+                appContext.getString(R.string.khatkit_dependency_readonly_failed, req.name, target.absolutePath),
             )
         }
         lockDownDir(parent)
@@ -316,7 +310,7 @@ class DependencyManager(
             artifact.delete()
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_ARTIFACT_INVALID",
-                "依赖包 ${req.name} 产物非法：缺少 classes.dex（应为 D8 产物 jar）",
+                appContext.getString(R.string.khatkit_dependency_artifact_invalid, req.name),
             )
         }
         val codeFile = try {
@@ -324,15 +318,14 @@ class DependencyManager(
         } catch (e: Throwable) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_READONLY_FAILED",
-                "依赖包 ${req.name} 产物无法置为只读（Android 14+ 动态代码加载限制要求代码文件只读）：" +
-                    "${e.message ?: e.javaClass.simpleName}",
+                appContext.getString(R.string.khatkit_dependency_readonly_error, req.name, e.message ?: e.javaClass.simpleName),
             )
         }
         val optimized = File(dexDir, "${req.name}/${expected.take(12)}")
         if (!ensureWritableDir(optimized)) {
             return DependencyEnsureResult.Err(
                 "DEPENDENCY_DEX_DIR_UNWRITABLE",
-                "依赖包 ${req.name} 的 dex 优化目录不可写：${optimized.absolutePath}",
+                appContext.getString(R.string.khatkit_dependency_dex_unwritable, req.name, optimized.absolutePath),
             )
         }
         return try {
@@ -355,8 +348,7 @@ class DependencyManager(
             }
             DependencyEnsureResult.Err(
                 "DEPENDENCY_LOAD_BLOCKED",
-                "原生依赖 ${req.name} ${req.version} 加载被系统拦截（Android 14+ 动态代码加载限制要求只读）：" +
-                    "${e.message ?: e.javaClass.simpleName}。请重试；若仍失败请清除应用依赖缓存后重新下载",
+                appContext.getString(R.string.khatkit_dependency_load_blocked_retry, req.name, req.version, e.message ?: e.javaClass.simpleName),
             )
         } catch (e: IllegalStateException) {
             loaded[key]?.let { cached ->
@@ -364,13 +356,12 @@ class DependencyManager(
             }
             DependencyEnsureResult.Err(
                 "DEPENDENCY_LOAD_BLOCKED",
-                "原生依赖 ${req.name} ${req.version} 加载被系统拦截（Android 14+ 动态代码加载限制）：" +
-                    "${e.message ?: e.javaClass.simpleName}",
+                appContext.getString(R.string.khatkit_dependency_load_blocked, req.name, req.version, e.message ?: e.javaClass.simpleName),
             )
         } catch (e: Throwable) {
             DependencyEnsureResult.Err(
                 "DEPENDENCY_LOAD_FAILED",
-                "依赖包加载失败：${req.name} ${req.version}（${e.message ?: e.javaClass.simpleName}）",
+                appContext.getString(R.string.khatkit_dependency_load_failed, req.name, req.version, e.message ?: e.javaClass.simpleName),
             )
         }
     }

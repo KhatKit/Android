@@ -73,8 +73,8 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
-import heizige.kk.khatkit.app.core.ui.components.ui.QrScannerSheet
-import heizige.kk.khatkit.app.core.ui.components.ui.decodeProviderSetting
+import heizige.kk.khatkit.app.feature.settings.components.ui.QrScannerSheet
+import heizige.kk.khatkit.app.feature.settings.components.ui.decodeProviderSetting
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
@@ -88,15 +88,18 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.image
-import heizige.kk.khatkit.app.core.ui.icons.photoCamera
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.ai.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.media.image
+import heizige.kk.khatkit.app.core.ui.icons.media.photoCamera
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 /** 列表首项是搜索框，重排位号要跳过它。 */
 private const val SearchHeaderItems = 1
@@ -293,8 +296,6 @@ private fun AddButton(onAdd: (ProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .imePadding()
-                    .padding(bottom = 16.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
                 ProviderConfigure(current, onEdit = update)

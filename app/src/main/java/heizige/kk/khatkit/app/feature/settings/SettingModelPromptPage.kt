@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ButtonDefaults
@@ -35,9 +33,11 @@ import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.theme.MochiTheme
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
-import heizige.kk.khatkit.app.core.ui.icons.editNote
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
+
+
 
 @Composable
 internal fun PromptSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues, listState: LazyListState) {
@@ -137,12 +137,9 @@ private fun PromptSettingItem(
         title = title,
         imageVector = editNote,
         onDismiss = { showEditor = false },
-        scrollable = false,
     ) { _ ->
         Column(
-            modifier = Modifier
-                .padding(bottom = 16.dp)
-                .imePadding(),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(

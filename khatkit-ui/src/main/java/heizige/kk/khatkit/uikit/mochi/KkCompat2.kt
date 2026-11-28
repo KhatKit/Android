@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.MochiBarButton
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.rememberMochiSheetState
 
@@ -67,12 +68,12 @@ fun KkSheetShell(
     @Suppress("UNUSED_PARAMETER") confirmText: String? = null,
     @Suppress("UNUSED_PARAMETER") dismissText: String? = null,
     @Suppress("UNUSED_PARAMETER") onConfirm: (() -> Unit)? = null,
-    @Suppress("UNUSED_PARAMETER") scrollable: Boolean = true,
+    scrollable: Boolean = true,
     @Suppress("UNUSED_PARAMETER") dismissible: Boolean = true,
     @Suppress("UNUSED_PARAMETER") enablePredictiveBack: Boolean = false,
     content: @Composable (() -> Unit) -> Unit = {},
 ) {
-    // U7b-4：顶栏用 MochiSheetHeader（左取消 / 右确认 → MochiBarButton），正文原样交给内容槽。
+    // Header actions stay fixed; the body gets the finite height remaining in the Mochi viewport.
     val sheetState = rememberMochiSheetState()
     LaunchedEffect(visible) { if (visible) sheetState.show() else sheetState.hide() }
     MochiSheet(
@@ -91,7 +92,16 @@ fun KkSheetShell(
                 null
             },
         )
-        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) { content {} }
+        if (scrollable) {
+            // The library owns scrolling, concentric spacing and scroll/drag coordination.
+            MochiSheetContent(modifier = Modifier.weight(1f, fill = false)) { content {} }
+        } else {
+            // Reuse header geometry while the caller owns its lazy list or verticalScroll.
+            MochiSheetContent(
+                modifier = Modifier.weight(1f, fill = false),
+                scrollable = false,
+            ) { content {} }
+        }
     }
 }
 
@@ -163,36 +173,32 @@ fun ExpandableOptionItem(
     )
 }
 
-/** 旧 Khromia SquareColorPicker：一行预设色块（点选回传该色）。 */
+/** Compatibility entry point; all color selection is owned by Mochi. */
 @Composable
 fun SquareColorPicker(
     initialColor: androidx.compose.ui.graphics.Color,
     onColorChanged: (androidx.compose.ui.graphics.Color) -> Unit,
     modifier: Modifier = Modifier,
-    @Suppress("UNUSED_PARAMETER") showAlpha: Boolean = true,
-    @Suppress("UNUSED_PARAMETER") onDismiss: (() -> Unit)? = null,
+    showAlpha: Boolean = true,
+    onDismiss: (() -> Unit)? = null,
 ) {
-    val presets = listOf(
-        androidx.compose.ui.graphics.Color(0xFFE53935),
-        androidx.compose.ui.graphics.Color(0xFFFB8C00),
-        androidx.compose.ui.graphics.Color(0xFFFDD835),
-        androidx.compose.ui.graphics.Color(0xFF43A047),
-        androidx.compose.ui.graphics.Color(0xFF1E88E5),
-        androidx.compose.ui.graphics.Color(0xFF8E24AA),
-        androidx.compose.ui.graphics.Color(0xFF6D4C41),
-        androidx.compose.ui.graphics.Color(0xFF546E7A),
-    )
-    androidx.compose.foundation.layout.Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-    ) {
-        presets.forEach { color ->
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(32.dp)
-                    .clickable { onColorChanged(color) },
-            ) {}
-        }
+    val color = androidx.compose.runtime.remember(initialColor) {
+        androidx.compose.runtime.mutableStateOf(initialColor)
     }
+    val sheet = rememberMochiSheetState(
+        listOf(ui.feice.mochi.basic.MochiSheetDetent.Medium, ui.feice.mochi.basic.MochiSheetDetent.Large),
+    )
+    LaunchedEffect(Unit) { sheet.show() }
+    ui.feice.mochi.picker.MochiColorPickerSheet(
+        state = sheet,
+        color = color.value,
+        onColorChange = {
+            color.value = it
+            onColorChanged(it)
+        },
+        modifier = modifier,
+        title = androidx.compose.ui.res.stringResource(heizige.kk.khatkit.uikit.R.string.khatkit_color_picker_title),
+        supportsAlpha = showAlpha,
+        onDismiss = { onDismiss?.invoke() },
+    )
 }

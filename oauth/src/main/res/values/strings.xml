@@ -15,4 +15,7 @@
   <string name="oauth_callback_handled_title">Authorization already handled</string>
   <string name="oauth_callback_handled_message">This authorization callback has already been handled.</string>
   <string name="oauth_callback_handled_hint">You can safely close this tab and return to KhatKit.</string>
+  <string name="oauth_app_name">KhatKit</string>
+  <string name="oauth_error_foreground_service">Unable to start the authorization callback service. Return to the app and try again.</string>
+  <string name="oauth_callback_document_title">%1$s — %2$s</string>
 </resources>

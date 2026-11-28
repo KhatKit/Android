@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.core.data.terminal
 
 import android.content.Context
-import heizige.kk.khatkit.app.feature.extensions.TerminalPluginInfo
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginInfo
 import java.io.File
 import java.security.MessageDigest
 import java.util.zip.ZipFile
@@ -63,7 +63,7 @@ object TerminalPluginInstaller {
                     target.deleteRecursively()
                     require(temp.renameTo(target)) { "cannot commit terminal plugin" }
                     val record = TerminalPluginRecord(manifest.pluginId, manifest.version, manifest.entryClass, manifest.abi, sha, itemId, System.currentTimeMillis())
-                    TerminalPluginStore(context).write(record)
+                    TerminalPluginRepository(context).write(record)
                     record
                 } finally {
                     temp.deleteRecursively()
@@ -74,7 +74,7 @@ object TerminalPluginInstaller {
 
     suspend fun uninstall(context: Context): Boolean = withContext(Dispatchers.IO) {
         val ok = !pluginsRoot(context).exists() || pluginsRoot(context).deleteRecursively()
-        TerminalPluginStore(context).clear()
+        TerminalPluginRepository(context).clear()
         ok
     }
 

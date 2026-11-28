@@ -4,6 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import heizige.kk.khatkit.app.feature.chat.helper.shareFile
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-09 ①/导出的**分享 Intent 构造护栏**（源码文本断言，非行为断言）。
@@ -19,7 +23,7 @@ import java.io.File
  * `*SourceGuardTest`（见 `GroupStaleJobCommitSourceGuardTest`）。
  *
  * 覆盖的两个构造点：
- * - [shareFile]：`feature/chat/ConversationExport.kt` —— 群聊导出卡经
+ * - [shareFile]：`feature/chat/helper/ChatExportHelper.kt` —— 群聊导出卡经
  *   `GroupExportCard.kt:218` 调它分享 `.jsonl`。
  * - [ExporterState.exportAndShare]：`core/data/export/ExportHooks.kt` —— 通用 JSON 导出分享。
  *
@@ -30,7 +34,7 @@ import java.io.File
 class GroupExportShareIntentSourceGuardTest {
 
     private val conversationExportPath =
-        "src/main/java/heizige/kk/khatkit/app/feature/chat/ConversationExport.kt"
+        "src/main/java/heizige/kk/khatkit/app/feature/chat/helper/ChatExportHelper.kt"
     private val exportHooksPath =
         "src/main/java/heizige/kk/khatkit/app/core/data/export/ExportHooks.kt"
 

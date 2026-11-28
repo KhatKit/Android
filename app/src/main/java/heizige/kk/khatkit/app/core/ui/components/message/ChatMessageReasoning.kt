@@ -56,7 +56,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
-import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
+import heizige.kk.khatkit.app.core.ui.icons.ai.emojiObjects
 
 enum class ReasoningCardState(val expanded: Boolean) {
     Collapsed(false),

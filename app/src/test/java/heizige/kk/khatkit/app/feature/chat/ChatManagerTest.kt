@@ -9,7 +9,7 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.ui.ToolApprovalState
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.core.data.ai.tools.shouldUseExternalWebSearch
+import heizige.kk.khatkit.app.feature.chat.helper.shouldUseExternalWebSearch
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
@@ -20,6 +20,10 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.backgroundTextGenerationParams
+import heizige.kk.khatkit.app.feature.chat.helper.createForkConversation
+import heizige.kk.khatkit.app.feature.chat.helper.forkConversationTitle
+import heizige.kk.khatkit.app.feature.chat.helper.forkMessageNodes
 
 class ChatManagerTest {
     @Test

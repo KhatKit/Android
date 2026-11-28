@@ -16,6 +16,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.explore.data.McpCardStatus
+import heizige.kk.khatkit.app.feature.explore.helper.planMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.rePlanMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.mcpCardStatus
+import heizige.kk.khatkit.app.feature.explore.helper.maskSecretValue
+import heizige.kk.khatkit.app.feature.explore.helper.maskMcpUrl
+import heizige.kk.khatkit.app.feature.explore.helper.maskedMcpSummary
 
 /**
  * P0-5：市场 MCP 条目的必填识别、安装落盘决策与状态三态。

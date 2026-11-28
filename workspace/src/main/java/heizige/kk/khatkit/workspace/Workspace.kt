@@ -64,4 +64,8 @@ data class WorkspaceCommandResult(
     val stderr: String,
     val timedOut: Boolean = false,
     val truncated: Boolean = false,
+    /** Structured host failure; stdout/stderr remain stable shell protocol output. */
+    val failure: WorkspaceCommandFailure? = null,
 )
+
+enum class WorkspaceCommandFailure { ROOTFS_MISSING, PROOT_MISSING, LOADER_MISSING }

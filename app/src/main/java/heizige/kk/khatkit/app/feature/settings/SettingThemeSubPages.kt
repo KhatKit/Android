@@ -26,7 +26,7 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroupScope
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
 import heizige.kk.khatkit.app.core.ui.components.ui.sliderItem
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
@@ -60,18 +60,18 @@ import ui.feice.mochi.theme.MochiGlassStyle
 import ui.feice.mochi.theme.PaletteStyle
 
 private val paletteOptions = listOf(
-    PaletteStyle.TonalSpot to "Tonal",
-    PaletteStyle.Expressive to "Expressive",
-    PaletteStyle.Vibrant to "Vibrant",
-    PaletteStyle.Neutral to "Neutral",
-    PaletteStyle.Content to "Content",
-    PaletteStyle.Fidelity to "Fidelity",
+    PaletteStyle.TonalSpot to R.string.setting_theme_palette_tonal,
+    PaletteStyle.Expressive to R.string.setting_theme_palette_expressive,
+    PaletteStyle.Vibrant to R.string.setting_theme_palette_vibrant,
+    PaletteStyle.Neutral to R.string.setting_theme_palette_neutral,
+    PaletteStyle.Content to R.string.setting_theme_palette_content,
+    PaletteStyle.Fidelity to R.string.setting_theme_palette_fidelity,
 )
 
 private val glassOptions = listOf(
-    MochiGlassStyle.Regular to "标准折射",
-    MochiGlassStyle.Frosted to "毛玻璃",
-    MochiGlassStyle.Thick to "厚实折射",
+    MochiGlassStyle.Regular to R.string.setting_theme_glass_regular,
+    MochiGlassStyle.Frosted to R.string.setting_theme_glass_frosted,
+    MochiGlassStyle.Thick to R.string.setting_theme_glass_thick,
 )
 
 internal fun <T> CardGroupScope.mochiThemePicker(
@@ -176,7 +176,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
     ).toImmutableList()
 
     MochiSettingsPageScaffold(
-        title = "配色",
+        title = stringResource(R.string.setting_theme_colors),
         scrollUnderTopBar = true,
     ) { innerPadding ->
         LazyColumn(
@@ -192,11 +192,11 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
         ) {
         item(key = "mode") {
             CardGroup(
-                title = { Text("明暗") },
-                footer = "明暗跟系统走时，系统换深色这套配色自己跟着换；固定成浅色或深色就不再跟系统。",
+                title = { Text(stringResource(R.string.setting_theme_mode_group)) },
+                footer = stringResource(R.string.setting_theme_mode_desc),
             ) {
                 item(
-                    headlineContent = { Text("模式") },
+                    headlineContent = { Text(stringResource(R.string.setting_theme_mode)) },
                     trailingContent = {
                         MochiSegmentedControl(
                             selectedIndex = ColorMode.entries.indexOf(colorMode.value).coerceAtLeast(0),
@@ -229,14 +229,15 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
         }
 
         if (useSeedPalette) item(key = "seed") {
+            val algorithmTitle = stringResource(R.string.setting_theme_algorithm)
+            val localizedPaletteOptions = paletteOptions.map { (value, label) -> value to stringResource(label) }
             CardGroup(
-                title = { Text("主题色") },
-                footer = "按 MD3 规则从种子色生成整套配色，色块上是生成的主色、辅助色和第三色。" +
-                    "选了色块后，「系统取色」换成同样明暗的静态配色。",
+                title = { Text(stringResource(R.string.setting_theme_seed)) },
+                footer = stringResource(R.string.setting_theme_seed_footer),
             ) {
                 mochiThemePicker(
-                    title = "取色算法",
-                    options = paletteOptions,
+                    title = algorithmTitle,
+                    options = localizedPaletteOptions,
                     selected = settings.displaySetting.mochiPaletteStyle,
                 ) { style ->
                     vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiPaletteStyle = style)) }
@@ -251,7 +252,7 @@ fun SettingThemeColorsPage(vm: SettingViewModel = hiltViewModel()) {
                         ) {
                             if (settings.dynamicColor) {
                                 Text(
-                                    text = "当前跟随壁纸取色，选下面的配色会自动关闭动态取色",
+                                    text = stringResource(R.string.setting_theme_dynamic_hint),
                                     style = MochiTheme.textStyles.footnote,
                                     color = MochiTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -287,7 +288,7 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
     ).toImmutableList()
 
     MochiSettingsPageScaffold(
-        title = "材质",
+        title = stringResource(R.string.setting_theme_materials),
         scrollUnderTopBar = true,
     ) { innerPadding ->
         LazyColumn(
@@ -302,9 +303,11 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
         item(key = "materials") {
+            val glassStyleTitle = stringResource(R.string.setting_theme_glass_style)
+            val localizedGlassOptions = glassOptions.map { (value, label) -> value to stringResource(label) }
             CardGroup(
-                title = { Text("材质") },
-                footer = "液态玻璃作用于导航栏、菜单和面板。顶栏样式决定内容滚到顶栏下方时的效果。",
+                title = { Text(stringResource(R.string.setting_theme_materials)) },
+                footer = stringResource(R.string.setting_theme_materials_footer),
             ) {
                 item(
                     headlineContent = { Text(stringResource(R.string.setting_display_page_effects_title)) },
@@ -327,8 +330,8 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                     anchor = settingAnchor(R.string.setting_display_page_effects_title),
                 )
                 mochiThemePicker(
-                    title = "玻璃样式",
-                    options = glassOptions,
+                    title = glassStyleTitle,
+                    options = localizedGlassOptions,
                     selected = display.resolvedMochiGlassStyle,
                     visible = display.effectsEnabled,
                 ) { style ->
@@ -366,7 +369,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
 
     MochiSettingsPageScaffold(
-        title = "列表卡片",
+        title = stringResource(R.string.setting_theme_list_cards),
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -379,9 +382,10 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
         item(key = "listCards") {
+            val dpSuffix = stringResource(R.string.setting_unit_dp)
             CardGroup(
-                title = { Text("列表卡片") },
-                footer = "调的是分组卡片的圆角与卡片之间的距离；改完立刻生效，所有列表一起变。",
+                title = { Text(stringResource(R.string.setting_theme_list_cards)) },
+                footer = stringResource(R.string.setting_theme_cards_footer),
             ) {
                 sliderItem(
                     title = { stringResource(R.string.setting_display_page_card_corner_large) },
@@ -398,7 +402,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     valueRange = 8f..40f,
                     defaultValue = 26f,
                     steps = 31,
-                    suffix = "dp",
+                    suffix = dpSuffix,
                     anchor = settingAnchor(R.string.setting_display_page_card_corner_large),
                 )
                 sliderItem(
@@ -412,7 +416,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     valueRange = 0f..settings.listCardLargeCorner.coerceAtLeast(1f),
                     defaultValue = 0f,
                     steps = (settings.listCardLargeCorner.roundToInt().coerceAtLeast(1) - 1).coerceAtLeast(0),
-                    suffix = "dp",
+                    suffix = dpSuffix,
                     anchor = settingAnchor(R.string.setting_display_page_card_corner_small),
                 )
                 sliderItem(
@@ -424,7 +428,7 @@ fun SettingThemeListCardsPage(vm: SettingViewModel = hiltViewModel()) {
                     valueRange = 0f..16f,
                     defaultValue = 0f,
                     steps = 15,
-                    suffix = "dp",
+                    suffix = dpSuffix,
                     anchor = settingAnchor(R.string.setting_display_page_card_gap),
                 )
             }
@@ -441,9 +445,9 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
     val predictiveBackTitle = stringResource(R.string.setting_preferences_predictive_back_title)
     val predictiveBackDescription = stringResource(R.string.setting_preferences_predictive_back_desc)
     val labelStyleLabels = listOf(
-        "图标 + 文字",
-        "仅选中项文字",
-        "仅图标",
+        stringResource(R.string.setting_theme_nav_icon_text),
+        stringResource(R.string.setting_theme_nav_selected),
+        stringResource(R.string.setting_theme_nav_icons),
     ).toImmutableList()
 
     MochiSettingsPageScaffold(
@@ -475,17 +479,16 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
         }
         item(key = "navBarStyle") {
             CardGroup(
-                title = { Text("底部导航栏") },
-                footer = "标签样式跟 Mochi 标签栏的三种排法（默认「图标 + 文字」）。「仅选中项文字」和「仅图标」会把底栏换成 52dp 的图标栏；" +
-                    "大屏（600–840dp）的左侧导航轨同步隐藏未选中项的文字。",
+                title = { Text(stringResource(R.string.setting_theme_navbar)) },
+                footer = stringResource(R.string.setting_theme_navbar_footer),
             ) {
                 // 三档标签较长，放行尾会把标题列挤成竖排；改成标题 + 全宽分段控件
                 item(
-                    headlineContent = { Text("导航栏样式") },
+                    headlineContent = { Text(stringResource(R.string.setting_theme_navbar_style)) },
                     supportingContent = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = "底部导航栏显示哪些文字",
+                                text = stringResource(R.string.setting_theme_navbar_desc),
                                 style = MochiTheme.textStyles.footnote,
                                 color = MochiTheme.colorScheme.onSurfaceVariant,
                             )
@@ -508,8 +511,8 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
                     },
                 )
                 item(
-                    headlineContent = { Text("滚动时收起") },
-                    supportingContent = { Text("内容往下滚时缩成只剩当前图标的小胶囊，往上滚或点它展开") },
+                    headlineContent = { Text(stringResource(R.string.setting_theme_navbar_collapse)) },
+                    supportingContent = { Text(stringResource(R.string.setting_theme_navbar_collapse_desc)) },
                     onClick = {
                         vm.updateSettings(
                             settings.copy(
@@ -535,12 +538,13 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
             }
         }
         if (display.effectsEnabled) item(key = "barGlass") {
+            val percentSuffix = stringResource(R.string.setting_unit_percent)
             CardGroup(
-                title = { Text("栏玻璃") },
-                footer = "往左更透明，往右加重玻璃底色。玻璃样式可在「材质」中选择。",
+                title = { Text(stringResource(R.string.setting_theme_bar_glass)) },
+                footer = stringResource(R.string.setting_theme_bar_glass_desc),
             ) {
                 sliderItem(
-                    title = { "通透度" },
+                    title = { stringResource(R.string.setting_theme_transparency) },
                     value = display.glassTint,
                     onValueChange = { value ->
                         vm.updateSettings {
@@ -551,7 +555,7 @@ fun SettingThemeNavBarPage(vm: SettingViewModel = hiltViewModel()) {
                     defaultValue = 0.5f,
                     steps = 19,
                     displayScale = 100f,
-                    suffix = "%",
+                    suffix = percentSuffix,
                 )
             }
         }

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.hub
 
+import heizige.kk.khatkit.localization.RuntimeText
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
@@ -59,6 +60,7 @@ class HubClient(
     engine: HttpClientEngine = CIO.create(),
     private val json: Json = Json { ignoreUnknownKeys = true },
     private val downloadBridgeProvider: (() -> DownloadBridge?)? = null,
+    private val messageResolver: (RuntimeText) -> String = RuntimeText::diagnosticMessage,
 ) {
     private val client = HttpClient(engine) {
         expectSuccess = false
@@ -100,7 +102,7 @@ class HubClient(
             parameter("offset", offset)
             parameter("limit", limit)
         }
-        check(response.status.isSuccess()) { "工具目录暂时无法连接" }
+        check(response.status.isSuccess()) { messageResolver(RuntimeText(RuntimeText.Code.HUB_CATALOG_UNAVAILABLE)) }
         return response.body()
     }
 
@@ -318,21 +320,21 @@ class HubClient(
         val body = call.body?.asObj()
         when (call.code) {
             401 -> HubAuthorizeOutcome.Denied(
-                body?.errorText() ?: "令牌无效或已过期，请重新激活套餐"
+                body?.errorText() ?: messageResolver(RuntimeText(RuntimeText.Code.HUB_TOKEN_EXPIRED))
             )
             402, 403, 429 -> HubAuthorizeOutcome.Denied(
                 body?.errorText()
-                    ?: if (call.code == 429) "请求过于频繁，请稍后再试" else "套餐工具次数不足，请充值或续费"
+                    ?: if (call.code == 429) messageResolver(RuntimeText(RuntimeText.Code.HUB_RATE_LIMITED)) else messageResolver(RuntimeText(RuntimeText.Code.HUB_QUOTA_INSUFFICIENT))
             )
             in 200..299 -> when (body?.boolAny("allow", "allowed", "ok", "authorized", "granted", "success")) {
                 false -> HubAuthorizeOutcome.Denied(
-                    body.errorText() ?: "套餐工具次数不足，本次调用被拒绝"
+                    body.errorText() ?: messageResolver(RuntimeText(RuntimeText.Code.HUB_QUOTA_DENIED))
                 )
                 true -> HubAuthorizeOutcome.Allowed(
                     body.longAny("remaining_tool_calls", "remaining", "tool_calls_remaining", "quota_remaining", "balance")
                 )
                 // 2xx 但没有明确字段：有 error 视为拒绝，否则按放行处理（不阻塞本地卡片）
-                null -> body?.let { it["error"] }?.let { HubAuthorizeOutcome.Denied(body.errorText() ?: "调用被拒绝") }
+                null -> body?.let { it["error"] }?.let { HubAuthorizeOutcome.Denied(body.errorText() ?: messageResolver(RuntimeText(RuntimeText.Code.HUB_CALL_DENIED))) }
                     ?: HubAuthorizeOutcome.Allowed()
             }
             else -> HubAuthorizeOutcome.Unavailable(httpError(call.code, body))
@@ -352,9 +354,9 @@ class HubClient(
             return@withContext HubCardListResult(false, message = httpError(call.code, call.body?.asObj()))
         }
         val body = call.body as? JsonObject
-            ?: return@withContext HubCardListResult(false, message = "市场响应格式无效")
+            ?: return@withContext HubCardListResult(false, message = messageResolver(RuntimeText(RuntimeText.Code.HUB_RESPONSE_INVALID)))
         val items = body["items"] as? JsonArray
-            ?: return@withContext HubCardListResult(false, message = "市场响应缺少 items")
+            ?: return@withContext HubCardListResult(false, message = messageResolver(RuntimeText(RuntimeText.Code.HUB_ITEMS_MISSING)))
         val cards = items.map { json.decodeFromJsonElement<HubItemSummary>(it) }.map { item ->
             HubCardMarketInfo(
                 name = item.name, version = item.version, author = item.author,
@@ -420,19 +422,19 @@ class HubClient(
     }
 
     private fun networkError(error: Throwable): String =
-        "网络错误：${error.message ?: error.javaClass.simpleName}（请检查网络或 Hub 地址）"
+        messageResolver(RuntimeText(RuntimeText.Code.HUB_NETWORK_ERROR, listOf(error.message ?: error.javaClass.simpleName)))
 
     private fun httpError(code: Int, body: JsonObject?): String {
         body?.errorText()?.let { return it }
         return when (code) {
-            400 -> "请求参数有误（400）"
-            401 -> "令牌无效或已过期，请重新激活套餐"
-            402, 403 -> "套餐工具次数不足或权益不可用"
-            404 -> "服务端未提供该接口（Hub 可能尚未部署）"
-            408 -> "请求超时"
-            429 -> "请求过于频繁，请稍后再试"
-            in 500..599 -> "服务器错误（$code），请稍后重试"
-            else -> "请求失败（$code）"
+            400 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_BAD_REQUEST))
+            401 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_TOKEN_EXPIRED))
+            402, 403 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_ENTITLEMENT_UNAVAILABLE))
+            404 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_ENDPOINT_MISSING))
+            408 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_REQUEST_TIMEOUT))
+            429 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_RATE_LIMITED))
+            in 500..599 -> messageResolver(RuntimeText(RuntimeText.Code.HUB_SERVER_ERROR, listOf(code)))
+            else -> messageResolver(RuntimeText(RuntimeText.Code.HUB_REQUEST_FAILED, listOf(code)))
         }
     }
 

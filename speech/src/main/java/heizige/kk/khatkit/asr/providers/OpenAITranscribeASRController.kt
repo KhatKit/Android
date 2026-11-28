@@ -3,6 +3,7 @@ package heizige.kk.khatkit.asr.providers
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import heizige.kk.khatkit.speech.R
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -72,7 +73,7 @@ class OpenAITranscribeASRController(
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            setError("Microphone permission is required")
+            setError(context.getString(R.string.speech_error_microphone_permission))
             return
         }
 
@@ -101,7 +102,7 @@ class OpenAITranscribeASRController(
                 transcribe()
             } catch (e: Exception) {
                 Log.e(TAG, "Transcription failed", e)
-                setError(e.message ?: "OpenAI transcribe failed")
+                setError(context.getString(R.string.speech_error_transcription))
             } finally {
                 _state.update { it.copy(status = ASRStatus.Idle) }
             }
@@ -157,7 +158,7 @@ class OpenAITranscribeASRController(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Audio recording failed", e)
-                setError(e.message ?: "Audio recording failed")
+                setError(context.getString(R.string.speech_error_recording))
             } finally {
                 releaseRecorder()
             }

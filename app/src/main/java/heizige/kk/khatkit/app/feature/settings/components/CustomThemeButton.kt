@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import heizige.kk.khatkit.app.core.ui.theme.CustomTheme
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
-import heizige.kk.khatkit.app.core.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
 
 @Composable
 fun CustomThemeButtonGroup(

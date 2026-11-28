@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.imggen
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiChipGroup
@@ -34,10 +35,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPagesState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -102,26 +103,29 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.arrowUpward
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.khatkit.app.core.ui.icons.photo
-import heizige.kk.khatkit.app.core.ui.icons.save
-import heizige.kk.khatkit.app.core.ui.icons.tune
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowUpward
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.settings.palette
+import heizige.kk.khatkit.app.core.ui.icons.media.photo
+import heizige.kk.khatkit.app.core.ui.icons.files.save
+import heizige.kk.khatkit.app.core.ui.icons.settings.tune
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import ui.feice.mochi.theme.MochiTheme
-
-
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import heizige.kk.khatkit.app.feature.imggen.data.GeneratedImage
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
+
 
 @Composable
 fun ImageGenPage(
@@ -172,7 +176,7 @@ fun ImageGenPage(
                                         MochiIconButton(onClick = vm::startNewSession, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = add,
-                            contentDescription = "New session"
+                            contentDescription = stringResource(R.string.imggen_page_new_session)
                         )
                     }
                 
@@ -347,6 +351,7 @@ private fun InputBar(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     val scope = rememberCoroutineScope()
     // 参考图走自研媒体网格选择器（对齐 ImageToolbox）
@@ -435,7 +440,7 @@ private fun InputBar(
             ) {
                 Icon(
                     imageVector = add,
-                    contentDescription = "Add reference image"
+                    contentDescription = stringResource(R.string.imggen_page_add_reference_image)
                 )
             }
 
@@ -542,6 +547,7 @@ private fun ImageGalleryScreen(
     MochiNavPageReselectHandler { gridState.animateScrollToItem(0) }
     val generatedImages = vm.generatedImages.collectAsLazyPagingItems()
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     val imggenPageDeleteImagesSuccess = stringResource(R.string.imggen_page_delete_images_success)
     val imggenPageDeleteImagesFailed = stringResource(R.string.imggen_page_delete_images_failed)
@@ -756,7 +762,7 @@ private fun ImageGalleryScreen(
                                                 onClick = {
                                                     clipboardManager.setText(AnnotatedString(it.prompt))
                                                     Toast.show(
-                                                        message = "Prompt copied to clipboard",
+                                                        message = resources.getString(R.string.imggen_page_prompt_copied),
                                                         isError = false
                                                     )
                                                 },
@@ -765,7 +771,7 @@ private fun ImageGalleryScreen(
                                             ) {
                                                 Icon(
                                                     imageVector = contentCopy,
-                                                    contentDescription = "Copy prompt",
+                                                    contentDescription = stringResource(R.string.imggen_page_copy_prompt),
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
@@ -847,8 +853,7 @@ private fun SettingsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .imePadding(),
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             MochiFormRow(
@@ -863,7 +868,7 @@ private fun SettingsBottomSheet(
             }
 
             MochiFormRow(
-                label = { Text("Image Size") }) {
+                label = { Text(stringResource(R.string.imggen_page_image_size)) }) {
                 // CH1：单选 chip 组统一用 MochiChipGroup（wrap = true 自动换行）。
                 MochiChipGroup(wrap = true, contentPadding = PaddingValues(0.dp)) {
                     ImageGenSize.entries.forEach { sizeOption ->
@@ -880,8 +885,8 @@ private fun SettingsBottomSheet(
                 Md3OutlinedTextFieldWithSlots(
                     value = size,
                     onValueChange = vm::updateSize,
-                    label = { Text("Custom size") },
-                    placeholder = { Text("e.g. 1024x1024") },
+                    label = { Text(stringResource(R.string.imggen_page_custom_size)) },
+                    placeholder = { Text(stringResource(R.string.imggen_page_custom_size_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = MochiTheme.textStyles.body,

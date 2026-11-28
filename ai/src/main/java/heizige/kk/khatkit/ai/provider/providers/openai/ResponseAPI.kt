@@ -243,8 +243,13 @@ class ResponseAPI(
                     if (capabilities.supportsReasoningSummary) {
                         put("summary", "auto")
                     }
+                    // 自定义映射存在时，其 null 是「明确不发 effort」；只有没有自定义映射才走默认规则
                     val effort = capabilities.reasoningEffort?.invoke(level, params.model.modelId)
-                        ?: if (level != ReasoningLevel.AUTO) level.effort else null
+                        ?: if (capabilities.reasoningEffort == null && level != ReasoningLevel.AUTO) {
+                            level.effort
+                        } else {
+                            null
+                        }
                     if (effort != null) {
                         put("effort", effort)
                     }

@@ -19,6 +19,9 @@ import coil3.compose.AsyncImage
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
+
+
 
 class NodeTreeSmokeTest {
     @get:Rule val compose = createComposeRule()

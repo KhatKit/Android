@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.debug
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
 import heizige.kk.khatkit.uikit.mochi.MochiButton
@@ -29,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -62,11 +65,15 @@ import kotlin.random.nextInt
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import heizige.kk.khatkit.app.core.util.Emoji
+
+
 
 @Composable
 fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
     // Tab 数 = titles.size：原先第 3 个 tab「Logging」的页体是 `2 -> Box {}`（空页），
     // 已按上游判定删除 —— 上游 2.5.6（447bb7e89）本身就是 `2 -> Box {}`，没有任何页体内容，
     // 且 f8141eeb7 的提交信息明写「移除原 DebugPage 中的废弃日志查看代码」并把日志查看器
@@ -75,8 +82,12 @@ fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
     val state = rememberPagerState { 3 }
     // Tab 页统一骨架：MD3 下保持 SecondaryTabRow，Miuix 下换原生 TabRow。
     MochiTabPageScaffold(
-        title = "Debug Mode",
-        titles = listOf("Main", "Colors", "Recovery"),
+        title = stringResource(R.string.debug_page_title),
+        titles = listOf(
+            stringResource(R.string.debug_page_tab_main),
+            stringResource(R.string.debug_page_tab_colors),
+            stringResource(R.string.debug_page_tab_recovery),
+        ),
         selectedTabIndex = state.currentPage,
         onTabSelected = { scope.launch { state.animateScrollToPage(it) } },
     ) { pagerModifier ->
@@ -95,6 +106,8 @@ fun DebugPage(vm: DebugViewModel = hiltViewModel()) {
 
 @Composable
 private fun RecoveryPage(vm: DebugViewModel) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
     val references by vm.conversationAssistants.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val missing = references.orEmpty().filterKeys { id -> settings.assistants.none { it.id == id } }
@@ -106,27 +119,29 @@ private fun RecoveryPage(vm: DebugViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("聊天记录引用的助手")
-        Text("扫描到 ${references?.size ?: 0} 个助手 ID，其中 ${missing.size} 个在当前设置中缺失。")
+        Text(stringResource(R.string.debug_page_refs_title))
+        Text(stringResource(R.string.debug_page_refs_scan, references?.size ?: 0, missing.size))
         MochiButton(
             onClick = {
                 scope.launch {
                     val count = vm.recoverAssistantsFromConversations()
-                    Toast.show(if (count == null) "设置仍在加载" else "恢复了 $count 个助手")
+                    Toast.show(if (count == null) resources.getString(R.string.debug_page_settings_loading) else resources.getString(R.string.debug_page_recovered_count, count))
                 }
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("恢复缺失的助手")
+            Text(stringResource(R.string.debug_page_recover_missing))
         }
         missing.entries.sortedByDescending { it.value }.forEach { (id, count) ->
-            Text("$id: $count 条对话", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.debug_page_conversation_count, id, count), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 @Composable
 private fun MainPage(vm: DebugViewModel) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
     val settings = LocalSettings.current
     val conversationCount by vm.conversationCount.collectAsStateWithLifecycle()
     Column(
@@ -174,13 +189,13 @@ private fun MainPage(vm: DebugViewModel) {
 
         MochiButton(
             onClick = {
-                Toast.show("测试 ${counter++}")
-                Toast.show("测试 ${counter++}", isError = false)
-                Toast.show("测试 ${counter++}", isError = true)
+                Toast.show(resources.getString(R.string.debug_page_toast_test, counter++))
+                Toast.show(resources.getString(R.string.debug_page_toast_test, counter++), isError = false)
+                Toast.show(resources.getString(R.string.debug_page_toast_test, counter++), isError = true)
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("toast")
+            Text(stringResource(R.string.debug_page_toast_button))
         }
         MochiButton(
             onClick = {
@@ -192,7 +207,7 @@ private fun MainPage(vm: DebugViewModel) {
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("重置Chat模型")
+            Text(stringResource(R.string.debug_page_reset_chat_model))
         }
 
         MochiButton(
@@ -201,7 +216,7 @@ private fun MainPage(vm: DebugViewModel) {
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("崩溃")
+            Text(stringResource(R.string.debug_page_crash))
         }
 
         Row(
@@ -209,37 +224,37 @@ private fun MainPage(vm: DebugViewModel) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Conversation 数量: ${conversationCount?.toString() ?: "..."}",
+                text = stringResource(R.string.debug_page_conversation_counter, conversationCount?.toString() ?: "..."),
                 modifier = Modifier.weight(1f),
             )
             MochiButton(onClick = { vm.refreshConversationCount() }, shapes = ButtonDefaults.shapes()) {
-                Text("刷新")
+                Text(stringResource(R.string.debug_page_refresh))
             }
         }
 
         MochiButton(
             onClick = {
                 vm.createOversizedConversation(30)
-                Toast.show("正在创建 30MB 超大对话...")
+                Toast.show(resources.getString(R.string.debug_page_creating_oversized))
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("创建超大对话 (30MB)")
+            Text(stringResource(R.string.debug_page_create_oversized))
         }
 
         MochiButton(
             onClick = {
                 vm.createConversationWithMessages(1024)
-                Toast.show("正在创建 1024 条消息对话...")
+                Toast.show(resources.getString(R.string.debug_page_creating_many))
             },
             shapes = ButtonDefaults.shapes(),
         ) {
-            Text("创建 1024 个消息的聊天")
+            Text(stringResource(R.string.debug_page_create_many))
         }
 
         MochiHorizontalDivider()
 
-        Text("Launch Stats", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.debug_page_launch_stats), style = MaterialTheme.typography.bodyMedium)
 
         var launchCountInput by remember(settings.launchCount) {
             mutableStateOf(settings.launchCount.toString())
@@ -251,7 +266,7 @@ private fun MainPage(vm: DebugViewModel) {
             Md3OutlinedTextFieldWithSlots(
                 value = launchCountInput,
                 onValueChange = { launchCountInput = it },
-                label = { Text("launchCount (current: ${settings.launchCount})") },
+                label = { Text(stringResource(R.string.debug_page_launch_count_label, settings.launchCount)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp)
@@ -262,7 +277,7 @@ private fun MainPage(vm: DebugViewModel) {
                 }
             },
                  shapes = ButtonDefaults.shapes(),) {
-                Text("Set")
+                Text(stringResource(R.string.debug_page_set))
             }
         }
 

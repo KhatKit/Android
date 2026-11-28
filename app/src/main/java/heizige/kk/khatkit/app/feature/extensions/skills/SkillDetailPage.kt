@@ -53,16 +53,16 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.description
-import heizige.kk.khatkit.app.core.ui.icons.editDocument
-import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.khatkit.app.core.ui.icons.folderOpen
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.chevronRight
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.files.description
+import heizige.kk.khatkit.app.core.ui.icons.utility.editDocument
+import heizige.kk.khatkit.app.core.ui.icons.files.folder
+import heizige.kk.khatkit.app.core.ui.icons.files.folderOpen
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
 import heizige.kk.khatkit.uikit.mochi.KkFloatingActionButton
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 import ui.feice.mochi.theme.MochiTheme
 
 @Composable

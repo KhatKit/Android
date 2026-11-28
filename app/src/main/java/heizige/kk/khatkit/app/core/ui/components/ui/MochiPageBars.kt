@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.MochiButtonDefaults
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.effect.glass.MochiBackdrop

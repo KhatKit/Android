@@ -92,16 +92,16 @@ import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.util.writeClipboardText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.commentsDisabled
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.error
-import heizige.kk.khatkit.app.core.ui.icons.settings
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.feature.settings.mcp.McpServerConfigModal
-import heizige.kk.khatkit.app.feature.settings.mcp.McpImportModal
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.chat.commentsDisabled
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.utility.error
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
+import heizige.kk.khatkit.app.core.ui.components.ai.mcp.McpServerConfigModal
+import heizige.kk.khatkit.app.core.ui.components.ai.mcp.McpImportModal
 import heizige.kk.khatkit.uikit.mochi.MochiPullToRefreshBox
 
 @Composable
@@ -244,7 +244,7 @@ internal fun McpServerItem(
         val fullText = error.detail ?: error.message
         AppDialog(
             onDismissRequest = { errorDetail = null },
-            title = { Text(item.commonOptions.name.ifBlank { "MCP" }) },
+            title = { Text(item.commonOptions.name.ifBlank { stringResource(R.string.setting_mcp_label) }) },
             text = {
                 SelectionContainer {
                     Text(
@@ -367,8 +367,8 @@ internal fun McpServerItem(
                     ) {
                         Tag(type = TagType.SUCCESS) {
                             when (item) {
-                                is McpServerConfig.SseTransportServer -> Text("SSE")
-                                is McpServerConfig.StreamableHTTPServer -> Text("Streamable HTTP")
+                                is McpServerConfig.SseTransportServer -> Text(stringResource(R.string.setting_mcp_sse))
+                                is McpServerConfig.StreamableHTTPServer -> Text(stringResource(R.string.setting_mcp_http))
                             }
                         }
                     }
@@ -386,7 +386,7 @@ internal fun McpServerItem(
                     if (status == McpStatus.NeedsAuthorization) {
                         val context = LocalContext.current
                         Text(
-                            text = "需要 OAuth 授权",
+                            text = stringResource(R.string.setting_mcp_oauth_required),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -395,12 +395,12 @@ internal fun McpServerItem(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                             shapes = ButtonDefaults.shapes(),
                         ) {
-                            Text("OAuth 授权")
+                            Text(stringResource(R.string.setting_mcp_oauth_authorize))
                         }
                     }
                     if (status == McpStatus.Authorizing) {
                         Text(
-                            text = "正在授权，请在浏览器中完成…",
+                            text = stringResource(R.string.setting_mcp_oauth_pending),
                             style = MaterialTheme.typography.labelSmall,
                         )
                         MochiTextButton(
@@ -408,7 +408,7 @@ internal fun McpServerItem(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                             shapes = ButtonDefaults.shapes(),
                         ) {
-                            Text("取消授权")
+                            Text(stringResource(R.string.setting_mcp_oauth_cancel))
                         }
                     }
                 }

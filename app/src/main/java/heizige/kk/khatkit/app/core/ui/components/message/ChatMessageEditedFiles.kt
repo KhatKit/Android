@@ -3,6 +3,7 @@ package heizige.kk.khatkit.app.core.ui.components.message
 import heizige.kk.khatkit.uikit.mochi.KkCard
 import androidx.compose.runtime.LaunchedEffect
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.rememberMochiSheetState
 import heizige.kk.khatkit.uikit.mochi.KkSurface
@@ -47,9 +48,9 @@ import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
-import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.files.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.social.share
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
 
 private const val DEFAULT_VISIBLE_COUNT = 3
 private val WORKSPACE_FILE_TOOL_NAMES = setOf("workspace_write_file", "workspace_edit_file")
@@ -157,10 +158,8 @@ internal fun EditedFilesList(
         val fileName = remember(path) { path.substringAfterLast('/') }
         MochiSheet(state = detailSheet, onDismiss = { selectedPath = null }) {
             MochiSheetHeader(title = fileName)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+            MochiSheetContent(
+                modifier = Modifier.weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 KkCard(

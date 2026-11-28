@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,10 +59,10 @@ import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.getCurrentAssistant
 import heizige.kk.khatkit.app.core.ui.components.ui.KkFilterChip
 import heizige.kk.khatkit.app.core.ui.hooks.writeStringPreference
-import heizige.kk.khatkit.app.core.ui.icons.bugReport
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.icons.utility.bugReport
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.CrashHandler
@@ -81,8 +80,9 @@ import heizige.kk.khatkit.uikit.mochi.MochiStatusLevel
 import heizige.kk.khatkit.uikit.mochi.MochiStatusTag
 import heizige.kk.khatkit.uikit.mochi.MochiTopAppBar
 import kotlinx.coroutines.launch
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.list.MochiListDefaults
@@ -388,14 +388,15 @@ private fun AssistantPickerSheet(
         else settings.assistants.filter { it.tags.any { id -> id in selectedTagIds } }
     }
 
-    // U7b-6：直连 MochiSheet（state 由调用方持有）。
-    MochiSheet(state = sheetState, onDismiss = onDismiss) {
-        MochiSheetHeader(title = stringResource(R.string.safe_mode_assistants))
+    PrimaryBottomSheet(
+        state = sheetState,
+        title = stringResource(R.string.safe_mode_assistants),
+        imageVector = groups,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.8f)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (settings.assistantTags.isNotEmpty()) {
@@ -425,6 +426,7 @@ private fun AssistantPickerSheet(
             val cards = listCardStyle()
             LazyColumn(
                 modifier = Modifier.weight(1f),
+                flingBehavior = MochiScrollDefaults.flingBehavior(),
                 verticalArrangement = Arrangement.spacedBy(cards.gap),
             ) {
                 itemsIndexed(filteredAssistants, key = { _, assistant -> assistant.id }) { index, assistant ->

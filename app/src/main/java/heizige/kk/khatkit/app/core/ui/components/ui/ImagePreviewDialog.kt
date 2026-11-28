@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +28,7 @@ import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.download
+import heizige.kk.khatkit.app.core.ui.icons.files.download
 
 @Composable
 fun ImagePreviewDialog(
@@ -35,6 +36,7 @@ fun ImagePreviewDialog(
     onDismissRequest: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val filesManager: FilesManager = rememberAppEntryPoint().filesManager()
     val state = rememberZoomablePagerState { images.size }
 
@@ -68,14 +70,14 @@ fun ImagePreviewDialog(
                         lifecycleOwner.lifecycleScope.launch {
                             // 保存完成前一直显示这条「进行中」提示，结束后先收起再给结果
                             // （对应上游 96a9bed4d：进度提示与结果提示不再叠在一起）。
-                            val saving = Toast.showProgress(context.getString(R.string.image_preview_saving))
+                            val saving = Toast.showProgress(resources.getString(R.string.image_preview_saving))
                             runCatching {
                                 val imgUrl = images[state.currentPage]
                                 filesManager.saveMessageImage(context, imgUrl)
                             }.onSuccess {
                                 saving.dismiss()
                                 Toast.show(
-                                    message = context.getString(R.string.image_preview_saved),
+                                    message = resources.getString(R.string.image_preview_saved),
                                     isError = false,
                                 )
                             }.onFailure {

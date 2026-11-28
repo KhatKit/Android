@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_error_rootfs_missing">工作区尚未安装 Linux 根文件系统，请先安装。</string>
+    <string name="workspace_error_proot_missing">未找到工作区 proot 程序，请重新安装应用。</string>
+    <string name="workspace_error_loader_missing">未找到工作区 proot 加载器，请重新安装应用。</string>
+</resources>

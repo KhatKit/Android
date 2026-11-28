@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.common.http.okhttp.toHttpUrlOrNull
-import heizige.kk.khatkit.app.core.ui.icons.link
+import heizige.kk.khatkit.app.core.ui.icons.utility.link
 
 @Composable
 fun Favicon(

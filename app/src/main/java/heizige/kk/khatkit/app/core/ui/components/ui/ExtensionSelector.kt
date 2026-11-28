@@ -20,11 +20,11 @@ import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.files.SkillMetadata
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
-import heizige.kk.khatkit.app.core.ui.components.ai.ExtensionEmptyState
-import heizige.kk.khatkit.app.core.ui.components.ai.LorebooksContent
-import heizige.kk.khatkit.app.core.ui.components.ai.ModeInjectionsContent
-import heizige.kk.khatkit.app.core.ui.components.ai.QuickMessagesContent
-import heizige.kk.khatkit.app.core.ui.components.ai.SkillsContent
+import heizige.kk.khatkit.app.feature.assistant.components.ai.ExtensionEmptyState
+import heizige.kk.khatkit.app.feature.assistant.components.ai.LorebooksContent
+import heizige.kk.khatkit.app.feature.assistant.components.ai.ModeInjectionsContent
+import heizige.kk.khatkit.app.feature.assistant.components.ai.QuickMessagesContent
+import heizige.kk.khatkit.app.feature.assistant.components.ai.SkillsContent
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
 

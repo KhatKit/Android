@@ -13,6 +13,10 @@ import org.junit.rules.TemporaryFolder
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.backup.data.importer.ChatboxImageResource
+import heizige.kk.khatkit.app.feature.backup.data.importer.ChatboxImporter
+
+
 
 class ChatboxImporterTest {
     @get:Rule

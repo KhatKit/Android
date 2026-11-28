@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.automation
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -45,14 +47,16 @@ import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.theme.MochiTheme
 
 private val ButtonSize = 48.dp
-private const val ALLOW_ONCE = "仅本次允许"
-private const val ALLOW_TEN_MINUTES = "10 分钟内自动允许"
-private const val MORE_OPTIONS = "更多允许选项"
 
 @Composable
 internal fun ApprovalButtons(systemWindow: Boolean, onApprove: () -> Unit, onDeny: () -> Unit, onRemember: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var answered by remember { mutableStateOf(false) }
+    val allowOnce = stringResource(R.string.approval_allow_once)
+    val allowTenMinutes = stringResource(R.string.approval_allow_ten_minutes)
+    val moreOptions = stringResource(R.string.approval_more_options)
+    val denyLabel = stringResource(R.string.approval_deny)
+    val allowLabel = stringResource(R.string.approval_allow)
     fun answer(action: () -> Unit) {
         if (answered) return
         answered = true
@@ -64,13 +68,13 @@ internal fun ApprovalButtons(systemWindow: Boolean, onApprove: () -> Unit, onDen
         MochiIconButton(
             onClick = { answer(onDeny) }, enabled = !answered, size = ButtonSize,
             colors = MochiButtonDefaults.colors(MochiButtonStyle.Tonal).copy(container = scheme.errorContainer, content = scheme.onErrorContainer),
-            modifier = Modifier.approvalKeys(!answered, { answer(onDeny) }).semantics { contentDescription = "拒绝" },
+            modifier = Modifier.approvalKeys(!answered, { answer(onDeny) }).semantics { contentDescription = denyLabel },
         ) { MochiIonicon("close", size = 20.dp, tint = scheme.onErrorContainer) }
 
         if (!systemWindow) {
             MochiIconDropdown(
                 expanded = expanded, onExpandedChange = { expanded = it && !answered },
-                items = persistentListOf(MochiItem(ALLOW_ONCE), MochiItem(ALLOW_TEN_MINUTES)),
+                items = persistentListOf(MochiItem(allowOnce), MochiItem(allowTenMinutes)),
                 onItemClick = { index ->
                     when (index) {
                         0 -> answer(onApprove)
@@ -81,9 +85,9 @@ internal fun ApprovalButtons(systemWindow: Boolean, onApprove: () -> Unit, onDen
                 behavior = MochiDropdownDefaults.iconBehavior().copy(trigger = MochiTrigger.LongPress),
                 colors = MochiDropdownDefaults.iconDropdownColors(scheme.primary, scheme.onPrimary),
                 modifier = Modifier.approvalKeys(!answered, { answer(onApprove) }, { expanded = true }).semantics {
-                    contentDescription = "允许"
-                    onClick(label = ALLOW_ONCE, action = null)
-                    onLongClick(label = MORE_OPTIONS, action = null)
+                    contentDescription = allowLabel
+                    onClick(label = allowOnce, action = null)
+                    onLongClick(label = moreOptions, action = null)
                 },
             ) { MochiIonicon("checkmark", size = 20.dp, tint = scheme.onPrimary) }
         } else {
@@ -93,17 +97,17 @@ internal fun ApprovalButtons(systemWindow: Boolean, onApprove: () -> Unit, onDen
             Box(contentAlignment = Alignment.Center) {
                 Box(
                     Modifier.size(ButtonSize).kkPressState(interaction).background(scheme.primary, MochiTheme.shapes.full)
-                        .semantics { contentDescription = "允许" }
+                        .semantics { contentDescription = allowLabel }
                         .combinedClickable(
                             interactionSource = interaction, indication = null, enabled = !answered, role = Role.Button,
-                            onLongClickLabel = MORE_OPTIONS, onClickLabel = ALLOW_ONCE, hapticFeedbackEnabled = false,
+                            onLongClickLabel = moreOptions, onClickLabel = allowOnce, hapticFeedbackEnabled = false,
                             onLongClick = { haptics.longPress(); expanded = true }, onClick = { answer(onApprove) },
                         ),
                     contentAlignment = Alignment.Center,
                 ) { MochiIonicon("checkmark", size = 20.dp, tint = scheme.onPrimary) }
                 MochiMenuPopup(expanded, { expanded = false }, modifier = Modifier.width(IntrinsicSize.Max)) {
-                    MochiMenuRow(enabled = expanded, text = { Text(ALLOW_ONCE) }, onClick = { answer(onApprove) })
-                    MochiMenuRow(enabled = expanded, text = { Text(ALLOW_TEN_MINUTES) }, onClick = { answer(onRemember) })
+                    MochiMenuRow(enabled = expanded, text = { Text(allowOnce) }, onClick = { answer(onApprove) })
+                    MochiMenuRow(enabled = expanded, text = { Text(allowTenMinutes) }, onClick = { answer(onRemember) })
                 }
             }
         }

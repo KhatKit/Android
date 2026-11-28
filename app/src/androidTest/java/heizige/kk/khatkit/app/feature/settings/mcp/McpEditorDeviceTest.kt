@@ -15,6 +15,9 @@ import heizige.kk.khatkit.uikit.KhatKitTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import heizige.kk.khatkit.app.core.ui.components.ai.mcp.McpServerConfigModal
+
+
 
 class McpEditorDeviceTest {
     @get:Rule val compose = createComposeRule()

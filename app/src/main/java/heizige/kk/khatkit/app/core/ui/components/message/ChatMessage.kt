@@ -99,10 +99,13 @@ import heizige.kk.khatkit.app.core.util.openUrl
 import heizige.kk.khatkit.app.core.util.urlDecode
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
-import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.musicNote
-import heizige.kk.khatkit.app.core.ui.icons.videocam
+import heizige.kk.khatkit.app.core.ui.icons.files.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.media.musicNote
+import heizige.kk.khatkit.app.core.ui.icons.media.videocam
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
+import heizige.kk.khatkit.app.core.ui.components.webview.WebView
+
+
 
 private val EMPTY_BASE64_IMAGE_REGEX = Regex("^data:image/[^;]*;base64,\\s*$")
 

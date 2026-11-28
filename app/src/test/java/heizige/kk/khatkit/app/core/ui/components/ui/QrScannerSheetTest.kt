@@ -1,10 +1,16 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.feature.settings.components.ui.decideScanEntry
+import heizige.kk.khatkit.app.feature.settings.components.ui.shouldAnalyzeFrame
 import heizige.kk.khatkit.app.core.ui.components.ui.permission.PermissionStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.settings.components.ui.ScanEntryDecision
+import heizige.kk.khatkit.app.feature.settings.components.ui.ScanGate
+
+
 
 /**
  * [QrScannerSheet] 的纯逻辑单测。

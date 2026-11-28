@@ -1,6 +1,7 @@
 package heizige.kk.khatkit.bridge.impl
 
 import android.content.Context
+import heizige.kk.khatkit.R
 import heizige.kk.khatkit.bridge.DownloadBridge
 import heizige.kk.khatkit.bridge.DownloadHandle
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
@@ -109,7 +110,7 @@ class DownloadManagerImpl(
                     total = record.total,
                     speedBps = record.speedBps,
                     file = record.fileOrNull(),
-                    error = record.error,
+                    error = record.error?.let { context.getString(R.string.khatkit_download_failed) },
                 )
             }
         }
@@ -244,7 +245,7 @@ class DownloadManagerImpl(
         DownloadStatus.label = active.firstOrNull()?.let { record ->
             val total = record.total
             val percent = if (total > 0) (record.bytes * 100 / total).toInt() else 0
-            "${record.name} $percent%"
+            context.getString(R.string.khatkit_notification_download_progress, record.name, percent)
         } ?: ""
 
         if (active.isEmpty()) {
@@ -335,7 +336,7 @@ class DownloadManagerImpl(
                 record.speedBps = 0
                 record.state = STATE_DONE
             } else {
-                record.error = "无法写入目标文件：${target.absolutePath}"
+                record.error = context.getString(R.string.khatkit_download_target_failed, target.absolutePath)
                 record.state = STATE_FAILED
             }
         } catch (e: CancellationException) {

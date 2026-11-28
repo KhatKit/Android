@@ -111,7 +111,7 @@ class TavernChatMessageDecodeGuardTest {
 
     companion object {
         private const val SHARED_DECODER_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/core/data/ai/tavern/TavernChatCodec.kt"
+            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/data/TavernChatCodec.kt"
 
         /** 「按 `is_system` 布尔字段判定 role」—— 解码骨架的支点，只可能是**读**。 */
         private val DECODE_SHAPE =

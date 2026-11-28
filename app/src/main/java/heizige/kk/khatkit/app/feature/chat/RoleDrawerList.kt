@@ -26,9 +26,9 @@ import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.groups
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
 import kotlin.uuid.Uuid
 import java.time.LocalDate
 import java.time.ZoneId
@@ -115,12 +115,12 @@ internal fun RoleDrawerList(
 
         // SIDE1：行列改用 Mochi 的侧栏组件（MochiSidebarSectionHeader / MochiSidebarItem）。
         // 胶囊高亮、按下反馈、选中底色淡入淡出、单行省略都由 Mochi 负责，这里只给数据与回调。
-        item("section-roles") { MochiSidebarSectionHeader("角色") }
+        item("section-roles") { MochiSidebarSectionHeader(stringResource(R.string.role_drawer_section_roles)) }
 
         if (visibleRoles.isEmpty()) {
             item("roles-empty") {
                 MochiSidebarItem(
-                    title = if (keyword.isNotBlank()) "未找到角色" else "暂无角色",
+                    title = if (keyword.isNotBlank()) stringResource(R.string.role_drawer_empty_search) else stringResource(R.string.role_drawer_empty),
                     onClick = {},
                     leading = { Icon(groups, null) },
                     modifier = Modifier.testTag("drawer_roles_empty"),
@@ -159,7 +159,7 @@ internal fun RoleDrawerList(
                             // 主次不分（见 artifacts/ui-review/2026-10-31/sidebar-roles.jpg）。
                             if (active) {
                                 Text(
-                                    text = "正在回复…",
+                                    text = stringResource(R.string.role_drawer_replying),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                     maxLines = 1,
@@ -171,7 +171,7 @@ internal fun RoleDrawerList(
                                 Text(
                                     text = when (local.toLocalDate()) {
                                         today -> local.format(RoleTimeFormatter)
-                                        today.minusDays(1) -> "昨天"
+                                        today.minusDays(1) -> stringResource(R.string.common_yesterday)
                                         else -> local.format(RoleDateFormatter)
                                     },
                                     style = MaterialTheme.typography.labelSmall,
@@ -184,7 +184,7 @@ internal fun RoleDrawerList(
                             if (role.id == selected) {
                                 Icon(
                                     imageVector = check,
-                                    contentDescription = "当前角色",
+                                    contentDescription = stringResource(R.string.role_drawer_current_role),
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -197,7 +197,7 @@ internal fun RoleDrawerList(
         }
         item("manage-role") {
             MochiSidebarItem(
-                title = "管理角色",
+                title = stringResource(R.string.role_drawer_manage_roles),
                 onClick = onManage,
                 leading = { Icon(groups, null) },
                 trailing = { Icon(arrowForward, null) },
@@ -206,5 +206,4 @@ internal fun RoleDrawerList(
         }
     }
 }
-
 

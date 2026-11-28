@@ -3,8 +3,8 @@ package heizige.kk.khatkit.app.feature.automation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import heizige.kk.khatkit.app.feature.automation.data.UiAutomationBounds
-import heizige.kk.khatkit.app.feature.automation.data.UiAutomationNode
+import heizige.kk.khatkit.app.core.data.automation.UiAutomationBounds
+import heizige.kk.khatkit.app.core.data.automation.UiAutomationNode
 
 class UiAutomationSnapshotTest {
     @Test

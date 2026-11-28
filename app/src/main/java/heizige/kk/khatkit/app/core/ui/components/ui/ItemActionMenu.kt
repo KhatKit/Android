@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import ui.feice.mochi.basic.MochiDropdown

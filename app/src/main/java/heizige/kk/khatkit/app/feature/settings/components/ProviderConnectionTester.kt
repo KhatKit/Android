@@ -46,10 +46,13 @@ import heizige.kk.khatkit.app.core.ui.theme.extendColors
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.error
-import heizige.kk.khatkit.app.core.ui.icons.link
+import heizige.kk.khatkit.app.core.ui.icons.utility.error
+import heizige.kk.khatkit.app.core.ui.icons.utility.link
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun ProviderConnectionTester(
@@ -299,7 +302,7 @@ private fun TestResultItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f)
+                    .fillMaxHeight()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

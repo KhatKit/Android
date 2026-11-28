@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.bridge.impl
 
+import heizige.kk.khatkit.R
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -93,22 +94,21 @@ class KhatKitDownloadService : Service() {
         private fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val manager = context.getSystemService(NotificationManager::class.java) ?: return
-            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "KhatKit 下载",
+                    context.getString(R.string.khatkit_notification_download_channel),
                     NotificationManager.IMPORTANCE_LOW,
-                ).apply { description = "卡片后台下载" }
+                ).apply { description = context.getString(R.string.khatkit_notification_download_channel_description) }
             )
         }
 
         private fun buildNotification(context: Context): Notification {
             val active = DownloadStatus.activeCount
-            val text = DownloadStatus.label.ifBlank { "正在下载 $active 个任务" }
+            val text = DownloadStatus.label.ifBlank { context.resources.getQuantityString(R.plurals.khatkit_notification_download_count, active, active) }
             return NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
-                .setContentTitle("KhatKit 正在下载")
+                .setContentTitle(context.getString(R.string.khatkit_notification_downloading))
                 .setContentText(text)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

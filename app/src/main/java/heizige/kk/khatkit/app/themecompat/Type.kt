@@ -9,6 +9,9 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+
+
 
 val base = Typography()
 val Typography = Typography()

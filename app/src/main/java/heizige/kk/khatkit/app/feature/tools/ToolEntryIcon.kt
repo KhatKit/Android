@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
+import heizige.kk.khatkit.app.core.util.toolCategory
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.uikit.rememberCardIconVector
 import ui.feice.mochi.icons.MochiIonicon

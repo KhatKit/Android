@@ -59,6 +59,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
+import ui.feice.mochi.icons.MochiIonicon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -85,6 +88,7 @@ fun KhatKitMarketContent(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
@@ -102,12 +106,12 @@ fun KhatKitMarketContent(
     // 分类筛选
     var selectedFilter by remember { mutableStateOf("all") }
     val filterOptions = listOf(
-        "all" to "全部",
-        "installed" to "已安装",
-        "ai" to "AI 触发",
-        "user" to "用户触发",
-        "free" to "免费",
-        "preferred" to "推荐"
+        "all" to stringResource(R.string.khatkit_market_filter_all),
+        "installed" to stringResource(R.string.khatkit_market_filter_installed),
+        "ai" to stringResource(R.string.khatkit_trigger_ai),
+        "user" to stringResource(R.string.khatkit_trigger_user),
+        "free" to stringResource(R.string.khatkit_market_price_free),
+        "preferred" to stringResource(R.string.khatkit_market_preferred)
     )
 
     suspend fun reloadInstalled() {
@@ -123,7 +127,7 @@ fun KhatKitMarketContent(
             loading = false
         }
         scope.launch {
-            activated = controller.hubAccountStatus(refresh = false).activated
+            activated = controller.hubAccountStatus(context, refresh = false).activated
             hubInfo = controller.hubMarketCards().associateBy { it.name }
         }
     }
@@ -226,10 +230,10 @@ fun KhatKitMarketContent(
                 modifier = Modifier.weight(1f),
             )
             MochiIconButton(onClick = { refresh(query) }) {
-                Text("🔍", style = MaterialTheme.typography.titleMedium)
+                MochiIonicon("search", contentDescription = stringResource(R.string.khatkit_market_search))
             }
             MochiIconButton(onClick = { showSettings = true }) {
-                Text("⚙️", style = MaterialTheme.typography.titleMedium)
+                MochiIonicon("settings", contentDescription = stringResource(R.string.khatkit_market_settings))
             }
         }
 
@@ -246,7 +250,7 @@ fun KhatKitMarketContent(
                 item(key = "hero_section") {
                     Column(modifier = Modifier.padding(vertical = 8.dp)) {
                         Text(
-                            text = "✨ 精选推荐",
+                            text = stringResource(R.string.khatkit_market_featured),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -316,7 +320,7 @@ fun KhatKitMarketContent(
             if (!loading) {
                 item(key = "card_count") {
                     Text(
-                        text = "共 ${filteredCards.size} 个卡片",
+                        text = pluralStringResource(R.plurals.khatkit_market_card_count, filteredCards.size, filteredCards.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -333,10 +337,7 @@ fun KhatKitMarketContent(
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "🔍",
-                            style = MaterialTheme.typography.headlineMedium
-                        )
+                        MochiIonicon("search", contentDescription = null)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.khatkit_market_empty),
@@ -460,7 +461,7 @@ private fun FeaturedCard(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
-                                    text = "已安装",
+                                    text = stringResource(R.string.khatkit_market_filter_installed),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -487,13 +488,13 @@ private fun FeaturedCard(
                 ) {
                     hubInfo?.let { info ->
                         if (info.preferred) {
-                            BadgeChip(text = "✨ ${stringResource(R.string.khatkit_market_preferred)}", primary = true)
+                            BadgeChip(text = stringResource(R.string.khatkit_market_preferred), primary = true)
                         }
                         if (info.votes > 0) {
-                            BadgeChip(text = "👍 ${info.votes}")
+                            BadgeChip(text = stringResource(R.string.khatkit_market_votes, info.votes))
                         }
                         BadgeChip(
-                            text = if (info.priceCents <= 0) "免费" else "¥${formatYuan(info.priceCents)}"
+                            text = if (info.priceCents <= 0) stringResource(R.string.khatkit_market_price_free) else stringResource(R.string.khatkit_market_price_per_call, formatYuan(info.priceCents))
                         )
                     }
                 }
@@ -567,17 +568,17 @@ private fun CompactCard(
                 triggers.filter { it in CardManifest.ALL_TRIGGERS }.forEach { trigger ->
                     SmallBadge(
                         text = when (trigger) {
-                            CardManifest.TRIGGER_AI -> "AI"
-                            else -> "User"
+                            CardManifest.TRIGGER_AI -> stringResource(R.string.khatkit_trigger_ai)
+                            else -> stringResource(R.string.khatkit_trigger_user)
                         }
                     )
                 }
                 hubInfo?.let { info ->
                     if (info.preferred) {
-                        SmallBadge(text = "✨", primary = true)
+                        SmallBadge(text = stringResource(R.string.khatkit_market_preferred), primary = true)
                     }
                     if (info.votes > 0) {
-                        SmallBadge(text = "▲${info.votes}")
+                        SmallBadge(text = stringResource(R.string.khatkit_market_votes, info.votes))
                     }
                 }
             }
@@ -617,7 +618,7 @@ private fun LocalOnlyCompactCard(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "v${version.ifBlank { "?" }} · 本地卡片",
+                    text = stringResource(R.string.khatkit_market_local_version, version.ifBlank { "?" }),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -627,8 +628,8 @@ private fun LocalOnlyCompactCard(
                 triggers.filter { it in CardManifest.ALL_TRIGGERS }.forEach { trigger ->
                     SmallBadge(
                         text = when (trigger) {
-                            CardManifest.TRIGGER_AI -> "AI"
-                            else -> "User"
+                            CardManifest.TRIGGER_AI -> stringResource(R.string.khatkit_trigger_ai)
+                            else -> stringResource(R.string.khatkit_trigger_user)
                         }
                     )
                 }
@@ -692,6 +693,7 @@ private fun CardDetailDialog(
     onRefreshInstalled: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val displayTriggers = triggers.filter { it in CardManifest.ALL_TRIGGERS }
 
     MochiDialog(
@@ -774,7 +776,7 @@ private fun CardDetailDialog(
 
             // 元信息
             Text(
-                text = "${entry.engine} · ${entry.privilege} · ${entry.bridges.joinToString(", ").ifBlank { "L0" }}",
+                text = stringResource(R.string.khatkit_market_metadata, entry.engine, entry.privilege, entry.bridges.joinToString(", ").ifBlank { "L0" }),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -792,7 +794,7 @@ private fun CardDetailDialog(
                                 controller.startCard(entry.name) { result ->
                                     onToast(
                                         result.message.ifBlank {
-                                            if (result.ok) "已运行 ${entry.name}" else "运行失败"
+                                            if (result.ok) context.getString(R.string.khatkit_market_run_done, entry.name) else context.getString(R.string.khatkit_market_run_failed)
                                         },
                                         !result.ok
                                     )
@@ -806,7 +808,7 @@ private fun CardDetailDialog(
                                 scope.launch {
                                     val ok = controller.installCard(entry, force = true)
                                     onToast(
-                                        if (ok) "已更新 ${entry.name}" else "更新失败",
+                                        if (ok) context.getString(R.string.khatkit_market_updated, entry.name) else context.getString(R.string.khatkit_market_update_failed),
                                         !ok
                                     )
                                     onRefreshInstalled()
@@ -822,7 +824,7 @@ private fun CardDetailDialog(
                             scope.launch {
                                 val ok = controller.uninstallCard(entry.name)
                                 onToast(
-                                    if (ok) "已卸载 ${entry.name}" else "卸载失败",
+                                    if (ok) context.getString(R.string.khatkit_market_uninstalled, entry.name) else context.getString(R.string.khatkit_market_uninstall_failed),
                                     !ok
                                 )
                                 if (ok) onDismiss()
@@ -836,7 +838,7 @@ private fun CardDetailDialog(
                             scope.launch {
                                 val ok = controller.installCard(entry)
                                 onToast(
-                                    if (ok) "已安装 ${entry.name}" else "安装失败",
+                                    if (ok) context.getString(R.string.khatkit_market_installed, entry.name) else context.getString(R.string.khatkit_market_install_failed),
                                     !ok
                                 )
                                 onRefreshInstalled()
@@ -849,12 +851,12 @@ private fun CardDetailDialog(
                     if (installedVersion != null) {
                         MochiTextButton(
                             onClick = {
-                                if (activated) onPublishClick() else onToast("需要先激活账户", true)
+                                if (activated) onPublishClick() else onToast(context.getString(R.string.khatkit_market_need_activation), true)
                             }
                         ) { Text(stringResource(R.string.khatkit_market_publish)) }
                         MochiTextButton(
                             onClick = {
-                                if (activated) onForkClick() else onToast("需要先激活账户", true)
+                                if (activated) onForkClick() else onToast(context.getString(R.string.khatkit_market_need_activation), true)
                             }
                         ) { Text(stringResource(R.string.khatkit_market_fork)) }
                     }
@@ -862,13 +864,13 @@ private fun CardDetailDialog(
                         MochiTextButton(
                             onClick = {
                                 if (!activated) {
-                                    onToast("需要先激活账户", true)
+                                    onToast(context.getString(R.string.khatkit_market_need_activation), true)
                                 } else {
                                     scope.launch {
-                                        val result = controller.voteCard(entry.name)
+                                        val result = controller.voteCard(context, entry.name)
                                         onToast(
                                             result.message.ifBlank {
-                                                if (result.ok) "已投票 ${entry.name}" else "投票失败"
+                                                if (result.ok) context.getString(R.string.khatkit_market_vote_done, entry.name) else context.getString(R.string.khatkit_market_vote_failed)
                                             },
                                             !result.ok
                                         )
@@ -897,6 +899,7 @@ private fun PublishCardDialog(
     var confirmed by remember(cardName) { mutableStateOf(false) }
     var submitting by remember(cardName) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val confirmError = stringResource(R.string.khatkit_market_publish_need_license_confirm)
     val invalidPrice = stringResource(R.string.khatkit_market_publish_invalid_price)
@@ -957,6 +960,7 @@ private fun PublishCardDialog(
                                 submitting = true
                                 scope.launch {
                                     val result = controller.publishCard(
+                                        context,
                                         cardName,
                                         license.trim(),
                                         price,
@@ -997,6 +1001,7 @@ private fun ForkCardDialog(
     var changelog by remember(cardName) { mutableStateOf("") }
     var submitting by remember(cardName) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val needChangelog = stringResource(R.string.khatkit_market_fork_need_changelog)
     val failedFallback = stringResource(R.string.khatkit_market_fork_failed)
@@ -1046,6 +1051,7 @@ private fun ForkCardDialog(
                             submitting = true
                             scope.launch {
                                 val result = controller.forkCard(
+                                    context,
                                     cardName,
                                     parent.trim().ifBlank { parentVersion },
                                     changelog.trim(),

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.app.R
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,12 +10,12 @@ import heizige.kk.khatkit.app.core.data.ssh.SshPluginHub
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginInstaller
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
-import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginRepository
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginHub
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginInstaller
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginLoader
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginRecord
-import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginStore
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginRepository
 import heizige.kk.khatkit.hub.LoadedCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,10 +56,10 @@ class ExtensionsViewModel @Inject constructor(
 
     /** 重读安装状态；扩展页回到前台时调用（插件页里可能刚卸载）。 */
     fun refresh() = viewModelScope.launch(Dispatchers.IO) {
-        val record = SshPluginStore(appContext).read()
+        val record = SshPluginRepository(appContext).read()
         SshPluginLoader.updateRecord(record)
         _sshPlugin.value = record
-        _terminalPlugin.value = TerminalPluginStore(appContext).read()
+        _terminalPlugin.value = TerminalPluginRepository(appContext).read()
         _terminalShortcutEnabled.value = provider.widgetEnabled(TERMINAL_WIDGET_NAME)
         _cards.value = provider.chatCards().filter { it.manifest.supportsUser() }
     }
@@ -76,10 +77,10 @@ class ExtensionsViewModel @Inject constructor(
                 onSuccess = { record ->
                     SshPluginLoader.updateRecord(record)
                     _sshPlugin.value = record
-                    _message.value = "已安装 " + record.version
+                    _message.value = appContext.getString(R.string.extensions_installed_version, record.version)
                 },
                 onFailure = { error ->
-                    _message.value = "安装失败：" + (error.message ?: error.javaClass.simpleName)
+                    _message.value = appContext.getString(R.string.extensions_install_failed, error.message ?: error.javaClass.simpleName)
                 },
             )
         }
@@ -95,9 +96,9 @@ class ExtensionsViewModel @Inject constructor(
             if (ok) {
                 SshPluginLoader.updateRecord(null)
                 _sshPlugin.value = null
-                _message.value = "插件已卸载"
+                _message.value = appContext.getString(R.string.extensions_plugin_uninstalled)
             } else {
-                _message.value = "卸载失败：插件目录删不掉"
+                _message.value = appContext.getString(R.string.extensions_uninstall_failed_dir)
             }
         }
     }
@@ -116,7 +117,7 @@ class ExtensionsViewModel @Inject constructor(
         if (_busy.value) return
         _message.value = null
         provider.startCard(name) { result ->
-            if (!result.ok) _message.value = "运行失败：" + result.message
+            if (!result.ok) _message.value = appContext.getString(R.string.extensions_run_failed, result.message ?: "")
         }
     }
 
@@ -138,9 +139,9 @@ class ExtensionsViewModel @Inject constructor(
                         provider.widgetEnabled(TERMINAL_WIDGET_NAME),
                     )
                     _terminalPlugin.value = record
-                    _message.value = "终端插件已安装 " + record.version
+                    _message.value = appContext.getString(R.string.extensions_terminal_installed, record.version)
                 },
-                onFailure = { error -> _message.value = "终端插件安装失败：${error.message ?: error.javaClass.simpleName}" },
+                onFailure = { error -> _message.value = appContext.getString(R.string.extensions_terminal_install_failed, error.message ?: error.javaClass.simpleName) },
             )
         }
     }
@@ -156,9 +157,9 @@ class ExtensionsViewModel @Inject constructor(
                 provider.setWidgetEnabled(TERMINAL_WIDGET_NAME, false)
                 _terminalShortcutEnabled.value = false
                 _terminalPlugin.value = null
-                _message.value = "终端插件已卸载"
+                _message.value = appContext.getString(R.string.extensions_terminal_uninstalled)
             } else {
-                _message.value = "终端插件卸载失败"
+                _message.value = appContext.getString(R.string.extensions_terminal_uninstall_failed)
             }
         }
     }

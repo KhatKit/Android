@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -177,10 +179,10 @@ internal fun CounterButton(
                             modifier = Modifier.padding(end = 6.dp).size(16.dp),
                             tint = MochiLocalContentColor.current,
                         )
-                        Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))
+                        Text(node.props["label"] as? String ?: stringResource(R.string.khatkit_counter_increment), style = style.textStyle("body"))
                     }
                 } else {
-                    Text(node.props["label"] as? String ?: "+1", style = style.textStyle("body"))
+                    Text(node.props["label"] as? String ?: stringResource(R.string.khatkit_counter_increment), style = style.textStyle("body"))
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -198,7 +200,7 @@ internal fun CounterButton(
                         format = { NumberFormat.getIntegerInstance().format(it) },
                     )
                 } else {
-                    Text("—", fontSize = 27.sp, fontWeight = FontWeight.SemiBold,
+                    Text(stringResource(R.string.khatkit_counter_unknown), fontSize = 27.sp, fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically,
@@ -207,7 +209,7 @@ internal fun CounterButton(
                     Text(node.props["caption"] as? String ?: "", style = style.textStyle("label"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("本机 ${state.optimisticLocalCount} 次", style = style.textStyle("label"),
+                Text(pluralStringResource(R.plurals.khatkit_counter_local_count, state.optimisticLocalCount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), state.optimisticLocalCount), style = style.textStyle("label"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 (node.props["hint"] as? String)?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = style.textStyle("label"), color = MaterialTheme.colorScheme.error)
@@ -221,7 +223,7 @@ internal fun CounterButton(
                     progress.animateTo(1f, tween(850))
                     particles.remove(particle)
                 }
-                Text("+1", fontSize = 22.sp, fontWeight = FontWeight.Medium,
+                Text(stringResource(R.string.khatkit_counter_increment), fontSize = 22.sp, fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(start = 30.dp).graphicsLayer {
                         val p = progress.value

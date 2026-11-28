@@ -1,4 +1,14 @@
 pluginManagement {
+    // Settings plugins run before catalog accessors exist. Read the one version from the
+    // same tracked TOML input instead of duplicating it here (see refactor-version-catalog).
+    val foojayVersion = providers.fileContents(layout.settingsDirectory.file("gradle/libs.versions.toml"))
+        .asText.map { catalog ->
+            Regex("""(?m)^foojayResolver\s*=\s*"([^"]+)"\s*$""")
+                .findAll(catalog).single().groupValues[1]
+        }.get()
+    plugins {
+        id("org.gradle.toolchains.foojay-resolver-convention") version foojayVersion
+    }
     includeBuild("build-logic")
 
     repositories {
@@ -30,7 +40,7 @@ pluginManagement {
     }
 }
 plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    id("org.gradle.toolchains.foojay-resolver-convention")
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

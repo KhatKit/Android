@@ -9,14 +9,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.MessageQueue
+import heizige.kk.khatkit.app.feature.chat.helper.MessageQueueManager
 
 class MessageQueueTest {
     private fun text(value: String) = listOf(UIMessagePart.Text(value))
 
     @Test
     fun `editing a voice message preserves its reply observer and queue position`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val reply = CompletableDeferred<String?>()
         queue.enqueue(text("original"), reply = reply)
         queue.enqueue(text("later"))
@@ -33,7 +33,7 @@ class MessageQueueTest {
 
     @Test
     fun `pausing resolves voice observers but retains queued content for manual resume`() = runBlocking {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val reply = CompletableDeferred<String?>()
         queue.enqueue(text("keep me"), reply = reply)
         queue.pause()
@@ -46,7 +46,7 @@ class MessageQueueTest {
 
     @Test
     fun `tool approval can release reply observers without removing or resuming messages`() = runBlocking {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val reply = CompletableDeferred<String?>()
         queue.enqueue(text("pending"), reply = reply)
         queue.failReplyWaiters("approval required")
@@ -57,7 +57,7 @@ class MessageQueueTest {
 
     @Test
     fun `dispatches in submission order and preserves send without answer`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"), answer = false)
 
@@ -70,7 +70,7 @@ class MessageQueueTest {
 
     @Test
     fun `editing the head blocks later messages and keeps its position`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"))
         val id = queue.state.value.messages.first().id
@@ -87,7 +87,7 @@ class MessageQueueTest {
 
     @Test
     fun `editing a later message does not block earlier messages`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"))
         queue.beginEdit(queue.state.value.messages.last().id)
@@ -98,7 +98,7 @@ class MessageQueueTest {
 
     @Test
     fun `cancelling an edit restores the original input and attachments`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val parts = text("question") + UIMessagePart.Image("file:///test.png")
         queue.enqueue(parts)
         val id = queue.state.value.messages.single().id
@@ -110,7 +110,7 @@ class MessageQueueTest {
 
     @Test
     fun `removing a message skips it without changing following input`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"))
         queue.remove(queue.state.value.messages.first().id)
@@ -121,7 +121,7 @@ class MessageQueueTest {
 
     @Test
     fun `new input and edits cannot silently resume a paused queue`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.pause()
         queue.enqueue(text("second"))
@@ -138,7 +138,7 @@ class MessageQueueTest {
 
     @Test
     fun `late edit cannot recreate a removed or dispatched message`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         val id = queue.takeNext()!!.id
 
@@ -149,7 +149,7 @@ class MessageQueueTest {
 
     @Test
     fun `rejects empty input but accepts attachment only input`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("  "))
         queue.enqueue(emptyList())
         assertNull(queue.takeNext())
@@ -161,7 +161,7 @@ class MessageQueueTest {
 
     @Test
     fun `submission snapshots caller owned list`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         val parts = mutableListOf<UIMessagePart>(UIMessagePart.Text("original"))
         queue.enqueue(parts)
         parts.clear()
@@ -171,8 +171,8 @@ class MessageQueueTest {
 
     @Test
     fun `queues are isolated per conversation`() {
-        val first = MessageQueue()
-        val second = MessageQueue()
+        val first = MessageQueueManager()
+        val second = MessageQueueManager()
         first.enqueue(text("first"))
         second.enqueue(text("second"))
         first.pause()
@@ -183,7 +183,7 @@ class MessageQueueTest {
 
     @Test
     fun `sending now promotes the message to the head and keeps the rest in order`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"))
         queue.enqueue(text("third"))
@@ -201,7 +201,7 @@ class MessageQueueTest {
 
     @Test
     fun `promoting the head or an unknown message changes nothing`() {
-        val queue = MessageQueue()
+        val queue = MessageQueueManager()
         queue.enqueue(text("first"))
         queue.enqueue(text("second"))
         val head = queue.state.value.messages.first().id

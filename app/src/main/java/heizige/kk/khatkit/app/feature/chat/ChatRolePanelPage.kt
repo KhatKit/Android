@@ -49,13 +49,13 @@ import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaff
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khatkit.app.core.ui.icons.chat
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.khatkit.app.core.ui.icons.settings
-import heizige.kk.khatkit.app.core.ui.icons.sms
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.chat.chat
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.ai.psychology
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
+import heizige.kk.khatkit.app.core.ui.icons.chat.sms
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.plus
@@ -66,6 +66,13 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.RolePanelRenameTarget
+import heizige.kk.khatkit.app.core.data.model.Assistant
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+
+
+
+
 
 /**
  * 角色聊天面板：聊天页右上角三横杠的落地页。

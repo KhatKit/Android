@@ -4,24 +4,29 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import heizige.kk.khatkit.app.feature.automation.data.TraceBrowseState
-import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
-import heizige.kk.khatkit.app.feature.automation.data.toStepViews
+import heizige.kk.khatkit.app.feature.automation.helper.TraceBrowseState
+import heizige.kk.khatkit.app.core.data.automation.AutomationTraceManager
+import heizige.kk.khatkit.app.feature.automation.helper.toStepViews
+import heizige.kk.khatkit.app.core.data.automation.TraceStep
+import heizige.kk.khatkit.app.core.data.automation.UiActionDto
+import heizige.kk.khatkit.app.core.data.automation.BBoxDto
+import heizige.kk.khatkit.app.core.data.automation.TraceMeta
+import heizige.kk.khatkit.app.core.data.automation.TraceRecord
 
 class TraceAuditTest {
     @Test
     fun `step view keeps action target result and hit method`() {
-        val record = AutomationTracer.TraceRecord(
-            meta = AutomationTracer.TraceMeta(id = "t", label = "wifi", startedAt = 1, stepCount = 1),
+        val record = TraceRecord(
+            meta = TraceMeta(id = "t", label = "wifi", startedAt = 1, stepCount = 1),
             steps = listOf(
-                AutomationTracer.TraceStep(
+                TraceStep(
                     seq = 0,
                     timestamp = 1,
-                    action = AutomationTracer.UiActionDto(
+                    action = UiActionDto(
                         type = "CLICK",
                         text = "Wi-Fi",
                         inputText = "",
-                        bbox = AutomationTracer.BBoxDto(1, 2, 3, 4),
+                        bbox = BBoxDto(1, 2, 3, 4),
                     ),
                     result = "ok",
                     success = true,

@@ -7,6 +7,9 @@ import org.junit.Test
 import heizige.kk.khatkit.app.core.data.db.dao.CONVERSATION_TYPE_PREDICATE_SQL
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import java.io.File
+import heizige.kk.khatkit.app.feature.chat.helper.asConversationTypeArgument
+
+
 
 /**
  * 抽屉列表 type 筛选下沉到 SQL 的两条结构性护栏。

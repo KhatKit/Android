@@ -19,6 +19,9 @@ import heizige.kk.khatkit.app.RouteActivity
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+
+
 
 private const val TAG = "ChatGenerationFgs"
 

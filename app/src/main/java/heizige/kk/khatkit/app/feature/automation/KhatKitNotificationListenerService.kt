@@ -11,6 +11,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
 
 /**
  * 通知监听：把状态栏通知转成引擎事件。
@@ -33,7 +34,7 @@ import javax.inject.Inject
 class KhatKitNotificationListenerService : NotificationListenerService() {
 
     @Inject
-    lateinit var controller: TriggerController
+    lateinit var controller: TriggerManager
 
     /** 最近一次点击「可回复」通知的登记（同包名下一跳消费一次，超时作废）。 */
     @Volatile

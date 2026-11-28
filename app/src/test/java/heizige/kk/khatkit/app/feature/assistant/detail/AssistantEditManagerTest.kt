@@ -3,6 +3,9 @@ package heizige.kk.khatkit.app.feature.assistant.detail
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.assistant.detail.helper.AssistantEditManager
+
+
 
 class AssistantEditManagerTest {
     private val original = Assistant(name = "旧名")

@@ -10,7 +10,7 @@ import java.io.File
  *
  * ## 这条护栏防的是什么
  *
- * 群聊契约**只**由 `feature/chat/ChatManager.kt` 一处实现。曾经存在过第二份「生成管线」
+ * 群聊契约**只**由 `feature/chat/helper/ChatManager.kt` 一处实现。曾经存在过第二份「生成管线」
  * —— `core/service/ChatService.kt`，它无群聊感知（`grep -c groupConfig` = 0），`handleMessageComplete`
  * 四个泄漏点全中：传完整 `currentMessages`（不经 `GroupPerspectiveTransformer`）、
  * `inputTransformers` 不挂群聊 transformer、工具不走 `viewerScopedTools`、记忆空间用助手/全局空间。
@@ -71,7 +71,7 @@ class ChatServiceGroupChatFailLoudGuardTest {
 
     companion object {
         private const val DI_MODULE_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/core/di/AppHiltModule.kt"
+            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/di/ChatAssemblyModule.kt"
 
         /**
          * 去掉注释，只留代码。

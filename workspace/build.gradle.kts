@@ -22,9 +22,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
+    implementation(libs.bundles.android.view.support)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.xz)
     testImplementation(libs.junit)

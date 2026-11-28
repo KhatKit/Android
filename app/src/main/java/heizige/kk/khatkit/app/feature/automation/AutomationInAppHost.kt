@@ -19,21 +19,21 @@ import androidx.compose.ui.platform.LocalView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.uikit.mochi.KkToastDefaults
 import heizige.kk.khatkit.uikit.mochi.screenSizeMin
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import kotlinx.coroutines.delay
 
 /** Live status/approval board; unlike a one-shot toast it can receive a new request while visible. */
 @Composable
 fun AutomationInAppHost() {
-    val status by AutomationBus.status.collectAsStateWithLifecycle()
-    val approval by AutomationBus.pendingApproval.collectAsStateWithLifecycle()
-    val hidden by AutomationBus.overlayHidden.collectAsStateWithLifecycle()
+    val status by AutomationManager.status.collectAsStateWithLifecycle()
+    val approval by AutomationManager.pendingApproval.collectAsStateWithLifecycle()
+    val hidden by AutomationManager.overlayHidden.collectAsStateWithLifecycle()
     LaunchedEffect(status, approval) {
         val completed = status
         if (completed?.finished == true && approval == null) {
             delay(3_000L)
-            if (AutomationBus.status.value === completed && AutomationBus.pendingApproval.value == null) {
-                AutomationBus.clear()
+            if (AutomationManager.status.value === completed && AutomationManager.pendingApproval.value == null) {
+                AutomationManager.clear()
             }
         }
     }
@@ -42,9 +42,9 @@ fun AutomationInAppHost() {
     InAppBoardLayer(approval?.id) {
         AutomationStatusBoard(
             status = status, approval = approval, visible = true, hidden = hidden,
-            onApprove = AutomationBus::approve, onDeny = AutomationBus::deny,
-            onRemember = AutomationBus::approveAndRemember,
-            onDismiss = { AutomationBus.hideOverlayTemporarily() },
+            onApprove = AutomationManager::approve, onDeny = AutomationManager::deny,
+            onRemember = AutomationManager::approveAndRemember,
+            onDismiss = { AutomationManager.hideOverlayTemporarily() },
         )
     }
 }

@@ -1,0 +1,186 @@
+package heizige.kk.khatkit.app.core.ui.components.ai.mcp
+
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageLargeTopBar
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import heizige.kk.khatkit.ai.core.InputSchema
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpCommonOptions
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpManager
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
+import heizige.kk.khatkit.app.core.data.ai.mcp.McpTool
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
+import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.components.ui.Tag
+import heizige.kk.khatkit.app.core.ui.components.ui.TagType
+import heizige.kk.khatkit.app.core.ui.hooks.EditState
+import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
+import androidx.compose.runtime.LaunchedEffect
+import ui.feice.mochi.basic.rememberMochiSheetState
+import heizige.kk.khatkit.app.core.ui.hooks.useEditState
+import heizige.kk.khatkit.app.core.ui.theme.CustomColors
+import heizige.kk.khatkit.app.core.ui.theme.extendColors
+import heizige.kk.khatkit.app.core.util.writeClipboardText
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.chat.commentsDisabled
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.utility.error
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiTabRow
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
+
+/**
+ * @param header 表单顶部的可选提示条（市场条目配置入口用它显示「需要配置」与脱敏预填摘要）。
+ *   默认 null，设置页原有调用点行为不变。
+ */
+@Composable
+internal fun McpServerConfigModal(
+    state: EditState<McpServerConfig>,
+    onClosed: () -> Unit = {},
+    header: (@Composable () -> Unit)? = null,
+) {
+    val sheet = rememberMochiSheetState()
+    val editing = state.isEditing
+    LaunchedEffect(editing) { if (editing) sheet.show() else sheet.hide() }
+    PrimaryBottomSheet(
+        state = sheet,
+        title = stringResource(R.string.setting_mcp_page_title),
+        imageVector = extension,
+        confirmText = stringResource(R.string.setting_mcp_page_save),
+        onConfirm = {
+            val name = state.currentState?.commonOptions?.name
+            if (!name.isNullOrBlank() && isValidMcpName(name)) state.confirm()
+        },
+        onDismiss = {
+            state.dismiss()
+            onClosed()
+        },
+        scrollable = false,
+    ) {
+        state.EditStateContent { config, updateValue ->
+            val pagerState = rememberPagerState { 2 }
+            val scope = rememberCoroutineScope()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 之前是 MD3 SecondaryTabRow，Miuix 下会漏出 MD3 页签。
+                // MochiTabRow 在 Miuix 分支走原生 TabRow / WithContour，
+                // MD3Exp 分支保持 SecondaryTabRow，行为不变。
+                header?.invoke()
+                MochiTabRow(
+                    titles = listOf(
+                        stringResource(R.string.setting_mcp_page_basic_settings),
+                        stringResource(R.string.setting_mcp_page_tools),
+                    ),
+                    selectedTabIndex = pagerState.currentPage,
+                    onTabSelected = { page ->
+                        scope.launch { pagerState.animateScrollToPage(page) }
+                    },
+                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) { page ->
+                    when (page) {
+                        0 -> {
+                            McpCommonOptionsConfigure(
+                                config = config,
+                                update = updateValue
+                            )
+                        }
+
+                        1 -> {
+                            McpToolsConfigure(
+                                config = config,
+                                update = updateValue,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

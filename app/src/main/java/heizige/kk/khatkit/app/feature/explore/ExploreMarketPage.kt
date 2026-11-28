@@ -81,35 +81,35 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.serverUrl
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalToolOption
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.bolt
-import heizige.kk.khatkit.app.core.ui.icons.calendarMonth
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.contentPaste
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
-import heizige.kk.khatkit.app.core.ui.icons.deployedCode
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
-import heizige.kk.khatkit.app.core.ui.icons.deleteForever
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.folderManaged
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.package2
-import heizige.kk.khatkit.app.core.ui.icons.payments
-import heizige.kk.khatkit.app.core.ui.icons.psychology
-import heizige.kk.khatkit.app.core.ui.icons.questionAnswer
-import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
-import heizige.kk.khatkit.app.core.ui.icons.schedule
-import heizige.kk.khatkit.app.core.ui.icons.school
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.timer
-import heizige.kk.khatkit.app.core.ui.icons.travelExplore
-import heizige.kk.khatkit.app.core.ui.icons.upload
-import heizige.kk.khatkit.app.core.ui.icons.vpnKey
-import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.khatkit.app.core.ui.icons.automation.bolt
+import heizige.kk.khatkit.app.core.ui.icons.utility.calendarMonth
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.code
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentPaste
+import heizige.kk.khatkit.app.core.ui.icons.utility.dashboard
+import heizige.kk.khatkit.app.core.ui.icons.utility.deployedCode
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.files.downloadForOffline
+import heizige.kk.khatkit.app.core.ui.icons.utility.deleteForever
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.files.folderManaged
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.files.package2
+import heizige.kk.khatkit.app.core.ui.icons.utility.payments
+import heizige.kk.khatkit.app.core.ui.icons.ai.psychology
+import heizige.kk.khatkit.app.core.ui.icons.chat.questionAnswer
+import heizige.kk.khatkit.app.core.ui.icons.ai.rocketLaunch
+import heizige.kk.khatkit.app.core.ui.icons.automation.schedule
+import heizige.kk.khatkit.app.core.ui.icons.utility.school
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.automation.timer
+import heizige.kk.khatkit.app.core.ui.icons.utility.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.files.upload
+import heizige.kk.khatkit.app.core.ui.icons.settings.vpnKey
+import heizige.kk.khatkit.app.core.ui.icons.media.volumeUp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.util.minus
 import heizige.kk.khatkit.app.core.util.plus
@@ -124,17 +124,17 @@ import heizige.kk.khatkit.hub.HubResourceEntry
 import heizige.kk.khatkit.uikit.KhatKitSecretsDialog
 
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarPalette
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
-import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
-import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
-import heizige.kk.khatkit.app.feature.tools.helper.toolTitle
+import heizige.kk.khatkit.app.core.util.toolCategory
+import heizige.kk.khatkit.app.core.util.toolDescription
+import heizige.kk.khatkit.app.core.util.toolTitle
 import ui.feice.mochi.basic.MochiActivityIndicator
 import ui.feice.mochi.basic.MochiRefreshIndicator
 import ui.feice.mochi.basic.mochiRefreshHold
@@ -184,6 +184,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.layout.layout
 import kotlinx.collections.immutable.persistentListOf
+import heizige.kk.khatkit.app.feature.explore.data.McpInstallPlan
+import heizige.kk.khatkit.app.feature.explore.data.McpCardStatus
+import heizige.kk.khatkit.app.feature.explore.helper.rePlanMcpInstall
+import heizige.kk.khatkit.app.feature.explore.helper.mcpCardStatus
+import heizige.kk.khatkit.app.feature.explore.helper.maskMcpUrl
 
 private enum class ExploreFilter {
     ALL,
@@ -803,7 +808,7 @@ fun ExploreMarketPage() {
             // 其它 dependency 条目还没接安装链路，只显示、不假装能装。空/失败时整组不渲染。
             if (extensionItems.isNotEmpty()) {
                 item(key = "ocr_extensions") {
-                    MochiListSection(modifier = swapIn(sectionPad), header = "原生插件") {
+                    MochiListSection(modifier = swapIn(sectionPad), header = stringResource(R.string.explore_market_native_plugins)) {
                         extensionItems.forEach { entry ->
                             val isSsh = entry.name == SshPluginInfo.MARKET_NAME
                             key(entry.slug) {
@@ -1749,7 +1754,7 @@ private fun McpRow(
         trailing = if (cardStatus == McpCardStatus.NEEDS_CONFIG && onConfigure != null) {
             {
                 RowActionButton(
-                    icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                    icon = heizige.kk.khatkit.app.core.ui.icons.settings.settings,
                     contentDescription = stringResource(R.string.explore_market_mcp_configure_named, name),
                     onClick = onConfigure,
                 )
@@ -1843,15 +1848,15 @@ private fun ResourceRow(
                 ) {
                     if (onConfigure != null) {
                         RowActionButton(
-                            icon = heizige.kk.khatkit.app.core.ui.icons.settings,
+                            icon = heizige.kk.khatkit.app.core.ui.icons.settings.settings,
                             contentDescription = stringResource(R.string.explore_market_mcp_configure_named, entry.name),
                             onClick = onConfigure,
                         )
                     }
                     when {
                         installed && onUninstall != null -> RowActionButton(
-                            icon = heizige.kk.khatkit.app.core.ui.icons.delete,
-                            contentDescription = "卸载",
+                            icon = heizige.kk.khatkit.app.core.ui.icons.utility.delete,
+                            contentDescription = stringResource(R.string.explore_market_uninstall),
                             onClick = { onUninstall() },
                         )
                         installed -> RowActionButton(

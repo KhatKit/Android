@@ -2,6 +2,7 @@ package heizige.kk.khatkit.app.feature.webview
 
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.LocalPageRoute
+import heizige.kk.khatkit.app.R
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
@@ -38,14 +40,17 @@ import heizige.kk.khatkit.app.core.ui.components.webview.WebViewContentCache
 import heizige.kk.khatkit.app.core.ui.components.webview.rememberWebViewState
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khatkit.app.core.ui.icons.bugReport
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.public
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.utility.bugReport
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.social.public
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +113,7 @@ fun WebViewPage(url: String, contentId: String) {
                 },
                 actions = {
                     MochiIconButton(onClick = { state.reload() }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(refresh, contentDescription = "Refresh")
+                        Icon(refresh, contentDescription = stringResource(R.string.webview_refresh))
                     }
 
                     MochiIconButton(
@@ -116,7 +121,7 @@ fun WebViewPage(url: String, contentId: String) {
                         enabled = state.canGoForward,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
-                        Icon(arrowForward, contentDescription = "Forward")
+                        Icon(arrowForward, contentDescription = stringResource(R.string.webview_forward))
                     }
 
                     val urlHandler = LocalUriHandler.current
@@ -125,11 +130,11 @@ fun WebViewPage(url: String, contentId: String) {
                         onExpandedChange = { showDropdown = it },
                         items = kotlinx.collections.immutable.persistentListOf(
                             MochiItem(
-                                label = "Open in Browser",
+                                label = stringResource(R.string.webview_open_in_browser),
                                 icon = { color -> Icon(public, contentDescription = null, tint = color) },
                             ),
                             MochiItem(
-                                label = "Console Logs",
+                                label = stringResource(R.string.webview_console_logs),
                                 icon = { color -> Icon(bugReport, contentDescription = null, tint = color) },
                             ),
                         ),
@@ -143,7 +148,7 @@ fun WebViewPage(url: String, contentId: String) {
                             }
                         },
                         onClick = { showDropdown = !showDropdown },
-                        buttonContent = { Icon(moreVert, contentDescription = "More options") },
+                        buttonContent = { Icon(moreVert, contentDescription = stringResource(R.string.webview_more_options)) },
                     )
                 }
             )
@@ -161,7 +166,7 @@ fun WebViewPage(url: String, contentId: String) {
 
         PrimaryBottomSheet(
             visible = showConsoleSheet,
-            title = "Console Logs",
+            title = stringResource(R.string.webview_console_logs),
             imageVector = bugReport,
             onDismiss = { showConsoleSheet = false },
             scrollable = false,
@@ -175,7 +180,7 @@ fun WebViewPage(url: String, contentId: String) {
                         items(state.consoleMessages) { message ->
                             Text(
                                 text = "${message.messageLevel().name}: ${message.message()}\n" +
-                                    "Source: ${message.sourceId()}:${message.lineNumber()}",
+                                    stringResource(R.string.webview_console_source, message.sourceId(), message.lineNumber()),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontFamily = JetbrainsMono,
                                 modifier = Modifier
@@ -193,7 +198,7 @@ fun WebViewPage(url: String, contentId: String) {
 
                 if (state.consoleMessages.isEmpty()) {
                     Text(
-                        text = "No console messages",
+                        text = stringResource(R.string.webview_no_console_messages),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)

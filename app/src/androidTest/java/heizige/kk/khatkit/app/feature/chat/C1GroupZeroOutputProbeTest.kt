@@ -11,7 +11,7 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
-import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
@@ -54,6 +54,9 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+
+
 
 // ======================================================================
 // 纯判定逻辑（不引用任何 Android / 项目类型）

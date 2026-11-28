@@ -1,8 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
 import androidx.compose.runtime.LaunchedEffect
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import androidx.compose.animation.AnimatedVisibility
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,9 +45,9 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.power
-import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.automation.power
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 import ui.feice.mochi.basic.MochiActivityIndicator
@@ -59,6 +57,8 @@ import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.mochiListSection
 import ui.feice.mochi.list.rows
 import ui.feice.mochi.theme.MochiTheme
+
+
 
 @Composable
 fun McpPickerButton(
@@ -125,9 +125,7 @@ fun McpPickerButton(
             scrollable = false,
         ) { _ ->
             Column(
-                modifier = Modifier.Companion
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.7f),
+                modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -231,14 +229,15 @@ private fun McpPickerSheet(
     onUpdateAssistant: (Assistant) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // U7b-6：直连 MochiSheet（state 由调用方持有）。
-    MochiSheet(state = sheetState, onDismiss = onDismiss) {
-        MochiSheetHeader(title = stringResource(id = R.string.mcp_picker_title))
+    PrimaryBottomSheet(
+        state = sheetState,
+        title = stringResource(R.string.mcp_picker_title),
+        imageVector = dns,
+        onDismiss = onDismiss,
+        scrollable = false,
+    ) { _ ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.7f)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -296,6 +295,7 @@ fun McpPicker(
         LazyColumn(
             modifier = modifier.fillMaxSize(),
             contentPadding = contentPadding,
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
         ) {
             mochiListSection(key = "mcp_servers") {
                 rows(visibleServers, key = { it.id.toString() }) { server ->

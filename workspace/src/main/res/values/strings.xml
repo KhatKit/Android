@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_error_rootfs_missing">The Linux root filesystem is not installed. Install it first.</string>
+    <string name="workspace_error_proot_missing">The workspace proot executable is missing. Reinstall the app.</string>
+    <string name="workspace_error_loader_missing">The workspace proot loader is missing. Reinstall the app.</string>
+</resources>

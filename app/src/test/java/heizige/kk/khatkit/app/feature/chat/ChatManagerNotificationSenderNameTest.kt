@@ -6,6 +6,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.helper.resolveNotificationSenderName
+
+
 
 /**
  * 后台「生成完成」通知标题的取值口径（[resolveNotificationSenderName]）。
@@ -90,7 +93,7 @@ class ChatManagerNotificationSenderNameTest {
     @Test
     fun groupBranch_recomputesSenderName_afterResolvingModel() {
         val source = java.io.File(
-            "src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt",
+            "src/main/java/heizige/kk/khatkit/app/feature/chat/helper/ChatManager.kt",
         ).readText()
 
         val groupModelResolve = source.indexOf(

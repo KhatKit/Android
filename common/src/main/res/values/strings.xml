@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_ssh_name">Remote SSH</string>
+    <string name="common_ssh_description">Connect to a remote Linux host and run commands</string>
+</resources>

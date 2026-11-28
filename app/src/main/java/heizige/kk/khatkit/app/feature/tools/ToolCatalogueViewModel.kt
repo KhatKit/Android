@@ -1,12 +1,13 @@
 package heizige.kk.khatkit.app.feature.tools
 
+import heizige.kk.khatkit.app.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
 import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogueRepository
 import heizige.kk.khatkit.app.feature.tools.data.ToolIconRepository
-import heizige.kk.khatkit.app.feature.tools.helper.isUserTool
+import heizige.kk.khatkit.app.core.util.isUserTool
 import heizige.kk.khatkit.hub.CardIndexEntry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -15,21 +16,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-internal data class ToolCatalogueState(
-    val cards: List<CardIndexEntry> = emptyList(),
-    val installed: Set<String> = emptySet(),
-    val favorites: Set<String> = emptySet(),
-    val recent: List<String> = emptyList(),
-    val loading: Boolean = true,
-    val complete: Boolean = true,
-    val error: String? = null,
-    val opening: String? = null,
-)
-
+import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogueState
 @HiltViewModel
 internal class ToolCatalogueViewModel @Inject constructor(
     private val repository: ToolCatalogueRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val provider: KhatKitToolProvider,
     iconRepository: ToolIconRepository,
 ) : ViewModel() {
@@ -93,7 +84,7 @@ internal class ToolCatalogueViewModel @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                _state.update { it.copy(error = "无法更新工具目录，请检查网络后重试。") }
+                _state.update { it.copy(error = context.getString(R.string.tools_refresh_failed)) }
             } finally {
                 _state.update { it.copy(loading = false) }
             }
@@ -119,7 +110,7 @@ internal class ToolCatalogueViewModel @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                _state.update { it.copy(error = "无法加载更多工具，请检查网络后重试。") }
+                _state.update { it.copy(error = context.getString(R.string.tools_load_more_failed)) }
             } finally {
                 _state.update { it.copy(loading = false) }
             }
@@ -145,7 +136,7 @@ internal class ToolCatalogueViewModel @Inject constructor(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                _state.update { it.copy(error = "工具下载失败，请检查网络后重试。") }
+                _state.update { it.copy(error = context.getString(R.string.tools_download_failed)) }
             } finally {
                 _state.update { it.copy(opening = null) }
             }

@@ -1,5 +1,12 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import heizige.kk.khatkit.app.R
+
 import android.os.Build
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -47,8 +54,8 @@ import androidx.compose.ui.unit.sp
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import kotlinx.coroutines.delay
@@ -71,7 +78,7 @@ fun AboutTerminalPage() {
     var replay by remember { mutableIntStateOf(0) }
 
     MochiSettingsPageScaffold(
-        title = "终端",
+        title = stringResource(R.string.setting_terminal_title),
         actions = {
             MochiIconButton(
                 onClick = { replay += 1 },
@@ -79,7 +86,7 @@ fun AboutTerminalPage() {
             ) {
                 Icon(
                     imageVector = refresh,
-                    contentDescription = "重播启动日志",
+                    contentDescription = stringResource(R.string.setting_terminal_replay),
                     tint = MochiTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -113,6 +120,9 @@ private fun TerminalPanel(
     modifier: Modifier = Modifier,
 ) {
     val cs = MochiTheme.colorScheme
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val configuration = LocalConfiguration.current
     val scroll = rememberScrollState()
     val lines = remember { mutableStateListOf<TermLine>() }
     var input by remember { mutableStateOf("") }
@@ -138,45 +148,45 @@ private fun TerminalPanel(
     fun run(raw: String) {
         val command = raw.trim()
         if (command.isEmpty()) return
-        echo("❯ " + command, TermLevel.Prompt)
+        echo(resources.getString(R.string.setting_terminal_echo, command), TermLevel.Prompt)
         when (command.lowercase()) {
             "help", "?" -> {
-                echo("help     列出全部命令")
-                echo("version  版本与构建信息")
-                echo("mochi    这次界面背后的设计语言")
-                echo("egg      彩蛋本体")
-                echo("whoami   你是谁")
-                echo("clear    清屏")
-                echo("exit     关掉终端")
+                echo(resources.getString(R.string.setting_terminal_help_help))
+                echo(resources.getString(R.string.setting_terminal_help_version))
+                echo(resources.getString(R.string.setting_terminal_help_mochi))
+                echo(resources.getString(R.string.setting_terminal_help_egg))
+                echo(resources.getString(R.string.setting_terminal_help_whoami))
+                echo(resources.getString(R.string.setting_terminal_help_clear))
+                echo(resources.getString(R.string.setting_terminal_help_exit))
             }
             "version", "ver" -> {
-                echo("khatkit  " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")")
-                echo("package  " + BuildConfig.APPLICATION_ID)
-                echo("abis     " + Build.SUPPORTED_ABIS.joinToString(", "))
+                echo(resources.getString(R.string.setting_terminal_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
+                echo(resources.getString(R.string.setting_terminal_package, BuildConfig.APPLICATION_ID))
+                echo(resources.getString(R.string.setting_terminal_abis, Build.SUPPORTED_ABIS.joinToString(", ")))
             }
             "mochi" -> {
-                echo("Mochi Compose：MD3E 的色板与字阶，iOS 26 的交互手感。", TermLevel.Success)
-                echo("本页所有圆角都是连续曲率，没有一个 RoundedCornerShape。", TermLevel.Dim)
-                echo("github.com/feice11/mochi-compose", TermLevel.Dim)
+                echo(resources.getString(R.string.setting_terminal_mochi), TermLevel.Success)
+                echo(resources.getString(R.string.setting_terminal_curves), TermLevel.Dim)
+                echo(resources.getString(R.string.setting_terminal_project), TermLevel.Dim)
             }
             "egg" -> {
-                echo("你已经在彩蛋里了。🍡", TermLevel.Success)
-                echo("这一页没有任何入口，只有长按关于页的图标才会出现。", TermLevel.Dim)
+                echo(resources.getString(R.string.setting_terminal_egg), TermLevel.Success)
+                echo(resources.getString(R.string.setting_terminal_egg_entry), TermLevel.Dim)
             }
-            "whoami" -> echo("彩蛋猎人（本机）", TermLevel.Success)
-            "sudo" -> echo("没有 root，也不需要 root。", TermLevel.Dim)
+            "whoami" -> echo(resources.getString(R.string.setting_terminal_whoami), TermLevel.Success)
+            "sudo" -> echo(resources.getString(R.string.setting_terminal_sudo), TermLevel.Dim)
             "clear", "cls" -> lines.clear()
             "exit", "quit", "q" -> onExit()
-            else -> echo("command not found: " + command + "（输入 help 看命令）", TermLevel.Error)
+            else -> echo(resources.getString(R.string.setting_terminal_unknown, command), TermLevel.Error)
         }
     }
 
     // 启动日志：一行一行打出来。replay 变了就清屏重放。
-    LaunchedEffect(replay) {
+    LaunchedEffect(replay, configuration) {
         lines.clear()
         booting = true
         input = ""
-        val script = buildBootLine()
+        val script = buildBootLine(context)
         for (line in script) {
             lines.add(TermLine("", line.level))
             val typed = StringBuilder()
@@ -214,7 +224,7 @@ private fun TerminalPanel(
             Box(Modifier.size(9.dp).clip(MochiTheme.shapes.full).background(cs.tertiary.copy(alpha = 0.55f)))
             Box(Modifier.size(9.dp).clip(MochiTheme.shapes.full).background(cs.primary.copy(alpha = 0.55f)))
             Text(
-                text = "khatkit@本机 · 隐藏终端",
+                text = stringResource(R.string.setting_terminal_session),
                 style = mono.copy(fontWeight = FontWeight.Medium),
                 color = cs.onSurfaceVariant.copy(alpha = 0.8f),
                 modifier = Modifier.padding(start = 8.dp),
@@ -276,7 +286,7 @@ private fun TerminalPrompt(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text = "❯", style = mono, color = cs.primary)
+        Text(text = stringResource(R.string.setting_terminal_prompt), style = mono, color = cs.primary)
         BasicTextField(
             value = input,
             onValueChange = onInputChange,
@@ -290,7 +300,7 @@ private fun TerminalPrompt(
                 Box {
                     if (input.isEmpty()) {
                         Text(
-                            text = "输入命令，help 看全部",
+                            text = stringResource(R.string.setting_terminal_hint),
                             style = mono,
                             color = cs.onSurfaceVariant.copy(alpha = 0.5f),
                         )
@@ -302,7 +312,7 @@ private fun TerminalPrompt(
         MochiIconButton(onClick = onSubmit, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 imageVector = arrowForward,
-                contentDescription = "执行",
+                contentDescription = stringResource(R.string.setting_terminal_execute),
                 tint = if (input.isBlank()) cs.onSurfaceVariant.copy(alpha = 0.4f) else cs.primary,
             )
         }
@@ -323,21 +333,21 @@ private fun BlinkingCursor(color: Color) {
         label = "termCursorAlpha",
     )
     Text(
-        text = "▊",
+        text = stringResource(R.string.setting_terminal_cursor),
         color = color.copy(alpha = alpha),
         style = MochiTheme.textStyles.footnote.copy(fontFamily = FontFamily.Monospace),
     )
 }
 
 /** 启动日志脚本：设备信息是真的，其余是彩蛋话术。 */
-private fun buildBootLine(): List<TermLine> = listOf(
-    TermLine("[khatkit] 唤醒隐藏终端 ……", TermLevel.Prompt),
-    TermLine("kernel  : mochi-compose · 连续曲率 / 无玻璃", TermLevel.Dim),
-    TermLine("surface : " + Build.MANUFACTURER + " " + Build.MODEL, TermLevel.Dim),
-    TermLine("android : " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")", TermLevel.Dim),
-    TermLine("build   : " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")", TermLevel.Dim),
+private fun buildBootLine(context: Context): List<TermLine> = listOf(
+    TermLine(context.getString(R.string.setting_terminal_boot), TermLevel.Prompt),
+    TermLine(context.getString(R.string.setting_terminal_kernel), TermLevel.Dim),
+    TermLine(context.getString(R.string.setting_terminal_surface, Build.MANUFACTURER, Build.MODEL), TermLevel.Dim),
+    TermLine(context.getString(R.string.setting_terminal_android, Build.VERSION.RELEASE, Build.VERSION.SDK_INT), TermLevel.Dim),
+    TermLine(context.getString(R.string.setting_terminal_build, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE), TermLevel.Dim),
     TermLine("", TermLevel.Output),
-    TermLine("彩蛋终端已就绪：这一页不在任何菜单里。", TermLevel.Success),
-    TermLine("输入 help 看能做什么，exit 回到关于页。", TermLevel.Output),
+    TermLine(context.getString(R.string.setting_terminal_ready), TermLevel.Success),
+    TermLine(context.getString(R.string.setting_terminal_boot_help), TermLevel.Output),
     TermLine("", TermLevel.Output),
 )

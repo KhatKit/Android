@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.lanshare
 
+import androidx.compose.ui.platform.LocalResources
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipDescription
@@ -23,9 +24,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import heizige.kk.khatkit.app.R
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
@@ -46,24 +49,25 @@ internal fun LanSharePage() {
     val manager = hiltViewModel<LanShareViewModel>().manager
     val state by manager.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) manager.select(uri)
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) manager.start() else manager.showError("未授予局域网访问权限")
+        if (granted) manager.start() else manager.showError(resources.getString(R.string.lanshare_permission_denied))
     }
     val sessionUrl = state.url
     val active = sessionUrl != null
     val canEditDirectory = !active && !state.isBusy
-    MochiSettingsPageScaffold(title = "局域网共享") { padding ->
+    MochiSettingsPageScaffold(title = stringResource(R.string.lanshare_page_title)) { padding ->
         Column(
             Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             MochiListSection {
                 MochiListRow(
-                    title = if (active) "分享中" else "未启动",
-                    subtitle = if (active) "临时链接 · 30 分钟后失效" else null,
+                    title = if (active) stringResource(R.string.lanshare_status_active) else stringResource(R.string.lanshare_status_idle),
+                    subtitle = if (active) stringResource(R.string.lanshare_status_link) else null,
                     leading = { MochiIonicon("wifi") },
                     leadingStyle = MochiListLeadingStyle.Symbol,
                     trailing = {
@@ -78,15 +82,15 @@ internal fun LanSharePage() {
                                 else manager.start()
                             },
                             style = if (active) MochiButtonStyle.Tonal else MochiButtonStyle.Filled,
-                        ) { Text(if (active) "停止" else "启动") }
+                        ) { Text(if (active) stringResource(R.string.lanshare_stop) else stringResource(R.string.lanshare_start)) }
                     },
                 )
                 if (sessionUrl != null) {
                     MochiListRow(
-                        title = "复制访问链接",
-                        subtitle = "同一网络 · HTTP，未加密",
+                        title = stringResource(R.string.lanshare_copy_url),
+                        subtitle = stringResource(R.string.lanshare_url_hint),
                         onClick = {
-                            val clip = ClipData.newPlainText("局域网共享", sessionUrl)
+                            val clip = ClipData.newPlainText(resources.getString(R.string.lanshare_page_title), sessionUrl)
                             if (Build.VERSION.SDK_INT >= 33) clip.description.extras = PersistableBundle().apply {
                                 putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
                             }
@@ -103,39 +107,39 @@ internal fun LanSharePage() {
             state.error?.let { Text(it, color = MochiTheme.colorScheme.error) }
             MochiListSection {
                 MochiListRow(
-                    title = "共享目录",
-                    subtitle = state.directory?.name?.takeIf { it.isNotBlank() } ?: "未选择目录",
+                    title = stringResource(R.string.lanshare_shared_dir),
+                    subtitle = state.directory?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.lanshare_no_dir),
                     onClick = if (canEditDirectory) ({ picker.launch(null) }) else null,
                     leading = { MochiIonicon("folder-open") },
                     trailing = {
                         if (state.directory != null && canEditDirectory) {
                             MochiIconButton(onClick = manager::removeDirectory, style = MochiButtonStyle.Text) {
-                                MochiIonicon("close", contentDescription = "移除共享目录")
+                                MochiIonicon("close", contentDescription = stringResource(R.string.lanshare_remove_dir))
                             }
                         }
                     },
                 )
             }
-            Text("文本互传", style = MochiTheme.textStyles.titleMedium)
+            Text(stringResource(R.string.lanshare_text_transfer), style = MochiTheme.textStyles.titleMedium)
             MochiTextField(
                 value = state.outgoing,
                 onValueChange = manager::editText,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = "发送到浏览器的文本",
+                placeholder = stringResource(R.string.lanshare_text_outgoing_placeholder),
                 singleLine = false,
             )
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("收到的文本", Modifier.weight(1f), style = MochiTheme.textStyles.footnote)
+                Text(stringResource(R.string.lanshare_text_incoming), Modifier.weight(1f), style = MochiTheme.textStyles.footnote)
                 if (state.incoming.isNotEmpty()) {
                     MochiIconButton(onClick = {
                         context.getSystemService(ClipboardManager::class.java)
-                            ?.setPrimaryClip(ClipData.newPlainText("收到的文本", state.incoming))
+                            ?.setPrimaryClip(ClipData.newPlainText(resources.getString(R.string.lanshare_text_incoming), state.incoming))
                     }, style = MochiButtonStyle.Text) {
-                        MochiIonicon("copy", contentDescription = "复制收到的文本")
+                        MochiIonicon("copy", contentDescription = stringResource(R.string.lanshare_copy_incoming))
                     }
                 }
             }
-            SelectionContainer { Text(state.incoming.ifBlank { "暂无内容" }) }
+            SelectionContainer { Text(state.incoming.ifBlank { stringResource(R.string.lanshare_empty_incoming) }) }
         }
     }
 }

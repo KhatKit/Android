@@ -36,10 +36,10 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import heizige.kk.khatkit.app.core.util.toLocalDateTime
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.chat
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.pushPin
-import heizige.kk.khatkit.app.core.ui.icons.travelExplore
+import heizige.kk.khatkit.app.core.ui.icons.chat.chat
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.pushPin
+import heizige.kk.khatkit.app.core.ui.icons.utility.travelExplore
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiPageContentPadding
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.rememberMochiSnackbarHostState
@@ -49,7 +49,6 @@ import kotlinx.collections.immutable.persistentListOf
 import ui.feice.mochi.basic.MochiDialog
 import ui.feice.mochi.basic.MochiDialogAction
 import ui.feice.mochi.basic.MochiDialogActionRole
-import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
@@ -58,7 +57,7 @@ import ui.feice.mochi.list.MochiSwipeRow
 import ui.feice.mochi.theme.MochiTheme
 
 @Composable
-fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
+fun HistoryPage(vm: HistoryViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = rememberMochiSnackbarHostState()

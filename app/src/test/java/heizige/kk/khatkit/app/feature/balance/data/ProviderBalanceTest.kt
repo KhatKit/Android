@@ -12,6 +12,9 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.*
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.balance.helper.LowBalanceEpisodes
+import heizige.kk.khatkit.app.feature.balance.helper.BalanceQuery
+import heizige.kk.khatkit.app.feature.balance.helper.isLow
 
 class ProviderBalanceTest {
     private val options = BalanceOption(enabled = true, resultPath = "data.remaining", lowBalanceAlert = true)

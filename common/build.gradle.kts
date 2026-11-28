@@ -32,9 +32,7 @@ dependencies {
     implementation(libs.ktor.client.websockets)
 
     // kotlinx
-    api(libs.kotlinx.serialization.json)
-    api(libs.kotlinx.coroutines.core)
-    api(libs.kotlinx.datetime)
+    api(libs.bundles.kotlinx.api)
 
     // apache commons
     api(libs.commons.text)
@@ -44,9 +42,7 @@ dependencies {
     api(libs.floatingx.app)
     api(libs.floatingx.compose)
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(libs.bundles.android.view.support)
 
     // quickjs
     api(libs.quickjs)

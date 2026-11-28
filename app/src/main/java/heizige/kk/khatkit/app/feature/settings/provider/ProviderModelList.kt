@@ -105,21 +105,21 @@ import heizige.kk.khatkit.app.core.ui.components.ai.ModelTypeTag
 import heizige.kk.khatkit.app.core.ui.components.ai.ProviderBalanceText
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.ui.AutoAIIcon
-import heizige.kk.khatkit.app.core.ui.components.ui.ShareSheet
+import heizige.kk.khatkit.app.feature.settings.components.ui.ShareSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.SiliconFlowPowerByIcon
 import heizige.kk.khatkit.app.core.ui.components.ui.Tag
 import heizige.kk.khatkit.app.core.ui.components.ui.TagType
-import heizige.kk.khatkit.app.core.ui.components.ui.rememberShareSheetState
+import heizige.kk.khatkit.app.feature.settings.components.ui.rememberShareSheetState
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.hooks.useEditState
 import heizige.kk.khatkit.app.core.ui.hooks.EditStateContent
-import heizige.kk.khatkit.app.feature.assistant.detail.CustomBodies
-import heizige.kk.khatkit.app.feature.assistant.detail.CustomHeaders
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomBodies
+import heizige.kk.khatkit.app.core.ui.components.ai.CustomHeaders
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConfigure
 import heizige.kk.khatkit.app.feature.settings.components.ProviderConnectionTester
 import heizige.kk.khatkit.app.feature.settings.components.SettingProviderBalanceOption
-import heizige.kk.khatkit.app.feature.settings.components.isUsingDefaultBaseUrl
-import heizige.kk.khatkit.app.feature.settings.components.resetBaseUrlToDefault
+import heizige.kk.khatkit.app.feature.settings.helper.isUsingDefaultBaseUrl
+import heizige.kk.khatkit.app.feature.settings.helper.resetBaseUrlToDefault
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
@@ -130,16 +130,16 @@ import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.build
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.dns
-import heizige.kk.khatkit.app.core.ui.icons.memory
-import heizige.kk.khatkit.app.core.ui.icons.package2
-import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.app.core.ui.icons.sync
-import heizige.kk.khatkit.app.core.ui.icons.refresh
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.dns
+import heizige.kk.khatkit.app.core.ui.icons.settings.memory
+import heizige.kk.khatkit.app.core.ui.icons.files.package2
+import heizige.kk.khatkit.app.core.ui.icons.social.share
+import heizige.kk.khatkit.app.core.ui.icons.utility.sync
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
@@ -150,6 +150,8 @@ import heizige.kk.khatkit.app.core.ui.components.ui.mochi.FormMetrics
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.FormRowLabel
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import androidx.compose.foundation.layout.ColumnScope
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
 
 
 @Composable

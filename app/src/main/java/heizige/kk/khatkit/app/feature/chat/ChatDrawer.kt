@@ -10,7 +10,6 @@ import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.rememberMochiSheetState
-
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -22,10 +21,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.SolidColor
-import heizige.kk.khatkit.app.core.ui.icons.arrowBack
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.chat
-import heizige.kk.khatkit.app.core.ui.icons.download
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.chat.chat
+import heizige.kk.khatkit.app.core.ui.icons.files.download
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -41,7 +40,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -100,14 +98,14 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.Folder
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantItem
 import heizige.kk.khatkit.app.core.ui.components.ai.AssistantPicker
-import heizige.kk.khatkit.app.core.ui.components.ui.BackupReminderCard
-import heizige.kk.khatkit.app.core.ui.components.ui.UpdateCard
+import heizige.kk.khatkit.app.feature.chat.components.ui.BackupReminderCard
+import heizige.kk.khatkit.app.feature.chat.components.ui.UpdateCard
 import heizige.kk.khatkit.app.core.ui.components.ui.activeNestedScroll
 import heizige.kk.khatkit.app.core.ui.components.ui.scrollLinkedTopBarColors
 import androidx.compose.ui.draw.clip
 import heizige.kk.khatkit.app.core.ui.context.Navigator
 import heizige.kk.khatkit.app.core.ui.hooks.readBooleanPreference
-import heizige.kk.khatkit.app.core.ui.hooks.rememberIsPlayStoreVersion
+import heizige.kk.khatkit.app.feature.chat.hooks.rememberIsPlayStoreVersion
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.app.core.util.navigateToChatPage
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -117,18 +115,17 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.createNewFolder
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.folder as folderIcon
-import heizige.kk.khatkit.app.core.ui.icons.groups
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.settings as settingsIcon
+import heizige.kk.khatkit.app.core.ui.icons.files.createNewFolder
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.files.folder as folderIcon
+import heizige.kk.khatkit.app.core.ui.icons.chat.groups
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import heizige.kk.khatkit.app.core.ui.icons.navigation.chevronRight
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings as settingsIcon
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-
 import heizige.kk.khatkit.uikit.mochi.MochiOverlayScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiButtonDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
@@ -138,6 +135,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import heizige.kk.khatkit.app.feature.chat.data.DrawerMessageSearchState
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun ChatDrawerContent(
@@ -247,7 +248,7 @@ fun ChatDrawerContent(
                         state = messageSearch,
                         roleName = settings.assistants
                             .firstOrNull { it.id == currentRoleId }?.name
-                            ?: "当前角色",
+                            ?: stringResource(R.string.role_drawer_current_role),
                         groupByConversation = false,
                         contentPadding = DrawerListPadding,
                         listTag = "drawer_role_search_list",
@@ -358,10 +359,7 @@ fun ChatDrawerContent(
             scrollable = false,
         ) { dismiss ->
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 圆角与行间空隙取全局列表卡片样式（与助手页 / 选择器 / 设置页同一套口径），
@@ -456,12 +454,13 @@ private fun highlightedSnippet(snippet: String, highlight: Color): AnnotatedStri
     }
 
 /** 命中行的时间：今天给 HH:mm、昨天给「昨天」、更早给 M/d（与角色列表同一套口径）。 */
+@Composable
 private fun drawerSearchTimeLabel(instant: Instant): String {
     val local = instant.atZone(ZoneId.systemDefault())
     val today = LocalDate.now()
     return when (local.toLocalDate()) {
         today -> local.format(DateTimeFormatter.ofPattern("HH:mm"))
-        today.minusDays(1) -> "昨天"
+        today.minusDays(1) -> stringResource(R.string.common_yesterday)
         else -> local.format(DateTimeFormatter.ofPattern("M/d"))
     }
 }
@@ -572,7 +571,7 @@ private fun DrawerMessageSearchList(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text = head.title.ifBlank { "未命名会话" },
+                                        text = head.title.ifBlank { stringResource(R.string.chat_drawer_unnamed_conversation) },
                                         style = MochiTheme.textStyles.titleMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
@@ -632,7 +631,7 @@ private fun DrawerMessageSearchList(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = conversation.title.ifBlank { "未命名会话" },
+                                text = conversation.title.ifBlank { stringResource(R.string.chat_drawer_unnamed_conversation) },
                                 style = bodyStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -662,7 +661,7 @@ private fun DrawerSearchHitRow(
 ) {
     val muted = MochiTheme.colorScheme.onSurfaceVariant
     val snippet = remember(hit.snippet, highlight) { highlightedSnippet(hit.snippet, highlight) }
-    val time = remember(hit.updateAt) { drawerSearchTimeLabel(hit.updateAt) }
+    val time = drawerSearchTimeLabel(hit.updateAt)
     KkSurface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
@@ -679,7 +678,7 @@ private fun DrawerSearchHitRow(
             if (showTitle) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = hit.title.ifBlank { "未命名会话" },
+                        text = hit.title.ifBlank { stringResource(R.string.chat_drawer_unnamed_conversation) },
                         style = MochiTheme.textStyles.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

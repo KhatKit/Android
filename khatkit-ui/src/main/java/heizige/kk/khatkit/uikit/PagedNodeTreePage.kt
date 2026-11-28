@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiScreenPage
 import heizige.kk.khatkit.ui.UiSheetOptions
+import heizige.kk.khatkit.ui.localizedErrors
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withTimeoutOrNull
@@ -270,14 +271,14 @@ internal fun PagedNodeTreePage(
                 LaunchedEffect(context, configuration) {
                     if (pageErrors.isNotEmpty()) {
                         val visibleFields = pageErrors.keys.toSet()
-                        val localized = page.root.errors(pageValues).filterKeys { it in visibleFields }
+                        val localized = page.root.localizedErrors(context, pageValues).filterKeys { it in visibleFields }
                         pageErrors.clear()
                         pageErrors.putAll(localized)
                     }
                 }
                 val submit: (String) -> Unit = { event ->
                     pageErrors.clear()
-                    pageErrors.putAll(page.root.errors(pageValues))
+                    pageErrors.putAll(page.root.localizedErrors(context, pageValues))
                     if (active && pageErrors.isEmpty()) {
                         onAction(event, page.root.collect(pageValues) + (UiScreenPage.PAGE_VALUE_KEY to id))
                     }

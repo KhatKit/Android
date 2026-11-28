@@ -48,17 +48,17 @@ private fun androidSafeConfig(): AndroidConfig = AndroidConfig().apply {
     }
 }
 
-internal class SshClient(context: Context) : Closeable {
+internal class SshClient(private val context: Context) : Closeable {
     private val hostKeys = SshHostKeyStore(context)
     private var active: SSHClient? = null
 
     fun execute(request: SshRequest, timeoutMillis: Long = 30_000L): SshResult {
-        require(request.host.isNotBlank()) { "主机地址不能为空" }
-        require(request.username.isNotBlank()) { "用户名不能为空" }
-        require(request.password.isNotEmpty()) { "密码不能为空" }
-        require(request.command.isNotBlank()) { "命令不能为空" }
-        require(request.port in 1..65535) { "端口范围必须是 1-65535" }
-        require(timeoutMillis > 0) { "超时时间必须大于 0" }
+        require(request.host.isNotBlank()) { context.getString(R.string.ssh_error_host_required) }
+        require(request.username.isNotBlank()) { context.getString(R.string.ssh_error_username_required) }
+        require(request.password.isNotEmpty()) { context.getString(R.string.ssh_error_password_required) }
+        require(request.command.isNotBlank()) { context.getString(R.string.ssh_error_command_required) }
+        require(request.port in 1..65535) { context.getString(R.string.ssh_error_port_range) }
+        require(timeoutMillis > 0) { context.getString(R.string.ssh_error_timeout_range) }
 
         val timeout = timeoutMillis.toInt()
         val client = SSHClient(androidSafeConfig()).apply {
@@ -85,7 +85,7 @@ internal class SshClient(context: Context) : Closeable {
                     stdoutReader.join(timeoutMillis)
                     stderrReader.join(timeoutMillis)
                     if (stdoutReader.isAlive || stderrReader.isAlive) {
-                        throw SshTimeoutException("命令执行超过 ${timeoutMillis}ms，已断开连接")
+                        throw SshTimeoutException(context.getString(R.string.ssh_error_command_timeout, timeoutMillis))
                     }
                     commandSession.join(timeoutMillis, TimeUnit.MILLISECONDS)
                     val combined = buildString {
@@ -123,7 +123,7 @@ internal class SshClient(context: Context) : Closeable {
 
 class SshTimeoutException(message: String) : Exception(message)
 
-private class SshHostKeyStore(context: Context) {
+private class SshHostKeyStore(private val context: Context) {
     private val prefs = context.getSharedPreferences("khatkit_ssh_host_keys", Context.MODE_PRIVATE)
 
     fun verifyOrRemember(host: String, port: Int, key: PublicKey): Boolean {
@@ -135,7 +135,7 @@ private class SshHostKeyStore(context: Context) {
             return true
         }
         check(known == fingerprint) {
-            "SSH 主机密钥已变更（$host:$port），为避免中间人攻击已拒绝连接"
+            context.getString(R.string.ssh_error_host_key_changed, host, port)
         }
         return true
     }

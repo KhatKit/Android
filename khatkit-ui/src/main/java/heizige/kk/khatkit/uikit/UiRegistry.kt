@@ -7,6 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,8 +35,9 @@ object UiRegistry {
 
     init {
         register("json.pretty") { item ->
+            val context = LocalContext.current
             Text(
-                text = item.entries.joinToString("\n") { (key, value) -> "$key: $value" },
+                text = item.entries.joinToString("\n") { (key, value) -> context.getString(R.string.khatkit_field_value, key, value.toString()) },
                 fontFamily = FontFamily.Monospace,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(4.dp),
@@ -46,7 +49,7 @@ object UiRegistry {
                 item.forEach { (key, value) ->
                     Row {
                         Text(
-                            text = "$key: ",
+                            text = stringResource(R.string.khatkit_field_label, key),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelSmall,
                         )

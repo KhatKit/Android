@@ -48,7 +48,7 @@ class ChatCompletionsRequestMessageTest {
             "buildMessages",
             List::class.java,
             Boolean::class.javaPrimitiveType,
-            Boolean::class.javaPrimitiveType,
+            ReasoningReplayFormat::class.java,
             List::class.java
         )
         method.isAccessible = true
@@ -56,7 +56,12 @@ class ChatCompletionsRequestMessageTest {
             api,
             messages,
             includeHistoryReasoning,
-            includeOpenRouterReasoningDetails,
+            // 重放格式从「是否回放 OpenRouter details」布尔改为三值枚举
+            if (includeOpenRouterReasoningDetails) {
+                ReasoningReplayFormat.OPENROUTER_DETAILS
+            } else {
+                ReasoningReplayFormat.REASONING_CONTENT
+            },
             listOf(Modality.TEXT, Modality.IMAGE)
         ) as JsonArray
     }

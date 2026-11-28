@@ -1,9 +1,15 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.app.feature.chat.components.ai.aiFlbCapsuleAlpha
+import heizige.kk.khatkit.app.feature.chat.components.ai.aiFlbToolbarAlpha
+import heizige.kk.khatkit.app.feature.chat.components.ai.aiFlbToolbarMorph
 import androidx.compose.ui.geometry.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.components.ai.AI_FLB_TOOLBAR_FADE_RANGE
+
+
 
 /**
  * 首页底栏上滑 morph 的口径：输入胶囊 pill → 编辑器底部工具栏矩形。

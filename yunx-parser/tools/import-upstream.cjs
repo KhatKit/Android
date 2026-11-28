@@ -1,51 +1,63 @@
-// Mechanical import of the pinned YunX protocol implementation.
-// Usage: node tools/import-upstream.cjs /path/to/YunX
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Import only the explicitly pinned protocol allowlist. Never copy upstream UI/locales.
+// Usage: node tools/import-upstream.cjs /path/to/YunX [--check]
 const fs = require("node:fs");
 const path = require("node:path");
-const source = path.resolve(process.argv[2]);
+const crypto = require("node:crypto");
+const { parseStrings, buildResources, generate } = require("./generate-locales.cjs");
+const manifest = require("./upstream-manifest.json");
 const target = path.resolve(__dirname, "..");
-const src = path.join(source, "app/src/main/kotlin/com/yunx/app");
-const dst = path.join(target, "src/main/java/com/yunx/app");
-function copy(relative) {
-  const from = path.join(src, relative), to = path.join(dst, relative);
-  fs.mkdirSync(path.dirname(to), { recursive: true });
-  fs.copyFileSync(from, to);
-}
-function folder(relative, filter = () => true) {
-  for (const entry of fs.readdirSync(path.join(src, relative), { withFileTypes: true })) {
-    if (entry.isFile() && filter(entry.name)) copy(path.join(relative, entry.name));
+const digest = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
+function prepare(source) {
+  // Validate every translation before considering any writes.
+  const locales = buildResources();
+  const license = fs.readFileSync(path.join(source, "LICENSE"));
+  if (digest(license) !== manifest.licenseSha256) throw Error("Upstream LICENSE differs from pinned " + manifest.revision);
+  if (!fs.readFileSync(path.join(target, "LICENSE")).equals(license)) throw Error("Local LICENSE differs; preserve it and review manually");
+  const copies = [], refs = new Set();
+  for (const [relative, expected] of Object.entries(manifest.files)) {
+    if (path.isAbsolute(relative) || relative.split("/").includes("..") || !relative.endsWith(".kt")) throw Error("Unsafe manifest path: " + relative);
+    const bytes = fs.readFileSync(path.join(source, manifest.sourceRoot, relative));
+    if (digest(bytes) !== expected) throw Error("Source differs from pinned " + manifest.revision + ": " + relative);
+    const dest = path.join(target, "src/main/java/com/yunx/app", relative);
+    if (fs.existsSync(dest) && !fs.readFileSync(dest).equals(bytes)) throw Error("Refusing to overwrite local protocol changes: " + relative);
+    for (const match of bytes.toString("utf8").matchAll(/R\.string\.(\w+)/g)) refs.add(match[1]);
+    copies.push({ dest, bytes });
   }
-}
-folder("data/network", name => !["HttpClients.kt", "DiagnosticNetworkInterceptor.kt", "GitHubTokenStore.kt"].includes(name));
-folder("data/network/model");
-folder("data/network/video");
-folder("data/repository", name => name.endsWith("ResolveRepository.kt") && name !== "ILanzouResolveRepository.kt");
-for (const name of ["UploadIo", "UploadSource", "UploadSigning"]) copy(`data/upload/${name}.kt`);
-for (const name of ["XunleiAccountEntity", "MultiAccountEntity"]) copy(`data/db/${name}.kt`);
-copy("data/download/DownloadPathPolicy.kt");
-for (const name of ["HlsDownloader", "HlsRequestPolicy", "DashMuxer"]) copy(`data/download/${name}.kt`);
-copy("util/LogRedactor.kt");
-copy("ui/login/DiagnosticWebViewClient.kt");
-// Keep only string resources used by the copied parser, never upstream screens.
-const refs = new Set();
-function scan(dir) {
-  for (const item of fs.readdirSync(dir, {withFileTypes: true})) {
-    const p = path.join(dir, item.name);
-    if (item.isDirectory()) scan(p);
-    else if (p.endsWith(".kt")) for (const m of fs.readFileSync(p, "utf8").matchAll(/R\.string\.(\w+)/g)) refs.add(m[1]);
+  const upstream = new Map();
+  const res = path.join(source, "app/src/main/res/values");
+  for (const file of fs.readdirSync(res).filter(name => name.endsWith(".xml")).sort()) {
+    const xml = fs.readFileSync(path.join(res, file), "utf8");
+    if (!/<string\s/.test(xml)) continue;
+    for (const [key, entry] of parseStrings(xml, file)) {
+      if (upstream.has(key)) throw Error("Duplicate upstream resource: " + key);
+      upstream.set(key, entry);
+    }
   }
-}
-scan(dst);
-const strings = [];
-for (const file of fs.readdirSync(path.join(source, "app/src/main/res/values"))) {
-  if (!file.endsWith(".xml")) continue;
-  const xml = fs.readFileSync(path.join(source, "app/src/main/res/values", file), "utf8");
-  for (const m of xml.matchAll(/<string\s+name="([^"]+)"[^>]*>[\s\S]*?<\/string>/g)) {
-    if (refs.has(m[1])) { strings.push(m[0]); refs.delete(m[1]); }
+  const missing = [...refs].filter(key => !locales.source.has(key));
+  if (missing.length) throw Error("Missing local Chinese source / English translation for upstream keys: " + missing.join(", "));
+  for (const [key, entry] of locales.source) {
+    const original = upstream.get(key);
+    if (!original) throw Error("Missing pinned upstream resource: " + key);
+    if (original.body !== entry.body || original.attrs !== entry.attrs) throw Error("Chinese source changed; review both locale maps: " + key);
   }
+  return { copies, locales, refs };
 }
-if (refs.size) throw Error(`Missing upstream strings: ${[...refs].join(", ")}`);
-const res = path.join(target, "src/main/res/values");
-fs.mkdirSync(res, {recursive: true});
-fs.writeFileSync(path.join(res, "yunx_strings.xml"), `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n${strings.join("\n")}\n</resources>\n`);
-fs.copyFileSync(path.join(source, "LICENSE"), path.join(target, "LICENSE"));
+function main() {
+  const args = process.argv.slice(2);
+  if (args.length < 1 || args.length > 2 || (args.length === 2 && args[1] !== "--check") || args[0].startsWith("--")) throw Error("Usage: node tools/import-upstream.cjs /path/to/YunX [--check]");
+  const plan = prepare(path.resolve(args[0]));
+  const check = args[1] === "--check";
+  if (!check) {
+    for (const { dest, bytes } of plan.copies) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, bytes);
+    }
+  }
+  generate(check, plan.locales);
+  console.log((check ? "Verified " : "Imported ") + plan.copies.length + " pinned protocol files at " + manifest.revision + "; " + plan.locales.source.size + " upstream + " + Object.keys(plan.locales.host).length + " host translations per locale");
+}
+if (require.main === module) {
+  try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; }
+}
+module.exports = { prepare };

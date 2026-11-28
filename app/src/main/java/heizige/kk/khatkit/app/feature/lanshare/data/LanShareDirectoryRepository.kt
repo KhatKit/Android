@@ -21,7 +21,7 @@ internal class LanShareDirectoryRepository(private val resolver: ContentResolver
         requireNotNull(document?.takeIf { it.directory })
     }
 
-    suspend fun children(directory: LanShareDocument): List<LanShareDocument> = withContext(Dispatchers.IO) {
+    suspend fun children(directory: LanShareDocument, unnamedFallback: String): List<LanShareDocument> = withContext(Dispatchers.IO) {
         require(directory.directory)
         val uri = DocumentsContract.buildChildDocumentsUriUsingTree(directory.uri, DocumentsContract.getDocumentId(directory.uri))
         val entries = resolver.query(uri, columns, null, null, null) ?: error("directory unavailable")
@@ -30,7 +30,7 @@ internal class LanShareDirectoryRepository(private val resolver: ContentResolver
                 while (size < MAX_ENTRIES && cursor.moveToNext()) {
                     add(LanShareDocument(
                         DocumentsContract.buildDocumentUriUsingTree(directory.uri, cursor.getString(0)),
-                        cursor.getString(1).orEmpty().ifBlank { "未命名" },
+                        cursor.getString(1).orEmpty().ifBlank { unnamedFallback },
                         cursor.getString(2) == Document.MIME_TYPE_DIR,
                     ))
                 }

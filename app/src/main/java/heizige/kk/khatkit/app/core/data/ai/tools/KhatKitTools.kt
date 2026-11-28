@@ -1,7 +1,12 @@
 package heizige.kk.khatkit.app.core.data.ai.tools
 
-import heizige.kk.khatkit.app.core.util.showTransientNotice
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.feature.lanshare.helper.LanShareCardBridge
+import heizige.kk.khatkit.app.feature.lanshare.helper.LanShareCardEntryPoint
+import heizige.kk.khatkit.app.feature.yunx.helper.YunxCardBridge
+import heizige.kk.khatkit.app.feature.yunx.helper.YunxMediaDownloadHandler
 
+import heizige.kk.khatkit.app.core.util.showTransientNotice
 import android.app.KeyguardManager
 import android.content.Context
 import android.graphics.Bitmap
@@ -23,11 +28,13 @@ import heizige.kk.khatkit.bridge.CardCallHost
 import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
-import heizige.kk.khatkit.app.feature.automation.data.ApprovalCategory
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
-import heizige.kk.khatkit.app.feature.automation.helper.AutomationTracer
-import heizige.kk.khatkit.app.feature.automation.helper.BusApprovalGate
-import heizige.kk.khatkit.app.feature.automation.data.UiAutomationSnapshotProvider
+import heizige.kk.khatkit.app.core.data.automation.ApprovalCategory
+import heizige.kk.khatkit.app.feature.automation.helper.UiAutomationSnapshotHelper
+import heizige.kk.khatkit.app.core.data.automation.UiActionDto
+import heizige.kk.khatkit.app.core.data.automation.BBoxDto
+import heizige.kk.khatkit.app.core.data.automation.AutomationTraceManager
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
+import heizige.kk.khatkit.app.feature.automation.helper.BusApprovalHelper
 import heizige.kk.khatkit.app.core.data.ai.hub.HubAccountRepository
 import heizige.kk.khatkit.app.core.data.ai.CardAiEngine
 import heizige.kk.khatkit.app.core.data.ai.ModelTaskType
@@ -44,10 +51,10 @@ import heizige.kk.khatkit.app.core.data.db.entity.CardArtifactEntity
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitSchemaFormSpec
 import heizige.kk.khatkit.app.core.ui.components.khatkit.fillSchemaArgs
 import heizige.kk.khatkit.app.core.data.files.CardMediaImporter
-import heizige.kk.khatkit.app.feature.automation.data.CardScheduleRepository
-import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeImpl
+import heizige.kk.khatkit.app.core.data.automation.CardScheduleRepository
+import heizige.kk.khatkit.app.feature.automation.helper.ScheduleBridgeHelper
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginLoader
-import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginStore
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginRepository
 import heizige.kk.khatkit.record.UiBBox
 import heizige.kk.khatkit.record.VisualGrounding
 import heizige.kk.khatkit.card.CardManifest
@@ -58,6 +65,7 @@ import heizige.kk.khatkit.dependency.DependencyCache
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.engine.EngineResult
 import heizige.kk.khatkit.exec.CardExecutor
+import heizige.kk.khatkit.localization.localizedMessage
 import heizige.kk.khatkit.exec.CardApprovalMode
 import heizige.kk.khatkit.exec.CardExecutionOptions
 import heizige.kk.khatkit.ui.LateUiAnswer
@@ -134,7 +142,6 @@ import heizige.kk.khatkit.app.core.util.collectLocalImagePaths
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
-import heizige.kk.khatkit.app.feature.chat.ChatManager
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -226,6 +233,7 @@ class KhatKitToolProvider(
     private val cardArtifactDao: CardArtifactDAO,
 ) : KhatKitController {
     private val appContext = context.applicationContext
+    override val uiContext: Context? get() = appContext
     internal val apiHealth = heizige.kk.khatkit.app.feature.tools.data.ToolApiHealthRepository(appContext)
     private val rootDir = File(appContext.filesDir, "khatkit").apply { mkdirs() }
     private val cache = CardCache(rootDir)
@@ -233,13 +241,13 @@ class KhatKitToolProvider(
     private val lanShareBridge: heizige.kk.khatkit.bridge.LanShareBridge by lazy {
         val entry = dagger.hilt.android.EntryPointAccessors.fromApplication(
             appContext,
-            heizige.kk.khatkit.app.feature.lanshare.LanShareCardEntryPoint::class.java,
+            LanShareCardEntryPoint::class.java,
         )
-        heizige.kk.khatkit.app.feature.lanshare.LanShareCardBridge(entry.lanShareManager())
+        LanShareCardBridge(entry.lanShareManager())
     }
     private val uiHost = UiBridgeHost(
-        onAutomationStatus = { label, detail -> AutomationBus.updateIfRunning(label, detail) },
-        onCancelled = { AutomationBus.isCancelRequested() },
+        onAutomationStatus = { label, detail -> AutomationManager.updateIfRunning(label, detail) },
+        onCancelled = { AutomationManager.isCancelRequested() },
     )
 
     /**
@@ -266,7 +274,7 @@ class KhatKitToolProvider(
     private val mediaImporter = CardMediaImporter(appContext)
     private val mediaPickerHost = MediaPickerHost(
         importToCache = { cardName, uris -> mediaImporter.import(cardName, uris) },
-        onAwaiting = { name -> AutomationBus.updateIfRunning("等待选择媒体", name) },
+        onAwaiting = { name -> AutomationManager.updateIfRunning("等待选择媒体", name) },
     )
 
     /**
@@ -283,7 +291,7 @@ class KhatKitToolProvider(
     )
 
     /** 脚本自建定时任务的宿主侧实现；卡片名由 BridgeRegistry 按 manifest 绑定。 */
-    private val scheduleImpl by lazy { ScheduleBridgeImpl(appContext, "") }
+    private val scheduleImpl by lazy { ScheduleBridgeHelper(appContext, "") }
 
     /** 表单 `file_picker` / `dir_picker` 的宿主侧选择器请求；表单渲染时传入 KhatKitForm。 */
     val formPickerHost = FormPickerHost()
@@ -298,7 +306,7 @@ class KhatKitToolProvider(
 
     /** A4 轨迹落盘：每次 device_act 记录截图帧 + 动作 + 目标 + 结果，可回放审计。 */
     private val automationTracer by lazy {
-        AutomationTracer(File(rootDir, "traces").apply { mkdirs() })
+        AutomationTraceManager(File(rootDir, "traces").apply { mkdirs() })
     }
 
     @Volatile
@@ -498,8 +506,8 @@ class KhatKitToolProvider(
                 ),
                 // 原生依赖包从用户配置的 Hub 下载；下载/校验进度发布到自动化看板
                 hubBaseUrl = { hubBaseUrl },
-                onDependencyStatus = { AutomationBus.updateIfRunning(it) },
-                approvalGate = BusApprovalGate(),
+                onDependencyStatus = { AutomationManager.updateIfRunning(it) },
+                approvalGate = BusApprovalHelper(),
                 mediaPicker = mediaPickerHost,
                 ai = aiBridge,
                 // store.embed* 用用户已配置的 embedding 模型；没有模型时方法返回中文错误
@@ -507,9 +515,10 @@ class KhatKitToolProvider(
                 schedule = scheduleImpl,
                 browserProvider = { heizige.kk.khatkit.app.core.data.browser.CardBrowserBridge.create(appContext, it) },
                 lanShare = lanShareBridge,
-                mediaDownloadHandler = heizige.kk.khatkit.app.feature.yunx.YunxMediaDownloadHandler(),
+                mediaDownloadHandler = YunxMediaDownloadHandler(),
                 onCardApiObservation = apiHealth::record,
                 onToast = { appContext.showTransientNotice(it) },
+                messageResolver = { it.localizedMessage(appContext) },
                 cardCallHost = CardCallHost(
                     findInstalled = { name -> cache.findInstalled(name) },
                     run = { child, input, parent, chain, deadline ->
@@ -521,7 +530,7 @@ class KhatKitToolProvider(
                     },
                 ),
             ).also {
-                it.bridges.registerDynamic("yunx", heizige.kk.khatkit.app.feature.yunx.YunxCardBridge(appContext))
+                it.bridges.registerDynamic("yunx", YunxCardBridge(appContext))
                 executor = it
                 bindDownloadCenter(it)
             }
@@ -580,7 +589,7 @@ class KhatKitToolProvider(
 
     /** Whether the optional Termux terminal implementation can be used by the welcome page. */
     suspend fun terminalPluginAvailable(): Boolean = withContext(Dispatchers.IO) {
-        val record = TerminalPluginStore(appContext).read()
+        val record = TerminalPluginRepository(appContext).read()
         TerminalPluginLoader.isLoadable(appContext, record)
     }
 
@@ -644,8 +653,8 @@ class KhatKitToolProvider(
     /**
      * 带悬浮看板的卡片执行：运行期间发布「正在运行卡片：<name>」，结束（含失败）后进入完成态。
      * AI tool / 用户手动 / 事件触发三个入口都汇聚到这里；用户已请求停止时不再开新运行。
-     * 执行前通过 [AutomationBus.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
-     * [AutomationBus.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束；
+     * 执行前通过 [AutomationManager.requestApproval] 在看板上请求用户授权（放手模式或已授权则跳过）。
+     * [AutomationManager.begin] 持有会话：卡片执行期间即使长时间没有进度更新，看板也不会误判会话结束；
      * 授权被拒 / 取消 / 异常都会在 finally 释放持有，看板必定进入完成态并退场。
      *
      * 套餐计量：本机存有激活令牌时，执行前调用 POST /api/tools/authorize；
@@ -746,8 +755,13 @@ class KhatKitToolProvider(
     }
 
     private fun describeLateResult(cardName: String, result: EngineResult): String = when (result) {
-        is EngineResult.Ok -> "【卡片：$cardName】用户补参后的运行结果：\n" + encode(result.value)
-        is EngineResult.Err -> "【卡片：$cardName】用户补参后的运行失败（${result.code}）：${result.message}"
+        is EngineResult.Ok -> appContext.getString(R.string.khatkit_tool_late_result_ok, cardName, encode(result.value))
+        is EngineResult.Err -> appContext.getString(
+            R.string.khatkit_tool_late_result_err,
+            cardName,
+            result.code,
+            result.message,
+        )
     }
 
     /**
@@ -761,8 +775,8 @@ class KhatKitToolProvider(
         val id = conversationId ?: return
         runCatching {
             EntryPointAccessors.fromApplication(appContext, CardInteractionEntryPoint::class.java)
-                .chatManager()
-                .sendMessage(id, listOf(UIMessagePart.Text(text)), answer = answer)
+                .chatGateway()
+                .deliverCardMessage(id, listOf(UIMessagePart.Text(text)), answer = answer)
         }.onFailure { Log.w(TAG, "卡片续跑结果补发失败：$id", it) }
     }
 
@@ -814,7 +828,7 @@ class KhatKitToolProvider(
             pendingInteractions[runId] = PendingInteraction(card.manifest.name, args, conversationId, System.currentTimeMillis())
         }
         val automation = showsAutomationStatus(card.manifest, trigger)
-        if (automation && AutomationBus.isCancelRequested()) {
+        if (automation && AutomationManager.isCancelRequested()) {
             pendingInteractions.remove(runId)
             runCatching {
                 cardRunDao.finish(
@@ -827,7 +841,7 @@ class KhatKitToolProvider(
                     "用户已停止自动化",
                 )
             }
-            AutomationBus.finish()
+            AutomationManager.finish()
             return EngineResult.Err("CARD_CANCELLED", "用户已停止自动化")
         }
         // 兜底闸门：vFlow 未配置时即使 AI 拿到了卡片名也不运行，避免脚本 pop ui.form 配置表单
@@ -846,7 +860,7 @@ class KhatKitToolProvider(
             }
             return EngineResult.Err("VFLOW_NOT_CONFIGURED", VFLOW_NOT_CONFIGURED_HINT)
         }
-        if (automation) AutomationBus.begin()
+        if (automation) AutomationManager.begin()
         try {
             val manifest = card.manifest
             val price = manifest.pricing?.price ?: 0.0
@@ -876,13 +890,13 @@ class KhatKitToolProvider(
                 }
             }
 
-            if (automation) AutomationBus.update("正在运行卡片：${card.manifest.name}")
+            if (automation) AutomationManager.update("正在运行卡片：${card.manifest.name}")
             runCatching { cardRunDao.updateStatus(runId, CardRunEntity.RUNNING, System.currentTimeMillis()) }
             // 卡片运行审批只属于 AI 工具调用。用户页面、聊天小组件、flow、
             // 定时任务和事件触发都已经是明确的本地触发，不再重复弹审批。
             if (trigger == "AI") {
                 val category = cardApprovalCategory(card)
-                if (!AutomationBus.requestApproval(
+                if (!AutomationManager.requestApproval(
                         "运行卡片：${card.manifest.name}", "触发来源：$trigger", category,
                         grantSession = automation,
                     )) {
@@ -920,7 +934,7 @@ class KhatKitToolProvider(
         } finally {
             // UiBridgeHost closes the owning run's requests; another card may now own the sheet.
             if (!uiHost.hasPendingInteraction(runId)) pendingInteractions.remove(runId)
-            if (automation) AutomationBus.finish()
+            if (automation) AutomationManager.finish()
         }
     }
 
@@ -1504,7 +1518,7 @@ class KhatKitToolProvider(
             return flowErrorParts("步骤过多：${spec.steps.size} 步（上限 $FLOW_MAX_STEPS）")
         }
         val names = spec.steps.joinToString(" → ") { it.card }
-        if (!AutomationBus.requestApproval(
+        if (!AutomationManager.requestApproval(
                 "运行流：${spec.steps.size} 步",
                 "步骤：$names",
                 ApprovalCategory.CARD_RUN,
@@ -1519,11 +1533,11 @@ class KhatKitToolProvider(
         var stoppedAt: Int? = null
         var failed = 0
         for ((index, step) in spec.steps.withIndex()) {
-            if (AutomationBus.isCancelRequested()) {
+            if (AutomationManager.isCancelRequested()) {
                 cancelled = true
                 break
             }
-            AutomationBus.update("流步骤 ${index + 1}/${spec.steps.size}：${step.card}")
+            AutomationManager.update("流步骤 ${index + 1}/${spec.steps.size}：${step.card}")
             val resolvedArgs = resolveFlowArgs(step.args, stepOutputs)
             val result = try {
                 runFlowStep(step.card, resolvedArgs)
@@ -1660,7 +1674,7 @@ class KhatKitToolProvider(
      */
     private fun deviceActTool(): Tool = Tool(
         name = "khatkit__device_act",
-        description = "宿主专用自动化会话动作（需要 AutomationBus 审批 + 看板）：\n" +
+        description = "宿主专用自动化会话动作（需要 AutomationManager 审批 + 看板）：\n" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
             "用户授权请求会强制重新显示看板）、overlay_show（立即恢复看板显示）、" +
             "screen_state（返回屏幕是否点亮/锁定，无需授权）、" +
@@ -1709,11 +1723,11 @@ class KhatKitToolProvider(
         includeNodes: Boolean,
         includeImage: Boolean,
     ): ScreenCapture {
-        if (AutomationBus.isCancelRequested()) return ScreenCapture("已停止：用户取消了自动化")
+        if (AutomationManager.isCancelRequested()) return ScreenCapture("已停止：用户取消了自动化")
         val bridge = AccessibilityBridgeHolder.current()
             ?: return ScreenCapture("""{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}""")
         // 会话中步骤：只更新看板，不结束会话（直接 AI 工具序列由看板空闲判定结束）
-        AutomationBus.update("正在读取屏幕")
+        AutomationManager.update("正在读取屏幕")
         return runCatching {
             val shot = bridge.captureScreen()
             val captured = shot.startsWith("/")
@@ -1819,47 +1833,47 @@ class KhatKitToolProvider(
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
         runCatching { TaskRoutes.resolve(settingsRepository.settingsFlow.value, ModelTaskType.UI_CONTROL) }
-        if (AutomationBus.isCancelRequested()) return "已停止：用户取消了自动化"
+        if (AutomationManager.isCancelRequested()) return "已停止：用户取消了自动化"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
         // 看板显隐不操作屏幕：不需要无障碍服务，也不走授权请求；screen_state 只读同理
         when (action) {
             "overlay_hide" -> {
-                val duration = (params.long("duration_ms") ?: AutomationBus.DEFAULT_OVERLAY_HIDE_MS)
+                val duration = (params.long("duration_ms") ?: AutomationManager.DEFAULT_OVERLAY_HIDE_MS)
                     .coerceIn(1_000L, 30_000L)
-                AutomationBus.hideOverlayTemporarily(duration)
+                AutomationManager.hideOverlayTemporarily(duration)
                 return "看板已临时隐藏，${duration}ms 后自动恢复；用户授权请求会强制显示看板"
             }
 
             "overlay_show" -> {
-                AutomationBus.showOverlay()
+                AutomationManager.showOverlay()
                 return "看板已恢复显示"
             }
 
                 "screen_state" -> return screenStateJson()
             "ui_snapshot" -> {
-                val snapshot = UiAutomationSnapshotProvider.capture()
+                val snapshot = UiAutomationSnapshotHelper.capture()
                     ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
                 return json.encodeToString(snapshot)
             }
         }
         // wake / unlock 走 tool / root / shizuku bridge，不依赖无障碍服务，但仍是设备动作走 ui_action 授权
         if (action == "wake" || action == "unlock") {
-            AutomationBus.update(deviceActLabel(action, params))
-            if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), ApprovalCategory.UI_ACTION)) {
+            AutomationManager.update(deviceActLabel(action, params))
+            if (!AutomationManager.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), ApprovalCategory.UI_ACTION)) {
                 return "用户拒绝授权，已取消操作：$action"
             }
             return if (action == "wake") wakeScreenAction() else unlockScreenAction()
         }
         val bridge = AccessibilityBridgeHolder.current()
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
-        AutomationBus.update(deviceActLabel(action, params))
+        AutomationManager.update(deviceActLabel(action, params))
         val category = if (action == "open_app") {
             ApprovalCategory.APP_MANAGE
         } else {
             ApprovalCategory.UI_ACTION
         }
-        if (!AutomationBus.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), category)) {
+        if (!AutomationManager.requestApproval("操作手机屏幕", deviceActApprovalDetail(action, params), category)) {
             // 会话中步骤：拒绝只取消本步，不结束整个自动化会话
             return "用户拒绝授权，已取消操作：$action"
         }
@@ -2012,9 +2026,9 @@ class KhatKitToolProvider(
         packageName: String?,
     ) {
         runCatching {
-            val bboxDto = params.bbox()?.let { AutomationTracer.BBoxDto(it.left, it.top, it.right, it.bottom) }
+            val bboxDto = params.bbox()?.let { BBoxDto(it.left, it.top, it.right, it.bottom) }
             automationTracer.record(
-                action = AutomationTracer.UiActionDto(
+                action = UiActionDto(
                     type = action.uppercase(),
                     packageName = packageName.orEmpty(),
                     viewId = grounding?.viewId.orEmpty(),
@@ -2606,6 +2620,7 @@ class KhatKitToolProvider(
             hubClient ?: HubClient(
                 baseUrl = hubBaseUrl,
                 downloadBridgeProvider = { executor?.bridges?.downloadBridge() },
+                messageResolver = { it.localizedMessage(appContext) },
             ).also { hubClient = it }
         }
 
@@ -3136,5 +3151,5 @@ private fun JsonElement.toPlainValue(): Any? = when (this) {
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface CardInteractionEntryPoint {
-    fun chatManager(): ChatManager
+    fun chatGateway(): CardChatGateway
 }

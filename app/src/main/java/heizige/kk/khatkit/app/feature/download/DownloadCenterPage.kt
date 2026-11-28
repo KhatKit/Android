@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.download
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -40,15 +43,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiPageContentPadding
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.icons.checkCircle
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
-import heizige.kk.khatkit.app.core.ui.icons.error
-import heizige.kk.khatkit.app.core.ui.icons.pause
-import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.utility.checkCircle
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.files.downloadForOffline
+import heizige.kk.khatkit.app.core.ui.icons.utility.error
+import heizige.kk.khatkit.app.core.ui.icons.media.pause
+import heizige.kk.khatkit.app.core.ui.icons.media.playArrow
 import heizige.kk.khatkit.app.core.ui.hooks.rememberSearchExpandState
 import heizige.kk.khatkit.bridge.DownloadTaskInfo
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
@@ -110,21 +113,21 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
     MochiDialog(
         visible = showClearDialog,
         onDismissRequest = { showClearDialog = false },
-        title = "清空下载任务",
-        message = "将移除全部下载记录，进行中的下载会被取消。此操作不可撤销。",
+        title = stringResource(R.string.download_clear_title),
+        message = stringResource(R.string.download_clear_message),
         actions = persistentListOf(
             MochiDialogAction(
-                label = "清空",
+                label = stringResource(R.string.explore_market_clear),
                 role = MochiDialogActionRole.Destructive,
                 holdToConfirm = true,
                 onClick = { vm.removeAll() },
             ),
-            MochiDialogAction(label = "取消", role = MochiDialogActionRole.Cancel),
+            MochiDialogAction(label = stringResource(R.string.cancel), role = MochiDialogActionRole.Cancel),
         ),
     )
 
     MochiSettingsPageScaffold(
-        title = "下载中心",
+        title = stringResource(R.string.download_center_title),
         // 搜索时标题让位给输入框；平时标题常显、底色跟滚动淡入。
         titleProgress = { 1f - searchProgress.value },
         actions = {
@@ -153,7 +156,7 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                     enabled = tasks.isNotEmpty(),
                     modifier = Modifier.graphicsLayer { alpha = deleteAlpha },
                 ) {
-                    Icon(delete, contentDescription = "清空下载任务")
+                    Icon(delete, contentDescription = stringResource(R.string.download_clear_title))
                 }
             }
         },
@@ -178,7 +181,7 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                     ) {
                         if (query.isBlank()) {
                             Text(
-                                text = "搜索下载任务",
+                                text = stringResource(R.string.download_search_placeholder),
                                 style = navTitle,
                                 color = MochiTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             )
@@ -220,9 +223,9 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                 }
                 filtered.isEmpty() -> {
                     MochiEmptyState(
-                        title = "没有匹配的下载任务",
+                        title = stringResource(R.string.download_empty_title),
                         modifier = Modifier.padding(innerPadding),
-                        message = "换个文件名或地址试试。",
+                        message = stringResource(R.string.download_empty_message),
                         icon = { MochiIonicon("search", size = 36.dp) },
                     )
                 }
@@ -277,8 +280,8 @@ private fun DownloadSummaryCard(
 ) {
     MochiListSection {
         MochiListRow(
-            title = "活跃下载",
-            value = "$activeCount 个",
+            title = stringResource(R.string.download_active_title),
+            value = androidx.compose.ui.res.pluralStringResource(R.plurals.download_active_count, activeCount, activeCount),
             subtitle = if (totalSpeedBps > 0) formatSpeed(totalSpeedBps) else null,
             leading = {
                 Icon(
@@ -302,7 +305,7 @@ private fun DownloadTaskRow(
     onRemove: () -> Unit,
 ) {
     val deleteAction = MochiSwipeAction(
-        label = "删除",
+        label = stringResource(R.string.delete),
         color = MochiTheme.colorScheme.error,
         onClick = onRemove,
         removesRow = true,
@@ -312,21 +315,21 @@ private fun DownloadTaskRow(
     val leadingAction = when (task.state) {
         // 配色与 Mochi 实例一致：primary 底配 onPrimary 字。
         "running" -> MochiSwipeAction(
-            label = "暂停",
+            label = stringResource(R.string.download_pause),
             color = MochiTheme.colorScheme.primary,
             onClick = onPause,
             contentColor = MochiTheme.colorScheme.onPrimary,
             icon = { tint -> Icon(pause, contentDescription = null, tint = tint) },
         )
         "paused" -> MochiSwipeAction(
-            label = "继续",
+            label = stringResource(R.string.download_resume),
             color = MochiTheme.colorScheme.primary,
             onClick = onResume,
             contentColor = MochiTheme.colorScheme.onPrimary,
             icon = { tint -> Icon(playArrow, contentDescription = null, tint = tint) },
         )
         "queued" -> MochiSwipeAction(
-            label = "取消",
+            label = stringResource(R.string.cancel),
             color = MochiTheme.colorScheme.primary,
             onClick = onCancel,
             contentColor = MochiTheme.colorScheme.onPrimary,
@@ -342,7 +345,7 @@ private fun DownloadTaskRow(
     ) {
         MochiListRow(
             title = task.name,
-            subtitle = buildSubtitle(task),
+            subtitle = buildSubtitle(androidx.compose.ui.platform.LocalContext.current, task),
             leading = { TaskLeadingIcon(task) },
         )
     }
@@ -401,7 +404,7 @@ private fun TaskLeadingIcon(task: DownloadTaskInfo) {
     }
 }
 
-private fun buildSubtitle(task: DownloadTaskInfo): String = buildString {
+private fun buildSubtitle(context: android.content.Context, task: DownloadTaskInfo): String = buildString {
     when (task.state) {
         "running" -> {
             if (task.total > 0) {
@@ -413,17 +416,17 @@ private fun buildSubtitle(task: DownloadTaskInfo): String = buildString {
                 append(" · ${formatSpeed(task.speedBps)}")
             }
         }
-        "queued" -> append("等待中")
+        "queued" -> append(context.getString(R.string.download_status_queued))
         "paused" -> {
             if (task.total > 0) {
-                append("已暂停 · ${formatBytes(task.bytes)} / ${formatBytes(task.total)}")
+                append(context.getString(R.string.download_status_paused_total, formatBytes(task.bytes), formatBytes(task.total)))
             } else {
-                append("已暂停 · ${formatBytes(task.bytes)}")
+                append(context.getString(R.string.download_status_paused, formatBytes(task.bytes)))
             }
         }
-        "done" -> append("已完成 · ${formatBytes(task.bytes)}")
-        "failed" -> append("失败 · ${task.error ?: "未知错误"}")
-        "cancelled" -> append("已取消")
+        "done" -> append(context.getString(R.string.download_status_done, formatBytes(task.bytes)))
+        "failed" -> append(context.getString(R.string.download_status_failed, task.error ?: context.getString(R.string.download_error_unknown)))
+        "cancelled" -> append(context.getString(R.string.download_status_cancelled))
         else -> append(task.state)
     }
 }

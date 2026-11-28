@@ -14,6 +14,7 @@ import heizige.kk.khatkit.bridge.UiBridge
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.exec.CommandRunner
 import heizige.kk.khatkit.hub.LibResolver
+import heizige.kk.khatkit.localization.RuntimeText
 import heizige.kk.khatkit.dependency.DependencyHttpException
 import heizige.kk.khatkit.dependency.DependencyManager
 import io.ktor.client.HttpClient
@@ -64,6 +65,7 @@ object BridgeFactory {
         onCardApiObservation: ((CardApiObservation) -> Unit)? = null,
         cardCallHost: CardCallHost? = null,
         onToast: ((String) -> Unit)? = null,
+        messageResolver: (RuntimeText) -> String = RuntimeText::diagnosticMessage,
     ): CardExecutor = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         val http = HttpClient(CIO.create())
@@ -157,7 +159,7 @@ object BridgeFactory {
             else -> null
         }
 
-        CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus, approvalGate)
+        CardExecutor(registry, commandRunner, libResolver, dependencyManager, onDependencyStatus, approvalGate, messageResolver)
     }
 
     private val PUBKEY_FINGERPRINT_REGEX = Regex("\"fingerprintSha256\"\\s*:\\s*\"([0-9a-fA-F]{64})\"")

@@ -1,0 +1,98 @@
+{
+  "error_yunx_unknown_operation": [
+    "Unknown parsing operation",
+    "未知解析操作"
+  ],
+  "error_yunx_cancelled": [
+    "Parsing was canceled or timed out. Try again",
+    "解析已取消或超时，请重试"
+  ],
+  "error_yunx_parse_failed": [
+    "Parsing failed. Check the link, extraction code, and account sign-in status, then try again",
+    "解析失败，请检查链接、提取码和账号登录状态后重试"
+  ],
+  "error_yunx_full_link_required": [
+    "Paste the complete share link",
+    "请粘贴完整的分享链接"
+  ],
+  "error_yunx_invalid_share_url": [
+    "Invalid share URL",
+    "分享地址不合法"
+  ],
+  "error_yunx_unsupported_link": [
+    "No share link supported by YunX was found",
+    "未识别到 YunX 支持的分享链接"
+  ],
+  "error_yunx_domain_mismatch": [
+    "The share link domain does not match the platform",
+    "分享链接域名与平台不符"
+  ],
+  "error_yunx_invalid_redirect": [
+    "The short link returned an invalid URL",
+    "短链返回了无效地址"
+  ],
+  "error_yunx_cross_platform_redirect": [
+    "The short link redirected to another platform",
+    "短链跳转到了其他平台"
+  ],
+  "yunx_ilanzou_share_title": [
+    "Lanzou Cloud Premium share",
+    "蓝奏优享分享"
+  ],
+  "error_yunx_unsupported_drive": [
+    "Unsupported cloud drive",
+    "不支持的网盘"
+  ],
+  "error_yunx_session_expired": [
+    "The parsing session has expired. Parse the share again",
+    "解析会话已过期，请重新解析分享"
+  ],
+  "error_yunx_directory_too_large": [
+    "This folder is too large. Parse its subfolders separately",
+    "目录过大，请分开解析子目录"
+  ],
+  "error_yunx_file_not_in_results": [
+    "The file is not in the parsing results",
+    "文件不在解析结果中"
+  ],
+  "error_yunx_open_directory_first": [
+    "Open the folder containing the file first",
+    "请先打开文件所在目录"
+  ],
+  "error_yunx_select_file": [
+    "Open the folder, then select a file",
+    "请进入文件夹后选择文件"
+  ],
+  "error_yunx_transfer_confirmation": [
+    "This platform may need to save files temporarily to your drive. Confirm before continuing",
+    "此平台可能需要临时转存，请先确认"
+  ],
+  "yunx_temporary_files_notice": [
+    "A temporary folder was created on your drive. You can remove the YunX temporary files after the download finishes.",
+    "已创建临时转存目录。下载完成后可在网盘中清理 YunX 临时文件。"
+  ],
+  "error_yunx_invalid_github_link": [
+    "Could not recognize the GitHub link",
+    "GitHub 链接无法识别"
+  ],
+  "error_yunx_github_repository": [
+    "Could not read the repository",
+    "无法读取仓库"
+  ],
+  "yunx_github_source_code": [
+    "Source code",
+    "源码"
+  ],
+  "error_yunx_github_releases": [
+    "Could not read Releases",
+    "无法读取 Releases"
+  ],
+  "error_yunx_github_account_repositories": [
+    "Could not read the account repositories",
+    "无法读取账号仓库"
+  ],
+  "yunx_github_download_notice": [
+    "GitHub: download source archives and Release assets from public repositories",
+    "GitHub：下载公开仓库源码包和 Release 附件"
+  ]
+}

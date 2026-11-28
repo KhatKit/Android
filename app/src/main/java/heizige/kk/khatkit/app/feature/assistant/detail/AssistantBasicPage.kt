@@ -45,7 +45,7 @@ import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.components.ui.SliderValueEditor
 import heizige.kk.khatkit.app.core.ui.components.ui.SliderValueInputDialog
-import heizige.kk.khatkit.app.core.ui.components.ui.TagsInput
+import heizige.kk.khatkit.app.feature.assistant.components.ui.TagsInput
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarColor
@@ -53,13 +53,13 @@ import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShape
 import heizige.kk.khatkit.app.core.ui.components.ui.roleAvatarShapeNames
 import heizige.kk.khatkit.app.core.ui.components.ui.sliderValueText
 import heizige.kk.khatkit.app.core.ui.hooks.heroAnimation
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.palette
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.settings.palette
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.util.toFixed
-import heizige.kk.khatkit.app.feature.settings.components.ThemeCustomColorSheet
-import heizige.kk.khatkit.app.feature.settings.components.parseHexColor
+import heizige.kk.khatkit.app.core.ui.components.theme.ThemeCustomColorSheet
+import heizige.kk.khatkit.app.core.ui.components.theme.parseHexColor
 import heizige.kk.khatkit.uikit.mochi.ShapeSelectionGrid
 import heizige.kk.khatkit.uikit.mochi.ShapeSelectionOption
 import kotlinx.collections.immutable.toImmutableList
@@ -125,7 +125,7 @@ internal fun AssistantBasicContent(
 ) {
     // U7b-2：头像形状弹层走 MochiSheetState。
     val shapeSheet = rememberMochiSheetState()
-    // 头像底色的取色弹窗：与主题页共用 ThemeCustomColorSheet（内含 SquareColorPicker）。
+    // 头像底色用 MochiColorPickerSheet；保留草稿确认与重置。
     var showAvatarColorSheet by remember { mutableStateOf(false) }
     // 模型选择：整行可点打开与 ModelSelector 同一个 ModelListSheet。
     val chatModelState = rememberModelListState(
@@ -190,14 +190,14 @@ internal fun AssistantBasicContent(
                 // UID 要能长按选中复制：SelectionContainer 包一层，分隔线起点由它登记给卡片。
                 SelectionContainer(Modifier.mochiListDivider(MochiListDefaults.TextRowPadding)) {
                     MochiListRow(
-                        title = "角色 UID",
+                        title = stringResource(R.string.assistant_basic_page_role_uid),
                         subtitle = assistant.id.toString(),
                     )
                 }
                 MochiListTextFieldRow(
                     value = assistant.description,
                     onValueChange = { onUpdate(assistant.copy(description = it)) },
-                    label = "职责描述",
+                    label = stringResource(R.string.assistant_page_duties),
                     singleLine = false,
                 )
             }
@@ -206,13 +206,12 @@ internal fun AssistantBasicContent(
         item("avatarStyle") {
             MochiListSection {
                 MochiListRow(
-                    title = "头像形状",
+                    title = stringResource(R.string.assistant_basic_page_avatar_shape),
                     value = assistant.avatarShape,
                     chevron = true,
                     onClick = { shapeSheet.show() },
                 )
-                // 头像底色：整行可点 = 打开取色弹窗（与主题页共用同一个 ThemeCustomColorSheet，
-                // 里面的取色器就是 SquareColorPicker）。选色写回 "#AARRGGBB"，弹窗里的「重置」把字段清回 null。
+                // 整行打开 Mochi 原生选色面板；确认写回 "#AARRGGBB"，重置清回 null。
                 // 非法旧值不会崩 —— 预览与初值都走 parseHexColor，解析失败时退回角色名派生色。
                 MochiListRow(
                     title = stringResource(R.string.assistant_page_avatar_color),
@@ -509,7 +508,7 @@ internal fun AssistantBasicContent(
                 )
                 // 整行打开推理强度选择；行尾仍是 ReasoningButton 的图标，显示当前档位。
                 MochiListRow(
-                    title = "智能 / 推理强度",
+                    title = stringResource(R.string.assistant_basic_page_reasoning),
                     onClick = { showReasoningPicker = true },
                     trailing = {
                         ReasoningButton(
@@ -641,7 +640,7 @@ internal fun AssistantBasicContent(
 
     PrimaryBottomSheet(
         state = shapeSheet,
-        title = "头像形状",
+        title = stringResource(R.string.assistant_basic_page_avatar_shape),
         imageVector = palette,
         onDismiss = { shapeSheet.hide() },
     ) { dismiss ->

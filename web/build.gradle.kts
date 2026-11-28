@@ -11,9 +11,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(libs.bundles.android.view.support)
 
     // ktor server
     implementation(libs.ktor.server.default.headers)

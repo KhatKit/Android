@@ -6,7 +6,7 @@ import android.graphics.Color
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import heizige.kk.khatkit.app.core.ui.components.ui.QRCodeDecoder
+import heizige.kk.khatkit.app.feature.settings.components.ui.QRCodeDecoder
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.provider.Model
@@ -22,9 +22,9 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
-import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
-import heizige.kk.khatkit.app.core.data.ai.tools.MemoryToolScopeResolver
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
+import heizige.kk.khatkit.app.feature.chat.helper.MemoryToolScopeResolver
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
@@ -56,7 +56,7 @@ import heizige.kk.khatkit.app.core.data.repository.FolderRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryExtractor
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.di.appEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.ui.encodeQrBitmap
+import heizige.kk.khatkit.app.feature.settings.components.ui.encodeQrBitmap
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.common.android.appTempFolder
 import kotlinx.coroutines.runBlocking
@@ -83,7 +83,11 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1 真机证据（第二轮）：采契约 `docs/beyond-operit-client-changes.md:206` 点名的

@@ -1,11 +1,9 @@
 package heizige.kk.khatkit.app.feature.assistant.detail
 
-
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -35,6 +33,11 @@ import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.assistant.detail.helper.AssistantEditManager
+
+
+
+
 
 private const val TAG = "AssistantDetailViewModel"
 

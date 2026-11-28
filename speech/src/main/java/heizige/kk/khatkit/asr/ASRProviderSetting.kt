@@ -9,6 +9,21 @@ sealed class ASRProviderSetting {
     abstract val id: Uuid
     abstract val name: String
 
+    /** Translate only built-in defaults; user-defined and persisted names remain untouched. */
+    fun localizedName(context: android.content.Context): String {
+        val (storedDefault, label) = when (this) {
+            is OpenAIRealtime -> "OpenAI Realtime ASR" to heizige.kk.khatkit.speech.R.string.speech_provider_openai_realtime
+            is DashScope -> "DashScope ASR" to heizige.kk.khatkit.speech.R.string.speech_provider_dashscope
+            is Volcengine -> "Volcengine ASR" to heizige.kk.khatkit.speech.R.string.speech_provider_volcengine
+            is MiMo -> "MiMo ASR" to heizige.kk.khatkit.speech.R.string.speech_provider_mimo
+            is Step -> "Step ASR" to heizige.kk.khatkit.speech.R.string.speech_provider_step
+            is OpenAITranscribe -> "OpenAI Transcribe" to heizige.kk.khatkit.speech.R.string.speech_provider_openai_transcribe
+            is GeminiTranscribe -> "Gemini Transcribe" to heizige.kk.khatkit.speech.R.string.speech_provider_gemini_transcribe
+            is SherpaLocal -> "本地识别 (sherpa-onnx)" to heizige.kk.khatkit.speech.R.string.speech_provider_sherpa_local
+        }
+        return if (name == storedDefault) context.getString(label) else name
+    }
+
     // Describes our adapter, not every API offered by this vendor.
     val supportsServerVadVoiceMode: Boolean
         get() = this is OpenAIRealtime || this is DashScope || this is Volcengine

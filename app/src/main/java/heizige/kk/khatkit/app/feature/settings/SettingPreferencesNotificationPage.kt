@@ -45,7 +45,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.Instant
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
-import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 
 internal val UPDATE_PAUSE_DAY_OPTIONS = listOf(7, 14, 21)
@@ -169,7 +168,7 @@ fun SettingPreferencesNotificationPage(vm: SettingViewModel = hiltViewModel()) {
                     KkSingleChoiceSegmentedRow(
                         items = UPDATE_PAUSE_DAY_OPTIONS.map { days ->
                             SegmentedItem(
-                                label = stringResource(R.string.setting_update_reminder_pause_days, days),
+                                label = androidx.compose.ui.res.pluralStringResource(R.plurals.setting_update_reminder_pause_days, days, days),
                                 selected = selectedUpdatePauseDays == days,
                                 onClick = { selectedUpdatePauseDays = days },
                             )

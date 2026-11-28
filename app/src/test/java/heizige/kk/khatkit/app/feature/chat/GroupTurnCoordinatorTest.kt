@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import heizige.kk.khatkit.app.feature.chat.helper.isGroupConversation
+import heizige.kk.khatkit.app.feature.chat.helper.roundOutputPresent
+import heizige.kk.khatkit.app.feature.chat.helper.viewerScopedTool
+import heizige.kk.khatkit.app.feature.chat.helper.viewerScopedTools
 import heizige.kk.khatkit.ai.core.MessageRole
 import heizige.kk.khatkit.ai.core.TokenUsage
 import heizige.kk.khatkit.ai.core.Tool
@@ -26,7 +30,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.GroupTurnCoordinator
 
 /**
  * [GroupTurnCoordinator] 的判定内核测试。

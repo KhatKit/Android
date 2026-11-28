@@ -61,9 +61,12 @@ import heizige.kk.khatkit.mediapicker.ui.KhatKitMediaPicker
 import heizige.kk.khatkit.app.core.ui.hooks.rememberAvatarShape
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.File
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.palette
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.settings.palette
 import heizige.kk.khatkit.app.core.util.computeAIIconByName
+import heizige.kk.khatkit.app.core.util.Emoji
+
+
 
 @Composable
 fun TextAvatar(
@@ -288,7 +291,7 @@ fun UIAvatar(
             ) {
                 Icon(
                     imageVector = editNote,
-                    contentDescription = "Edit",
+                    contentDescription = stringResource(R.string.editor_preview_edit),
                     modifier = Modifier
                         .size(10.dp)
                         .padding(1.dp),

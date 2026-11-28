@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.merge
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.NotFoundException
 import heizige.kk.khatkit.app.core.network.dto.ConversationDto
@@ -43,6 +43,7 @@ import heizige.kk.khatkit.app.core.network.dto.toListDto
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.data.model.Conversation
 
 fun Route.conversationRoutes(
     chatService: ChatManager,

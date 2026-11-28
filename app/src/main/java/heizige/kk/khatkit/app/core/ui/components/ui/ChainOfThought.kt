@@ -46,10 +46,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.icons.autoAwesome
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.search
+import heizige.kk.khatkit.app.core.ui.icons.ai.autoAwesome
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 
@@ -145,7 +145,7 @@ fun <T> ChainOfThought(
                     leadingContent = {
                         // 步数图标（Material Symbols format_list_numbered），和思考行的灯泡同一套尺寸/透明度
                         Icon(
-                            imageVector = heizige.kk.khatkit.app.core.ui.icons.formatListNumbered,
+                            imageVector = heizige.kk.khatkit.app.core.ui.icons.settings.formatListNumbered,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                             tint = LocalContentColor.current.copy(alpha = 0.7f),

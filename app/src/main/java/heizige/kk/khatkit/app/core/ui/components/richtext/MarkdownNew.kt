@@ -86,7 +86,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
-import heizige.kk.khatkit.app.core.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 // ---- Preprocessing (mirrors Markdown.kt logic) ----

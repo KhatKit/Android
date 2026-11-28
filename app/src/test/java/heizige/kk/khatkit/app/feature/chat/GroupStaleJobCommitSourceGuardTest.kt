@@ -43,7 +43,7 @@ import java.io.File
 class GroupStaleJobCommitSourceGuardTest {
 
     private val lines by lazy {
-        File("src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt")
+        File("src/main/java/heizige/kk/khatkit/app/feature/chat/helper/ChatManager.kt")
             .readText()
             .split("\n")
     }

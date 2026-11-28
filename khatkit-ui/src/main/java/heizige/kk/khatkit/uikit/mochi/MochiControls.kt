@@ -52,6 +52,8 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import heizige.kk.khatkit.uikit.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -553,10 +555,11 @@ fun KkSlider(
     // SW1：换成 Mochi 滑杆 —— 跟手、每档 tick 与松手 confirm、两端光效都由组件自带，
     // 这里不再手写 tick/confirm（会双发触觉）。
     val effects = LocalKkEffectsEnabled.current
+    val sliderDescription = stringResource(R.string.khatkit_a11y_slider)
     MochiSlider(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.semantics { contentDescription = "slider" },
+        modifier = modifier.semantics { contentDescription = sliderDescription },
         enabled = enabled,
         valueRange = valueRange,
         steps = steps,

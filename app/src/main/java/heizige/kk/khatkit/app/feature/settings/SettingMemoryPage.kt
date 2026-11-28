@@ -30,6 +30,9 @@ import heizige.kk.khatkit.app.core.util.plus
 import javax.inject.Inject
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.Flow
+import heizige.kk.khatkit.app.core.data.model.AssistantMemory
+
+
 
 /**
  * 记忆的按角色入口页（设置 → 数据设置 → 记忆）。
@@ -92,7 +95,7 @@ fun SettingMemoryPage() {
                                     val count by remember(assistant.id) {
                                         memoryVm.memoryCount(assistant.id)
                                     }.collectAsStateWithLifecycle(initialValue = 0)
-                                    Text(stringResource(R.string.setting_page_memory_count, count))
+                                    Text(androidx.compose.ui.res.pluralStringResource(R.plurals.setting_page_memory_count, count, count))
                                 },
                                 headlineContent = { Text(displayName) },
                             )
@@ -108,9 +111,3 @@ fun SettingMemoryPage() {
  * 只为按角色取记忆条数而存在：`SettingViewModel` 不持有 [RoleMemoryRepository]，
  * 而给本页单独加一个只读 flow 的 VM 比让设置总 VM 多背一个依赖更干净。
  */
-@HiltViewModel
-class SettingMemoryViewModel @Inject constructor(
-    private val roleMemoryRepository: RoleMemoryRepository,
-) : ViewModel() {
-    fun memoryCount(roleId: Uuid): Flow<Int> = roleMemoryRepository.memoryCount(roleId)
-}

@@ -10,7 +10,7 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpCommonOptions
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpOAuthState
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.db.AppDatabase
 import heizige.kk.khatkit.app.core.data.db.AppDatabaseFactory
@@ -45,6 +45,9 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-09「真机导出」的**设备侧证据**：在真机上从真 Room 库读回群会话，走生产导出入口

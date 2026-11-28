@@ -63,10 +63,10 @@ import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.util.plus
 import heizige.kk.khatkit.app.core.network.WebServerManager
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.icons.playArrow
-import heizige.kk.khatkit.app.core.ui.icons.stop
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.media.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.media.stop
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
 import heizige.kk.khatkit.uikit.mochi.KkExtendedFloatingActionButton
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 
@@ -347,7 +347,7 @@ fun SettingWebPage() {
                     }
                     item(
                         onClick = { copyUrl(mcpUrl) },
-                        headlineContent = { Text("MCP 地址（卡片作为 MCP tool）") },
+                        headlineContent = { Text(stringResource(R.string.setting_web_mcp_address)) },
                         supportingContent = { Text(mcpUrl) },
                         visible = running,
                     )

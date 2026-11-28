@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.data.ai.tavern
 
+import heizige.kk.khatkit.app.feature.chat.data.TavernGroupChatDocument
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
@@ -19,6 +20,10 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.data.GroupImportReport
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+
+
 
 /**
  * [TavernChatCodec.importGroup] 的契约闸门：契约 `docs/beyond-orit-client-changes.md:205`

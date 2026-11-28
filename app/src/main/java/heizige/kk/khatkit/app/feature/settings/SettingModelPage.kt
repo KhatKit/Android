@@ -9,11 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,19 +31,19 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRecord
-import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRepository
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelListSheet
 import heizige.kk.khatkit.app.core.ui.components.ai.ReasoningButton
 import heizige.kk.khatkit.app.core.ui.components.ai.rememberModelListState
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
-import heizige.kk.khatkit.app.core.ui.icons.close
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.editNote
-import heizige.kk.khatkit.app.core.ui.icons.neurology
+import heizige.kk.khatkit.app.core.ui.icons.utility.editNote
+import heizige.kk.khatkit.app.core.ui.icons.ai.neurology
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.list.MochiListSliderRow
@@ -241,7 +241,7 @@ private fun ModelSettingItem(
 /**
  * OCR5：OCR 插件入口。
  *
- * 状态只读 [OcrPluginStore]（安装/卸载都在探索市场做，这里不重复写盘），点击普通压栈跳探索市场 ——
+ * 状态只读 [OcrPluginRepository]（安装/卸载都在探索市场做，这里不重复写盘），点击普通压栈跳探索市场 ——
  * OCR 原生插件是市场里的扩展条目（kind=dependency）。
  * 文案内联：本阶段只允许改 feature/settings，string 资源不在范围内。
  */
@@ -251,15 +251,15 @@ private fun OcrPluginSettingItem() {
     // 设置里的子页一律普通压栈，不做共享元素形变（和 SettingPage 的列表入口同一套）
     val navController = LocalNavController.current
     val record by produceState<OcrPluginRecord?>(initialValue = null) {
-        value = runCatching { OcrPluginStore(context).read() }.getOrNull()
+        value = runCatching { OcrPluginRepository(context).read() }.getOrNull()
     }
     val version = record?.version?.takeIf { it.isNotBlank() }
 
-    MochiListSection(header = "OCR 插件") {
+    MochiListSection(header = stringResource(R.string.setting_model_page_ocr_plugin)) {
         MochiListRow(
-            title = if (version == null) "未安装" else "已安装",
-            subtitle = if (version == null) "去市场安装后可用本机 OCR 插件" else "已安装，可在市场里更新或卸载",
-            value = version?.let { "v$it" } ?: "去市场安装",
+            title = if (version == null) stringResource(R.string.setting_model_page_ocr_plugin_not_installed) else stringResource(R.string.setting_model_page_ocr_plugin_installed),
+            subtitle = if (version == null) stringResource(R.string.setting_model_page_ocr_plugin_install_hint) else stringResource(R.string.setting_model_page_ocr_plugin_installed_hint),
+            value = version?.let { "v$it" } ?: stringResource(R.string.setting_model_page_ocr_plugin_go_market),
             onClick = { navController.navigate(Screen.ExploreMarket) },
             chevron = true,
         )

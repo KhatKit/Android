@@ -328,7 +328,10 @@ class BottomSheetScrollSourceGuardTest {
             // ChatWelcome adds a bounded, self-scrolling widget manager (scrollable = false).
             // C2：删除 KhatKitPermissionSheet/RecordCardSheet（无调用点死代码），调用点 49 → 47。
             // 之后「更多选项」和 UiRequest.Confirm 移出，终端设置新增一处：47 - 2 + 1。
-            46,
+            // 2026-11-28：core/ui/activity/SafeModeActivity.kt:391（AssistantPickerSheet）新增一处
+            // PrimaryBottomSheet 调用点（WIP 安全模式批量选择助手），在 SOURCE_ROOTS 覆盖范围内，52 → 53；
+            // 同 suite 的 noCallSite_nestsItsOwnVerticalScrollInsideAScrollableSheet 仍全绿。
+            53,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }

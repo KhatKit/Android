@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="speech_error_connection">无法连接语音识别服务，请检查网络后重试。</string>
+  <string name="speech_error_engine_library">引擎包中未找到 %1$s 原生库。</string>
+  <string name="speech_error_engine_missing">请先在设置中下载本地识别引擎。</string>
+  <string name="speech_error_local_recognition">本地语音识别失败，请检查已下载的模型后重试。</string>
+  <string name="speech_error_microphone_permission">需要麦克风权限</string>
+  <string name="speech_error_model_load">无法加载识别模型，请在设置中重新下载。</string>
+  <string name="speech_error_playback">无法播放音频，请重试。</string>
+  <string name="speech_error_qwen_model">旧版 Qwen3 TTS 模型已不再支持，请在 TTS 设置中改用 qwen-audio-3.0-tts-plus 或 qwen-audio-3.0-tts-flash。</string>
+  <string name="speech_error_qwen_workspace">请在 Base URL 中将 {WorkspaceId} 替换为阿里云百炼业务空间 ID。</string>
+  <string name="speech_error_realtime">实时语音识别失败，请重试。</string>
+  <string name="speech_error_recording">无法录音，请检查麦克风权限后重试。</string>
+  <string name="speech_error_response">语音服务返回的响应无效，请重试。</string>
+  <string name="speech_error_session_finish">无法完成识别会话，请重试。</string>
+  <string name="speech_error_session_start">无法启动识别会话，请重试。</string>
+  <string name="speech_error_synthesis">无法合成语音，请检查语音设置后重试。</string>
+  <string name="speech_error_timeout">等待最终识别结果超时，请重试。</string>
+  <string name="speech_error_transcription">语音转写失败，请重试。</string>
+  <string name="speech_error_volcengine_endpoint">火山引擎语音识别端点已过期，请在设置中将 WebSocket 地址改为 %1$s。</string>
+  <string name="speech_model_paraformer_zh">中文 Paraformer Small</string>
+  <string name="speech_model_whisper_en">英文 Whisper Tiny</string>
+  <string name="speech_model_whisper_multilingual">多语言 Whisper Tiny</string>
+  <string name="speech_model_zipformer_en">英文流式 Zipformer 20M</string>
+  <string name="speech_model_zipformer_zh">中文流式 Zipformer 14M</string>
+  <string name="speech_provider_dashscope">DashScope 语音识别</string>
+  <string name="speech_provider_elevenlabs_tts">ElevenLabs 语音合成</string>
+  <string name="speech_provider_fish_audio_tts">Fish Audio 语音合成</string>
+  <string name="speech_provider_gemini_transcribe">Gemini 语音转写</string>
+  <string name="speech_provider_gemini_tts">Gemini 语音合成</string>
+  <string name="speech_provider_groq_tts">Groq 语音合成</string>
+  <string name="speech_provider_mimo">MiMo 语音识别</string>
+  <string name="speech_provider_mimo_tts">MiMo 语音合成</string>
+  <string name="speech_provider_minimax_tts">MiniMax 语音合成</string>
+  <string name="speech_provider_openai_realtime">OpenAI 实时识别</string>
+  <string name="speech_provider_openai_transcribe">OpenAI 语音转写</string>
+  <string name="speech_provider_openai_tts">OpenAI 语音合成</string>
+  <string name="speech_provider_qwen_tts">通义千问语音合成</string>
+  <string name="speech_provider_sherpa_local">本地识别（sherpa-onnx）</string>
+  <string name="speech_provider_step">阶跃星辰语音识别</string>
+  <string name="speech_provider_step_tts">阶跃星辰语音合成</string>
+  <string name="speech_provider_system_tts">系统语音合成</string>
+  <string name="speech_provider_volcengine">火山引擎语音识别</string>
+  <string name="speech_provider_volcengine_tts">火山引擎语音合成</string>
+  <string name="speech_provider_xai_tts">xAI 语音合成</string>
+  <string name="speech_error_no_provider">请先在设置中选择语音合成服务</string>
+</resources>

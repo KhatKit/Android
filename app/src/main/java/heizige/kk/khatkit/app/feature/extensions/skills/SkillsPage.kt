@@ -69,14 +69,14 @@ import heizige.kk.khatkit.app.core.ui.components.ui.RikkaConfirmDialog
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khatkit.app.core.ui.icons.extension
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.core.ui.icons.warning
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 import ui.feice.mochi.theme.MochiTheme
 
 @Composable
@@ -87,7 +87,6 @@ fun SkillsPage() {
     val invalidSkillDirs by vm.invalidSkillDirs.collectAsStateWithLifecycle()
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
 
     val skillsPageImportSuccess = stringResource(R.string.skills_page_import_success)
     val skillsPageImportFailed = stringResource(R.string.skills_page_import_failed)

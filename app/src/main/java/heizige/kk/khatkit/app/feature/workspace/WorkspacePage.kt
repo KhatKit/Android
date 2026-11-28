@@ -53,11 +53,11 @@ import heizige.kk.khatkit.app.core.ui.context.LocalNavController
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.util.plus
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.files.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFab
 import heizige.kk.khatkit.app.core.ui.components.khatkit.TreeUriPaths
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -65,7 +65,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
 import heizige.kk.khatkit.app.core.ui.components.ui.MochiFabDefaults
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 import ui.feice.mochi.theme.MochiTheme
 import java.io.File
 

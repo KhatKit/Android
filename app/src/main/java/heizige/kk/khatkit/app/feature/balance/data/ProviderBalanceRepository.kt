@@ -17,62 +17,8 @@ import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.uuid.Uuid
-
-// A bare cumulative usage field is not a balance. A formula such as credits - usage is valid.
-private val usageField = Regex("""\s*(?:[\w]+\s*\.\s*)*total_usage\s*""", RegexOption.IGNORE_CASE)
-internal val BalanceOption.isUsageOnly: Boolean get() = usageField.matches(resultPath)
-
-internal fun BalanceOption.thresholdAmount(): BigDecimal? = lowBalanceThreshold.trim()
-    .replace(',', '.').toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
-
-internal fun BalanceOption.isLow(raw: String?): Boolean? {
-    if (!enabled || !lowBalanceAlert || isUsageOnly) return null
-    val amount = raw?.trim()?.toBigDecimalOrNull() ?: return null
-    return amount < (thresholdAmount() ?: return null)
-}
-
-/** Unknown samples do not end a low episode. Only the first observer claims the transition. */
-internal class LowBalanceEpisodes(
-    private val wasLow: (Uuid) -> Boolean,
-    private val save: (Uuid, Boolean) -> Unit,
-) {
-    @Synchronized fun enteredLow(id: Uuid, low: Boolean?): Boolean {
-        if (low == null || low == wasLow(id)) return false
-        save(id, low)
-        return low
-    }
-}
-
-internal sealed interface BalanceReading {
-    data object NotQueried : BalanceReading
-    data object Loading : BalanceReading
-    data object Unavailable : BalanceReading
-    data class Value(val raw: String) : BalanceReading
-}
-
-internal class BalanceQuery(private val now: () -> Long = SystemClock::elapsedRealtime) {
-    private val mutex = Mutex()
-    private val state = MutableStateFlow<BalanceReading>(BalanceReading.NotQueried)
-    val reading = state.asStateFlow()
-    private var lastSuccess: Long? = null
-
-    suspend fun refresh(force: Boolean = false, fetch: suspend () -> String) = mutex.withLock {
-        if (!force && lastSuccess?.let { now() - it < 120_000 } == true) return@withLock
-        lastSuccess = null
-        state.value = BalanceReading.Loading
-        try {
-            val raw = fetch().trim()
-            state.value = if (raw.isEmpty()) BalanceReading.Unavailable else BalanceReading.Value(raw)
-            if (raw.isNotEmpty()) lastSuccess = now()
-        } catch (cancelled: CancellationException) {
-            state.value = BalanceReading.Unavailable
-            throw cancelled
-        } catch (_: Exception) {
-            state.value = BalanceReading.Unavailable
-        }
-    }
-}
-
+import heizige.kk.khatkit.app.feature.balance.helper.LowBalanceEpisodes
+import heizige.kk.khatkit.app.feature.balance.helper.BalanceQuery
 @Singleton
 class ProviderBalanceRepository @Inject constructor(@ApplicationContext context: Context) {
     private val prefs = context.getSharedPreferences("provider_balance_alerts", Context.MODE_PRIVATE)

@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import heizige.kk.khatkit.app.R
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,10 +33,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import heizige.kk.khatkit.app.core.ui.icons.checkCircle
-import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.warning
+import heizige.kk.khatkit.app.core.ui.icons.utility.checkCircle
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.utility.warning
 import heizige.kk.khatkit.app.core.util.UpdateCheckResponse
 import heizige.kk.khatkit.uikit.mochi.kkPressState
 import ui.feice.mochi.basic.MochiProgressRing
@@ -42,16 +45,7 @@ import ui.feice.mochi.effect.content.mochiBounce
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
-
-/** 检查更新这一件事的状态机：空闲 / 检查中 / 已最新 / 有新版本 / 失败。 */
-internal sealed interface AboutUpdateState {
-    data object Idle : AboutUpdateState
-    data object Checking : AboutUpdateState
-    data object UpToDate : AboutUpdateState
-    data class Available(val info: UpdateCheckResponse) : AboutUpdateState
-    data class Failed(val message: String) : AboutUpdateState
-}
-
+import heizige.kk.khatkit.app.feature.settings.data.AboutUpdateState
 /**
  * 「检查更新」独立卡片（不再塞在「资源」分组里当一行）。
  *
@@ -65,6 +59,7 @@ internal sealed interface AboutUpdateState {
  * 右侧那枚胶囊只是视觉上的行动暗示，跟卡片共用一次点击，避免「点按钮无反应、点旁边才有」。
  */
 @Composable
+
 internal fun AboutUpdateCard(
     state: AboutUpdateState,
     onCheck: () -> Unit,
@@ -170,14 +165,14 @@ internal fun AboutUpdateCard(
                         .mochiBounce(bounceKey, depth = 0.24f),
                     tint = cs.primary,
                 )
-                is AboutUpdateState.Available -> UpdateCapsule(text = "更新", filled = true)
-                is AboutUpdateState.Failed -> UpdateCapsule(text = "重试", filled = false)
-                AboutUpdateState.Idle -> UpdateCapsule(text = "检查", filled = false)
+                is AboutUpdateState.Available -> UpdateCapsule(text = stringResource(R.string.setting_about_update_action), filled = true)
+                is AboutUpdateState.Failed -> UpdateCapsule(text = stringResource(R.string.setting_about_retry_action), filled = false)
+                AboutUpdateState.Idle -> UpdateCapsule(text = stringResource(R.string.setting_about_check_action), filled = false)
             }
         }
         if (available != null) {
             Text(
-                text = "点开查看版本说明并下载",
+                text = stringResource(R.string.setting_about_update_details),
                 style = MochiTheme.textStyles.footnote,
                 color = cs.primary,
                 modifier = Modifier.padding(start = 54.dp),
@@ -194,20 +189,22 @@ private fun leadingIcon(state: AboutUpdateState): ImageVector = when (state) {
     is AboutUpdateState.Failed -> warning
 }
 
+@Composable
 private fun title(state: AboutUpdateState): String = when (state) {
-    AboutUpdateState.Idle -> "检查更新"
-    AboutUpdateState.Checking -> "正在检查更新"
-    AboutUpdateState.UpToDate -> "已是最新版本"
-    is AboutUpdateState.Available -> "发现新版本 " + state.info.latestVersion
-    is AboutUpdateState.Failed -> "检查更新失败"
+    AboutUpdateState.Idle -> stringResource(R.string.setting_about_check_updates)
+    AboutUpdateState.Checking -> stringResource(R.string.setting_about_checking_updates)
+    AboutUpdateState.UpToDate -> stringResource(R.string.setting_about_up_to_date)
+    is AboutUpdateState.Available -> stringResource(R.string.setting_about_version_available, state.info.latestVersion)
+    is AboutUpdateState.Failed -> stringResource(R.string.setting_about_update_failed)
 }
 
+@Composable
 private fun supporting(state: AboutUpdateState): String = when (state) {
-    AboutUpdateState.Idle -> "查看是否有可安装的新版本"
-    AboutUpdateState.Checking -> "正在获取版本信息……"
-    AboutUpdateState.UpToDate -> "当前版本已经是最新，无需更新"
+    AboutUpdateState.Idle -> stringResource(R.string.setting_about_update_check_desc)
+    AboutUpdateState.Checking -> stringResource(R.string.setting_about_update_fetching)
+    AboutUpdateState.UpToDate -> stringResource(R.string.setting_about_latest_desc)
     is AboutUpdateState.Available -> state.info.description.lineSequence().firstOrNull { it.isNotBlank() }
-        ?.take(80) ?: "有新版本可以更新"
+        ?.take(80) ?: stringResource(R.string.setting_about_update_available_desc)
     is AboutUpdateState.Failed -> state.message
 }
 

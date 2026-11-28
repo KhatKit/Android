@@ -17,7 +17,9 @@ class OAuthLoopbackCallbackServerTest {
 
     @Test
     fun `callback is delivered only to matching state`() = runBlocking {
-        val server = OAuthLoopbackCallbackServer()
+        val server = OAuthLoopbackCallbackServer(stringResolver = { resourceId ->
+            if (resourceId == R.string.oauth_callback_success_title) "Authorization complete" else "Callback"
+        })
         val session = server.openSession("expected-state")
         try {
             execute("${session.redirectUri}?code=wrong-code&state=wrong-state").use { response ->

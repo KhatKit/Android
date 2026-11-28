@@ -21,11 +21,11 @@ import heizige.kk.khatkit.app.core.data.files.SkillManager
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
-import heizige.kk.khatkit.app.feature.automation.TriggerController
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
 import heizige.kk.khatkit.app.feature.balance.data.ProviderBalanceRepository
 import heizige.kk.khatkit.app.feature.tools.data.ToolIconRepository
-import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
-import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workflow.data.WorkflowRepository
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceTerminalSessionManager
 import heizige.kk.khatkit.app.core.util.EmojiData
 import heizige.kk.khatkit.app.core.util.SoundEffectPlayer
 import heizige.kk.khatkit.app.core.util.UpdateChecker
@@ -33,6 +33,10 @@ import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.tts.provider.TTSManager
 import heizige.kk.khatkit.app.core.network.WebServerManager
 import heizige.kk.khatkit.workspace.WorkspaceManager
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
+
+
 
 /**
  * OCR2b：把 app 的动态插件加载器注入 common 的 [heizige.kk.khatkit.ocr.api.OcrEngineProvider]。
@@ -80,7 +84,7 @@ interface AppEntryPoint {
     fun okHttpClient(): OkHttpClient
     fun templateTransformer(): TemplateTransformer
     fun webServerManager(): WebServerManager
-    fun triggerController(): TriggerController
+    fun triggerController(): TriggerManager
     fun workflowRepository(): WorkflowRepository
 }
 

@@ -742,7 +742,10 @@
   <string name="setting_files_page_clean_confirmation">Alle Dateien in dieser Kategorie werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.</string>
   <string name="setting_files_page_clean_content_description">Dateien bereinigen</string>
   <string name="setting_files_page_clean_failed_toast">Einige Dateien konnten nicht bereinigt werden</string>
-  <string name="setting_files_page_clean_older_than_days">Älter als %1$d Tage</string>
+  <plurals name="setting_files_page_clean_older_than_days">
+    <item quantity="one">Älter als %1$d Tage</item>
+    <item quantity="other">Älter als %1$d Tage</item>
+  </plurals>
   <string name="setting_model_page_ocr_model_desc">Modell für die optische Zeichenerkennung auf Bildern</string>
   <string name="setting_model_page_ocr_prompt_vars">Variablen: Bilddaten: {images}</string>
   <string name="setting_model_page_prompt">Prompt</string>
@@ -1220,7 +1223,10 @@
   <string name="chat_message_tool_calendar_create">Termin erstellen: %1$s</string>
   <string name="chat_page_move_to_folder">In Ordner verschieben</string>
   <string name="chat_page_remove_from_folder">Aus Ordner entfernen</string>
-  <string name="setting_update_reminder_pause_days">%1$d Tage</string>
+  <plurals name="setting_update_reminder_pause_days">
+    <item quantity="one">%1$d Tage</item>
+    <item quantity="other">%1$d Tage</item>
+  </plurals>
   <string name="setting_update_reminder_resume_now">Jetzt fortsetzen</string>
   <string name="backup_page_import_overwrite_confirm">Beim Importieren eines Backups werden die App-Daten überschrieben. Fortfahren?</string>
   <string name="setting_provider_page_test_non_streaming">Nicht-Streaming</string>

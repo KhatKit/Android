@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ssh_error_host_required">Host address is required</string>
+    <string name="ssh_error_username_required">Username is required</string>
+    <string name="ssh_error_password_required">Password is required</string>
+    <string name="ssh_error_command_required">Command is required</string>
+    <string name="ssh_error_port_range">Port must be from 1 to 65535</string>
+    <string name="ssh_error_timeout_range">Timeout must be greater than zero</string>
+    <string name="ssh_error_command_timeout">The command exceeded %1$d ms. The connection was closed.</string>
+    <string name="ssh_error_host_key_changed">The SSH host key changed (%1$s:%2$d). The connection was blocked to prevent a man-in-the-middle attack.</string>
+</resources>

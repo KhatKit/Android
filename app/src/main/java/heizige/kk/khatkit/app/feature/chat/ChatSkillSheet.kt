@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
@@ -22,8 +23,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ui.feice.mochi.basic.MochiSheet
-import ui.feice.mochi.basic.MochiSheetHeader
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+import heizige.kk.khatkit.app.core.ui.icons.utility.extension
+import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.mochiListSection
@@ -31,7 +33,15 @@ import ui.feice.mochi.list.rows
 
 @Composable
 internal fun ChatSkillSheet(state: MochiSheetState, onLoad: (String) -> Unit) {
-    MochiSheet(state = state) {
+    PrimaryBottomSheet(
+        state = state,
+        title = stringResource(R.string.chat_skill_load_to_draft),
+        imageVector = extension,
+        onDismiss = { state.hide() },
+        scrollable = false,
+    ) { _ ->
+        val context = LocalContext.current
+        val resources = LocalResources.current
         val manager = rememberAppEntryPoint().skillManager()
         var skills by remember { mutableStateOf<List<SkillMetadata>?>(null) }
         var error by remember { mutableStateOf<String?>(null) }
@@ -41,16 +51,18 @@ internal fun ChatSkillSheet(state: MochiSheetState, onLoad: (String) -> Unit) {
             try {
                 skills = withContext(Dispatchers.IO) { manager.listSkills() }
             } catch (e: CancellationException) { throw e } catch (_: Exception) {
-                error = "无法读取已安装技能"
+                error = resources.getString(R.string.chat_skill_load_installed_failed)
             }
         }
-        MochiSheetHeader(title = "载入技能到草稿")
-        LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            flingBehavior = MochiScrollDefaults.flingBehavior(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             mochiListSection("installed-skills") {
                 val available = skills
                 error?.let { message -> row { MochiListRow(title = message) } }
-                if (available == null && error == null) row { MochiListRow(title = "读取技能中", loading = true) }
+                if (available == null && error == null) row { MochiListRow(title = stringResource(R.string.chat_skill_reading), loading = true) }
                 if (available?.isEmpty() == true) row { MochiListRow(title = stringResource(R.string.skills_page_empty_title)) }
                 rows(available.orEmpty(), key = { it.skillDir.absolutePath }) { skill ->
                     MochiListRow(title = skill.name, subtitle = skill.description, enabled = loading == null,
@@ -66,7 +78,7 @@ internal fun ChatSkillSheet(state: MochiSheetState, onLoad: (String) -> Unit) {
                                         }
                                         if (state.isVisible) { onLoad(text); state.hide() }
                                     } catch (e: CancellationException) { throw e } catch (e: Exception) {
-                                        error = if (e is IllegalArgumentException) e.message else "无法读取所选技能"
+                                        error = if (e is IllegalArgumentException) e.message else resources.getString(R.string.chat_skill_load_selected_failed)
                                     } finally { loading = null }
                                 }
                             }

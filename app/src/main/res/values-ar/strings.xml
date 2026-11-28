@@ -826,7 +826,14 @@
   <string name="setting_files_page_clean_confirmation">ستُحذف كل الملفات هنا نهائيًا.</string>
   <string name="setting_files_page_clean_content_description">تنظيف الملفات</string>
   <string name="setting_files_page_clean_failed_toast">تعذر تنظيف بعض الملفات</string>
-  <string name="setting_files_page_clean_older_than_days">أقدم من %1$d يومًا</string>
+  <plurals name="setting_files_page_clean_older_than_days">
+    <item quantity="zero">أقدم من %1$d يومًا</item>
+    <item quantity="one">أقدم من %1$d يومًا</item>
+    <item quantity="two">أقدم من %1$d يومًا</item>
+    <item quantity="few">أقدم من %1$d يومًا</item>
+    <item quantity="many">أقدم من %1$d يومًا</item>
+    <item quantity="other">أقدم من %1$d يومًا</item>
+  </plurals>
   <string name="setting_files_page_clean_range_description">ستُحذف الملفات المحددة نهائيًا.</string>
   <string name="setting_files_page_clean_title">هل تريد تنظيف الملفات؟</string>
   <string name="setting_files_page_cleaned_toast">تم تنظيف الملفات</string>
@@ -1143,7 +1150,14 @@
   <string name="setting_tts_page_voice_name">اسم الصوت</string>
   <string name="setting_tts_page_voice_name_placeholder">Kore</string>
   <string name="setting_update_reminder_enabled">تذكيرات التحديث مفعّلة</string>
-  <string name="setting_update_reminder_pause_days">%1$d أيام</string>
+  <plurals name="setting_update_reminder_pause_days">
+    <item quantity="zero">%1$d أيام</item>
+    <item quantity="one">%1$d أيام</item>
+    <item quantity="two">%1$d أيام</item>
+    <item quantity="few">%1$d أيام</item>
+    <item quantity="many">%1$d أيام</item>
+    <item quantity="other">%1$d أيام</item>
+  </plurals>
   <string name="setting_update_reminder_pause_description">إيقاف مؤقت للمدة المختارة ثم استئناف</string>
   <string name="setting_update_reminder_pause_title">إيقاف تذكيرات التحديث مؤقتًا</string>
   <string name="setting_update_reminder_paused_until">متوقفة حتى %1$s</string>

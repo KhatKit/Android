@@ -42,10 +42,10 @@ import androidx.compose.ui.unit.dp
 
 
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.icons.show_chart
-import heizige.kk.khatkit.app.core.ui.icons.barChart
-import heizige.kk.khatkit.app.core.ui.icons.scatter_plot
-import heizige.kk.khatkit.app.core.ui.icons.table
+import heizige.kk.khatkit.app.core.ui.icons.settings.show_chart
+import heizige.kk.khatkit.app.core.ui.icons.settings.barChart
+import heizige.kk.khatkit.app.core.ui.icons.utility.scatter_plot
+import heizige.kk.khatkit.app.core.ui.icons.settings.table
 
 enum class ChartDisplayMode { Chart, Table }
 

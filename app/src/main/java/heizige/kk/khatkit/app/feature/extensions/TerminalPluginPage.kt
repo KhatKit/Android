@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginInfo
+
+import androidx.compose.ui.res.stringResource
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -37,10 +40,10 @@ import com.termux.view.TerminalViewClient
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
-import heizige.kk.khatkit.app.core.ui.icons.settings
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
 import heizige.kk.khatkit.app.core.ui.theme.ColorMode
 import heizige.kk.khatkit.app.core.ui.theme.KhatKitTheme
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkSwitch
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
 import heizige.kk.khatkit.uikit.mochi.kkBarButtonColors
@@ -75,7 +78,7 @@ fun TerminalPluginPage() {
                     navId = "terminal.settings",
                     colors = kkBarButtonColors(),
                 ) {
-                    Icon(settings, contentDescription = "终端设置")
+                    Icon(settings, contentDescription = stringResource(R.string.extensions_terminal_settings))
                 }
             },
         ) { innerPadding ->
@@ -112,7 +115,7 @@ fun TerminalPluginPage() {
 
         PrimaryBottomSheet(
             visible = showSettings,
-            title = "终端设置",
+            title = stringResource(R.string.extensions_terminal_settings),
             imageVector = settings,
             onDismiss = { showSettings = false },
         ) { _ ->
@@ -123,11 +126,11 @@ fun TerminalPluginPage() {
                     provider.setWidgetEnabled(TERMINAL_WIDGET_NAME, next)
                 },
                 leadingContent = { Icon(settings, null) },
-                titleContent = { Text("欢迎页快捷方式") },
+                titleContent = { Text(stringResource(R.string.extensions_welcome_shortcut)) },
                 supportingContent = {
                     Text(
-                        if (shortcutEnabled) "已在聊天欢迎页显示终端入口"
-                        else "在聊天欢迎页添加一个打开终端的入口",
+                        if (shortcutEnabled) stringResource(R.string.extensions_terminal_shortcut_shown)
+                        else stringResource(R.string.extensions_terminal_shortcut_add),
                         color = MochiTheme.colorScheme.onSurfaceVariant,
                     )
                 },

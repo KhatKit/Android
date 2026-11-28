@@ -37,13 +37,13 @@ import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ui.ToggleSurface
-import heizige.kk.khatkit.app.core.ui.icons.ReasoningHigh
-import heizige.kk.khatkit.app.core.ui.icons.ReasoningLow
-import heizige.kk.khatkit.app.core.ui.icons.ReasoningMedium
+import heizige.kk.khatkit.app.core.ui.icons.ai.ReasoningHigh
+import heizige.kk.khatkit.app.core.ui.icons.ai.ReasoningLow
+import heizige.kk.khatkit.app.core.ui.icons.ai.ReasoningMedium
 import kotlin.math.roundToInt
-import heizige.kk.khatkit.app.core.ui.icons.emojiObjects
-import heizige.kk.khatkit.app.core.ui.icons.lightbulb
-import heizige.kk.khatkit.app.core.ui.icons.neurology
+import heizige.kk.khatkit.app.core.ui.icons.ai.emojiObjects
+import heizige.kk.khatkit.app.core.ui.icons.ai.lightbulb
+import heizige.kk.khatkit.app.core.ui.icons.ai.neurology
 
 private val levels = ReasoningLevel.entries
 private val levelCount = levels.size
@@ -94,7 +94,7 @@ fun ReasoningButton(
                 ) {
                     ReasoningIcon(reasoningLevel)
                 }
-                Text("推理", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.reasoning_picker_title), style = MaterialTheme.typography.bodyMedium)
             }
         }
     } else {

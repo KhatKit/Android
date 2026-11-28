@@ -37,6 +37,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiMenuRow
 import heizige.kk.khatkit.uikit.mochi.MochiMenuPopup
 import heizige.kk.khatkit.uikit.mochi.MochiOptionItem
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import ui.feice.mochi.basic.MochiTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,22 +77,24 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormRow
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormCard
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.feature.settings.data.addSearchRepository
-import heizige.kk.khatkit.app.feature.settings.data.moveSearchRepository
-import heizige.kk.khatkit.app.feature.settings.data.removeSearchRepository
+import heizige.kk.khatkit.app.feature.settings.helper.addSearchService
+import heizige.kk.khatkit.app.feature.settings.helper.moveSearchService
+import heizige.kk.khatkit.app.feature.settings.helper.removeSearchService
 
 @Composable
 fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
     
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val lazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -104,15 +109,15 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
     // 页面列表与搜索框的全屏结果槽里下标空间不同（Miuix 页里第 0 项还是搜索框本身），
     // key 换算对两种情况都成立。
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        moveSearchRepository(vm = vm, settings = settings, fromServiceId = from.key, toServiceId = to.key)
+        moveSearchService(vm = vm, settings = settings, fromServiceId = from.key, toServiceId = to.key)
     }
 
-    val filteredServices = remember(settings.searchServices, searchQuery) {
+    val filteredServices = remember(settings.searchServices, searchQuery, configuration) {
         if (searchQuery.isBlank()) {
             settings.searchServices
         } else {
             settings.searchServices.filter { service ->
-                service.displayName.contains(searchQuery.trim(), ignoreCase = true)
+                service.localizedDisplayName(context).contains(searchQuery.trim(), ignoreCase = true)
             }
         }
     }
@@ -121,7 +126,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
         nav.navigate(Screen.SettingSearchDetail(service.id.toString()))
     }
     val removeService: (SearchOptions) -> Unit = { service ->
-        removeSearchRepository(vm = vm, settings = settings, service = service)
+        removeSearchService(vm = vm, settings = settings, service = service)
     }
 
     MochiSettingsPageScaffold(
@@ -215,7 +220,7 @@ fun SettingSearchPage(vm: SettingViewModel = hiltViewModel()) {
             onDismiss = { showAddSheet = false },
             onConfirm = { options ->
                 showAddSheet = false
-                addSearchRepository(vm = vm, settings = settings, service = options)
+                addSearchService(vm = vm, settings = settings, service = options)
                 scope.launch {
                     lazyListState.animateScrollToItem(0)
                 }
@@ -334,11 +339,12 @@ internal fun AddProviderSheet(
     onDismiss: () -> Unit,
     onConfirm: (SearchOptions) -> Unit
 ) {
+    val context = LocalContext.current
+    val typeLabels = SearchOptions.localizedTypes(context)
     var selectedType by remember {
         mutableStateOf(SearchOptions.TYPES.keys.first())
     }
     var searchQuery by remember { mutableStateOf("") }
-    var searchExpanded by remember { mutableStateOf(false) }
 
     PrimaryBottomSheet(
         state = sheetState,
@@ -357,25 +363,21 @@ internal fun AddProviderSheet(
         // （选中态只换底色，行结构与未选中完全一致）。
         val cards = listCardStyle()
         // 空关键词保留原顺序（TYPES 的插入顺序即展示顺序），有词就按显示名过滤。
-        val types = remember(searchQuery) {
+        val types = remember(searchQuery, typeLabels) {
             val all = SearchOptions.TYPES.keys.toList()
             if (searchQuery.isBlank()) {
                 all
             } else {
                 all.filter {
-                    (SearchOptions.TYPES[it] ?: "").contains(searchQuery.trim(), ignoreCase = true)
+                    (typeLabels[it] ?: "").contains(searchQuery.trim(), ignoreCase = true)
                 }
             }
         }
 
-        // 同一个列表画两处：折叠态在搜索框下面，展开态在搜索框的槽里。两份不能同时在场，
-        // 否则 LazyColumn 状态与点击目标会重复（与 EmojiPicker / ModelList 的口径一致）。
+        // 搜索框按字号自然增高，唯一的结果列表使用正文剩余高度。
         val engineList: @Composable (Modifier) -> Unit = { listModifier ->
             LazyColumn(
-                modifier = listModifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 16.dp),
+                modifier = listModifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(cards.gap),
             ) {
                 if (types.isEmpty()) {
@@ -392,7 +394,7 @@ internal fun AddProviderSheet(
                     }
                 }
                 itemsIndexed(types) { index, type ->
-                    val name = SearchOptions.TYPES[type] ?: "Unknown"
+                    val name = typeLabels[type] ?: stringResource(heizige.kk.khatkit.search.R.string.search_provider_unknown)
                     val isSelected = selectedType == type
                     KkGroupedColumn(
                         shape = cards.indexedShape(index, types.size),
@@ -433,33 +435,15 @@ internal fun AddProviderSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.68f),
+                .fillMaxHeight(),
         ) {
-            Md3SearchBar(
+            MochiTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = stringResource(R.string.setting_page_search_search_engine),
-                active = searchExpanded,
-                onActiveChange = { searchExpanded = it },
-                cancelLabel = stringResource(R.string.cancel),
-                // 引擎表本身就是这块弹层的主 UI：空关键词也摊开，不走「先输入再展示」。
-                showResultsWhenEmpty = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                expandedContent = {
-                    NoHeroTransition {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            engineList(
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                            )
-                        }
-                    }
-                },
+                modifier = Modifier.fillMaxWidth(),
             )
+            engineList(Modifier.weight(1f).fillMaxWidth())
         }
     }
 }
@@ -483,6 +467,8 @@ internal fun SearchProviderCard(
     shape: Shape,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val displayName = remember(service, LocalConfiguration.current) { service.localizedDisplayName(context) }
     var showMenu by remember { mutableStateOf(false) }
 
     MochiOptionItem(
@@ -500,7 +486,7 @@ internal fun SearchProviderCard(
         },
         titleContent = {
             Text(
-                text = service.displayName,
+                text = displayName,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

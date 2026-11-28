@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.translator
 
+import androidx.compose.ui.platform.LocalResources
 import heizige.kk.khatkit.app.core.ui.components.ui.SelectTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextField
 import heizige.kk.khatkit.uikit.mochi.Md3OutlinedTextFieldWithSlots
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,8 +56,8 @@ import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.util.getText
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
-import heizige.kk.khatkit.app.core.ui.icons.contentPaste
-import heizige.kk.khatkit.app.core.ui.icons.translate
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentPaste
+import heizige.kk.khatkit.app.core.ui.icons.utility.translate
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 import androidx.compose.runtime.mutableIntStateOf
@@ -81,12 +83,14 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
     val translating by vm.translating.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current
 
+    val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
 
     // 处理错误
     LaunchedEffect(Unit) {
         vm.errorFlow.collect { error ->
-            Toast.show(error.message ?: "错误", isError = true)
+            Toast.show(error.message ?: resources.getString(R.string.translator_page_error), isError = true)
         }
     }
 
@@ -144,7 +148,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(contentPaste, null)
-                    Text("粘贴文本", modifier = Modifier.padding(start = 4.dp))
+                    Text(stringResource(R.string.translator_page_paste_text), modifier = Modifier.padding(start = 4.dp))
                 }
             }
 
@@ -192,7 +196,7 @@ fun TranslatorPage(vm: TranslatorViewModel = hiltViewModel()) {
                     shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(contentPaste, null)
-                    Text("复制翻译结果", modifier = Modifier.padding(start = 4.dp))
+                    Text(stringResource(R.string.translator_page_copy_result), modifier = Modifier.padding(start = 4.dp))
                 }
             }
         }

@@ -32,9 +32,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
@@ -91,28 +91,29 @@ import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.io.File
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.folder
-import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.settings
-import heizige.kk.khatkit.app.core.ui.icons.share
-import heizige.kk.khatkit.app.core.ui.icons.terminal
-import heizige.kk.khatkit.app.core.ui.icons.undo
-import heizige.kk.khatkit.app.core.ui.icons.uploadFile
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.files.folder
+import heizige.kk.khatkit.app.core.ui.icons.files.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.settings.settings
+import heizige.kk.khatkit.app.core.ui.icons.social.share
+import heizige.kk.khatkit.app.core.ui.icons.utility.terminal
+import heizige.kk.khatkit.app.core.ui.icons.navigation.undo
+import heizige.kk.khatkit.app.core.ui.icons.files.uploadFile
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
-import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceFileType
-import heizige.kk.khatkit.app.feature.workspace.data.detectFileType
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceFileType
+import heizige.kk.khatkit.app.feature.workspace.helper.detectFileType
 import androidx.compose.runtime.DisposableEffect
 import heizige.kk.khatkit.app.PageBackInterceptor
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceDetailState
 
 @Composable
 fun WorkspaceDetailPage(id: String) {
@@ -302,7 +303,7 @@ fun WorkspaceDetailPage(id: String) {
     state.exportResult?.let { result ->
         AppDialog(
             onDismissRequest = vm::dismissExportResult,
-            title = { Text("导出结果") },
+            title = { Text(stringResource(R.string.workspace_export_result)) },
             text = { Text(result, modifier = Modifier.verticalScroll(rememberScrollState())) },
             confirmButton = {
                 MochiTextButton(onClick = vm::dismissExportResult, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.common_confirm)) }
@@ -689,20 +690,20 @@ private fun WorkspaceFilesPage(
                             selectedPaths = emptySet()
                         },
                         shapes = ButtonDefaults.shapes(),
-                    ) { Text("取消多选") }
+                    ) { Text(stringResource(R.string.workspace_cancel_selection)) }
                     MochiTextButton(onClick = {
                         selectedPaths = if (selectedFiles.size == files.size) emptySet() else files.map { it.path }.toSet()
                     },
-                         shapes = ButtonDefaults.shapes(),) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) "取消全选" else "全选") }
+                         shapes = ButtonDefaults.shapes(),) { Text(if (files.isNotEmpty() && selectedFiles.size == files.size) stringResource(R.string.workspace_deselect_all) else stringResource(R.string.workspace_select_all)) }
                     MochiTextButton(
                         onClick = { onBatchExport(selectedFiles) },
                         enabled = selectedFiles.isNotEmpty() && !state.exporting,
                         shapes = ButtonDefaults.shapes(),
-                    ) { Text("导出 (${selectedFiles.size})") }
+                    ) { Text(stringResource(R.string.workspace_export_selected, selectedFiles.size)) }
                 }
                 if (state.exporting) {
                     KkProgressIndicator(type = KkProgressIndicatorType.Linear, modifier = Modifier.fillMaxWidth())
-                    Text("正在导出 ${state.exportCompleted}/${state.exportTotal}")
+                    Text(stringResource(R.string.workspace_exporting, state.exportCompleted, state.exportTotal))
                 }
             }
         }
@@ -831,7 +832,7 @@ private fun WorkspaceFileCard(
             .combinedClickable(
                 onClick = onOpen,
                 onLongClick = if (entry.isDirectory) null else onLongClick,
-                onLongClickLabel = if (entry.isDirectory) null else "选择文件",
+                onLongClickLabel = if (entry.isDirectory) null else stringResource(R.string.workspace_select_file),
             ),
         colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {

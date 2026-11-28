@@ -56,8 +56,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstSpec
-import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstState
+import heizige.kk.khatkit.app.feature.settings.components.easteregg.EmojiBurstSpec
+import heizige.kk.khatkit.app.feature.settings.components.easteregg.EmojiBurstState
 import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
 import heizige.kk.khatkit.uikit.mochi.MochiBadgedBox
 import heizige.kk.khatkit.uikit.mochi.Toast
@@ -158,6 +158,9 @@ internal fun AboutHero(
     val reduceMotion = rememberKkReduceMotion()
     val effectsEnabled = LocalKkEffectsEnabled.current
     val motion = effectsEnabled && !reduceMotion
+    val unlockedMessage = stringResource(R.string.setting_about_egg_unlocked)
+    val chargedMessage = stringResource(R.string.setting_about_egg_charged)
+    val eggActionLabel = stringResource(R.string.setting_about_egg_a11y)
     val scope = rememberCoroutineScope()
     val interaction = remember { MutableInteractionSource() }
     var chargeJob by remember { mutableStateOf<Job?>(null) }
@@ -204,7 +207,7 @@ internal fun AboutHero(
         }
         if (reachedGoal || combo % 5 == 0) haptics.confirm() else haptics.open()
         if (reachedGoal) {
-            Toast.show("彩蛋解锁：正在打开隐藏终端", isError = false)
+            Toast.show(unlockedMessage, isError = false)
             // 先让这一发炸完再切页，不然涟漪和 emoji 都被导航动画吃掉
             scope.launch {
                 delay(360)
@@ -247,7 +250,7 @@ internal fun AboutHero(
             )
         }
         haptics.confirm()
-        Toast.show("长按彩蛋：蓄力满，撒了一屏 🎊", isError = false)
+        Toast.show(chargedMessage, isError = false)
     }
 
     // 手势里用到的是「最新一次组合」的这两个动作：图标坐标、动效开关变了也照样取到新值
@@ -327,7 +330,7 @@ internal fun AboutHero(
             ) {
                 AsyncImage(
                     model = R.mipmap.ic_launcher,
-                    contentDescription = stringResource(R.string.app_name) + " 图标",
+                    contentDescription = stringResource(R.string.setting_about_app_icon, stringResource(R.string.app_name)),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .size(AboutIconSize)
@@ -336,7 +339,7 @@ internal fun AboutHero(
                         .kkPressState(interaction, pressedScale = 0.94f)
                         .mochiBounce(state.tick, depth = 0.12f)
                         .semantics {
-                            onClick(label = "彩蛋") {
+                            onClick(label = eggActionLabel) {
                                 latestTap()
                                 true
                             }
@@ -382,7 +385,7 @@ internal fun AboutHero(
             modifier = Modifier.padding(top = 2.dp),
         )
         Text(
-            text = "多服务商接入，会话与配置都存在本机",
+            text = stringResource(R.string.setting_about_tagline),
             style = MochiTheme.textStyles.footnote,
             color = cs.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp),
@@ -406,7 +409,7 @@ internal fun AboutHero(
             if (BuildConfig.DEBUG) {
                 AboutPill(container = cs.tertiary.copy(alpha = 0.16f)) {
                     Text(
-                        text = "DEBUG",
+                        text = stringResource(R.string.setting_about_debug),
                         style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.SemiBold),
                         color = cs.tertiary,
                     )
@@ -414,7 +417,7 @@ internal fun AboutHero(
             }
         }
         Text(
-            text = "连点十下有惊喜 · 长按可以蓄力",
+            text = stringResource(R.string.setting_about_egg_hint),
             style = MochiTheme.textStyles.footnote,
             color = cs.onSurfaceVariant.copy(alpha = 0.55f),
             modifier = Modifier.padding(top = 10.dp),
@@ -457,7 +460,7 @@ private fun ComboBadge(state: AboutEggState) {
             horizontalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             Text(
-                text = "×",
+                text = stringResource(R.string.setting_about_combo_symbol),
                 style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.SemiBold),
                 color = cs.onPrimary,
             )

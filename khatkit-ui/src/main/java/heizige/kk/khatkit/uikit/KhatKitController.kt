@@ -19,6 +19,12 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface KhatKitController {
 
+    /** Optional application context at the Android UI boundary; never retain an Activity. */
+    val uiContext: android.content.Context? get() = null
+
+    private fun hostMessage(resourceId: Int): String =
+        uiContext?.getString(resourceId) ?: throw KhatKitUiMessageException(resourceId)
+
     val uiRequest: StateFlow<UiRequest?>
     val uiProgress: StateFlow<Pair<Float, String>?>
 
@@ -77,11 +83,11 @@ interface KhatKitController {
      * 未激活或网络失败时返回带中文 [HubAccountStatus.message] 的状态，不抛异常。
      */
     suspend fun hubAccountStatus(refresh: Boolean = false): HubAccountStatus =
-        HubAccountStatus(message = "当前版本未接入 Hub 套餐")
+        HubAccountStatus(message = hostMessage(R.string.khatkit_hub_unavailable))
 
     /** 用激活令牌激活套餐：POST /api/activate，成功后安全保存令牌并返回最新状态。 */
     suspend fun activateHub(token: String, hubBaseUrl: String): HubAccountStatus =
-        HubAccountStatus(message = "当前版本不支持套餐激活")
+        HubAccountStatus(message = hostMessage(R.string.khatkit_hub_activation_unsupported))
 
     /** 清除本机保存的激活信息（不影响服务端账户）。 */
     suspend fun clearHubActivation(): HubAccountStatus = HubAccountStatus()
@@ -107,7 +113,7 @@ interface KhatKitController {
         license: String,
         price: Double,
         changelog: String = "",
-    ): HubActionResult = HubActionResult(false, "当前版本不支持发布卡片")
+    ): HubActionResult = HubActionResult(false, hostMessage(R.string.khatkit_hub_publish_unsupported))
 
     /** 提交改进：把本机卡片作为 fork 上传，带父版本、新版本号与更新说明。 */
     suspend fun forkCard(
@@ -115,10 +121,10 @@ interface KhatKitController {
         parentVersion: String,
         changelog: String,
         newVersion: String = "",
-    ): HubActionResult = HubActionResult(false, "当前版本不支持提交改进")
+    ): HubActionResult = HubActionResult(false, hostMessage(R.string.khatkit_hub_fork_unsupported))
 
     /** 给市场卡片投票（upvote）。 */
-    suspend fun voteCard(name: String): HubActionResult = HubActionResult(false, "当前版本不支持投票")
+    suspend fun voteCard(name: String): HubActionResult = HubActionResult(false, hostMessage(R.string.khatkit_hub_vote_unsupported))
 
     fun applySettings()
 }

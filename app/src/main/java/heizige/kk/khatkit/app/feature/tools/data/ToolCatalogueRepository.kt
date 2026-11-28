@@ -3,7 +3,7 @@ package heizige.kk.khatkit.app.feature.tools.data
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import heizige.kk.khatkit.app.core.data.ai.tools.KhatKitToolProvider
-import heizige.kk.khatkit.app.feature.tools.helper.isUserTool
+import heizige.kk.khatkit.app.core.util.isUserTool
 import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.hub.CardIndexEntry
 import heizige.kk.khatkit.hub.CardTags

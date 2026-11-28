@@ -43,19 +43,22 @@ import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.common.android.Logging
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
-import heizige.kk.khatkit.app.core.ui.components.ui.JsonTree
+import heizige.kk.khatkit.app.feature.log.components.ui.JsonTree
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
 import heizige.kk.khatkit.app.core.ui.theme.JetbrainsMono
 import heizige.kk.khatkit.app.core.util.JsonInstantPretty
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import heizige.kk.khatkit.app.core.ui.icons.bugReport
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.bugReport
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiFormDivider
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun LogPage() {
@@ -64,7 +67,7 @@ fun LogPage() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     MochiSettingsPageScaffold(
-        title = "Logs",
+        title = stringResource(R.string.log_page_title),
         scrollBehavior = scrollBehavior,
         actions = {
             MochiIconButton(
@@ -128,7 +131,7 @@ private fun UnifiedLogList(
     selectedLog?.let { log ->
         PrimaryBottomSheet(
             visible = true,
-            title = "Request Details",
+            title = stringResource(R.string.log_page_request_details),
             imageVector = bugReport,
             onDismiss = { selectedLog = null },
             scrollable = false,
@@ -216,7 +219,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
             ) {
                 log.responseCode?.let { code ->
                     Text(
-                        text = "Status: $code",
+                        text = stringResource(R.string.log_page_status, code),
                         style = MochiTheme.textStyles.labelSmall,
                         color = if (code in 200..299) {
                             MochiTheme.colorScheme.primary
@@ -236,7 +239,7 @@ private fun RequestLogCard(log: LogEntry.RequestLog, onClick: () -> Unit) {
 
             log.error?.let { error ->
                 Text(
-                    text = "Error: $error",
+                    text = stringResource(R.string.log_page_error_value, error),
                     style = MochiTheme.textStyles.labelSmall,
                     color = MochiTheme.colorScheme.error
                 )
@@ -259,32 +262,32 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                DetailSection("Time", dateFormat.format(Date(log.timestamp)))
+                DetailSection(stringResource(R.string.log_page_time), dateFormat.format(Date(log.timestamp)))
             }
 
             item {
-                DetailSection("URL", log.url)
+                DetailSection(stringResource(R.string.log_page_url), log.url)
             }
 
             item {
-                DetailSection("Method", log.method)
+                DetailSection(stringResource(R.string.log_page_method), log.method)
             }
 
             log.responseCode?.let { code ->
                 item {
-                    DetailSection("Status Code", code.toString())
+                    DetailSection(stringResource(R.string.log_page_status_code), code.toString())
                 }
             }
 
             log.durationMs?.let { duration ->
                 item {
-                    DetailSection("Duration", "${duration}ms")
+                    DetailSection(stringResource(R.string.log_page_duration), "${duration}ms")
                 }
             }
 
             log.error?.let { error ->
                 item {
-                    DetailSection("Error", error)
+                    DetailSection(stringResource(R.string.log_page_error), error)
                 }
             }
 
@@ -292,7 +295,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                 item {
                     MochiFormDivider()
                     Text(
-                        text = "Request Headers",
+                        text = stringResource(R.string.log_page_request_headers),
                         style = MochiTheme.textStyles.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
@@ -313,7 +316,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Request Body",
+                            text = stringResource(R.string.log_page_request_body),
                             style = MochiTheme.textStyles.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
@@ -365,7 +368,7 @@ private fun RequestLogDetail(log: LogEntry.RequestLog) {
                 item {
                     MochiFormDivider()
                     Text(
-                        text = "Response Headers",
+                        text = stringResource(R.string.log_page_response_headers),
                         style = MochiTheme.textStyles.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)

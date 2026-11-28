@@ -21,13 +21,13 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
-import heizige.kk.khatkit.app.feature.chat.data.ConversationSessionManager
+import heizige.kk.khatkit.app.feature.chat.helper.ConversationRuntimeManager
+import heizige.kk.khatkit.app.feature.chat.helper.ConversationSessionManager
 
 class ConversationSessionManagerTest {
     private class Rig {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-        val completions = mutableListOf<ConversationSession>()
+        val completions = mutableListOf<ConversationRuntimeManager>()
         val manager = ConversationSessionManager(
             scope = scope,
             createInitialConversation = { Conversation.ofId(it) },

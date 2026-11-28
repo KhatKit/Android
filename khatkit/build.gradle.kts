@@ -15,6 +15,13 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    testOptions {
+        // JVM 单测跑的是 android.jar 桩：UiBridgeHost / HostBridgeImpl 的 ui 交互路径会
+        // Log.i（仅调试追踪，无业务分支），未 mock 时桩会抛 RuntimeException 打断协程。
+        // 让桩返回默认值，测试仍按真实断言校验行为；真机日志不受影响。
+        unitTests.isReturnDefaultValues = true
+    }
+
 
 
     tasks.withType<KotlinCompile>().configureEach {
@@ -65,8 +72,7 @@ dependencies {
     // Networking: Ktor client only, deliberately not OkHttp
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.bundles.ktor.client.json)
 
     // kotlinx
     implementation(libs.kotlinx.serialization.json)

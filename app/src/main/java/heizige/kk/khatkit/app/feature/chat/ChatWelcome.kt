@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
@@ -67,13 +66,13 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.components.richtext.MarkdownBlock
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 import heizige.kk.khatkit.app.core.ui.hooks.rememberIsDarkTheme
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.chevronRight
-import heizige.kk.khatkit.app.core.ui.icons.dashboard
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.refresh
-import heizige.kk.khatkit.app.core.ui.icons.terminal
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.navigation.chevronRight
+import heizige.kk.khatkit.app.core.ui.icons.utility.dashboard
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.navigation.refresh
+import heizige.kk.khatkit.app.core.ui.icons.utility.terminal
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
 import heizige.kk.khatkit.card.CardStrings
 import heizige.kk.khatkit.uikit.Render
@@ -84,11 +83,15 @@ import heizige.kk.khatkit.uikit.mochi.kkAnimateContentSize
 import heizige.kk.khatkit.app.feature.tools.ToolCatalogueWidget
 import heizige.kk.khatkit.app.feature.tools.ToolCatalogueViewModel
 import heizige.kk.khatkit.app.feature.tools.ToolEntryIcon
-import heizige.kk.khatkit.app.feature.tools.helper.toolCategory
-import heizige.kk.khatkit.app.feature.tools.helper.toolDescription
-import heizige.kk.khatkit.app.feature.tools.helper.toolTitle
-import heizige.kk.khatkit.app.feature.tools.helper.recommendedTools
+import heizige.kk.khatkit.app.core.util.toolCategory
+import heizige.kk.khatkit.app.core.util.toolDescription
+import heizige.kk.khatkit.app.core.util.toolTitle
+import heizige.kk.khatkit.app.core.util.recommendedTools
 import heizige.kk.khatkit.hub.CardIndexEntry
+import heizige.kk.khatkit.app.feature.chat.helper.ChatWelcomeManager
+import heizige.kk.khatkit.app.feature.chat.data.ChatWelcomeState
+
+
 
 /** An independent overlay: it never changes message-list keys or scroll indices. */
 @Composable
@@ -224,7 +227,7 @@ private fun ChatWelcome(
                     }
                 }
             } else if (!tools.loading && tools.error == null) {
-                Text("暂无推荐卡片", Modifier.padding(horizontal = 16.dp), color = MochiTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.chat_welcome_no_recommended_cards), Modifier.padding(horizontal = 16.dp), color = MochiTheme.colorScheme.onSurfaceVariant)
             }
             tools.error?.let { error ->
                 Text(error, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), color = MochiTheme.colorScheme.error)
@@ -238,7 +241,7 @@ private fun ChatWelcome(
         onDismiss = { widgetSheet.hide() },
         scrollable = false,
     ) {
-        Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             // 行照抄欢迎页那批选项行（[MochiOptionItem] + [listCardStyle] 的整组圆角）：
             // 24dp 裸图标、title 字阶的标题、body 的说明、尾部一颗 KkSwitch。
             // 外面套 InlineCardGroup：gap 为 0 时整组是一张 Mochi 分组卡片（行间分隔线）。
@@ -290,8 +293,8 @@ private fun ChatWelcome(
                         leadingContent = {
                             Icon(terminal, null, Modifier.size(24.dp), tint = MochiTheme.colorScheme.onSurfaceVariant)
                         },
-                        titleContent = { Text("终端快捷方式", style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.Medium) },
-                        supportingContent = { Text("在欢迎页添加独立 Termux 终端入口", style = MochiTheme.textStyles.body, color = MochiTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        titleContent = { Text(stringResource(R.string.chat_welcome_terminal_shortcut), style = MochiTheme.textStyles.titleMedium, fontWeight = FontWeight.Medium) },
+                        supportingContent = { Text(stringResource(R.string.chat_welcome_terminal_shortcut_desc), style = MochiTheme.textStyles.body, color = MochiTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         trailingContent = {
                             KkSwitch(
                                 checked = state.terminalEnabled,

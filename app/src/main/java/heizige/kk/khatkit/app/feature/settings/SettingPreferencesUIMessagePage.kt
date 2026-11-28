@@ -44,6 +44,7 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
         vm.updateSettings(settings.copy(displaySetting = setting))
     }
 
+    val percentSuffix = stringResource(R.string.setting_unit_percent)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     MochiSettingsPageScaffold(
@@ -102,7 +103,7 @@ fun SettingPreferencesUIMessagePage(vm: SettingViewModel = hiltViewModel()) {
                         defaultValue = 1.0f,
                         steps = 8,
                         displayScale = 100f,
-                        suffix = "%",
+                        suffix = percentSuffix,
                         anchor = settingAnchor(R.string.setting_display_page_bubble_opacity_title),
                     )
                     settingItem(

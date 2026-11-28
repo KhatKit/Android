@@ -46,9 +46,7 @@ import heizige.kk.khatkit.app.core.data.network.SettingsProxySelector
 import heizige.kk.khatkit.app.core.data.network.SettingsProxyAuthenticator
 import heizige.kk.khatkit.app.core.data.network.SettingsSocks5Authenticator
 import heizige.kk.khatkit.app.core.data.files.FilesManager
-import heizige.kk.khatkit.app.core.data.sync.webdav.WebDavSync
 import heizige.kk.khatkit.search.SearchRepository
-import heizige.kk.khatkit.app.core.data.sync.S3Sync
 import heizige.kk.khatkit.common.http.okhttp.OkHttpClient
 import heizige.kk.khatkit.common.http.okhttp.logging.HttpLoggingInterceptor
 import java.util.Locale
@@ -56,7 +54,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import heizige.kk.khatkit.app.core.data.db.dao.FavoriteDAO
 import heizige.kk.khatkit.app.core.data.db.dao.WorkflowDao
-import heizige.kk.khatkit.app.feature.workflow.WorkflowRepository
+import heizige.kk.khatkit.app.feature.workflow.data.WorkflowRepository
+import heizige.kk.khatkit.app.core.data.db.dao.UsageRecordDAO
+
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -262,7 +263,6 @@ object DataSourceHiltModule {
         return client
     }
 
-
     @Provides
     @Singleton
     fun provideProviderManager(
@@ -292,18 +292,6 @@ object DataSourceHiltModule {
 
     @Provides
     @Singleton
-    fun provideWebDavSync(
-        backupManager: BackupManager,
-        @ApplicationContext context: Context,
-        httpClient: HttpClient,
-    ): WebDavSync = WebDavSync(
-        backupManager = backupManager,
-        context = context,
-        httpClient = httpClient,
-    )
-
-    @Provides
-    @Singleton
     fun provideKtorHttpClient(): HttpClient = HttpClient(CIO) {
         expectSuccess = false
         install(HttpTimeout) {
@@ -312,15 +300,4 @@ object DataSourceHiltModule {
         }
     }
 
-    @Provides
-    @Singleton
-    fun provideS3Sync(
-        backupManager: BackupManager,
-        @ApplicationContext context: Context,
-        httpClient: HttpClient,
-    ): S3Sync = S3Sync(
-        backupManager = backupManager,
-        context = context,
-        httpClient = httpClient,
-    )
 }

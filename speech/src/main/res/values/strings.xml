@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+  <string name="speech_error_connection">Unable to connect to speech recognition. Check your connection and try again.</string>
+  <string name="speech_error_engine_library">The engine archive does not contain the native library for %1$s.</string>
+  <string name="speech_error_engine_missing">Download the local recognition engine in settings first.</string>
+  <string name="speech_error_local_recognition">Local speech recognition failed. Check the downloaded model and try again.</string>
+  <string name="speech_error_microphone_permission">Microphone permission is required</string>
+  <string name="speech_error_model_load">Unable to load the recognition model. Download it again in settings.</string>
+  <string name="speech_error_playback">Unable to play audio. Try again.</string>
+  <string name="speech_error_qwen_model">Legacy Qwen3 TTS models are no longer supported. Select qwen-audio-3.0-tts-plus or qwen-audio-3.0-tts-flash in TTS settings.</string>
+  <string name="speech_error_qwen_workspace">Replace {WorkspaceId} in the Base URL with your Alibaba Cloud Model Studio workspace ID.</string>
+  <string name="speech_error_realtime">Realtime speech recognition failed. Try again.</string>
+  <string name="speech_error_recording">Unable to record audio. Check microphone access and try again.</string>
+  <string name="speech_error_response">The speech service returned an invalid response. Try again.</string>
+  <string name="speech_error_session_finish">Unable to finish the recognition session. Try again.</string>
+  <string name="speech_error_session_start">Unable to start the recognition session. Try again.</string>
+  <string name="speech_error_synthesis">Unable to synthesize speech. Check speech settings and try again.</string>
+  <string name="speech_error_timeout">Timed out waiting for the final recognition result. Try again.</string>
+  <string name="speech_error_transcription">Speech transcription failed. Try again.</string>
+  <string name="speech_error_volcengine_endpoint">The Volcengine ASR endpoint is outdated. Set the WebSocket URL to %1$s in settings.</string>
+  <string name="speech_model_paraformer_zh">Chinese Paraformer Small</string>
+  <string name="speech_model_whisper_en">English Whisper Tiny</string>
+  <string name="speech_model_whisper_multilingual">Multilingual Whisper Tiny</string>
+  <string name="speech_model_zipformer_en">English streaming Zipformer 20M</string>
+  <string name="speech_model_zipformer_zh">Chinese streaming Zipformer 14M</string>
+  <string name="speech_provider_dashscope">DashScope ASR</string>
+  <string name="speech_provider_elevenlabs_tts">ElevenLabs TTS</string>
+  <string name="speech_provider_fish_audio_tts">Fish Audio TTS</string>
+  <string name="speech_provider_gemini_transcribe">Gemini Transcribe</string>
+  <string name="speech_provider_gemini_tts">Gemini TTS</string>
+  <string name="speech_provider_groq_tts">Groq TTS</string>
+  <string name="speech_provider_mimo">MiMo ASR</string>
+  <string name="speech_provider_mimo_tts">MiMo TTS</string>
+  <string name="speech_provider_minimax_tts">MiniMax TTS</string>
+  <string name="speech_provider_openai_realtime">OpenAI Realtime ASR</string>
+  <string name="speech_provider_openai_transcribe">OpenAI Transcribe</string>
+  <string name="speech_provider_openai_tts">OpenAI TTS</string>
+  <string name="speech_provider_qwen_tts">Qwen TTS</string>
+  <string name="speech_provider_sherpa_local">Local recognition (sherpa-onnx)</string>
+  <string name="speech_provider_step">Step ASR</string>
+  <string name="speech_provider_step_tts">Step TTS</string>
+  <string name="speech_provider_system_tts">System TTS</string>
+  <string name="speech_provider_volcengine">Volcengine ASR</string>
+  <string name="speech_provider_volcengine_tts">Volcengine TTS</string>
+  <string name="speech_provider_xai_tts">xAI TTS</string>
+  <string name="speech_error_no_provider">Select a speech synthesis provider in settings first.</string>
+</resources>

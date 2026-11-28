@@ -40,4 +40,55 @@ class PageBackInterceptorTest {
 
         assertFalse(PageBackInterceptor.hasPredictiveHandlersFor("chat"))
     }
+
+    @Test
+    fun mostRecentlyRegisteredPredictiveOverlayWins() = runBlocking {
+        val first = Any()
+        val second = Any()
+        var firstCalled = false
+        var secondCalled = false
+        try {
+            PageBackInterceptor.pushPredictive(
+                token = first,
+                ownerRoute = "chat",
+                handler = { true },
+                predictiveHandler = { events -> events.collect {}; firstCalled = true },
+            )
+            PageBackInterceptor.pushPredictive(
+                token = second,
+                ownerRoute = "chat",
+                handler = { true },
+                predictiveHandler = { events -> events.collect {}; secondCalled = true },
+            )
+
+            assertTrue(PageBackInterceptor.interceptPredictiveFor("chat", emptyFlow()))
+            assertTrue(secondCalled)
+            assertFalse(firstCalled)
+        } finally {
+            PageBackInterceptor.pop(first)
+            PageBackInterceptor.pop(second)
+        }
+    }
+
+    @Test
+    fun overlaysRegisteredOnAnotherRouteAreNotIntercepted() = runBlocking {
+        val token = Any()
+        var called = false
+        try {
+            PageBackInterceptor.pushPredictive(
+                token = token,
+                ownerRoute = "settings",
+                handler = { true },
+                predictiveHandler = { events -> events.collect {}; called = true },
+            )
+
+            assertFalse(PageBackInterceptor.hasHandlersFor("chat"))
+            assertFalse(PageBackInterceptor.hasPredictiveHandlersFor("chat"))
+            assertFalse(PageBackInterceptor.interceptPredictiveFor("chat", emptyFlow()))
+            assertFalse(PageBackInterceptor.interceptFor("chat"))
+            assertFalse(called)
+        } finally {
+            PageBackInterceptor.pop(token)
+        }
+    }
 }

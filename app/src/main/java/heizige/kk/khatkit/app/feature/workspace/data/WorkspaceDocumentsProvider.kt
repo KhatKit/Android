@@ -16,6 +16,9 @@ import heizige.kk.khatkit.app.core.data.db.entity.WorkspaceEntity
 import heizige.kk.khatkit.workspace.WorkspaceManager
 import heizige.kk.khatkit.app.core.di.appEntryPoint
 import java.io.File
+import heizige.kk.khatkit.app.core.di.AppEntryPoint
+
+
 
 /**
  * 通过 Storage Access Framework 将 workspace 的 files 目录暴露给系统文件管理器。

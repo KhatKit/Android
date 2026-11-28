@@ -1,5 +1,8 @@
 package heizige.kk.khatkit.app.feature.tools
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,14 +68,14 @@ internal fun ToolApiHealthPage() {
             .thenBy { it.first.title })
     }
     MochiSettingsPageScaffold(
-        title = "卡片 API 状态",
+        title = stringResource(R.string.tools_api_health_title),
         actions = {
             if (observations.isNotEmpty()) {
                 MochiBarIconButton(
                     onClick = { provider.apiHealth.clear() },
                     navId = "tools.api.clear",
                     colors = kkBarButtonColors(),
-                ) { MochiIonicon("trash", contentDescription = "清除请求状态") }
+                ) { MochiIonicon("trash", contentDescription = stringResource(R.string.tools_clear_request_status)) }
             }
         },
     ) { pagePadding ->
@@ -80,27 +83,27 @@ internal fun ToolApiHealthPage() {
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 MochiChipGroup {
-                    MochiChip("全部", !onlyIssues, { onlyIssues = false })
-                    MochiChip("仅异常", onlyIssues, { onlyIssues = true })
+                    MochiChip(stringResource(R.string.tools_scope_all), !onlyIssues, { onlyIssues = false })
+                    MochiChip(stringResource(R.string.tools_filter_issues), onlyIssues, { onlyIssues = true })
                 }
             }
             if (cards == null) item { MochiActivityIndicator() }
             else if (groups.isEmpty()) item {
-                Text(if (onlyIssues) "暂无异常记录" else "没有已安装的联网卡片",
+                Text(if (onlyIssues) stringResource(R.string.tools_empty_no_issues) else stringResource(R.string.tools_empty_no_network_cards),
                     color = MochiTheme.colorScheme.onSurfaceVariant)
             }
             items(groups, key = { it.first.name }) { (card, rows) ->
                 MochiListSection {
                     MochiListRow(
                         title = card.title,
-                        subtitle = "${rows.size} 条请求状态",
+                        subtitle = pluralStringResource(R.plurals.tools_request_status_count, rows.size, rows.size),
                         onClick = if (card.canOpen) ({ nav?.navigate(Screen.CardWidget(card.name, card.title)) }) else null,
                     )
                     for (entry in rows) {
                         val label = when (entry.status) {
-                            null -> "连接失败"
-                            in 200..299 -> "正常响应 · HTTP ${entry.status}"
-                            in 300..399 -> "重定向 · HTTP ${entry.status}"
+                            null -> stringResource(R.string.tools_connection_failed)
+                            in 200..299 -> stringResource(R.string.tools_response_ok, entry.status)
+                            in 300..399 -> stringResource(R.string.tools_response_redirect, entry.status)
                             else -> "HTTP ${entry.status}"
                         }
                         val observedAt = remember(entry.timeMillis) { DateFormat.getDateTimeInstance().format(Date(entry.timeMillis)) }
@@ -109,9 +112,9 @@ internal fun ToolApiHealthPage() {
                     }
                     if (!onlyIssues) {
                         val unchecked = card.hosts.filter { host -> rows.none { it.host == host } }
-                        for (host in unchecked) MochiListRow(title = host, subtitle = "未观察到请求")
+                        for (host in unchecked) MochiListRow(title = host, subtitle = stringResource(R.string.tools_no_request_observed))
                         if (rows.isEmpty() && unchecked.isEmpty()) {
-                            MochiListRow(title = "未观察到请求", subtitle = "该卡片未限定具体域名")
+                            MochiListRow(title = stringResource(R.string.tools_no_request_observed), subtitle = stringResource(R.string.tools_no_domain_limit))
                         }
                     }
                 }

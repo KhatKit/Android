@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +30,7 @@ import heizige.kk.khatkit.app.core.ui.components.ui.FormItem
 import heizige.kk.khatkit.app.core.util.JsonInstant
 import heizige.kk.khatkit.app.core.util.JsonInstantPretty
 import heizige.kk.khatkit.app.core.util.jsonPrimitiveOrNull
-import heizige.kk.khatkit.app.core.ui.icons.build
+import heizige.kk.khatkit.app.core.ui.icons.utility.build
 
 /**
  * 工具调用的渲染上下文, 预解析好工具入参与输出, 避免各渲染器重复解析
@@ -129,8 +128,7 @@ fun DefaultToolPreview(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxHeight(0.8f)
-            .padding(16.dp)
+            .fillMaxHeight()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

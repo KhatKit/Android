@@ -53,6 +53,8 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
         vm.updateSettings(settings.copy(displaySetting = setting))
     }
 
+    val percentSuffix = stringResource(R.string.setting_unit_percent)
+    val multiplierPrefix = stringResource(R.string.setting_unit_multiplier)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     MochiSettingsPageScaffold(
@@ -221,7 +223,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                         defaultValue = 1.0f,
                         steps = 2,
                         displayScale = 100f,
-                        suffix = "%",
+                        suffix = percentSuffix,
                         visible = displaySetting.enableVolumeKeyScroll,
                         anchor = settingAnchor(R.string.setting_display_page_volume_key_scroll_ratio),
                     )
@@ -240,7 +242,7 @@ fun SettingPreferencesGeneralPage(vm: SettingViewModel = hiltViewModel()) {
                         valueRange = 0.5f..2.0f,
                         defaultValue = 1.0f,
                         steps = 14,
-                        prefix = "x",
+                        prefix = multiplierPrefix,
                         decimals = 1,
                         description = { stringResource(R.string.setting_tts_page_default_playback_speed_description) },
                         onValueChangeFinished = {

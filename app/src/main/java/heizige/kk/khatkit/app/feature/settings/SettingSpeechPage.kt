@@ -14,9 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
-import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.core.ui.shell.rememberMochiNavPagesState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
@@ -43,17 +43,17 @@ import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.edit
-import heizige.kk.khatkit.app.core.ui.icons.mic
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.stopCircle
-import heizige.kk.khatkit.app.core.ui.icons.volumeUp
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.utility.edit
+import heizige.kk.khatkit.app.core.ui.icons.media.mic
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.media.stopCircle
+import heizige.kk.khatkit.app.core.ui.icons.media.volumeUp
 import heizige.kk.khatkit.app.feature.settings.components.ASRProviderConfigure
 import heizige.kk.khatkit.app.feature.settings.components.TTSProviderConfigure
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
-import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavBottomBar
+import heizige.kk.khatkit.app.core.ui.shell.MochiNavTab
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton as KkIconButton
@@ -71,6 +71,9 @@ import ui.feice.mochi.list.mochiReorderable
 import ui.feice.mochi.list.rememberMochiReorderState
 import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
 
 @Composable
 fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
@@ -185,7 +188,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 TTSProviderConfigure(
@@ -233,7 +236,7 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ASRProviderConfigure(
@@ -298,7 +301,7 @@ internal fun TTSProviderList(
                             }
                         }
                     }
-                    MochiListSectionFooter(SpeechProviderListHint)
+                    MochiListSectionFooter(stringResource(R.string.setting_speech_provider_list_hint))
                 }
             }
         }
@@ -357,17 +360,15 @@ internal fun ASRProviderList(
                             }
                         }
                     }
-                    MochiListSectionFooter(SpeechProviderListHint)
+                    MochiListSectionFooter(stringResource(R.string.setting_speech_provider_list_hint))
                 }
             }
         }
     }
 }
 
-private const val SpeechProviderListHint = "轻点一行选用该服务，长按拖动调整顺序"
-
 /**
- * 两个 Pager 页共用的列表外壳：顶边贴着顶栏渐隐，底边不遮（底栏浮在正文上，列表要从它底下透出来），
+ * 两个导航页共用的列表外壳：顶边贴着顶栏渐隐，底边不遮（底栏浮在正文上，列表要从它底下透出来），
  * 底部按 contentBottomPadding() 留出浮动底栏的高度。
  */
 @Composable
@@ -428,7 +429,7 @@ internal fun AddTTSProviderButton(onAdd: (TTSProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 TTSProviderConfigure(
@@ -453,12 +454,12 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
             expanded = showTypeMenu,
             onExpandedChange = { showTypeMenu = it },
             items = kotlinx.collections.immutable.persistentListOf(
-                MochiItem(label = "OpenAI Realtime"),
-                MochiItem(label = "DashScope"),
-                MochiItem(label = "Volcengine"),
-                MochiItem(label = "MiMo"),
-                MochiItem(label = "Step"),
-                MochiItem(label = "本地识别 (sherpa-onnx)"),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_openai_realtime)),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_dashscope)),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_volcengine)),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_mimo)),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_step)),
+                MochiItem(label = stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_sherpa_local)),
             ),
             onItemClick = { index ->
                 when (index) {
@@ -497,7 +498,7 @@ internal fun AddASRProviderButton(onAdd: (ASRProviderSetting) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.8f),
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ASRProviderConfigure(
@@ -564,7 +565,7 @@ private fun TTSProviderItem(
     val tts = LocalTTSState.current
     val isSpeaking by tts.isSpeaking.collectAsState()
     val isAvailable by tts.isAvailable.collectAsState()
-    val name = provider.name.ifEmpty { stringResource(R.string.setting_tts_page_default_name) }
+    val name = provider.localizedName(LocalContext.current).ifEmpty { stringResource(R.string.setting_tts_page_default_name) }
 
     // 整行点击 = 选用；选中项行尾显示对勾（原单选按钮 +「已选择」标签）
     MochiListRow(
@@ -574,16 +575,16 @@ private fun TTSProviderItem(
         subtitle = when (provider) {
             is TTSProviderSetting.OpenAI -> stringResource(R.string.setting_tts_page_provider_openai)
             is TTSProviderSetting.Gemini -> stringResource(R.string.setting_tts_page_provider_gemini)
-            is TTSProviderSetting.MiniMax -> "MiniMax"
+            is TTSProviderSetting.MiniMax -> stringResource(R.string.setting_speech_vendor_minimax)
             is TTSProviderSetting.SystemTTS -> stringResource(R.string.setting_tts_page_provider_system)
-            is TTSProviderSetting.Qwen -> "Qwen"
-            is TTSProviderSetting.Groq -> "Groq"
-            is TTSProviderSetting.XAI -> "xAI"
-            is TTSProviderSetting.MiMo -> "MiMo"
-            is TTSProviderSetting.Step -> "Step"
-            is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
-            is TTSProviderSetting.FishAudio -> "Fish Audio"
-            is TTSProviderSetting.Volcengine -> "火山引擎"
+            is TTSProviderSetting.Qwen -> stringResource(R.string.setting_speech_vendor_qwen)
+            is TTSProviderSetting.Groq -> stringResource(R.string.setting_speech_vendor_groq)
+            is TTSProviderSetting.XAI -> stringResource(R.string.setting_speech_vendor_xai)
+            is TTSProviderSetting.MiMo -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_mimo)
+            is TTSProviderSetting.Step -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_step)
+            is TTSProviderSetting.ElevenLabs -> stringResource(R.string.setting_speech_vendor_elevenlabs)
+            is TTSProviderSetting.FishAudio -> stringResource(R.string.setting_speech_vendor_fish_audio)
+            is TTSProviderSetting.Volcengine -> stringResource(R.string.setting_speech_vendor_volcengine)
         },
         leading = {
             AutoAIIcon(name = name, modifier = Modifier.size(MochiListDefaults.LeadingSize))
@@ -635,21 +636,21 @@ private fun ASRProviderItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val name = provider.name.ifEmpty { stringResource(R.string.setting_asr_page_default_name) }
+    val name = provider.localizedName(LocalContext.current).ifEmpty { stringResource(R.string.setting_asr_page_default_name) }
 
     MochiListRow(
         title = name,
         modifier = modifier,
         onClick = onSelect,
         subtitle = when (provider) {
-            is ASRProviderSetting.OpenAIRealtime -> "OpenAI Realtime"
-            is ASRProviderSetting.DashScope -> "DashScope"
-            is ASRProviderSetting.Volcengine -> "Volcengine"
-            is ASRProviderSetting.MiMo -> "MiMo"
-            is ASRProviderSetting.Step -> "Step"
-            is ASRProviderSetting.OpenAITranscribe -> "OpenAI Transcribe"
-            is ASRProviderSetting.GeminiTranscribe -> "Gemini Transcribe"
-            is ASRProviderSetting.SherpaLocal -> "本地识别 (sherpa-onnx)"
+            is ASRProviderSetting.OpenAIRealtime -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_openai_realtime)
+            is ASRProviderSetting.DashScope -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_dashscope)
+            is ASRProviderSetting.Volcengine -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_volcengine)
+            is ASRProviderSetting.MiMo -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_mimo)
+            is ASRProviderSetting.Step -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_step)
+            is ASRProviderSetting.OpenAITranscribe -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_openai_transcribe)
+            is ASRProviderSetting.GeminiTranscribe -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_gemini_transcribe)
+            is ASRProviderSetting.SherpaLocal -> stringResource(heizige.kk.khatkit.speech.R.string.speech_provider_sherpa_local)
         },
         leading = {
             AutoAIIcon(name = name, modifier = Modifier.size(MochiListDefaults.LeadingSize))

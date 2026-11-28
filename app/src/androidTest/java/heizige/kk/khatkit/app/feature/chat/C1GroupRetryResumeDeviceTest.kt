@@ -14,8 +14,8 @@ import heizige.kk.khatkit.app.AppScope
 import heizige.kk.khatkit.app.core.data.ai.GenerationLoop
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
 import heizige.kk.khatkit.app.core.data.ai.TranslationHandler
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
-import heizige.kk.khatkit.app.core.data.ai.tools.ChatToolFactory
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.helper.ChatToolFactory
 import heizige.kk.khatkit.app.core.data.ai.tools.local.LocalTools
 import heizige.kk.khatkit.app.core.data.ai.transformers.Base64ImageToLocalFileTransformer
 import heizige.kk.khatkit.app.core.data.ai.transformers.OcrTransformer
@@ -69,6 +69,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-07「失败续跑 / 幂等」的真机证据。契约 `docs/beyond-operit-client-changes.md:204`

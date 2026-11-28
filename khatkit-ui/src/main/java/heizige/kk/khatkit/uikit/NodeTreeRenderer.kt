@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -39,6 +40,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,6 +70,7 @@ import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiNodeParser
 import heizige.kk.khatkit.ui.UiSheetOptions
 import heizige.kk.khatkit.ui.UiScreenPage
+import heizige.kk.khatkit.ui.localizedErrors
 
 @Composable
 fun NodeTreePage(
@@ -86,11 +90,21 @@ fun NodeTreePage(
         PagedNodeTreePage(title, pages, options, pickerHost, onAction, onDismiss, markdown, image)
         return
     }
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val values = remember(root) { mutableStateMapOf<String, Any?>().apply { putAll(root.initialValues()) } }
     val errors = remember(root) { mutableStateMapOf<String, String>() }
+    LaunchedEffect(context, configuration) {
+        if (errors.isNotEmpty()) {
+            val visibleFields = errors.keys.toSet()
+            val localized = root.localizedErrors(context, values).filterKeys { it in visibleFields }
+            errors.clear()
+            errors.putAll(localized)
+        }
+    }
     val submit: (String) -> Unit = { action ->
         errors.clear()
-        errors.putAll(root.errors(values))
+        errors.putAll(root.localizedErrors(context, values))
         if (errors.isEmpty() && !readOnly && (!form || action == "submit")) onAction(action, root.collect(values))
     }
     DisposableEffect(root, pickerHost) {
@@ -125,8 +139,8 @@ fun NodeTreePage(
         title = title,
         imageVector = Icons.Default.Edit,
         options = options,
-        dismissText = if (readOnly) "关闭" else "取消",
-        confirmText = if (form && !hasSubmit) "提交" else null,
+        dismissText = stringResource(if (readOnly) R.string.khatkit_close else R.string.khatkit_form_cancel),
+        confirmText = if (form && !hasSubmit) stringResource(R.string.khatkit_form_submit) else null,
         onConfirm = if (form && !hasSubmit) ({ submit("submit") }) else null,
         onDismiss = onDismiss,
         // 导航条不是提交：不跑字段校验，直接把条目 event 交回脚本。
@@ -207,7 +221,7 @@ internal fun NodeTreeContent(
                 if (cancelButton) {
                     item {
                         MochiTextButton(onClick = onDismiss) {
-                            Text("取消", style = StyleResolvers.current().textStyle("label"))
+                            Text(stringResource(R.string.khatkit_form_cancel), style = StyleResolvers.current().textStyle("label"))
                         }
                     }
                 }
@@ -221,7 +235,7 @@ internal fun NodeTreeContent(
                 root.Render(values, errors, pickerHost, readOnly, submit, markdown, image)
                 if (cancelButton) {
                     MochiTextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                        Text("取消", style = StyleResolvers.current().textStyle("label"))
+                        Text(stringResource(R.string.khatkit_form_cancel), style = StyleResolvers.current().textStyle("label"))
                     }
                 }
             }

@@ -3,6 +3,7 @@ package heizige.kk.khatkit.asr.providers
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import heizige.kk.khatkit.speech.R
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -60,7 +61,7 @@ class VolcengineASRController(
     override fun start(onTranscriptChange: (String) -> Unit) {
         if (state.value.isRecording) return
         if (provider.websocketUrl.trim().trimEnd('/') == "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel") {
-            setError("The Volcengine ASR endpoint is outdated. Change the WebSocket URL to $VOLCENGINE_ASR_WEBSOCKET_URL in settings.")
+            setError(context.getString(R.string.speech_error_volcengine_endpoint, VOLCENGINE_ASR_WEBSOCKET_URL))
             return
         }
         if (ContextCompat.checkSelfPermission(
@@ -68,7 +69,7 @@ class VolcengineASRController(
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            setError("Microphone permission is required")
+            setError(context.getString(R.string.speech_error_microphone_permission))
             return
         }
 
@@ -95,7 +96,7 @@ class VolcengineASRController(
                         return@launch
                     }
                     if (!webSocket.send(VolcengineASRProtocol.initialFrame(provider))) {
-                        setError("Failed to initialize ASR session")
+                        setError(context.getString(R.string.speech_error_session_start))
                         return@launch
                     }
                     _state.update { it.copy(status = ASRStatus.Listening, errorMessage = null) }
@@ -115,7 +116,7 @@ class VolcengineASRController(
                 scope.launch {
                     if (this@VolcengineASRController.webSocket !== webSocket) return@launch
                     Log.e(TAG, "Volcengine ASR websocket failed", t)
-                    setError(t.message ?: "ASR websocket failed")
+                    setError(context.getString(R.string.speech_error_connection))
                 }
             }
 
@@ -159,11 +160,11 @@ class VolcengineASRController(
             }
             // The capture loop must finish before the last packet, with no later audio frames.
             if (!socket.send(VolcengineASRProtocol.audioFrame(ByteArray(0), last = true))) {
-                setError("Failed to finish ASR session")
+                setError(context.getString(R.string.speech_error_session_finish))
                 return@launch
             }
             delay(10_000)
-            if (webSocket === socket) setError("Timed out waiting for final ASR result")
+            if (webSocket === socket) setError(context.getString(R.string.speech_error_timeout))
         }
     }
 
@@ -179,7 +180,11 @@ class VolcengineASRController(
     private fun handleBinaryResponse(socket: WebSocket, data: ByteArray) {
         try {
             val response = VolcengineASRProtocol.decode(data)
-            response.error?.let { setError(it); return }
+            response.error?.let {
+                Log.e(TAG, it)
+                setError(context.getString(R.string.speech_error_response))
+                return
+            }
             val text = response.result?.get("text")?.jsonPrimitive?.contentOrNull
             _state.update {
                 it.copy(
@@ -195,7 +200,7 @@ class VolcengineASRController(
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to decode ASR response", e)
-            setError(e.message ?: "Invalid ASR response")
+            setError(context.getString(R.string.speech_error_response))
         }
     }
 
@@ -240,7 +245,7 @@ class VolcengineASRController(
                 }
             } catch (e: Exception) {
                 if (isActive) scope.launch(Dispatchers.Main.immediate) {
-                    if (webSocket === socket) setError(e.message ?: "Audio recording failed")
+                    if (webSocket === socket) setError(context.getString(R.string.speech_error_recording))
                 }
             } finally {
                 runCatching { recorder.stop() }

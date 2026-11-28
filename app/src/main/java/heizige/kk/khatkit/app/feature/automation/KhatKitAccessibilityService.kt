@@ -7,7 +7,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
-import heizige.kk.khatkit.app.feature.record.KhatKitOperationRecorder
+import heizige.kk.khatkit.app.feature.record.helper.OperationRecordManager
 
 /**
  * L1 无障碍服务：连接后把 [AccessibilityBridgeImpl] 注册到 bridge 宿主，
@@ -32,7 +32,7 @@ class KhatKitAccessibilityService : AccessibilityService() {
             }
         }
         // 录制人工操作：未在录制时只是一次 volatile 读，开销可忽略
-        KhatKitOperationRecorder.onAccessibilityEvent(current)
+        OperationRecordManager.onAccessibilityEvent(current)
     }
 
     override fun onInterrupt() = Unit

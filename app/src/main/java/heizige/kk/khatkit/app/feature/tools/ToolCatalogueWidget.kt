@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.feature.tools
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,9 @@ import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.navigation.mochiNavSource
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogue
+
+
 
 /** 内置工具入口常驻，不依赖是否安装过带小组件的卡片。 */
 @Composable
@@ -50,8 +55,8 @@ internal fun ToolCatalogueWidget(modifier: Modifier = Modifier) {
         ) {
             MochiIonicon("apps", size = 30.dp, tint = MochiTheme.colorScheme.primary)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("查看所有工具", style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold))
-                Text("按功能查找，直接打开使用", style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.tools_widget_title), style = MochiTheme.textStyles.body.copy(fontWeight = FontWeight.SemiBold))
+                Text(stringResource(R.string.tools_widget_subtitle), style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.onSurfaceVariant)
             }
             MochiIonicon("chevron-forward", size = 18.dp, tint = MochiTheme.colorScheme.onSurfaceVariant)
         }

@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
 import android.content.Context
 import android.graphics.Typeface
 import android.net.Uri
@@ -48,12 +49,16 @@ import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.theme.MochiTheme
 import java.io.File
+import heizige.kk.khatkit.app.feature.settings.data.CustomFontMimeTypes
+import heizige.kk.khatkit.app.feature.settings.data.importCustomChatFont
+import heizige.kk.khatkit.app.feature.settings.data.deleteCustomChatFont
 
 @Composable
 fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val displaySetting = settings.displaySetting
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val chatFontFamily = rememberChatFontFamily(displaySetting)
     val customFontFamily = rememberChatFontFamily(displaySetting.copy(chatFontFamily = ChatFontFamily.CUSTOM))
@@ -89,7 +94,14 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                 }
                 Toast.show(importSuccessMsg, isError = false)
             }.onFailure { error ->
-                Toast.show(importFailedMsg.format(error.message.orEmpty()), isError = true)
+                val detail = when (error.message) {
+                    "Unable to open selected font" -> resources.getString(R.string.setting_font_open_error)
+                    "Invalid font file" -> resources.getString(R.string.setting_font_invalid_error)
+                    "Unable to prepare existing font for replacement" -> resources.getString(R.string.setting_font_replace_error)
+                    "Unable to save selected font" -> resources.getString(R.string.setting_font_save_error)
+                    else -> error.localizedMessage.orEmpty()
+                }
+                Toast.show(importFailedMsg.format(detail), isError = true)
             }
         }
     }
@@ -124,6 +136,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                 }
             }
             item(key = "chat") {
+                val percentSuffix = stringResource(R.string.setting_unit_percent)
                 CardGroup(title = { Text(stringResource(R.string.setting_preferences_font_chat)) }) {
                     mochiThemePicker(
                         title = fontFamilyTitle,
@@ -132,7 +145,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                         anchor = settingAnchor(R.string.setting_display_page_chat_font_family_title),
                         optionIcon = { family, tint ->
                             Text(
-                                text = "Aa",
+                                text = stringResource(R.string.setting_font_preview_sample),
                                 color = tint,
                                 style = MochiTheme.textStyles.body.copy(
                                     fontFamily = when (family) {
@@ -218,7 +231,7 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
                         defaultValue = 1.0f,
                         steps = 11,
                         displayScale = 100f,
-                        suffix = "%",
+                        suffix = percentSuffix,
                         anchor = settingAnchor(R.string.setting_display_page_font_size_title),
                     )
                 }
@@ -245,102 +258,11 @@ fun SettingPreferencesUIFontPage(vm: SettingViewModel = hiltViewModel()) {
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// 自定义聊天字体保存在 filesDir/<FileFolders.FONTS>。
-// ---------------------------------------------------------------------------
-
-internal val CustomFontMimeTypes = arrayOf(
-    "font/*",
-    "application/x-font-ttf",
-    "application/x-font-otf",
-    "application/vnd.ms-opentype",
-    "application/octet-stream",
-    "*/*",
-)
-
-internal val CustomFontExtensions = setOf("ttf", "otf", "ttc")
-
-internal data class ImportedChatFont(
-    val relativePath: String,
-    val displayName: String,
-)
-
 @Composable
+
 internal fun ChatFontFamily.label(): String = when (this) {
     ChatFontFamily.DEFAULT -> stringResource(R.string.setting_display_page_chat_font_family_default)
     ChatFontFamily.SERIF -> stringResource(R.string.setting_display_page_chat_font_family_serif)
     ChatFontFamily.MONOSPACE -> stringResource(R.string.setting_display_page_chat_font_family_monospace)
     ChatFontFamily.CUSTOM -> stringResource(R.string.setting_display_page_chat_font_family_custom)
-}
-
-internal fun importCustomChatFont(context: Context, uri: Uri): ImportedChatFont {
-    val displayName = FileHelper.getFileNameFromUri(context, uri)?.takeIf { it.isNotBlank() } ?: "custom_font"
-    val extension = displayName.substringAfterLast('.', "")
-        .lowercase()
-        .takeIf { it in CustomFontExtensions }
-        ?: "ttf"
-    val fontDir = File(context.filesDir, FileFolders.FONTS).apply { mkdirs() }
-    val targetFile = File(fontDir, "chat_font.${System.currentTimeMillis()}.$extension")
-    val tempFile = File(fontDir, "chat_font_import.tmp")
-
-    try {
-        tempFile.delete()
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            tempFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        } ?: error("Unable to open selected font")
-
-        // 只有能被 Typeface 解析的文件才允许落盘
-        runCatching {
-            Typeface.createFromFile(tempFile)
-        }.onFailure { error ->
-            throw IllegalArgumentException(error.message ?: "Invalid font file", error)
-        }
-
-        replaceCustomChatFont(fontDir, tempFile, targetFile)
-    } catch (error: Throwable) {
-        tempFile.delete()
-        throw error
-    }
-
-    val relativePath = FileHelper.getRelativePathInFilesDir(context.filesDir, targetFile)
-        ?: "${FileFolders.FONTS}/${targetFile.name}"
-    return ImportedChatFont(relativePath = relativePath, displayName = displayName)
-}
-
-/** 替换语义：旧的 chat_font.* 先备份，替换成功后再删备份；失败回滚，旧字体不丢。 */
-internal fun replaceCustomChatFont(fontDir: File, tempFile: File, targetFile: File) {
-    val existingFiles = fontDir.listFiles { file ->
-        file.isFile && file.name.startsWith("chat_font.") && file != tempFile
-    }?.toList().orEmpty()
-    val backups = existingFiles.map { file ->
-        file to File(fontDir, "previous_${file.name}").also { it.delete() }
-    }
-
-    try {
-        backups.forEach { (file, backup) ->
-            check(file.renameTo(backup)) { "Unable to prepare existing font for replacement" }
-        }
-        check(tempFile.renameTo(targetFile)) { "Unable to save selected font" }
-        backups.forEach { (_, backup) -> backup.delete() }
-    } catch (error: Throwable) {
-        tempFile.delete()
-        backups.forEach { (file, backup) ->
-            if (!file.exists() && backup.exists()) {
-                backup.renameTo(file)
-            }
-        }
-        throw error
-    }
-}
-
-/** 只删 filesDir 之内的那个文件。 */
-internal fun deleteCustomChatFont(context: Context, relativePath: String) {
-    val filesDir = runCatching { context.filesDir.canonicalFile }.getOrNull() ?: return
-    val fontFile = runCatching { File(filesDir, relativePath).canonicalFile }.getOrNull() ?: return
-    if (fontFile.path.startsWith("${filesDir.path}${File.separator}")) {
-        fontFile.delete()
-    }
 }

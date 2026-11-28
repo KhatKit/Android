@@ -77,7 +77,7 @@ class ChatServiceSenderNameGuardTest {
 
     companion object {
         private const val CHAT_MANAGER_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt"
+            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/helper/ChatManager.kt"
         /** 唯一允许实现公式的文件：`resolveNotificationSenderName` 定义所在处。 */
         private const val SHARED_FN_FILE = CHAT_MANAGER_FILE
 

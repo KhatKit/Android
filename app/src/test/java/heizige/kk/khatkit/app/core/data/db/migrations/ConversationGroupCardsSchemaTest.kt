@@ -158,8 +158,9 @@ class ConversationGroupCardsSchemaTest {
             importBlock.contains("Migration_34_35"),
         )
         assertTrue("文本产物迁移必须注册 Migration_35_36", importBlock.contains("Migration_35_36"))
-        // US1 已把版本推进到 37；这里守住「最新版本必须与 AppDatabase 一致」的意图。
-        assertTrue("AppDatabase 版本必须是 37", database.contains("version = 37"))
+        // US1 曾把版本推进到 37；HEAD（855da8f5f 起）AppDatabase.kt:70 已推进到 38。
+        // 这里只守住「最新版本必须与 AppDatabase 一致」的意图，不做版本号判死；来源：HEAD 的 AppDatabase.kt。
+        assertTrue("AppDatabase 版本必须是 38（来源：HEAD AppDatabase.kt:70 version = 38）", database.contains("version = 38"))
         assertFalse(
             "31→32 **刻意不用 AutoMigration**：Room 的 DROP TABLE 会删掉三个 FTS5 触发器",
             Regex("AutoMigration\\(from = 31").containsMatchIn(database),

@@ -12,6 +12,9 @@ import android.webkit.MimeTypeMap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.feature.tasks.helper.fileOrNull
+import heizige.kk.khatkit.app.feature.tasks.helper.isAvailable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -259,17 +262,6 @@ private fun cardRunStatusLabel(status: String): String = stringResource(
         else -> R.string.card_runs_status_interrupted
     },
 )
-
-private fun CardArtifactEntity.isAvailable(): Boolean = when (kind) {
-    CardArtifactEntity.TEXT -> !textContent.isNullOrEmpty()
-    CardArtifactEntity.LINK -> available && Uri.parse(uri).scheme in setOf("http", "https")
-    CardArtifactEntity.FILE -> fileOrNull()?.canRead() == true
-    else -> false
-}
-
-private fun CardArtifactEntity.fileOrNull(): File? =
-    Uri.parse(uri).takeIf { it.scheme == "file" }?.path?.let(::File)?.takeIf { it.isFile }
-
 private suspend fun openArtifact(context: Context, artifact: CardArtifactEntity) {
     require(artifact.isAvailable()) { "Artifact is unavailable" }
     val intent = if (artifact.kind == CardArtifactEntity.LINK) {

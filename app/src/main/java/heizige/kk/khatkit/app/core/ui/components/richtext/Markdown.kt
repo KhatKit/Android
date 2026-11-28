@@ -1,5 +1,7 @@
 package heizige.kk.khatkit.app.core.ui.components.richtext
 
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.uikit.mochi.KkGrowRiseText
 import heizige.kk.khatkit.uikit.mochi.KkSurface
 import android.content.ClipData
@@ -111,9 +113,9 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 import org.intellij.markdown.parser.MarkdownParser
 import kotlin.time.Clock
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.downloadForOffline
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.files.downloadForOffline
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
 
 private val flavour by lazy {
@@ -960,7 +962,7 @@ private fun TableNode(node: ASTNode, content: String, modifier: Modifier = Modif
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "表格",
+                text = stringResource(R.string.markdown_table),
                 fontSize = 12.sp,
                 lineHeight = 12.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -976,7 +978,7 @@ private fun TableNode(node: ASTNode, content: String, modifier: Modifier = Modif
 
                 Icon(
                     imageVector = contentCopy,
-                    contentDescription = "Copy",
+                    contentDescription = stringResource(R.string.markdown_copy),
                     tint = iconTint,
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
@@ -991,7 +993,7 @@ private fun TableNode(node: ASTNode, content: String, modifier: Modifier = Modif
 
                 Icon(
                     imageVector = downloadForOffline,
-                    contentDescription = "Download",
+                    contentDescription = stringResource(R.string.markdown_download),
                     tint = iconTint,
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))

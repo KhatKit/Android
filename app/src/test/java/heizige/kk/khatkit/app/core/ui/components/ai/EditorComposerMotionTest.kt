@@ -1,9 +1,19 @@
 package heizige.kk.khatkit.app.core.ui.components.ai
 
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorBackdropProgress
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorComposerBounds
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorGlassAlpha
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorSurfaceHandoff
+import heizige.kk.khatkit.app.feature.chat.components.ai.editorWarpBand
 import androidx.compose.ui.geometry.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.components.ai.EditorBackMotion
+import heizige.kk.khatkit.app.feature.chat.components.ai.EditorFullWidth
+import heizige.kk.khatkit.app.feature.chat.components.ai.EditorFusionContact
+
+
 
 class EditorComposerMotionTest {
     private val pill = Rect(68f, 740f, 344f, 788f)

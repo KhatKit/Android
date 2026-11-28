@@ -40,6 +40,9 @@ import org.junit.Test
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import heizige.kk.khatkit.app.Screen
+
+
 
 /** Runs the packaged ARM JNI engines against the actual app sheet renderer on a device. */
 class CardRuntimeDeviceTest {

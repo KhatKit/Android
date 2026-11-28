@@ -5,6 +5,9 @@ import com.google.zxing.qrcode.QRCodeWriter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.settings.components.ui.QRCodeDecoder
+
+
 
 /**
  * [QRCodeDecoder] 的纯 JVM 单测（上游 d8ba9cf67 的 QRCodeDecoderTest）。

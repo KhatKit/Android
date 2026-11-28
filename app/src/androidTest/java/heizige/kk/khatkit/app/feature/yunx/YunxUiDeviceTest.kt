@@ -17,7 +17,7 @@ import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitUiHost
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.theme.ProvideMaterial3Theme
 import heizige.kk.khatkit.app.feature.tools.data.ToolCatalogueRepository
-import heizige.kk.khatkit.app.feature.tools.helper.isUserTool
+import heizige.kk.khatkit.app.core.util.isUserTool
 import heizige.kk.khatkit.bridge.impl.BridgeFactory
 import heizige.kk.khatkit.exec.CardRunManager
 import heizige.kk.khatkit.hub.CardCache
@@ -27,6 +27,9 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
+import heizige.kk.khatkit.app.feature.yunx.helper.YunxCardBridge
+
+
 
 /** The installed WASM, real JNI interpreter and shipping Mochi renderer on the phone. */
 class YunxUiDeviceTest {

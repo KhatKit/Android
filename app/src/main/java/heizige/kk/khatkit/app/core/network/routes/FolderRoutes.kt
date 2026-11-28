@@ -11,7 +11,7 @@ import io.ktor.server.routing.route
 import kotlinx.coroutines.flow.first
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.repository.FolderRepository
-import heizige.kk.khatkit.app.feature.chat.ChatManager
+import heizige.kk.khatkit.app.feature.chat.helper.ChatManager
 import heizige.kk.khatkit.app.core.network.BadRequestException
 import heizige.kk.khatkit.app.core.network.ConflictException
 import heizige.kk.khatkit.app.core.network.NotFoundException

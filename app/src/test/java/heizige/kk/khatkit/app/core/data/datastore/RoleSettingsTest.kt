@@ -11,6 +11,9 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
 import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.core.util.Emoji
+
+
 
 class RoleSettingsTest {
     private val model = Model(modelId = "test-chat", displayName = "Test Chat")

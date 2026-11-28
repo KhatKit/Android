@@ -31,11 +31,16 @@ import heizige.kk.khatkit.workspace.RootfsInstallStage
 import heizige.kk.khatkit.workspace.WorkspaceFileEntry
 import heizige.kk.khatkit.workspace.WorkspaceCommandResult
 import heizige.kk.khatkit.workspace.WorkspaceStorageArea
-import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.R
+import heizige.kk.khatkit.app.feature.workspace.helper.WorkspaceTerminalSessionManager
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceDetailState
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalState
+import heizige.kk.khatkit.app.feature.workspace.data.WorkspaceTerminalEntry
 
 @HiltViewModel(assistedFactory = WorkspaceDetailViewModel.Factory::class)
 class WorkspaceDetailViewModel @AssistedInject constructor(
     @Assisted private val id: String,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val repository: WorkspaceRepository,
     private val terminalSessionManager: WorkspaceTerminalSessionManager,
 ) : ViewModel() {
@@ -79,16 +84,16 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                                 entry.name.substringAfterLast('.', "").lowercase()
                             ) ?: "application/octet-stream"
                             val document = DocumentsContract.createDocument(resolver, parent, mime, entry.name)
-                                ?: error("无法创建目标文件")
+                                ?: error(context.getString(R.string.workspace_create_file_failed))
                             destination = document
-                            val output = resolver.openOutputStream(document) ?: error("无法打开目标文件")
+                            val output = resolver.openOutputStream(document) ?: error(context.getString(R.string.workspace_open_file_failed))
                             output.use { repository.exportFile(id, area, entry.path, it) }
                             succeeded++
                             destination = null
                         } catch (error: CancellationException) {
                             throw error
                         } catch (error: Exception) {
-                            failures += "${entry.name}：${error.message ?: "导出失败"}"
+                            failures += context.getString(R.string.workspace_export_file_failed_named, entry.name, error.message ?: context.getString(R.string.workspace_export_failed))
                         } finally {
                             // 只清理本次创建但未完整写入的文件。
                             destination?.let { runCatching { DocumentsContract.deleteDocument(resolver, it) } }
@@ -98,14 +103,14 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                 }
                 _state.update {
                     it.copy(exportResult = buildString {
-                        append("已导出 $succeeded/${entries.size} 个文件")
+                        append(context.getString(R.string.workspace_export_progress, succeeded, entries.size))
                         if (failures.isNotEmpty()) append("\n\n" + failures.joinToString("\n"))
                     })
                 }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                _state.update { it.copy(exportResult = "导出失败：${error.message}") }
+                _state.update { it.copy(exportResult = context.getString(R.string.workspace_export_failed_detail, error.message ?: "")) }
             } finally {
                 _state.update { it.copy(exporting = false) }
             }
@@ -180,7 +185,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                     it.copy(
                         entries = emptyList(),
                         loading = false,
-                        error = error.message ?: "加载工作区文件失败",
+                        error = error.message ?: context.getString(R.string.workspace_load_files_failed),
                     )
                 }
             }
@@ -199,7 +204,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
             }.onSuccess {
                 refresh()
             }.onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "删除失败") }
+                _state.update { it.copy(error = error.message ?: context.getString(R.string.workspace_delete_failed)) }
             }
         }
     }
@@ -217,7 +222,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
             }.onSuccess {
                 refresh()
             }.onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "导入文件失败") }
+                _state.update { it.copy(error = error.message ?: context.getString(R.string.workspace_import_failed)) }
             }
         }
     }
@@ -232,7 +237,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                     outputStream = outputStream,
                 )
             }.onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "导出文件失败") }
+                _state.update { it.copy(error = error.message ?: context.getString(R.string.workspace_export_file_failed)) }
             }
         }
     }
@@ -261,7 +266,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                 }
                 file
             }.onSuccess(onReady).onFailure { error ->
-                _state.update { it.copy(error = error.message ?: "导出文件失败") }
+                _state.update { it.copy(error = error.message ?: context.getString(R.string.workspace_export_file_failed)) }
             }
         }
     }
@@ -303,7 +308,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (error: Throwable) {
-                _installError.value = error.message ?: "Rootfs 安装失败"
+                _installError.value = error.message ?: context.getString(R.string.workspace_rootfs_install_failed)
             } finally {
                 _installProgress.value = null
             }
@@ -344,7 +349,7 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
                 _terminalState.update {
                     it.copy(
                         running = false,
-                        history = it.history + WorkspaceTerminalEntry.Error(error.message ?: "命令执行失败"),
+                        history = it.history + WorkspaceTerminalEntry.Error(error.message ?: context.getString(R.string.workspace_command_failed)),
                     )
                 }
             }
@@ -365,29 +370,4 @@ class WorkspaceDetailViewModel @AssistedInject constructor(
             _state.update { it.copy(workspace = workspace) }
         }
     }
-}
-
-data class WorkspaceDetailState(
-    val workspace: WorkspaceEntity? = null,
-    val area: WorkspaceStorageArea = WorkspaceStorageArea.FILES,
-    val path: String = "",
-    val entries: List<WorkspaceFileEntry> = emptyList(),
-    val loading: Boolean = false,
-    val error: String? = null,
-    val exporting: Boolean = false,
-    val exportCompleted: Int = 0,
-    val exportTotal: Int = 0,
-    val exportResult: String? = null,
-)
-
-data class WorkspaceTerminalState(
-    val input: String = "",
-    val running: Boolean = false,
-    val history: List<WorkspaceTerminalEntry> = emptyList(),
-)
-
-sealed interface WorkspaceTerminalEntry {
-    data class Command(val command: String) : WorkspaceTerminalEntry
-    data class Result(val result: WorkspaceCommandResult) : WorkspaceTerminalEntry
-    data class Error(val message: String) : WorkspaceTerminalEntry
 }

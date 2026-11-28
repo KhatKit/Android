@@ -5,9 +5,9 @@ import heizige.kk.khatkit.ai.core.InputSchema
 import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.ocr.OcrPluginLoader
-import heizige.kk.khatkit.app.core.data.ocr.OcrPluginStore
+import heizige.kk.khatkit.app.core.data.ocr.OcrPluginRepository
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
-import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginRepository
 import heizige.kk.khatkit.ssh.api.SshEngineProvider
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import heizige.kk.khatkit.ssh.api.SshRequest
@@ -41,8 +41,8 @@ suspend fun createPluginTools(context: Context): List<Tool> {
                 description = "列出 KhatKit 已知插件及其安装、可用状态和能力。需要插件能力前先调用此工具。",
                 parameters = { InputSchema.Obj(properties = buildJsonObject {}) },
                 execute = {
-                    val ssh = SshPluginStore(appContext).read()
-                    val ocr = OcrPluginStore(appContext).read()
+                    val ssh = SshPluginRepository(appContext).read()
+                    val ocr = OcrPluginRepository(appContext).read()
                     val payload = buildJsonObject {
                         put("plugins", buildJsonObject {
                             val sshAvailable = ssh != null && SshEngineProvider.engine() != null

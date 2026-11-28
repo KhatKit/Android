@@ -1,5 +1,9 @@
 package heizige.kk.khatkit.app.feature.extensions
 
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginInfo
+
+import heizige.kk.khatkit.app.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,18 +21,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginLoader
 import heizige.kk.khatkit.app.core.data.ssh.SshPluginRecord
-import heizige.kk.khatkit.app.core.data.ssh.SshPluginStore
+import heizige.kk.khatkit.app.core.data.ssh.SshPluginRepository
 import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginLoader
-import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginStore
+import heizige.kk.khatkit.app.core.data.terminal.TerminalPluginRepository
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
+import heizige.kk.khatkit.app.core.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.ssh.api.SshPluginInfo
 import ui.feice.mochi.theme.MochiTheme
 
 /**
  * 插件 UI 宿主：按 pluginId 分发到插件自己的页面。
  *
- * 插件不是卡片 —— 插件包从 Hub 下载安装（SshPluginStore 记录版本），宿主只负责分发；
+ * 插件不是卡片 —— 插件包从 Hub 下载安装（SshPluginRepository 记录版本），宿主只负责分发；
  * 未安装 / 未知 id 一律显示 Mochi 空态页，不会串到别的插件页面上。
  */
 @Composable
@@ -40,34 +44,34 @@ fun PluginHostPage(pluginId: String) {
     var terminalInstalled by remember(pluginId) { mutableStateOf(false) }
 
     LaunchedEffect(pluginId) {
-        val installed = runCatching { SshPluginStore(context).read() }.getOrNull()
+        val installed = runCatching { SshPluginRepository(context).read() }.getOrNull()
         SshPluginLoader.updateRecord(installed)
         record = installed
-        terminalInstalled = TerminalPluginLoader.isLoadable(context, TerminalPluginStore(context).read())
+        terminalInstalled = TerminalPluginLoader.isLoadable(context, TerminalPluginRepository(context).read())
         loaded = true
     }
 
     when {
         !loaded -> MochiSettingsPageScaffold(
             title = if (pluginId == TerminalPluginInfo.ID) {
-                TerminalPluginInfo.DISPLAY_NAME
+                stringResource(R.string.extensions_terminal)
             } else {
-                SshPluginInfo.DISPLAY_NAME
+                stringResource(R.string.extensions_ssh)
             },
         ) { }
         pluginId == TerminalPluginInfo.ID && terminalInstalled -> TerminalPluginPage()
         pluginId == TerminalPluginInfo.ID -> PluginUnavailablePage(
-            title = TerminalPluginInfo.DISPLAY_NAME,
-            reason = "这个插件还没有安装，先去「设置 → 扩展」里点安装",
+            title = stringResource(R.string.extensions_terminal),
+            reason = stringResource(R.string.extensions_plugin_not_installed),
         )
         pluginId != SshPluginInfo.ID -> PluginUnavailablePage(
-            title = "插件",
-            reason = "插件不存在，可能已从当前版本移除",
+            title = stringResource(R.string.extensions_plugins),
+            reason = stringResource(R.string.extensions_plugin_missing),
         )
 
         record == null -> PluginUnavailablePage(
-            title = SshPluginInfo.DISPLAY_NAME,
-            reason = "这个插件还没有安装，先去「设置 → 扩展」里点安装",
+            title = stringResource(R.string.extensions_ssh),
+            reason = stringResource(R.string.extensions_plugin_not_installed),
         )
 
         else -> SshPluginPage(

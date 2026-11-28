@@ -34,9 +34,9 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inspector.WindowInspector
 import dagger.hilt.android.EntryPointAccessors
 import heizige.kk.khatkit.app.core.di.AppEntryPoint
-import heizige.kk.khatkit.app.feature.automation.data.ApprovalCategory
+import heizige.kk.khatkit.app.core.data.automation.ApprovalCategory
 import androidx.test.platform.app.InstrumentationRegistry
-import heizige.kk.khatkit.app.feature.automation.data.AutomationBus
+import heizige.kk.khatkit.app.feature.automation.helper.AutomationManager
 import heizige.kk.khatkit.uikit.KhatKitTheme
 import ui.feice.mochi.basic.MochiToastDefaults
 import ui.feice.mochi.basic.MochiDialog
@@ -52,13 +52,18 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import heizige.kk.khatkit.app.core.data.automation.ApprovalRequest
+import heizige.kk.khatkit.app.core.data.automation.AutomationStatus
+import heizige.kk.khatkit.app.core.data.datastore.Settings
+
+
 
 class AutomationToastTest {
     @get:Rule val compose = createComposeRule()
 
     @After fun reset() {
-        AutomationBus.clear()
-        AutomationBus.setAppInForeground(true)
+        AutomationManager.clear()
+        AutomationManager.setAppInForeground(true)
     }
 
     @Test fun darkPillWrapsContentAndUsesMochiColors() = checkPill(true)
@@ -72,7 +77,7 @@ class AutomationToastTest {
             KhatKitTheme(darkTheme = dark) {
                 expected = MochiToastDefaults.colors().container
                 AutomationToast(
-                    status = AutomationBus.AutomationStatus(label, activeSince = 0),
+                    status = AutomationStatus(label, activeSince = 0),
                     approval = null, onApprove = {}, onDeny = {}, onRemember = {},
                     onDismiss = { dismisses++ }, modifier = Modifier.testTag("pill"),
                 )
@@ -103,7 +108,7 @@ class AutomationToastTest {
             KhatKitTheme(darkTheme = true) {
                 Box(Modifier.fillMaxSize().testTag("page"), contentAlignment = Alignment.Center) {
                     AutomationToast(status = null,
-                        approval = AutomationBus.ApprovalRequest("test", "测试授权", "", ApprovalCategory.UI_ACTION),
+                        approval = ApprovalRequest("test", "测试授权", "", ApprovalCategory.UI_ACTION),
                         onApprove = { decisions.add("allow:$it") }, onDeny = { decisions.add("deny:$it") },
                         onRemember = { decisions.add("remember:$it") }, onDismiss = { decisions.add("hide") },
                         systemWindow = systemWindow,
@@ -180,8 +185,8 @@ class AutomationToastTest {
 
     @Test fun approvalAppearsAboveOpenCardDialogAndIgnoresStaleDecisions() = runBlocking {
         val context = instrumentation.targetContext
-        AutomationBus.install(context)
-        AutomationBus.setAppInForeground(true)
+        AutomationManager.install(context)
+        AutomationManager.setAppInForeground(true)
         compose.setContent {
             KhatKitTheme {
                 MochiDialog(visible = true, onDismissRequest = {}, title = "卡片确认",
@@ -192,11 +197,11 @@ class AutomationToastTest {
         compose.onNodeWithText("卡片确认").assertExists()
         withTimeout(25_000) {
             val response = async(kotlinx.coroutines.Dispatchers.Default) {
-                AutomationBus.requestApproval("测试请求", "", ApprovalCategory.CARD_RUN, grantSession = false)
+                AutomationManager.requestApproval("测试请求", "", ApprovalCategory.CARD_RUN, grantSession = false)
             }
-            val request = withTimeout(5_000) { AutomationBus.pendingApproval.filterNotNull().first() }
-            AutomationBus.approve("stale:${request.id}")
-            AutomationBus.approveAndRemember("stale:${request.id}")
+            val request = withTimeout(5_000) { AutomationManager.pendingApproval.filterNotNull().first() }
+            AutomationManager.approve("stale:${request.id}")
+            AutomationManager.approveAndRemember("stale:${request.id}")
             compose.onNodeWithContentDescription("拒绝").assertExists()
             assertFalse(response.isCompleted)
             // Wait for the separate decor layer's first layout and its enter animation.
@@ -230,9 +235,9 @@ class AutomationToastTest {
                 }
             }
             compose.runOnIdle {
-                AutomationBus.begin()
-                AutomationBus.update("测试自动化")
-                AutomationBus.setAppInForeground(false)
+                AutomationManager.begin()
+                AutomationManager.update("测试自动化")
+                AutomationManager.setAppInForeground(false)
             }
             compose.waitUntil(8_000) {
                 instrumentation.runOnMainSync {
@@ -276,21 +281,21 @@ class AutomationToastTest {
             }
             compose.runOnIdle {
                 assertEquals("Blank area outside overlay must reach the page", 1, backgroundTaps)
-                assertFalse(AutomationBus.isOverlayHidden())
+                assertFalse(AutomationManager.isOverlayHidden())
             }
         } finally {
             compose.runOnIdle {
-                AutomationBus.clear()
-                AutomationBus.setAppInForeground(true)
+                AutomationManager.clear()
+                AutomationManager.setAppInForeground(true)
             }
         }
     }
 
     @Test fun inAppPositioningSpaceDoesNotConsumeTouches() {
         var taps = 0
-        AutomationBus.setAppInForeground(true)
-        AutomationBus.begin()
-        AutomationBus.update("正在执行自动化")
+        AutomationManager.setAppInForeground(true)
+        AutomationManager.begin()
+        AutomationManager.update("正在执行自动化")
         compose.setContent {
             KhatKitTheme(darkTheme = true) {
                 Box(Modifier.fillMaxSize().background(Color.Black).testTag("underneath")
@@ -309,7 +314,7 @@ class AutomationToastTest {
         tapOnScreen(x, pill.exactCenterY())
         compose.runOnIdle {
             assertEquals(1, taps)
-            assertFalse(AutomationBus.isOverlayHidden())
+            assertFalse(AutomationManager.isOverlayHidden())
         }
     }
 }

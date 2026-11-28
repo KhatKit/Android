@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_ssh_name">远程 SSH</string>
+    <string name="common_ssh_description">连接远程 Linux 主机并执行命令</string>
+</resources>

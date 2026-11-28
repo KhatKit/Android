@@ -31,12 +31,12 @@ import heizige.kk.khatkit.app.core.ui.context.LocalTTSState
 import heizige.kk.khatkit.app.core.ui.hooks.CustomTtsState
 import heizige.kk.khatkit.tts.model.PlaybackState
 import heizige.kk.khatkit.tts.model.PlaybackStatus
-import heizige.kk.khatkit.app.core.ui.icons.arrowBack
-import heizige.kk.khatkit.app.core.ui.icons.arrowForward
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.forward
-import heizige.kk.khatkit.app.core.ui.icons.pause
-import heizige.kk.khatkit.app.core.ui.icons.playArrow
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowBack
+import heizige.kk.khatkit.app.core.ui.icons.navigation.arrowForward
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.chat.forward
+import heizige.kk.khatkit.app.core.ui.icons.media.pause
+import heizige.kk.khatkit.app.core.ui.icons.media.playArrow
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 
 @Composable

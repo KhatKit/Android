@@ -10,6 +10,9 @@ import androidx.core.content.ContextCompat
 import heizige.kk.khatkit.app.R
 import java.io.IOException
 import java.io.OutputStream
+import heizige.kk.khatkit.app.core.network.NotFoundException
+
+
 
 object DonationQrHelper {
     /** Writes a PNG without closing [output]; the caller owns the stream. */

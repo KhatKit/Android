@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import heizige.kk.khatkit.app.feature.automation.data.TriggerSettings
+import heizige.kk.khatkit.app.feature.automation.data.TriggerSettingsRepository
 
 /**
  * 开机 / 应用升级后重新拉起触发器服务，恢复 schedule 计时与前台应用轮询。
@@ -16,7 +16,7 @@ class TriggerBootReceiver : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             -> {
-                if (!TriggerSettings(context).masterEnabled) return
+                if (!TriggerSettingsRepository(context).masterEnabled) return
                 Log.i(TAG, "re-arming trigger service after ${intent.action}")
                 TriggerService.start(context)
             }

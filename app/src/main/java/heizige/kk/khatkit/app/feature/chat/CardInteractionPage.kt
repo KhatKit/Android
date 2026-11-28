@@ -15,9 +15,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import heizige.kk.khatkit.app.LocalKkNavController
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.khatkit.CardPageStackPage
+import heizige.kk.khatkit.app.feature.chat.components.khatkit.CardPageStackPage
 import heizige.kk.khatkit.app.core.ui.components.khatkit.KhatKitRequestPage
-import heizige.kk.khatkit.app.core.ui.components.khatkit.isCardPage
+import heizige.kk.khatkit.app.feature.chat.components.khatkit.isCardPage
 import heizige.kk.khatkit.ui.UiRequest
 
 /**

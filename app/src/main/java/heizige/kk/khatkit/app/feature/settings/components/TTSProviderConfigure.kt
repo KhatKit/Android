@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -7,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.R
@@ -27,37 +29,39 @@ fun TTSProviderConfigure(
         modifier = modifier.verticalScroll(rememberScrollState())
     ) {
         // Provider type selector
+        val context = LocalContext.current
+        val resources = LocalResources.current
         val providers = remember { TTSProviderSetting.Types }
         val providerNames = providers.map { providerClass ->
             when (providerClass) {
                 TTSProviderSetting.OpenAI::class -> "OpenAI"
                 TTSProviderSetting.Gemini::class -> "Gemini"
                 TTSProviderSetting.SystemTTS::class -> "System TTS"
-                TTSProviderSetting.MiniMax::class -> "MiniMax"
-                TTSProviderSetting.Qwen::class -> "Qwen"
-                TTSProviderSetting.Groq::class -> "Groq"
-                TTSProviderSetting.XAI::class -> "xAI"
+                TTSProviderSetting.MiniMax::class -> resources.getString(R.string.setting_speech_vendor_minimax)
+                TTSProviderSetting.Qwen::class -> resources.getString(R.string.setting_speech_vendor_qwen)
+                TTSProviderSetting.Groq::class -> resources.getString(R.string.setting_speech_vendor_groq)
+                TTSProviderSetting.XAI::class -> resources.getString(R.string.setting_speech_vendor_xai)
                 TTSProviderSetting.MiMo::class -> "MiMo"
-                TTSProviderSetting.ElevenLabs::class -> "ElevenLabs"
-                TTSProviderSetting.FishAudio::class -> "Fish Audio"
-                TTSProviderSetting.Volcengine::class -> "火山引擎"
+                TTSProviderSetting.ElevenLabs::class -> resources.getString(R.string.setting_speech_vendor_elevenlabs)
+                TTSProviderSetting.FishAudio::class -> resources.getString(R.string.setting_speech_vendor_fish_audio)
+                TTSProviderSetting.Volcengine::class -> resources.getString(R.string.setting_speech_vendor_volcengine)
                 TTSProviderSetting.Step::class -> "Step"
-                else -> providerClass.simpleName ?: "Unknown"
+                else -> providerClass.simpleName ?: resources.getString(R.string.setting_speech_unknown_provider)
             }
         }.toImmutableList()
         val currentTypeName = when (setting) {
             is TTSProviderSetting.OpenAI -> "OpenAI"
             is TTSProviderSetting.Gemini -> "Gemini"
             is TTSProviderSetting.SystemTTS -> "System TTS"
-            is TTSProviderSetting.MiniMax -> "MiniMax"
-            is TTSProviderSetting.Qwen -> "Qwen"
-            is TTSProviderSetting.Groq -> "Groq"
-            is TTSProviderSetting.XAI -> "xAI"
+            is TTSProviderSetting.MiniMax -> resources.getString(R.string.setting_speech_vendor_minimax)
+            is TTSProviderSetting.Qwen -> resources.getString(R.string.setting_speech_vendor_qwen)
+            is TTSProviderSetting.Groq -> resources.getString(R.string.setting_speech_vendor_groq)
+            is TTSProviderSetting.XAI -> resources.getString(R.string.setting_speech_vendor_xai)
             is TTSProviderSetting.MiMo -> "MiMo"
             is TTSProviderSetting.Step -> "Step"
-            is TTSProviderSetting.ElevenLabs -> "ElevenLabs"
-            is TTSProviderSetting.FishAudio -> "Fish Audio"
-            is TTSProviderSetting.Volcengine -> "火山引擎"
+            is TTSProviderSetting.ElevenLabs -> resources.getString(R.string.setting_speech_vendor_elevenlabs)
+            is TTSProviderSetting.FishAudio -> resources.getString(R.string.setting_speech_vendor_fish_audio)
+            is TTSProviderSetting.Volcengine -> resources.getString(R.string.setting_speech_vendor_volcengine)
         }
 
         MochiListSection {
@@ -476,7 +480,7 @@ private fun QwenTTSConfiguration(
         ),
     ) {
         MochiListPickerRow(
-            title = "Audio Format",
+            title = stringResource(R.string.setting_tts_label_audio_format),
             options = formats.toImmutableList(),
             selectedIndex = formats.indexOf(setting.format),
             onSelect = { index ->
@@ -484,7 +488,7 @@ private fun QwenTTSConfiguration(
             },
         )
         MochiListPickerRow(
-            title = "Sample Rate",
+            title = stringResource(R.string.setting_tts_label_sample_rate),
             options = sampleRates.map { it.toString() }.toImmutableList(),
             selectedIndex = sampleRates.indexOf(setting.sampleRate),
             onSelect = { index ->
@@ -587,7 +591,7 @@ private fun XAITTSConfiguration(
             selectedIndex = voices.indexOfFirst { it.first == setting.voiceId },
         )
         SpeechPresetFieldRow(
-            label = "Language",
+            label = stringResource(R.string.setting_tts_label_language),
             value = setting.language,
             options = languages,
             onValueChange = { newLanguage -> onValueChange(setting.copy(language = newLanguage)) },
@@ -683,8 +687,8 @@ private fun FishAudioTTSConfiguration(
 
     // Model (可自由输入 + 预设下拉，同 ElevenLabs)
     val models = listOf(
-        "s2.1-pro" to "S2.1-Pro (推荐)",
-        "s2.1-pro-free" to "S2.1-Pro Free (免费)",
+        "s2.1-pro" to stringResource(R.string.setting_tts_fish_model_s21_pro),
+        "s2.1-pro-free" to stringResource(R.string.setting_tts_fish_model_s21_pro_free),
         "s2-pro" to "S2-Pro",
         "s1" to "S1"
     )
@@ -748,55 +752,55 @@ private fun StepTTSConfiguration(
         onApiKeyChange = { newApiKey -> onValueChange(setting.copy(apiKey = newApiKey)) },
         baseUrl = setting.baseUrl,
         onBaseUrlChange = { newBaseUrl -> onValueChange(setting.copy(baseUrl = newBaseUrl)) },
-        apiKeyPlaceholder = "从阶跃星辰官网获取密钥",
+        apiKeyPlaceholder = stringResource(R.string.setting_tts_step_api_key_placeholder),
         baseUrlPlaceholder = "https://api.stepfun.com",
         apiKeyLabel = apiKeyLabel,
-        footer = speechFooter(apiKeyLabel to "从阶跃星辰官网获取密钥: platform.stepfun.com/interface-key"),
+        footer = speechFooter(apiKeyLabel to stringResource(R.string.setting_tts_step_api_key_footer)),
     )
 
     // Model
     val models = listOf(
-        "step-tts-mini" to "step-tts-mini (轻量, 便宜)",
-        "step-tts-vivid" to "step-tts-vivid (情感丰富)",
-        "stepaudio-2.5-tts" to "stepaudio-2.5-tts (语境感知, 支持 instruction)",
-        "step-tts-2" to "step-tts-2 (上一代)",
+        "step-tts-mini" to stringResource(R.string.setting_tts_step_model_mini),
+        "step-tts-vivid" to stringResource(R.string.setting_tts_step_model_vivid),
+        "stepaudio-2.5-tts" to stringResource(R.string.setting_tts_step_model_audio25),
+        "step-tts-2" to stringResource(R.string.setting_tts_step_model_tts2),
     )
 
     // Voice
     // 部分常用 voice-id, 完整列表见官方开发指南
     // https://platform.stepfun.com/docs/zh/guides/developer/tts
     val voices = listOf(
-        "elegantgentle-female" to "气质温婉 (elegantgentle-female)",
-        "livelybreezy-female" to "活力轻快 (livelybreezy-female)",
-        "energeticconfident-female" to "活力自信 (energeticconfident-female)",
-        "jingdiannvsheng" to "经典女声 (jingdiannvsheng)",
-        "wenroushunv" to "温柔熟女 (wenroushunv)",
-        "tianmeinvsheng" to "甜美女声 (tianmeinvsheng)",
-        "qingchunshaonv" to "清纯少女 (qingchunshaonv)",
-        "wenrounvsheng" to "温柔女声 (wenrounvsheng)",
-        "ruanmengnvsheng" to "软萌女生 (ruanmengnvsheng)",
-        "youyanvsheng" to "优雅女生 (youyanvsheng)",
-        "lengyanyujie" to "冷艳御姐 (lengyanyujie)",
-        "shuangkuaijiejie" to "爽快姐姐 (shuangkuaijiejie)",
-        "wenjingxuejie" to "文静学姐 (wenjingxuejie)",
-        "linjiajiejie" to "邻家姐姐 (linjiajiejie)",
-        "linjiameimei" to "邻家妹妹 (linjiameimei)",
-        "zhixingjiejie" to "知性姐姐 (zhixingjiejie)",
-        "cixingnansheng" to "磁性男声 (cixingnansheng)",
-        "wenrounansheng" to "温柔男声 (wenrounansheng)",
-        "yuanqinansheng" to "元气男声 (yuanqinansheng)",
-        "zhengpaiqingnian" to "正派青年 (zhengpaiqingnian)",
-        "ruyananshi" to "儒雅男士 (ruyananshi)",
-        "boyinnansheng" to "播音男声 (boyinnansheng)",
-        "shenchennanyin" to "深沉男音 (shenchennanyin)",
-        "shuangkuainansheng" to "爽快男声 (shuangkuainansheng)",
-        "ganliannvsheng" to "干练女声 (ganliannvsheng)",
-        "qinhenvsheng" to "亲切女声 (qinhenvsheng)",
-        "huolinvsheng" to "活力女声 (huolinvsheng)",
-        "jilingshaonv" to "机灵少女 (jilingshaonv)",
-        "yuanqishaonv" to "元气少女 (yuanqishaonv)",
-        "wenrougongzi" to "温柔公子 (wenrougongzi)",
-        "qingniandaxuesheng" to "青年大学生 (qingniandaxuesheng)",
+        "elegantgentle-female" to stringResource(R.string.setting_tts_volc_voice_elegantgentle_female),
+        "livelybreezy-female" to stringResource(R.string.setting_tts_volc_voice_livelybreezy_female),
+        "energeticconfident-female" to stringResource(R.string.setting_tts_volc_voice_energeticconfident_female),
+        "jingdiannvsheng" to stringResource(R.string.setting_tts_volc_voice_jingdiannvsheng),
+        "wenroushunv" to stringResource(R.string.setting_tts_volc_voice_wenroushunv),
+        "tianmeinvsheng" to stringResource(R.string.setting_tts_volc_voice_tianmeinvsheng),
+        "qingchunshaonv" to stringResource(R.string.setting_tts_volc_voice_qingchunshaonv),
+        "wenrounvsheng" to stringResource(R.string.setting_tts_volc_voice_wenrounvsheng),
+        "ruanmengnvsheng" to stringResource(R.string.setting_tts_volc_voice_ruanmengnvsheng),
+        "youyanvsheng" to stringResource(R.string.setting_tts_volc_voice_youyanvsheng),
+        "lengyanyujie" to stringResource(R.string.setting_tts_volc_voice_lengyanyujie),
+        "shuangkuaijiejie" to stringResource(R.string.setting_tts_volc_voice_shuangkuaijiejie),
+        "wenjingxuejie" to stringResource(R.string.setting_tts_volc_voice_wenjingxuejie),
+        "linjiajiejie" to stringResource(R.string.setting_tts_volc_voice_linjiajiejie),
+        "linjiameimei" to stringResource(R.string.setting_tts_volc_voice_linjiameimei),
+        "zhixingjiejie" to stringResource(R.string.setting_tts_volc_voice_zhixingjiejie),
+        "cixingnansheng" to stringResource(R.string.setting_tts_volc_voice_cixingnansheng),
+        "wenrounansheng" to stringResource(R.string.setting_tts_volc_voice_wenrounansheng),
+        "yuanqinansheng" to stringResource(R.string.setting_tts_volc_voice_yuanqinansheng),
+        "zhengpaiqingnian" to stringResource(R.string.setting_tts_volc_voice_zhengpaiqingnian),
+        "ruyananshi" to stringResource(R.string.setting_tts_volc_voice_ruyananshi),
+        "boyinnansheng" to stringResource(R.string.setting_tts_volc_voice_boyinnansheng),
+        "shenchennanyin" to stringResource(R.string.setting_tts_volc_voice_shenchennanyin),
+        "shuangkuainansheng" to stringResource(R.string.setting_tts_volc_voice_shuangkuainansheng),
+        "ganliannvsheng" to stringResource(R.string.setting_tts_volc_voice_ganliannvsheng),
+        "qinhenvsheng" to stringResource(R.string.setting_tts_volc_voice_qinhenvsheng),
+        "huolinvsheng" to stringResource(R.string.setting_tts_volc_voice_huolinvsheng),
+        "jilingshaonv" to stringResource(R.string.setting_tts_volc_voice_jilingshaonv),
+        "yuanqishaonv" to stringResource(R.string.setting_tts_volc_voice_yuanqishaonv),
+        "wenrougongzi" to stringResource(R.string.setting_tts_volc_voice_wenrougongzi),
+        "qingniandaxuesheng" to stringResource(R.string.setting_tts_volc_voice_qingniandaxuesheng),
     )
 
     MochiListSection {
@@ -828,14 +832,14 @@ private fun StepTTSConfiguration(
     val speedLabel = stringResource(R.string.setting_tts_page_speed)
     MochiListSection(
         footer = speechFooter(
-            "Response Format" to "音频编码格式 (注意 StepFun API 字段名为 camelCase)",
-            speedLabel to "语速 (0.5 - 2.0, 1.0 为正常)",
-            "Volume" to "音量 (0.1 - 2.0, 1.0 为正常)",
-            "Sample Rate" to "采样率 (Hz)",
+            stringResource(R.string.setting_tts_label_response_format) to stringResource(R.string.setting_tts_option_response_format),
+            speedLabel to stringResource(R.string.setting_tts_option_speed),
+            stringResource(R.string.setting_tts_label_volume) to stringResource(R.string.setting_tts_option_volume),
+            stringResource(R.string.setting_tts_label_sample_rate) to stringResource(R.string.setting_tts_option_sample_rate),
         ),
     ) {
         SpeechPresetFieldRow(
-            label = "Response Format",
+            label = stringResource(R.string.setting_tts_label_response_format),
             value = setting.responseFormat,
             options = formats,
             onValueChange = { newFormat -> onValueChange(setting.copy(responseFormat = newFormat)) },
@@ -854,7 +858,7 @@ private fun StepTTSConfiguration(
         )
         // Volume
         SpeechNumberFieldRow(
-            label = "Volume",
+            label = stringResource(R.string.setting_tts_label_volume),
             value = setting.volume,
             onValueChange = { newVolume ->
                 if (newVolume in 0.1f..2.0f) {
@@ -863,7 +867,7 @@ private fun StepTTSConfiguration(
             },
         )
         MochiListPickerRow(
-            title = "Sample Rate",
+            title = stringResource(R.string.setting_tts_label_sample_rate),
             options = sampleRates.map { rate -> "$rate Hz" }.toImmutableList(),
             selectedIndex = sampleRates.indexOf(setting.sampleRate),
             onSelect = { index ->
@@ -874,10 +878,10 @@ private fun StepTTSConfiguration(
 
     // Instruction (仅 stepaudio-2.5-tts 生效)
     MochiListSection(
-        footer = speechFooter("Instruction" to "全局语境指令, 仅 stepaudio-2.5-tts 生效 (≤200 字符, 留空不下发)"),
+        footer = speechFooter(stringResource(R.string.setting_tts_label_instruction) to stringResource(R.string.setting_tts_option_instruction)),
     ) {
         SpeechTextFieldRow(
-            label = "Instruction",
+            label = stringResource(R.string.setting_tts_label_instruction),
             value = setting.instruction,
             onValueChange = { newInstruction ->
                 // 服务端上限 200 字符, 客户端做一层保护
@@ -885,7 +889,7 @@ private fun StepTTSConfiguration(
                     onValueChange(setting.copy(instruction = newInstruction))
                 }
             },
-            placeholder = "例如: 语气温柔, 语速偏慢",
+            placeholder = stringResource(R.string.setting_tts_option_instruction_placeholder),
             singleLine = false,
             maxLines = 4,
         )
@@ -899,12 +903,12 @@ private fun VolcengineTTSConfiguration(
 ) {
     MochiListSection(
         footer = speechFooter(
-            "API Key" to "请填写豆包语音控制台的 API Key，不是火山方舟控制台的 API Key。",
-            "资源 ID" to "需与已开通的服务和音色匹配，默认 seed-tts-2.0。",
+            stringResource(R.string.setting_tts_page_api_key) to stringResource(R.string.setting_tts_volc_api_key_desc),
+            stringResource(R.string.setting_tts_volc_resource_id) to stringResource(R.string.setting_tts_volc_resource_id_desc),
         ),
     ) {
         SpeechSecretFieldRow(
-            label = "API Key",
+            label = stringResource(R.string.setting_tts_page_api_key),
             value = setting.apiKey,
             onValueChange = { onValueChange(setting.copy(apiKey = it)) },
         )
@@ -915,7 +919,7 @@ private fun VolcengineTTSConfiguration(
             placeholder = "https://openspeech.bytedance.com",
         )
         SpeechTextFieldRow(
-            label = "资源 ID",
+            label = stringResource(R.string.setting_tts_volc_resource_id),
             value = setting.resourceId,
             onValueChange = { onValueChange(setting.copy(resourceId = it)) },
         )
@@ -924,12 +928,12 @@ private fun VolcengineTTSConfiguration(
     val speedLabel = stringResource(R.string.setting_tts_page_speed)
     MochiListSection(
         footer = speechFooter(
-            "音色 ID" to "填写控制台中的音色 ID，默认使用 VV 音色。",
-            speedLabel to "范围 -50～100，0 为正常语速，-50 为半速，100 为两倍速。",
+            stringResource(R.string.setting_tts_volc_voice_id) to stringResource(R.string.setting_tts_volc_voice_id_desc),
+            speedLabel to stringResource(R.string.setting_tts_volc_speed_desc),
         ),
     ) {
         SpeechTextFieldRow(
-            label = "音色 ID",
+            label = stringResource(R.string.setting_tts_volc_voice_id),
             value = setting.speaker,
             onValueChange = { onValueChange(setting.copy(speaker = it)) },
         )

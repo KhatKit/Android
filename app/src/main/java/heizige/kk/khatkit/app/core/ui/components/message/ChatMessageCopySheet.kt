@@ -2,12 +2,8 @@ package heizige.kk.khatkit.app.core.ui.components.message
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,9 +18,10 @@ import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.util.copyMessageToClipboard
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
 import ui.feice.mochi.basic.MochiBarButton
 import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
 import ui.feice.mochi.basic.MochiSheetHeader
 import ui.feice.mochi.basic.MochiSheetState
 
@@ -45,10 +42,8 @@ fun ChatMessageCopySheet(
             title = stringResource(R.string.select_and_copy),
             actions = { MochiBarButton(stringResource(R.string.copy_all), onClick = copyAll) },
         )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+        MochiSheetContent(
+            modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Content
@@ -58,9 +53,7 @@ fun ChatMessageCopySheet(
             if (textParts.isEmpty()) {
                 // No text content available
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -74,10 +67,7 @@ fun ChatMessageCopySheet(
             } else {
                 SelectionContainer {
                     Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         textParts.fastForEach { textPart ->
                             Text(

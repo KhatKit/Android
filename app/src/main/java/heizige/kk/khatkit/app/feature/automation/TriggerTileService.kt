@@ -6,26 +6,27 @@ import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.card.CardManifest
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import heizige.kk.khatkit.app.feature.automation.helper.TriggerTileRegistry
+import heizige.kk.khatkit.app.feature.automation.data.TriggerTileRepository
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
 
 /**
  * 快捷设置磁贴：点击运行绑定的卡片。
  *
  * 一个 TileService 组件在系统里只能对应一个磁贴，因此固定用 3 个子类做槽位
- * （见 [TriggerTileRegistry]），卡片与槽位的绑定在设置页里通过「添加到快捷设置」完成。
+ * （见 [TriggerTileRepository]），卡片与槽位的绑定在设置页里通过「添加到快捷设置」完成。
  * 磁贴名称显示绑定卡片；未绑定或卡片被停用时置为 INACTIVE。
  */
 @AndroidEntryPoint
 abstract class TriggerTileServiceBase : TileService() {
 
     @Inject
-    lateinit var controller: TriggerController
+    lateinit var controller: TriggerManager
 
     /** 槽位下标，决定读取哪一条卡片绑定。 */
     protected abstract val slot: Int
 
     protected fun boundCard(): String? =
-        TriggerTileRegistry(this).cardFor(slot)?.takeIf { it.isNotBlank() }
+        TriggerTileRepository(this).cardFor(slot)?.takeIf { it.isNotBlank() }
 
     override fun onStartListening() {
         super.onStartListening()

@@ -95,20 +95,22 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.uuid.Uuid
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
-import heizige.kk.khatkit.app.core.ui.icons.add
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.contentCopy
-import heizige.kk.khatkit.app.core.ui.icons.delete
-import heizige.kk.khatkit.app.core.ui.icons.moreVert
-import heizige.kk.khatkit.app.core.ui.icons.neurology
-import heizige.kk.khatkit.app.core.ui.icons.search
-import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
-import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import heizige.kk.khatkit.app.core.ui.icons.utility.add
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.utility.contentCopy
+import heizige.kk.khatkit.app.core.ui.icons.utility.delete
+import heizige.kk.khatkit.app.core.ui.icons.navigation.moreVert
+import heizige.kk.khatkit.app.core.ui.icons.ai.neurology
+import heizige.kk.khatkit.app.core.ui.icons.utility.search
+import heizige.kk.khatkit.app.core.ui.shell.LocalKkBarBackdrop
+import heizige.kk.khatkit.app.core.ui.shell.MochiPageScaffold
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import heizige.kk.khatkit.app.core.ui.theme.listCardStyle
-
-
 import heizige.kk.khatkit.uikit.mochi.MochiHorizontalDivider
+import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
+
+
+
 
 @Composable
 fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
@@ -257,7 +259,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     if (assistant.canManageRoles) {
-                                                        Tag(type = TagType.SUCCESS) { Text("主管") }
+                                                        Tag(type = TagType.SUCCESS) { Text(stringResource(R.string.assistant_page_supervisor)) }
                                                     }
                                                     if (assistant.enableMemory) {
                                                         Tag(type = TagType.SUCCESS) {
@@ -531,7 +533,7 @@ private fun AssistantCreationSheet(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val templates = listOf("自定义角色", "Kitty")
+                val templates = listOf(stringResource(R.string.assistant_page_template_custom), "Kitty")
                 val kitty = RoleTemplates.kitty(modelId = assistant.chatModelId, id = assistant.id)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -576,7 +578,7 @@ private fun AssistantCreationSheet(
                         )
                     },
                     label = stringResource(R.string.assistant_page_name),
-                    placeholder = "输入角色名称",
+                    placeholder = stringResource(R.string.assistant_page_role_name_placeholder),
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -587,8 +589,8 @@ private fun AssistantCreationSheet(
                 Md3OutlinedTextField(
                     value = assistant.description,
                     onValueChange = { update(assistant.copy(description = it)) },
-                    label = "职责描述",
-                    placeholder = "输入职责描述",
+                    label = stringResource(R.string.assistant_page_duties),
+                    placeholder = stringResource(R.string.assistant_page_duties_placeholder),
                     minLines = 1,
                     modifier = Modifier
                         .fillMaxWidth()

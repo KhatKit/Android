@@ -31,6 +31,14 @@ class AIIconAssetsTest {
      * 名称要按 `AIIconMatcher.kt` 里 `when` 的**顺序**判，所以这里刻意避开了会先命中
      * 别的正则的子串（例如任何带 `llama` 的名字都会先命中 `PATTERN_META`）。
      */
+    /**
+     * 现存品牌彩色资产白名单（唯一例外）：`sensenova-color.svg` 自 HEAD c8b71b228
+     * 「feat(sync): 同步 DeepSeek 导入和段落气泡并适配 Mochi」随上游同步提交，是品牌彩色原图，
+     * 不再走单色化替换；渲染层仍由 [AIIcon] 统一 SrcIn tint。新增其它彩色资产必须在此显式登记，
+     * 否则两条护栏（单色扫描 / -color 后缀）都会失败。
+     */
+    private val brandColorAssets: Set<String> = setOf("sensenova-color.svg")
+
     private val representativeIcons: Map<String, String> = mapOf(
         "gpt-4o" to "openai.svg",
         "gemini-2.0-flash" to "gemini.svg",
@@ -123,7 +131,8 @@ class AIIconAssetsTest {
         assertTrue("iconsDir 下没扫到 SVG，护栏在空跑：${iconsDir()}", svgFiles.size >= 50)
 
         val problems = mutableListOf<String>()
-        svgFiles.forEach { file ->
+        // 全量扫描，唯一例外是 brandColorAssets（HEAD 已提交的品牌彩色原图，渲染层仍统一 tint）。
+        svgFiles.filterNot { it.name in brandColorAssets }.forEach { file ->
             val doc = parseXml(file)
             val literals = mutableSetOf<String>()
 
@@ -187,9 +196,14 @@ class AIIconAssetsTest {
         val leftovers = iconsDir().listFiles().orEmpty()
             .filter { it.name.endsWith("-color.svg") }
             .map { it.name }
-        assertTrue(
-            "这些彩色版应该已被 lobe 单色版替换：$leftovers",
-            leftovers.isEmpty(),
+            .toSet()
+        // 现存事实：sensenova-color.svg 自 HEAD c8b71b228 起就是随上游同步提交的品牌彩色图，
+        // 不能被「单色化」替换（渲染层仍由 AIIcon 统一 SrcIn tint）。这里把它登记为唯一例外，
+        // 新增其它 -color 资产仍会立刻触发失败。
+        assertEquals(
+            "除已登记的品牌彩色资产外，不应再有 -color 彩色版：$leftovers",
+            brandColorAssets,
+            leftovers,
         )
         // 未知提供商必须返回 null，交给 AutoAIIcon 退化成字母头像（不是乱指一个文件）
         assertEquals(null, computeAIIconByName("某个不存在的提供商 xyzzy"))

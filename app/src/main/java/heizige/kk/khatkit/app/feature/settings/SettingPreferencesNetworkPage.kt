@@ -58,8 +58,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
 
 private const val PROXY_TEST_URL = "https://www.google.com/generate_204"
 
@@ -140,7 +140,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                             .build()
                     ).execute().use { response ->
                         if (response.code != 204) {
-                            throw IOException("HTTP ${response.code} ${response.message}")
+                            throw IOException(resources.getString(R.string.setting_proxy_http_error, response.code, response.message))
                         }
                     }
                 }
@@ -182,7 +182,7 @@ fun SettingPreferencesNetworkPage(vm: SettingViewModel = hiltViewModel()) {
                         label = {
                             Text(stringResource(R.string.setting_page_preferences_network_proxy))
                         },
-                        placeholder = { Text("http://127.0.0.1:7890") },
+                        placeholder = { Text(stringResource(R.string.setting_proxy_example)) },
                         supportingText = {
                             Text(
                                 stringResource(

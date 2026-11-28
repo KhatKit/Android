@@ -21,6 +21,7 @@ class ProotShellRunner(
                 exitCode = 127,
                 stdout = "",
                 stderr = "Rootfs is not installed",
+                failure = WorkspaceCommandFailure.ROOTFS_MISSING,
             )
         }
 
@@ -31,6 +32,7 @@ class ProotShellRunner(
                 exitCode = 127,
                 stdout = "",
                 stderr = "proot executable not found: ${proot.absolutePath}",
+                failure = WorkspaceCommandFailure.PROOT_MISSING,
             )
         }
         if (!loader.isFile) {
@@ -38,6 +40,7 @@ class ProotShellRunner(
                 exitCode = 127,
                 stdout = "",
                 stderr = "proot loader not found: ${loader.absolutePath}",
+                failure = WorkspaceCommandFailure.LOADER_MISSING,
             )
         }
 

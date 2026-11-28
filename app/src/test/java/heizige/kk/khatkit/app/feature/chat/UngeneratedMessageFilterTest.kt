@@ -19,7 +19,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.chat.data.ConversationSession
+import heizige.kk.khatkit.app.feature.chat.helper.ConversationRuntimeManager
 import heizige.kk.khatkit.app.feature.chat.helper.dropUngeneratedAssistantMessages
 import heizige.kk.khatkit.app.feature.chat.helper.hasGeneratedOutput
 import heizige.kk.khatkit.app.feature.chat.helper.isUngeneratedAssistantMessage
@@ -28,7 +28,7 @@ import heizige.kk.khatkit.app.feature.chat.helper.isUngeneratedAssistantMessage
  * 契约条款「取消/超时不得写入未生成的消息」。
  *
  * 覆盖两层：纯函数（[dropUngeneratedAssistantMessages]）的判据，以及真实落库路径
- * （[ConversationSession.finishGeneration]，取消与超时都从这里出去）。
+ * （[ConversationRuntimeManager.finishGeneration]，取消与超时都从这里出去）。
  */
 class UngeneratedMessageFilterTest {
 
@@ -232,7 +232,7 @@ class UngeneratedMessageFilterTest {
     fun `cancelling before the first chunk persists nothing for the placeholder`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id).updateCurrentMessages(listOf(UIMessage.user("hi")))
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         // GenerationLoop 预建的占位消息：一个 token 都还没产出。
         session.updateConversation(
@@ -255,7 +255,7 @@ class UngeneratedMessageFilterTest {
     fun `cancelling after partial output keeps what was received`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         val partial = UIMessage(
             role = MessageRole.ASSISTANT,
@@ -279,7 +279,7 @@ class UngeneratedMessageFilterTest {
     fun `timeout thrown out of the stream drops the placeholder and keeps the history`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         val failure = java.io.IOException("read timed out")
         val result = runCatching {
@@ -309,7 +309,7 @@ class UngeneratedMessageFilterTest {
         val legacyEmpty = UIMessage(role = MessageRole.ASSISTANT, parts = emptyList())
         val question = UIMessage.user("hi")
         var persisted = Conversation.ofId(id).updateCurrentMessages(listOf(legacyEmpty, question))
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         // 一次完全无关的生成：用户又发了一条，助手正常回了一句话。
         val newReply = UIMessage.assistant("brand new reply")
@@ -330,7 +330,7 @@ class UngeneratedMessageFilterTest {
     fun `a new empty placeholder in the next generation is dropped again`() = runBlocking {
         val id = Uuid.random()
         var persisted = Conversation.ofId(id)
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         val reply = UIMessage.assistant("first reply")
         session.updateConversation(session.state.value.updateCurrentMessages(listOf(reply)))
@@ -360,7 +360,7 @@ class UngeneratedMessageFilterTest {
             UIMessage.assistant("hello"),
         )
         persisted = persisted.updateCurrentMessages(history)
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
 
         session.finishGeneration { persisted = it }
@@ -383,7 +383,7 @@ class UngeneratedMessageFilterTest {
         val placeholder = UIMessage(role = MessageRole.ASSISTANT, parts = emptyList()).copy(
             roundId = "round-7",
         )
-        val session = ConversationSession(id, Conversation.ofId(id), this, {})
+        val session = ConversationRuntimeManager(id, Conversation.ofId(id), this, {})
         session.initialize { persisted }
         session.updateConversation(
             session.state.value.updateCurrentMessages(listOf(speaker, placeholder))

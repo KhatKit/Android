@@ -22,12 +22,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import heizige.kk.khatkit.ai.provider.ImageEditParams
 import heizige.kk.khatkit.ai.provider.ImageGenerationParams
 import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.ui.ImageGenSize
 import heizige.kk.khatkit.ai.ui.ImageGenerationItem
+import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.common.android.appTempFolder
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
@@ -37,30 +37,11 @@ import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.repository.GenMediaRepository
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
-
-@Serializable
-data class GeneratedImage(
-    val id: Int,
-    val prompt: String,
-    val filePath: String,
-    val timestamp: Long,
-    val model: String
-)
-
-private fun GenMediaEntity.toGeneratedImage(filesManager: FilesManager): GeneratedImage {
-    val imagesDir = filesManager.getImagesDir()
-    val fullPath = File(imagesDir, this.path.removePrefix("images/")).absolutePath
-
-    return GeneratedImage(
-        id = this.id,
-        prompt = this.prompt,
-        filePath = fullPath,
-        timestamp = this.createAt,
-        model = this.modelId
-    )
-}
+import heizige.kk.khatkit.app.feature.imggen.data.GeneratedImage
+import heizige.kk.khatkit.app.feature.imggen.helper.toGeneratedImage
 
 @HiltViewModel
+
 class ImgGenViewModel @Inject constructor(
     context: Application,
     val settingsStore: SettingsRepository,
@@ -176,7 +157,7 @@ class ImgGenViewModel @Inject constructor(
             } catch (e: Exception) {
                 if(e is CancellationException) return@launch
                 Log.e(TAG, "Failed to generate image", e)
-                _error.value = e.message ?: "Unknown error occurred"
+                _error.value = e.message ?: getApplication<Application>().getString(R.string.imggen_page_error_unknown)
             } finally {
                 _isGenerating.value = false
             }
@@ -224,7 +205,7 @@ class ImgGenViewModel @Inject constructor(
             } catch (e: Exception) {
                 if (e is CancellationException) return@launch
                 Log.e(TAG, "Failed to edit image", e)
-                _error.value = e.message ?: "Unknown error occurred"
+                _error.value = e.message ?: getApplication<Application>().getString(R.string.imggen_page_error_unknown)
             } finally {
                 _isGenerating.value = false
             }
@@ -342,7 +323,7 @@ class ImgGenViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to delete image", e)
-                _error.value = "Failed to delete image"
+                _error.value = getApplication<Application>().getString(R.string.imggen_page_delete_failed)
             }
         }
     }

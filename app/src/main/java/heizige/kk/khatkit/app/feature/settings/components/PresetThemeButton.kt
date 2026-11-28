@@ -35,7 +35,7 @@ import androidx.compose.ui.util.fastForEach
 import heizige.kk.khatkit.app.core.ui.theme.LocalDarkMode
 import heizige.kk.khatkit.app.core.ui.theme.PresetTheme
 import heizige.kk.khatkit.app.core.ui.theme.PresetThemes
-import heizige.kk.khatkit.app.core.ui.icons.check
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
 
 @Composable
 fun PresetThemeButton(

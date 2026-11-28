@@ -8,7 +8,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import heizige.kk.khatkit.app.RouteActivity
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
@@ -24,6 +24,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_MIME_TYPE
+import heizige.kk.khatkit.app.feature.chat.helper.shareFile
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
+
+
 
 /**
  * C1-09 收尾：**真实调用生产 [shareFile] 后，系统分享 chooser 到底有没有真的弹出来**。

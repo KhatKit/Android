@@ -36,7 +36,7 @@ private const val SYNTHESIS_RETRY_BASE_DELAY_MS = 500L
  * - 对外 API 与原版兼容
  */
 class TtsController(
-    context: Context,
+    private val context: Context,
     private val ttsManager: TTSManager
 ) {
     // 协程作用域
@@ -112,7 +112,7 @@ class TtsController(
         if (text.isBlank()) return
         val provider = currentProvider
         if (provider == null) {
-            _error.update { "No TTS provider selected" }
+            _error.update { context.getString(heizige.kk.khatkit.speech.R.string.speech_error_no_provider) }
             return
         }
 
@@ -221,7 +221,7 @@ class TtsController(
     private fun startWorker() {
         val provider = currentProvider
         if (provider == null) {
-            _error.update { "No TTS provider selected" }
+            _error.update { context.getString(heizige.kk.khatkit.speech.R.string.speech_error_no_provider) }
             return
         }
 
@@ -255,7 +255,7 @@ class TtsController(
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Log.e(TAG, "Synthesis error", e)
-                        _error.update { e.message ?: "TTS synthesis error" }
+                        _error.update { (e as? heizige.kk.khatkit.speech.SpeechUserException)?.message ?: context.getString(heizige.kk.khatkit.speech.R.string.speech_error_synthesis) }
                         processedCount++
                         continue
                     }
@@ -266,7 +266,7 @@ class TtsController(
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
                         Log.e(TAG, "Playback error", e)
-                        _error.update { e.message ?: "Audio playback error" }
+                        _error.update { context.getString(heizige.kk.khatkit.speech.R.string.speech_error_playback) }
                     }
 
                     if (queue.isNotEmpty()) delay(chunkDelayMs)

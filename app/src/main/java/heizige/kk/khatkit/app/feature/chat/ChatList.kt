@@ -91,26 +91,29 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
-import heizige.kk.khatkit.app.feature.chat.ChatError
+import heizige.kk.khatkit.app.feature.chat.data.ChatError
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
-import heizige.kk.khatkit.app.core.ui.components.ui.ErrorCardsDisplay
-import heizige.kk.khatkit.app.core.ui.components.ui.ListSelectableItem
+import heizige.kk.khatkit.app.feature.chat.components.ui.ErrorCardsDisplay
+import heizige.kk.khatkit.app.feature.chat.components.ui.ListSelectableItem
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
-import heizige.kk.khatkit.app.core.ui.hooks.ImeLazyListAutoScroller
+import heizige.kk.khatkit.app.feature.chat.hooks.ImeLazyListAutoScroller
 import heizige.kk.khatkit.app.core.ui.theme.ChatFontProvider
 import kotlin.math.roundToInt
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.core.ui.icons.adsClick
-import heizige.kk.khatkit.app.core.ui.icons.check
-import heizige.kk.khatkit.app.core.ui.icons.close
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardArrowUp
-import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowDown
-import heizige.kk.khatkit.app.core.ui.icons.keyboardDoubleArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.automation.adsClick
+import heizige.kk.khatkit.app.core.ui.icons.utility.check
+import heizige.kk.khatkit.app.core.ui.icons.navigation.close
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardArrowUp
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardDoubleArrowDown
+import heizige.kk.khatkit.app.core.ui.icons.navigation.keyboardDoubleArrowUp
 import heizige.kk.khatkit.uikit.mochi.KkFloatingToolbar
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
-import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.helper.GroupSpeakerResolver
 import heizige.kk.khatkit.app.feature.chat.data.isArchivedGroupConversation
+import heizige.kk.khatkit.app.RouteActivity
+
+
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -630,7 +633,7 @@ private fun ChatListNormal(
                     expanded = true,
                 ) {
                     MochiTooltipIconButton(
-                        text = "Clear selection",
+                        text = stringResource(R.string.a11y_clear_selection),
                         style = MochiButtonStyle.Filled,
                         onClick = {
                             selecting = false
@@ -638,7 +641,7 @@ private fun ChatListNormal(
                         },
                     ) { Icon(close, null) }
                     MochiTooltipIconButton(
-                        text = if (selectedItems.isEmpty()) "Select all" else "Deselect all",
+                        text = if (selectedItems.isEmpty()) stringResource(R.string.a11y_select_all) else stringResource(R.string.a11y_deselect_all),
                         style = MochiButtonStyle.Filled,
                         onClick = {
                             if (selectedItems.isNotEmpty()) selectedItems.clear()

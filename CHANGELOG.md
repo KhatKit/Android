@@ -1,7 +1,6 @@
 # 更新日志
 
 ## 未发布（探索市场下拉刷新）
-- **底栏分页统一 Mochi Depth 转场**：6 个应用入口（图生成 / 提示词 / 工作区 / 语音 / 模型 / 服务商）与卡片公共宿主统一改用库公开 `MochiPeerTransition` + `MochiPeerTransitionSpec.Depth`，移除 7 处导航 `HorizontalPager`；顶部 tab / 轮播 / 图片预览保持原业务，各页选中、滚动、输入、禁用与动态页语义保留。Mochi 固定 `0.4.0-khatkit.3`（pin `70636705c`，15 个补丁锚点），覆盖与验收见 `docs/mochi-tab-swipe-verification.md`；设备手势与明暗/玻璃边缘色仍待手动验收。
 - **探索市场顶栏恢复「栏下渐进模糊」**：`MochiPageScaffold` 的滚动边缘模糊是 opt-in（`scrollUnderTopBar`），11-23 的 `8df465588` 只给聊天 / 设置 / 下载中心开了，探索市场漏了 → 骨架走 Column 分支（栏是固定表头），列表永远滚不到栏下，顶栏没有背景模糊。现在补上 `scrollUnderTopBar = MochiScrollEdgeDefaults.progress(marketListState)`，内容压在栏下滚、栏按进度出底色并做 Mochi scroll edge 渐进模糊（`ExploreMarketPage.kt`）。
 - **探索市场改用 Mochi 示例的下拉刷新**：原来的 Material3 `PullToRefreshBox` 换成 Mochi 的 UIRefreshControl 样式 —— 列表显式拿 `rememberMochiOverscrollEffect()`，`rememberMochiRefreshState` 读越界位移，拉过阈值轻震开始刷新，辐条随下拉逐根显形，刷新中内容停在转圈下方（`mochiRefreshHold`），结束后弹簧收回；转圈按顶栏高度下移，停在栏底与被拉下来的内容之间。刷新等待改走新加的 `ExploreMarketViewModel.refreshAndAwait()`（`ExploreMarketPage.kt`、`ExploreMarketViewModel.kt`）。
 

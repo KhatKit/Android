@@ -23,36 +23,40 @@ data class UiNode(val type: String, val props: Map<String, Any?>, val children: 
     fun collect(values: Map<String, Any?>): Map<String, Any?> =
         initialValues().mapValues { (id, default) -> values[id] ?: default }
 
-    fun errors(values: Map<String, Any?>): Map<String, String> = buildMap {
+    /** Stable legacy diagnostics for script/protocol consumers; UI uses localizedErrors. */
+    fun errors(values: Map<String, Any?>): Map<String, String> =
+        validationIssues(values).mapValues { (_, issue) -> issue.diagnosticMessage() }
+
+    fun validationIssues(values: Map<String, Any?>): Map<String, UiFieldIssue> = buildMap {
         val collected = collect(values)
         fields().forEach { field ->
             val p = field.props
             val id = p["id"] as String
             val value = collected[id]
             val empty = value == null || value is String && value.isBlank() || value is List<*> && value.isEmpty()
-            if (p["required"] == true && empty) put(id, "请填写此项")
-            if (!empty && field.type in setOf("Switch", "Checkbox") && value !is Boolean) put(id, "请输入布尔值")
+            if (p["required"] == true && empty) put(id, UiFieldIssue(UiFieldIssue.Code.REQUIRED))
+            if (!empty && field.type in setOf("Switch", "Checkbox") && value !is Boolean) put(id, UiFieldIssue(UiFieldIssue.Code.BOOLEAN_REQUIRED))
             if (field.type == "CounterButton") {
                 val n = (value as? Number)?.toDouble()
-                if (n == null || !n.isFinite() || n !in 0.0..10.0 || n % 1 != 0.0) put(id, "计数须为 0..10 的整数")
+                if (n == null || !n.isFinite() || n !in 0.0..10.0 || n % 1 != 0.0) put(id, UiFieldIssue(UiFieldIssue.Code.COUNTER_RANGE))
             }
-            if (!empty && field.type in setOf("TextField", "DirPicker") && value !is String) put(id, "请输入文本")
+            if (!empty && field.type in setOf("TextField", "DirPicker") && value !is String) put(id, UiFieldIssue(UiFieldIssue.Code.TEXT_REQUIRED))
             if (!empty && field.type == "FilePicker" && value !is String &&
-                !(value is List<*> && value.all { it is String })) put(id, "请输入文件路径")
+                !(value is List<*> && value.all { it is String })) put(id, UiFieldIssue(UiFieldIssue.Code.PATH_REQUIRED))
             if (!empty && field.type in setOf("NumberField", "Slider")) {
                 val n = (value as? Number)?.toDouble()
                 val min = (p["min"] as? Number)?.toDouble()
                 val max = (p["max"] as? Number)?.toDouble()
                 val step = (p["step"] as? Number)?.toDouble()
-                if (n == null || !n.isFinite()) put(id, "请输入有效数字")
-                else if (min != null && n < min || max != null && n > max) put(id, "数值超出范围")
+                if (n == null || !n.isFinite()) put(id, UiFieldIssue(UiFieldIssue.Code.NUMBER_REQUIRED))
+                else if (min != null && n < min || max != null && n > max) put(id, UiFieldIssue(UiFieldIssue.Code.OUT_OF_RANGE))
                 else if (step != null) {
                     val units = (n - (min ?: 0.0)) / step
-                    if (kotlin.math.abs(units - kotlin.math.round(units)) > 1e-6) put(id, "数值不符合步长 $step")
+                    if (kotlin.math.abs(units - kotlin.math.round(units)) > 1e-6) put(id, UiFieldIssue(UiFieldIssue.Code.STEP_MISMATCH, step))
                 }
             }
             if (!empty && field.type in setOf("Select", "RadioGroup", "Dropdown") && value !in (p["options"] as? List<*>).orEmpty()) {
-                put(id, "请选择列表中的值")
+                put(id, UiFieldIssue(UiFieldIssue.Code.OPTION_REQUIRED))
             }
         }
     }

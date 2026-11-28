@@ -164,7 +164,7 @@ class GroupRunAbandonDrainSourceGuardTest {
 
     companion object {
         private const val CHAT_MANAGER_FILE =
-            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/ChatManager.kt"
+            "app/src/main/java/heizige/kk/khatkit/app/feature/chat/helper/ChatManager.kt"
 
         /** 取常量声明之前这么多字符当 KDoc 窗口。 */
         private const val KDOC_WINDOW = 700

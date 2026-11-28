@@ -1,7 +1,7 @@
 package heizige.kk.khatkit.app.feature.chat
 
 import heizige.kk.khatkit.ai.ui.UIMessage
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupRole
@@ -12,8 +12,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerIdentity
-import heizige.kk.khatkit.app.feature.chat.data.GroupSpeakerResolver
-import heizige.kk.khatkit.app.feature.chat.data.GroupTurnCoordinator
+import heizige.kk.khatkit.app.feature.chat.helper.GroupSpeakerResolver
+import heizige.kk.khatkit.app.feature.chat.helper.GroupTurnCoordinator
 
 /**
  * [GroupSpeakerResolver] 的用例。

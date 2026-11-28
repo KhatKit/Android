@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -37,19 +38,19 @@ import heizige.kk.khatkit.app.BuildConfig
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.core.ui.components.easteregg.EmojiBurstHost
-import heizige.kk.khatkit.app.core.ui.components.easteregg.rememberEmojiBurstState
+import heizige.kk.khatkit.app.feature.settings.components.easteregg.EmojiBurstHost
+import heizige.kk.khatkit.app.feature.settings.components.easteregg.rememberEmojiBurstState
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.core.ui.context.LocalNavController
-import heizige.kk.khatkit.app.core.ui.icons.code
-import heizige.kk.khatkit.app.core.ui.icons.download
-import heizige.kk.khatkit.app.core.ui.icons.favorite
-import heizige.kk.khatkit.app.core.ui.icons.insertDriveFile
-import heizige.kk.khatkit.app.core.ui.icons.openInNew
-import heizige.kk.khatkit.app.core.ui.icons.palette
-import heizige.kk.khatkit.app.core.ui.icons.public
-import heizige.kk.khatkit.app.core.ui.icons.rocketLaunch
+import heizige.kk.khatkit.app.core.ui.icons.utility.code
+import heizige.kk.khatkit.app.core.ui.icons.files.download
+import heizige.kk.khatkit.app.core.ui.icons.settings.favorite
+import heizige.kk.khatkit.app.core.ui.icons.files.insertDriveFile
+import heizige.kk.khatkit.app.core.ui.icons.settings.openInNew
+import heizige.kk.khatkit.app.core.ui.icons.settings.palette
+import heizige.kk.khatkit.app.core.ui.icons.social.public
+import heizige.kk.khatkit.app.core.ui.icons.ai.rocketLaunch
 import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
 import heizige.kk.khatkit.app.core.util.UiState
 import heizige.kk.khatkit.app.core.util.openUrl
@@ -67,6 +68,7 @@ import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.feature.settings.data.AboutUpdateState
 
 /**
  * 关于页。
@@ -88,6 +90,7 @@ import ui.feice.mochi.theme.MochiTheme
 @Composable
 fun SettingAboutPage() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val updateChecker = rememberAppEntryPoint().updateChecker()
@@ -122,13 +125,13 @@ fun SettingAboutPage() {
                     if (result.data.hasUpdate) {
                         AboutUpdateState.Available(result.data)
                     } else {
-                        Toast.show("已是最新版本", isError = false)
+                        Toast.show(resources.getString(R.string.setting_about_up_to_date), isError = false)
                         AboutUpdateState.UpToDate
                     }
                 }
                 is UiState.Error -> {
-                    val message = result.error.message ?: "未知错误"
-                    Toast.show("检查更新失败：" + message, isError = true)
+                    val message = result.error.message ?: resources.getString(R.string.backup_page_unknown_error)
+                    Toast.show(resources.getString(R.string.setting_about_update_failed_detail, message), isError = true)
                     AboutUpdateState.Failed(message)
                 }
                 else -> AboutUpdateState.Idle
@@ -167,7 +170,7 @@ fun SettingAboutPage() {
 
                 item("update") {
                     Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-                        AboutSectionHeader("更新")
+                        AboutSectionHeader(stringResource(R.string.setting_about_update_action))
                         AboutUpdateCard(
                             state = updateState,
                             onCheck = { checkUpdate() },
@@ -179,26 +182,26 @@ fun SettingAboutPage() {
                 item("resources") {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = 8.dp),
-                        title = { Text("资源") },
+                        title = { Text(stringResource(R.string.setting_about_resources)) },
                     ) {
                         item(
                             onClick = { context.openUrl(websiteUrl) },
                             leadingContent = { AboutRowIcon(public) },
-                            supportingContent = { Text("heizige.top") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_website_label)) },
                             trailingContent = { ExternalLinkIcon() },
                             headlineContent = { Text(stringResource(R.string.about_page_website)) },
                         )
                         item(
                             onClick = { context.openUrl(githubUrl) },
                             leadingContent = { AboutRowIcon(code) },
-                            supportingContent = { Text("github.com/rikkahub") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_upstream_url_label)) },
                             trailingContent = { ExternalLinkIcon() },
                             headlineContent = { Text(stringResource(R.string.about_page_github)) },
                         )
                         item(
                             onClick = { context.openUrl(licenseUrl) },
                             leadingContent = { AboutRowIcon(insertDriveFile) },
-                            supportingContent = { Text("GNU AGPL v3") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_license_label)) },
                             trailingContent = { ExternalLinkIcon() },
                             headlineContent = { Text(stringResource(R.string.about_page_license)) },
                         )
@@ -208,28 +211,28 @@ fun SettingAboutPage() {
                 item("more") {
                     CardGroup(
                         modifier = Modifier.padding(horizontal = 8.dp),
-                        title = { Text("更多") },
+                        title = { Text(stringResource(R.string.setting_about_more)) },
                     ) {
                         item(
                             onClick = { navController.navigate(Screen.SettingDonate) },
                             leadingContent = { AboutRowIcon(favorite) },
-                            supportingContent = { Text("支持 KhatKit 的持续开发") },
-                            headlineContent = { Text("赞助作者") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_support_desc)) },
+                            headlineContent = { Text(stringResource(R.string.setting_about_support)) },
                             chevron = true,
                         )
                         item(
                             onClick = { context.openUrl(githubUrl) },
                             leadingContent = { AboutRowIcon(rocketLaunch) },
-                            supportingContent = { Text("github.com/rikkahub") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_upstream_url_label)) },
                             trailingContent = { ExternalLinkIcon() },
-                            headlineContent = { Text("上游项目 RikkaHub") },
+                            headlineContent = { Text(stringResource(R.string.setting_about_upstream)) },
                         )
                         item(
                             onClick = { context.openUrl(mochiUrl) },
                             leadingContent = { AboutRowIcon(palette) },
-                            supportingContent = { Text("github.com/feice11") },
+                            supportingContent = { Text(stringResource(R.string.setting_about_mochi_url_label)) },
                             trailingContent = { ExternalLinkIcon() },
-                            headlineContent = { Text("界面 Mochi Compose") },
+                            headlineContent = { Text(stringResource(R.string.setting_about_mochi)) },
                         )
                     }
                 }
@@ -249,8 +252,8 @@ fun SettingAboutPage() {
     MochiDialog(
         visible = showUpdateDetail && available != null,
         onDismissRequest = { showUpdateDetail = false },
-        title = if (available != null) "发现新版本 " + available.latestVersion else "",
-        message = available?.description?.takeIf { it.isNotBlank() } ?: "有新版本可以更新。",
+        title = if (available != null) stringResource(R.string.setting_about_version_available, available.latestVersion) else "",
+        message = available?.description?.takeIf { it.isNotBlank() } ?: stringResource(R.string.setting_about_update_description),
         icon = when {
             available != null -> {
                 { Icon(download, null, Modifier.size(30.dp)) }
@@ -259,12 +262,12 @@ fun SettingAboutPage() {
         },
         actions = persistentListOf(
             MochiDialogAction(
-                label = "稍后",
+                label = stringResource(R.string.setting_about_later),
                 role = MochiDialogActionRole.Cancel,
                 onClick = { showUpdateDetail = false },
             ),
             MochiDialogAction(
-                label = "立即更新",
+                label = stringResource(R.string.setting_about_update_now),
                 role = MochiDialogActionRole.Primary,
                 onClick = {
                     available?.let { updateChecker.downloadUpdate(context, it) }
@@ -310,12 +313,12 @@ private fun AboutFooter(egg: AboutEggState, onOpenTerminal: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "KhatKit " + BuildConfig.VERSION_NAME,
+            text = stringResource(R.string.setting_about_version, BuildConfig.VERSION_NAME),
             style = MochiTheme.textStyles.footnote,
             color = cs.onSurfaceVariant,
         )
         Text(
-            text = "界面由 Mochi Compose 驱动 🍡",
+            text = stringResource(R.string.setting_about_powered_by),
             style = MochiTheme.textStyles.footnote,
             color = cs.onSurfaceVariant.copy(alpha = 0.7f),
         )
@@ -333,10 +336,10 @@ private fun AboutFooter(egg: AboutEggState, onOpenTerminal: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    MochiStatusTag(label = "彩蛋猎人", level = MochiStatusLevel.Success)
+                    MochiStatusTag(label = stringResource(R.string.setting_about_egg_hunter), level = MochiStatusLevel.Success)
                     if (egg.bestCombo > 0) {
                         Text(
-                            text = "最高连击 " + egg.bestCombo + " 次",
+                            text = androidx.compose.ui.res.pluralStringResource(R.plurals.setting_about_best_combo, egg.bestCombo, egg.bestCombo),
                             style = MochiTheme.textStyles.footnote,
                             color = cs.onSurfaceVariant,
                         )
@@ -345,7 +348,7 @@ private fun AboutFooter(egg: AboutEggState, onOpenTerminal: () -> Unit) {
                 // 解锁之后把入口留在页脚：不用每次都再点十下才能回到终端
                 MochiTextButton(onClick = onOpenTerminal) {
                     Text(
-                        text = "打开隐藏终端",
+                        text = stringResource(R.string.setting_about_terminal_open),
                         style = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.SemiBold),
                         color = cs.primary,
                     )

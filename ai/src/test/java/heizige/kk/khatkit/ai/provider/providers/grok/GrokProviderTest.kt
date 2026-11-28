@@ -47,23 +47,27 @@ class GrokProviderTest {
         assertEquals("user", input[1].jsonObject["role"]!!.jsonPrimitive.content)
     }
 
+    // reasoning.effort 只在模型声明 REASONING 能力时才进请求体（并列的「4.20 不发 effort」用同一口径）
+    private fun reasoningModel(modelId: String) =
+        Model(modelId = modelId, abilities = listOf(ModelAbility.TOOL, ModelAbility.REASONING))
+
     @Test
     fun `xhigh only for grok-4_6 and others fall back to high`() {
-        val newest = grokBody(Model(modelId = "grok-4.6"), ReasoningLevel.XHIGH)
+        val newest = grokBody(reasoningModel("grok-4.6"), ReasoningLevel.XHIGH)
         assertEquals(
             "xhigh",
             newest["reasoning"]!!.jsonObject["effort"]!!.jsonPrimitive.content,
         )
 
-        val older = grokBody(Model(modelId = "grok-4.5"), ReasoningLevel.XHIGH)
+        val older = grokBody(reasoningModel("grok-4.5"), ReasoningLevel.XHIGH)
         assertEquals("high", older["reasoning"]!!.jsonObject["effort"]!!.jsonPrimitive.content)
 
         // AUTO 不发送档位
-        val auto = grokBody(Model(modelId = "grok-4.5"), ReasoningLevel.AUTO)
+        val auto = grokBody(reasoningModel("grok-4.5"), ReasoningLevel.AUTO)
         assertNull(auto["reasoning"]?.jsonObject?.get("effort"))
 
         // OFF 明确发 none
-        val off = grokBody(Model(modelId = "grok-4.5"), ReasoningLevel.OFF)
+        val off = grokBody(reasoningModel("grok-4.5"), ReasoningLevel.OFF)
         assertEquals("none", off["reasoning"]!!.jsonObject["effort"]!!.jsonPrimitive.content)
     }
 

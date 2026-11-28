@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.feature.settings.components
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -34,8 +35,8 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.reflect.KClass
-import heizige.kk.khatkit.app.core.ui.icons.visibility
-import heizige.kk.khatkit.app.core.ui.icons.visibilityOff
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibility
+import heizige.kk.khatkit.app.core.ui.icons.utility.visibilityOff
 import ui.feice.mochi.basic.MochiButtonStyle
 import ui.feice.mochi.basic.MochiIconButton
 import ui.feice.mochi.basic.MochiListTextFieldRow
@@ -48,6 +49,8 @@ import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.list.mochiListDivider
 import ui.feice.mochi.theme.MochiTheme
+import heizige.kk.khatkit.app.feature.settings.helper.convertTo
+import heizige.kk.khatkit.app.feature.settings.helper.isValidBaseUrl
 
 /**
  * 提供商的连接配置，按 Mochi 设置页的分组卡片排：接口类型 / 连接 / 选项（各类型再加自己的分组）。
@@ -67,7 +70,7 @@ fun ProviderConfigure(
 
         if (!provider.builtIn) {
             val types = ProviderSetting.Types
-            MochiListSection(header = "接口类型") {
+            MochiListSection(header = stringResource(R.string.setting_provider_page_interface_type)) {
                 ProviderSectionBlock {
                     MochiSegmentedControl(
                         selectedIndex = types.indexOf(provider::class).coerceAtLeast(0),
@@ -144,7 +147,7 @@ private fun SecretFieldRow(
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
             label = label,
-            placeholder = "必填",
+            placeholder = stringResource(R.string.setting_provider_page_required),
             secure = !visible,
             // 打码时按单行显示圆点；明文时私钥这类长内容可以换行
             singleLine = !(multiLine && visible),
@@ -159,141 +162,18 @@ private fun SecretFieldRow(
         ) {
             Icon(
                 imageVector = if (visible) visibilityOff else visibility,
-                contentDescription = if (visible) "隐藏" else "显示",
+                contentDescription = if (visible) stringResource(R.string.a11y_hide) else stringResource(R.string.a11y_show),
                 tint = MochiTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
         }
     }
 }
-
-fun ProviderSetting.convertTo(type: KClass<out ProviderSetting>): ProviderSetting {
-    if (this::class == type) return this
-
-    val apiKey = when (this) {
-        is ProviderSetting.OpenAI -> this.apiKey
-        is ProviderSetting.Google -> this.apiKey
-        is ProviderSetting.Claude -> this.apiKey
-        is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
-    }
-    val sourceBaseUrl = when (this) {
-        is ProviderSetting.OpenAI -> this.baseUrl
-        is ProviderSetting.Google -> this.baseUrl
-        is ProviderSetting.Claude -> this.baseUrl
-        is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
-    }
-    val targetDefaultBaseUrl = when (type) {
-        ProviderSetting.OpenAI::class -> ProviderSetting.OpenAI().baseUrl
-        ProviderSetting.Google::class -> ProviderSetting.Google().baseUrl
-        ProviderSetting.Claude::class -> ProviderSetting.Claude().baseUrl
-        else -> error("Unsupported provider type: $type")
-    }
-    val convertedBaseUrl = sourceBaseUrl.convertToTargetBaseUrl(targetDefaultBaseUrl)
-
-    return when (type) {
-        ProviderSetting.OpenAI::class -> ProviderSetting.OpenAI(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, customHeaders = this.customHeaders, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
-        )
-        ProviderSetting.Google::class -> ProviderSetting.Google(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, customHeaders = this.customHeaders, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl,
-            useInteractionsApi = (this as? ProviderSetting.Google)?.useInteractionsApi ?: false,
-        )
-        ProviderSetting.Claude::class -> ProviderSetting.Claude(
-            id = this.id, enabled = this.enabled, name = this.name, models = this.models,
-            balanceOption = this.balanceOption, customHeaders = this.customHeaders, builtIn = this.builtIn,
-            description = this.description, shortDescription = this.shortDescription,
-            apiKey = apiKey, baseUrl = convertedBaseUrl
-        )
-        else -> error("Unsupported provider type: $type")
-    }
-}
-
-internal fun ProviderSetting.defaultBaseUrlForReset(): String {
-    val defaultProvider = DEFAULT_PROVIDERS.find { it.id == id }
-    if (defaultProvider != null) {
-        when (this) {
-            is ProviderSetting.OpenAI -> if (defaultProvider is ProviderSetting.OpenAI) return defaultProvider.baseUrl
-            is ProviderSetting.Google -> if (defaultProvider is ProviderSetting.Google) return defaultProvider.baseUrl
-            is ProviderSetting.Claude -> if (defaultProvider is ProviderSetting.Claude) return defaultProvider.baseUrl
-            is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> Unit
-        }
-    }
-    return when (this) {
-        is ProviderSetting.OpenAI -> ProviderSetting.OpenAI().baseUrl
-        is ProviderSetting.Google -> ProviderSetting.Google().baseUrl
-        is ProviderSetting.Claude -> ProviderSetting.Claude().baseUrl
-        // 账号类提供商地址写死，没有可重置的 baseUrl
-        is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
-    }
-}
-
-internal fun ProviderSetting.resetBaseUrlToDefault(): ProviderSetting {
-    val defaultBaseUrl = defaultBaseUrlForReset()
-    return when (this) {
-        is ProviderSetting.OpenAI -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.Google -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.Claude -> this.copy(baseUrl = defaultBaseUrl)
-        is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> this
-    }
-}
-
-internal fun ProviderSetting.isUsingDefaultBaseUrl(): Boolean {
-    val baseUrl = when (this) {
-        is ProviderSetting.OpenAI -> this.baseUrl
-        is ProviderSetting.Google -> this.baseUrl
-        is ProviderSetting.Claude -> this.baseUrl
-        is ProviderSetting.ChatGPT, is ProviderSetting.Grok -> ""
-    }
-    return baseUrl == defaultBaseUrlForReset()
-}
-
-private fun String.convertToTargetBaseUrl(targetDefaultBaseUrl: String): String {
-    val sourceUrl = this.toHttpUrlOrNull() ?: return this
-    val sourceHost = sourceUrl.host.lowercase()
-    if (sourceHost in OFFICIAL_PROVIDER_HOSTS) return targetDefaultBaseUrl
-    val targetUrl = targetDefaultBaseUrl.toHttpUrlOrNull() ?: return this
-    val convertedPath = sourceUrl.encodedPath.convertToTargetPath(targetUrl.encodedPath)
-    return sourceUrl.newBuilder().encodedPath(convertedPath).build().toString()
-}
-
-private fun String.convertToTargetPath(targetPath: String): String {
-    val source = this.normalizePath()
-    val target = targetPath.normalizePath()
-    val replaced = when {
-        source.lowercase().endsWith(V1_BETA_SUFFIX) -> source.dropLast(V1_BETA_SUFFIX.length) + target
-        source.lowercase().endsWith(V1_SUFFIX) -> source.dropLast(V1_SUFFIX.length) + target
-        source.isBlank() -> target
-        else -> source + target
-    }
-    return replaced.normalizePath()
-}
-
-private fun String.normalizePath(): String {
-    val value = this.trim()
-    if (value.isEmpty() || value == "/") return ""
-    val path = if (value.startsWith("/")) value else "/$value"
-    return path.trimEnd('/')
-}
-
-private fun String.isValidBaseUrl(): Boolean = this.toHttpUrlOrNull() != null
-
-private const val OPENAI_OFFICIAL_HOST = "api.openai.com"
-private const val GOOGLE_OFFICIAL_HOST = "generativelanguage.googleapis.com"
-private const val CLAUDE_OFFICIAL_HOST = "api.anthropic.com"
-private const val V1_SUFFIX = "/v1"
-private const val V1_BETA_SUFFIX = "/v1beta"
-private val OFFICIAL_PROVIDER_HOSTS = setOf(
-    OPENAI_OFFICIAL_HOST,
-    GOOGLE_OFFICIAL_HOST,
-    CLAUDE_OFFICIAL_HOST
-)
-
+internal const val OPENAI_OFFICIAL_HOST = "api.openai.com"
+internal const val GOOGLE_OFFICIAL_HOST = "generativelanguage.googleapis.com"
+internal const val CLAUDE_OFFICIAL_HOST = "api.anthropic.com"
+internal const val V1_SUFFIX = "/v1"
+internal const val V1_BETA_SUFFIX = "/v1beta"
 /**
  * 离开编辑面（输入框失焦）时把提供商 `name` 规范化成 `trim()` 后的值并落库**一次**。
  *
@@ -312,6 +192,7 @@ private val OFFICIAL_PROVIDER_HOSTS = setOf(
  * - **无差异不提交**：失焦、重组都会派发焦点事件，`trim()` 结果与当前值相同就直接返回，
  *   不产生无意义的落库 / 重组。
  */
+
 private fun Modifier.normalizeNameOnBlur(
     name: String,
     onCommit: (String) -> Unit,
@@ -329,7 +210,7 @@ private fun NameFieldRow(name: String, onCommit: (String) -> Unit) {
         onValueChange = onCommit,
         modifier = Modifier.normalizeNameOnBlur(name, onCommit),
         label = stringResource(R.string.setting_provider_page_name),
-        placeholder = "提供商名称",
+        placeholder = stringResource(R.string.setting_provider_page_name_placeholder),
         labelWidth = ProviderLabelWidth,
     )
 }
@@ -339,7 +220,7 @@ private fun BaseUrlFieldRow(value: String, placeholder: String, onValueChange: (
     MochiListTextFieldRow(
         value = value,
         onValueChange = onValueChange,
-        label = "Base URL",
+        label = stringResource(R.string.setting_provider_page_base_url),
         placeholder = placeholder,
         labelWidth = ProviderLabelWidth,
     )
@@ -352,8 +233,8 @@ private fun ProviderConfigureOpenAI(
 ) {
     val invalidUrl = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl()
     MochiListSection(
-        header = "连接",
-        footer = if (invalidUrl) "Base URL 格式不正确" else null,
+        header = stringResource(R.string.setting_provider_page_connection),
+        footer = if (invalidUrl) stringResource(R.string.setting_provider_page_base_url_invalid) else null,
     ) {
         NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
         SecretFieldRow(
@@ -382,7 +263,7 @@ private fun ProviderConfigureOpenAI(
     }
 
     val responseAPIWarning = stringResource(R.string.setting_provider_page_response_api_warning)
-    MochiListSection(header = "选项") {
+    MochiListSection(header = stringResource(R.string.setting_provider_page_options)) {
         ProviderSwitchRow(
             title = stringResource(R.string.setting_provider_page_enable),
             checked = provider.enabled,
@@ -390,7 +271,7 @@ private fun ProviderConfigureOpenAI(
         )
         ProviderSwitchRow(
             title = stringResource(R.string.setting_provider_page_response_api),
-            subtitle = "使用 /responses 接口代替 /chat/completions",
+            subtitle = stringResource(R.string.setting_provider_page_responses_api_desc),
             checked = provider.useResponseApi,
             onCheckedChange = {
                 onEdit(provider.copy(useResponseApi = it))
@@ -414,8 +295,8 @@ private fun ProviderConfigureClaude(
 ) {
     val invalidUrl = provider.baseUrl.isNotBlank() && !provider.baseUrl.isValidBaseUrl()
     MochiListSection(
-        header = "连接",
-        footer = if (invalidUrl) "Base URL 格式不正确" else null,
+        header = stringResource(R.string.setting_provider_page_connection),
+        footer = if (invalidUrl) stringResource(R.string.setting_provider_page_base_url_invalid) else null,
     ) {
         NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
         SecretFieldRow(
@@ -433,7 +314,7 @@ private fun ProviderConfigureClaude(
         stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_5m),
         stringResource(R.string.setting_provider_page_claude_prompt_cache_ttl_1h),
     )
-    MochiListSection(header = "选项") {
+    MochiListSection(header = stringResource(R.string.setting_provider_page_options)) {
         ProviderSwitchRow(
             title = stringResource(R.string.setting_provider_page_enable),
             checked = provider.enabled,
@@ -461,6 +342,7 @@ private fun ProviderConfigureGoogle(
     onEdit: (provider: ProviderSetting.Google) -> Unit
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val serviceAccountJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -478,20 +360,20 @@ private fun ProviderConfigureGoogle(
                     privateKey = json["private_key"]?.jsonPrimitive?.contentOrNull?.ifEmpty { null } ?: provider.privateKey,
                 )
             )
-            Toast.show("Service account imported", isError = false)
+            Toast.show(resources.getString(R.string.setting_provider_page_service_account_imported), isError = false)
         } catch (e: Exception) {
-            Toast.show("Failed to import: ${e.message}", isError = true)
+            Toast.show(resources.getString(R.string.setting_provider_page_import_failed, e.message ?: ""), isError = true)
         }
     }
 
     val serviceAccount = provider.vertexAI && provider.useServiceAccount
     val urlFooter = when {
         provider.vertexAI || provider.baseUrl.isBlank() -> null
-        !provider.baseUrl.isValidBaseUrl() -> "Base URL 格式不正确"
-        !provider.baseUrl.endsWith("/v1beta") -> "Base URL 通常以 /v1beta 结尾"
+        !provider.baseUrl.isValidBaseUrl() -> stringResource(R.string.setting_provider_page_base_url_invalid)
+        !provider.baseUrl.endsWith("/v1beta") -> stringResource(R.string.setting_provider_page_base_url_v1beta_hint)
         else -> null
     }
-    MochiListSection(header = "连接", footer = urlFooter) {
+    MochiListSection(header = stringResource(R.string.setting_provider_page_connection), footer = urlFooter) {
         NameFieldRow(provider.name) { onEdit(provider.copy(name = it)) }
         if (!serviceAccount) {
             SecretFieldRow(
@@ -507,7 +389,7 @@ private fun ProviderConfigureGoogle(
         }
     }
 
-    MochiListSection(header = "选项") {
+    MochiListSection(header = stringResource(R.string.setting_provider_page_options)) {
         ProviderSwitchRow(
             title = stringResource(R.string.setting_provider_page_enable),
             checked = provider.enabled,
@@ -515,8 +397,8 @@ private fun ProviderConfigureGoogle(
         )
         if (!provider.vertexAI) {
             ProviderSwitchRow(
-                title = "Interactions API",
-                subtitle = "Beta",
+                title = stringResource(R.string.setting_provider_page_interactions_api),
+                subtitle = stringResource(R.string.setting_provider_page_beta),
                 checked = provider.useInteractionsApi,
                 onCheckedChange = { onEdit(provider.copy(useInteractionsApi = it)) },
             )
@@ -536,11 +418,11 @@ private fun ProviderConfigureGoogle(
     }
 
     if (serviceAccount) {
-        MochiListSection(header = "服务账号") {
+        MochiListSection(header = stringResource(R.string.setting_provider_page_service_account)) {
             MochiListTextFieldRow(
                 value = provider.serviceAccountEmail,
                 onValueChange = { onEdit(provider.copy(serviceAccountEmail = it.trim())) },
-                label = "邮箱",
+                label = stringResource(R.string.setting_provider_page_email),
                 placeholder = stringResource(R.string.setting_provider_page_service_account_email),
                 labelWidth = ProviderLabelWidth,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -556,7 +438,7 @@ private fun ProviderConfigureGoogle(
             MochiListTextFieldRow(
                 value = provider.location,
                 onValueChange = { onEdit(provider.copy(location = it.trim())) },
-                label = "区域",
+                label = stringResource(R.string.setting_provider_page_region),
                 placeholder = "us-central1",
                 labelWidth = ProviderLabelWidth,
             )

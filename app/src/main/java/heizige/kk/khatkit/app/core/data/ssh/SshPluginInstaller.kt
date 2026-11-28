@@ -101,7 +101,7 @@ object SshPluginInstaller {
                         itemId = itemId,
                         installedAt = System.currentTimeMillis(),
                     )
-                    SshPluginStore(context).write(record)
+                    SshPluginRepository(context).write(record)
                     SshPluginLoader.invalidate()
                     record
                 } finally {
@@ -116,7 +116,7 @@ object SshPluginInstaller {
         val root = pluginsRoot(context)
         val targets = if (version == null) root.listFiles()?.toList().orEmpty() else listOf(versionDir(context, version))
         val ok = targets.all { dir -> !dir.exists() || dir.deleteRecursively() }
-        SshPluginStore(context).clear()
+        SshPluginRepository(context).clear()
         SshPluginLoader.invalidate()
         ok
     }

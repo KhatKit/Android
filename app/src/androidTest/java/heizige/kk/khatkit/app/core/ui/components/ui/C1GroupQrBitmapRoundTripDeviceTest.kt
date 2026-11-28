@@ -1,5 +1,6 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
+import heizige.kk.khatkit.app.feature.settings.components.ui.encodeQrBitmap
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -8,15 +9,15 @@ import androidx.core.content.IntentCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.zxing.WriterException
-import heizige.kk.khatkit.app.core.data.ai.tavern.TavernChatCodec
+import heizige.kk.khatkit.app.feature.chat.data.TavernChatCodec
 import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.model.GroupConfig
 import heizige.kk.khatkit.app.core.data.model.GroupImportResult
 import heizige.kk.khatkit.app.core.data.model.GroupRole
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.core.data.model.RoleCardMeta
-import heizige.kk.khatkit.app.feature.chat.GROUP_EXPORT_MIME_TYPE
-import heizige.kk.khatkit.app.feature.chat.writeExportTempFile
+import heizige.kk.khatkit.app.feature.chat.data.GROUP_EXPORT_MIME_TYPE
+import heizige.kk.khatkit.app.feature.chat.helper.writeExportTempFile
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.common.android.appTempFolder
 import kotlinx.serialization.json.Json
@@ -35,6 +36,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.util.concurrent.TimeUnit
+import heizige.kk.khatkit.app.feature.settings.components.ui.QRCodeDecoder
+
+
 
 /**
  * C1-09「二维码位图往返」的**真机端到端**闭环（不需要摄像头）。

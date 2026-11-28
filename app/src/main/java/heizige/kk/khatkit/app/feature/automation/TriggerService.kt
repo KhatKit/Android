@@ -23,17 +23,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import heizige.kk.khatkit.app.feature.automation.data.TriggerEventSources
-import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmScheduler
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerEventManager
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerAlarmHelper
+import heizige.kk.khatkit.app.feature.automation.helper.TriggerManager
 
 /**
  * 事件触发前台服务：用户在主开关打开后启动。
  *
- * - 分钟级 schedule 由 [TriggerExactAlarmScheduler] 精确闹钟唤醒（ACTION_ALARM）；
+ * - 分钟级 schedule 由 [TriggerAlarmHelper] 精确闹钟唤醒（ACTION_ALARM）；
  *   每 60s tick 一次作为兜底（interval 模式 / 无精确闹钟权限时）
  * - 每秒 tick 一次失败重试队列
  * - 每 ~1s 轮询无障碍 bridge 的前台包名，检测 app_launch / app_exit（退出带去抖）
- * - Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置由 [TriggerEventSources] 投递
+ * - Wi-Fi / 网络 / 电量 / 屏幕 / 剪贴板 / 蓝牙 / 位置由 [TriggerEventManager] 投递
  *
  * 通知由 NotificationListenerService 独立投递（不需要本服务）。
  */
@@ -41,11 +42,11 @@ import heizige.kk.khatkit.app.feature.automation.helper.TriggerExactAlarmSchedul
 class TriggerService : Service() {
 
     @Inject
-    lateinit var controller: TriggerController
+    lateinit var controller: TriggerManager
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var loopJob: Job? = null
-    private var sources: TriggerEventSources? = null
+    private var sources: TriggerEventManager? = null
 
     @Volatile
     private var lastForegroundPackage: String? = null
@@ -62,9 +63,9 @@ class TriggerService : Service() {
                 return START_NOT_STICKY
             }
 
-            TriggerExactAlarmScheduler.ACTION_ALARM -> {
+            TriggerAlarmHelper.ACTION_ALARM -> {
                 if (!controller.settings.masterEnabled) {
-                    TriggerExactAlarmScheduler.cancel(this)
+                    TriggerAlarmHelper.cancel(this)
                     stopSelf()
                     return START_NOT_STICKY
                 }
@@ -83,7 +84,7 @@ class TriggerService : Service() {
         }
         startSources()
         startLoop()
-        if (intent?.action == TriggerExactAlarmScheduler.ACTION_ALARM) {
+        if (intent?.action == TriggerAlarmHelper.ACTION_ALARM) {
             // 精确闹钟唤醒：立即按当前分钟 tick 一次并重排下一次
             runCatching { controller.engine.tickSchedule() }
                 .onFailure { Log.e(TAG, "exact alarm tick failed", it) }
@@ -104,7 +105,7 @@ class TriggerService : Service() {
 
     private fun startSources() {
         if (sources != null) return
-        sources = TriggerEventSources(this, controller.engine, serviceScope).also { it.start() }
+        sources = TriggerEventManager(this, controller.engine, serviceScope).also { it.start() }
     }
 
     private fun startLoop() {
@@ -154,7 +155,7 @@ class TriggerService : Service() {
     }
 
     private fun startForegroundCompat(): Boolean = try {
-        TriggerController.ensureChannel(this)
+        TriggerManager.ensureChannel(this)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceCompat.startForeground(
                 this,
@@ -181,7 +182,7 @@ class TriggerService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         }
-        return NotificationCompat.Builder(this, TriggerController.CHANNEL_ID)
+        return NotificationCompat.Builder(this, TriggerManager.CHANNEL_ID)
             .setSmallIcon(R.drawable.small_icon)
             .setContentTitle(getString(R.string.trigger_service_notification_title))
             .setContentText(getString(R.string.trigger_service_notification_text))

@@ -1,0 +1,105 @@
+package heizige.kk.khatkit.app.feature.chat.helper
+
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.ai.ui.isEmptyInputMessage
+import kotlin.uuid.Uuid
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueuePausedException
+import heizige.kk.khatkit.app.feature.chat.data.MessageQueueState
+import heizige.kk.khatkit.app.feature.chat.data.QueuedMessage
+
+
+
+class MessageQueueManager {
+    private val mutableState = MutableStateFlow(MessageQueueState())
+    val state = mutableState.asStateFlow()
+
+    @Synchronized
+    fun enqueue(parts: List<UIMessagePart>, answer: Boolean = true, reply: CompletableDeferred<String?>? = null) {
+        if (parts.isEmptyInputMessage()) {
+            reply?.complete(null)
+            return
+        }
+        mutableState.value = state.value.copy(
+            messages = state.value.messages + QueuedMessage(
+                parts = parts.toList(),
+                answer = answer,
+                reply = reply,
+            ),
+        )
+    }
+
+    @Synchronized
+    fun takeNext(): QueuedMessage? {
+        val current = state.value
+        if (current.paused) return null
+        val next = current.messages.firstOrNull()?.takeUnless { it.isEditing } ?: return null
+        mutableState.value = current.copy(messages = current.messages.drop(1))
+        return next
+    }
+
+    @Synchronized
+    fun remove(id: Uuid): QueuedMessage? {
+        val removed = state.value.messages.find { it.id == id } ?: return null
+        mutableState.value =
+            state.value.copy(messages = state.value.messages.filterNot { it.id == id })
+        removed.reply?.complete(null)
+        return removed
+    }
+
+    /** 插队：把指定消息移到队首，让它在其它待发送消息之前被取出。 */
+    @Synchronized
+    fun promote(id: Uuid): QueuedMessage? {
+        val current = state.value
+        val message = current.messages.find { it.id == id } ?: return null
+        if (current.messages.firstOrNull()?.id == id) return message
+        mutableState.value = current.copy(
+            messages = listOf(message) + current.messages.filterNot { it.id == id },
+        )
+        return message
+    }
+
+    @Synchronized
+    fun beginEdit(id: Uuid): QueuedMessage? {
+        val message = state.value.messages.find { it.id == id && !it.isEditing } ?: return null
+        mutableState.value = state.value.copy(
+            messages = state.value.messages.map { if (it.id == id) it.copy(isEditing = true) else it },
+        )
+        return message
+    }
+
+    @Synchronized
+    fun finishEdit(id: Uuid, parts: List<UIMessagePart>? = null): QueuedMessage? {
+        if (parts != null && parts.isEmptyInputMessage()) return null
+        val previous = state.value.messages.find { it.id == id } ?: return null
+        mutableState.value = state.value.copy(
+            messages = state.value.messages.map {
+                if (it.id == id) it.copy(
+                    parts = parts?.toList() ?: it.parts,
+                    isEditing = false
+                ) else it
+            },
+        )
+        // 取消编辑只释放占位，不能清理原附件。
+        return previous.takeIf { parts != null }
+    }
+
+    @Synchronized
+    fun pause() {
+        mutableState.value = state.value.copy(paused = true)
+        state.value.messages.forEach { it.reply?.completeExceptionally(MessageQueuePausedException()) }
+    }
+
+    fun failReplyWaiters(message: String) {
+        state.value.messages.forEach {
+            it.reply?.completeExceptionally(IllegalStateException(message))
+        }
+    }
+
+    @Synchronized
+    fun resume() {
+        mutableState.value = state.value.copy(paused = false)
+    }
+}

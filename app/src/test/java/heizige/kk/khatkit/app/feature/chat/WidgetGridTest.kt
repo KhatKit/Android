@@ -6,6 +6,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import heizige.kk.khatkit.app.feature.chat.data.GridSlot
+import heizige.kk.khatkit.app.feature.chat.data.WidgetCells
+import heizige.kk.khatkit.app.feature.chat.data.WidgetGridGeometry
+import heizige.kk.khatkit.app.feature.chat.data.WidgetSizeLimits
+import heizige.kk.khatkit.app.feature.chat.helper.packWidgets
+import heizige.kk.khatkit.app.feature.chat.helper.resizeTarget
+import heizige.kk.khatkit.app.feature.chat.helper.widgetRects
+
+
 
 class WidgetGridTest {
     private fun cells(w: Int, h: Int) = WidgetCells(w, h)
