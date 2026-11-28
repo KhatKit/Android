@@ -233,6 +233,8 @@ import androidx.compose.ui.util.lerp
 import ui.feice.mochi.basic.MochiIconButton as MochiRealIconButton
 import ui.feice.mochi.basic.MochiTextFieldDefaults
 import ui.feice.mochi.basic.MochiButtonStyle
+import ui.feice.mochi.basic.MochiButtonDefaults
+import ui.feice.mochi.effect.elastic.mochiPressDeform
 import kotlinx.collections.immutable.toPersistentList
 import ui.feice.mochi.basic.MochiAlign
 import ui.feice.mochi.basic.MochiDropdownDefaults
@@ -793,7 +795,10 @@ fun ChatInput(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         ComposerGlass(
-                            modifier = Modifier.size(MochiTextFieldDefaults.Height)
+                            modifier = Modifier
+                                .size(MochiTextFieldDefaults.Height)
+                                // 玻璃底板在按钮外层；把 Mochi 的按压形变挂到整块容器上，避免只缩放透明图标按钮。
+                                .mochiPressDeform(scale = 1.08f, follow = 4.dp)
                                 .onGloballyPositioned { coords ->
                                     if (!editorOpen || fabBounds == Rect.Zero) {
                                         fabBounds = Rect(coords.localToWindow(Offset.Zero), coords.size.toSize())
@@ -811,6 +816,8 @@ fun ChatInput(
                                 },
                                 size = MochiTextFieldDefaults.Height,
                                 style = MochiButtonStyle.Text,
+                                // 由外层玻璃容器承接缩放，内部按钮保留 Mochi 高光但不再重复形变。
+                                behavior = MochiButtonDefaults.behavior(pressScale = 1f, follow = 0.dp),
                             ) {
                                 Icon(
                                     imageVector = add,
