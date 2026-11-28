@@ -21,6 +21,7 @@ import ui.feice.mochi.theme.mochiGlassMaterials
 import ui.feice.mochi.theme.ColorSchemeMode
 import ui.feice.mochi.theme.DefaultKeyColor
 import ui.feice.mochi.theme.MochiMaterials
+import ui.feice.mochi.theme.MochiScrollEdge
 import ui.feice.mochi.theme.MochiHdr
 import ui.feice.mochi.theme.LocalMochiControlPalette
 import ui.feice.mochi.theme.defaultTextStyles
@@ -67,15 +68,16 @@ internal fun mochiAppearanceMaterials(
     glassStyle: MochiGlassStyle,
     tint: Float,
     dark: Boolean,
+    scrollEdge: MochiScrollEdge,
 ): MochiMaterials {
-    if (!glassEnabled) return MochiMaterials()
+    if (!glassEnabled) return MochiMaterials(scrollEdge = scrollEdge)
     val glass = MochiGlass(
         style = glassStyle,
         tint = (if (dark) Color.Black else Color.White)
             .copy(alpha = tint.coerceIn(0f, 1f) * 0.32f)
             .takeIf { it.alpha > 0f },
     )
-    return mochiGlassMaterials(glass, scrollEdge = null)
+    return mochiGlassMaterials(glass, scrollEdge = scrollEdge)
 }
 
 /**
@@ -230,12 +232,15 @@ fun KhatKitTheme(
     val effectsEnabled = display.effectsEnabled
     val glassButtons = effectsEnabled && display.glassButtons
     val glassStyle = display.resolvedMochiGlassStyle
-    val mochiMaterials = remember(effectsEnabled, glassStyle, display.glassTint, darkTheme) {
+    val mochiMaterials = remember(effectsEnabled, glassStyle, display.glassTint, darkTheme, display.mochiTopBarStyle) {
         mochiAppearanceMaterials(
             glassEnabled = effectsEnabled,
             glassStyle = glassStyle,
             tint = display.glassTint,
             dark = darkTheme,
+            // 顶栏样式（实心 / 渐变模糊 / 毛玻璃 / 半透明）→ 材质里的滚动边缘参数；
+            // 不传 null 才能让栏下渐进模糊生效
+            scrollEdge = MochiScrollEdge.of(display.mochiTopBarStyle),
         )
     }
     // Mochi falls back from control to bar when control is null. Bottom navigation

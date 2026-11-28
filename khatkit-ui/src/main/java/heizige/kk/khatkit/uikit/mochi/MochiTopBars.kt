@@ -120,7 +120,9 @@ fun MochiLargeTitleTopBar(
     val visibility = titleVisibility().coerceIn(0f, 1f)
     val expanded = (1f - collapsed) * visibility
     Column(
-        modifier = modifier.fillMaxWidth().background(background),
+        // 不在这里铺不透明底色：栏底色由 backgroundProgress 随大标题收起淡入，
+        // 否则栏把下面内容盖死，「顶栏样式」的渐进模糊永远看不见
+        modifier = modifier.fillMaxWidth(),
     ) {
         MochiTitleBar(
             title = title,
@@ -130,7 +132,7 @@ fun MochiLargeTitleTopBar(
             background = background,
             barHeight = barHeight,
             titleProgress = { collapsed * visibility },
-            backgroundProgress = { 0f },
+            backgroundProgress = { collapsed },
             backdrop = backdrop,
         )
         Column(
