@@ -11,19 +11,18 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import heizige.kk.khatkit.ai.core.ReasoningLevel
 import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ModelType
@@ -52,27 +51,29 @@ import ui.feice.mochi.list.MochiListSliderRow
 @Composable
 fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val pagerState = rememberPagerState { 2 }
-    val scope = rememberCoroutineScope()
+    val navPages = rememberMochiNavPagesState(2)
     val modelList = rememberLazyListState()
     val promptList = rememberLazyListState()
     MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_model_page_title),
         rail = {
             MochiNavBottomBar(listOf(
-                MochiNavTab(neurology, stringResource(R.string.setting_model_page_tab_model), pagerState.currentPage == 0) {
-                    scope.launch { pagerState.animateScrollToPage(0) }
+                MochiNavTab(neurology, stringResource(R.string.setting_model_page_tab_model), navPages.currentPage == 0) {
+                    navPages.select(0)
                 },
-                MochiNavTab(editNote, stringResource(R.string.setting_model_page_tab_prompt), pagerState.currentPage == 1) {
-                    scope.launch { pagerState.animateScrollToPage(1) }
+                MochiNavTab(editNote, stringResource(R.string.setting_model_page_tab_prompt), navPages.currentPage == 1) {
+                    navPages.select(1)
                 },
             ))
         },
     ) { padding ->
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        MochiNavPages(state = navPages, modifier = Modifier.fillMaxSize()) { page ->
             when (page) {
                 0 -> ModelSettingsPage(settings, vm, padding, modelList)
-                1 -> PromptSettingsPage(settings, vm, padding, promptList)
+                1 -> {
+                    MochiNavPageReselectHandler { promptList.animateScrollToItem(0) }
+                    PromptSettingsPage(settings, vm, padding, promptList)
+                }
             }
         }
     }
@@ -80,6 +81,7 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
 
 @Composable
 private fun ModelSettingsPage(settings: Settings, vm: SettingViewModel, contentPadding: PaddingValues, listState: LazyListState) {
+    MochiNavPageReselectHandler { listState.animateScrollToItem(0) }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),

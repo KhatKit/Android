@@ -75,7 +75,7 @@ diffutils = "4.17"
 snakeyaml = "2.7"
 shizuku = "13.1.5"
 # 本地源码库产物（mavenLocal，由 .github/scripts/build-mochi.sh 生成）
-mochi = "0.4.0-khatkit.2"
+mochi = "0.4.0-khatkit.3"
 richeditorCompose = "1.0.0"
 
 [libraries]

@@ -22,8 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,7 +52,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,9 +64,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import heizige.kk.khatkit.uikit.mochi.Toast
 import heizige.kk.khatkit.ai.provider.BuiltInTools
 import heizige.kk.khatkit.ai.provider.Modality
@@ -161,8 +159,7 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
 
     
 
-    val pager = rememberPagerState { 3 }
-    val scope = rememberCoroutineScope()
+    val navPages = rememberMochiNavPagesState(3)
 
     val context = LocalContext.current
 
@@ -203,10 +200,10 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
             MochiNavBottomBar(
                 items = tabs.mapIndexed { index, (icon, label) ->
                     MochiNavTab(
-                        selected = pager.currentPage == index,
+                        selected = navPages.currentPage == index,
                         icon = icon,
                         label = label,
-                        onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                        onClick = { navPages.select(index) },
                     )
                 },
             )
@@ -214,10 +211,10 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
         md3ScrollBehavior = null,
     ) { _ ->
         // 底栏浮在正文上：各页自己按 MochiTabScaffoldDefaults.contentBottomPadding() 在底部留白
-        HorizontalPager(
-            state = pager,
+        MochiNavPages(
+            state = navPages,
+            background = CustomColors.pageContainerColor,
             modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1,
         ) { page ->
             when (page) {
                 0 -> {
@@ -269,11 +266,13 @@ private fun SettingProviderAdvancedPage(
  */
 @Composable
 private fun ProviderPageColumn(content: @Composable ColumnScope.() -> Unit) {
+    val scrollState = rememberScrollState()
+    MochiNavPageReselectHandler { scrollState.animateScrollTo(0) }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(start = 16.dp, top = 16.dp, end = 16.dp)
             .padding(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
         verticalArrangement = Arrangement.spacedBy(ProviderSectionGap),
@@ -438,8 +437,11 @@ internal fun SettingProviderModelPage(
     provider: ProviderSetting,
     onEdit: (ProviderSetting) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    MochiNavPageReselectHandler { listState.animateScrollToItem(0) }
     ModelList(
         providerSetting = provider,
+        lazyListState = listState,
         onUpdateProvider = onEdit
     )
 }

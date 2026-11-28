@@ -1,40 +1,43 @@
 package heizige.kk.khatkit.uikit
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.ui.UiNode
 import heizige.kk.khatkit.ui.UiScreenPage
 import heizige.kk.khatkit.ui.UiSheetOptions
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withTimeoutOrNull
 import ui.feice.mochi.basic.MochiRefreshIndicator
-import ui.feice.mochi.basic.Text as MochiText
-import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.basic.MochiRefreshState
 import ui.feice.mochi.basic.mochiRefreshHold
 import ui.feice.mochi.basic.rememberMochiRefreshState
+import ui.feice.mochi.effect.overscroll.MochiOverscrollEffect
 import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.effect.overscroll.rememberMochiOverscrollEffect
+import ui.feice.mochi.navigation.MochiPeerTransition
+import ui.feice.mochi.navigation.MochiPeerTransitionSpec
+import ui.feice.mochi.theme.MochiDefaults
+import ui.feice.mochi.theme.MochiTheme
 
 /** Navigation stays entirely on the UI thread; Lua only handles real actions/data changes. */
 @Composable
@@ -48,201 +51,311 @@ internal fun PagedNodeTreePage(
     markdown: @Composable (String, Modifier) -> Unit,
     image: @Composable (String, String?, Modifier) -> Unit,
 ) {
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val focusManager = LocalFocusManager.current
     val navigation = options.navigation ?: return
-    val ids = navigation.items.map { it.event }
-    val initial = ids.indexOf(navigation.selected).coerceAtLeast(0)
-    val pager = rememberPagerState(initialPage = initial) { ids.size }
-    val scope = rememberCoroutineScope()
-    // 禁用页不能靠滑动进入（导航项 enabled = false 时仍然显示，但不能被滑到）：
-    // 滑到禁用页就弹回最近的可进入页。其余页一律允许原生横滑切页。
-    LaunchedEffect(pager.settledPage) {
-        if (navigation.items.getOrNull(pager.settledPage)?.enabled != false) return@LaunchedEffect
-        val fallback = navigation.items.indexOfFirst { it.enabled }
-        if (fallback >= 0 && fallback != pager.settledPage) pager.animateScrollToPage(fallback)
+    val pageIds = navigation.items.map { it.event }.filter { it in pages }
+    if (pageIds.isEmpty()) {
+        Box(Modifier.fillMaxSize())
+        return
     }
-    val lists = ids.map { id -> key(id) { rememberLazyListState() } }
-    val scrolls = ids.map { id -> key(id) { rememberScrollState() } }
-    val values = remember(ids) { ids.associateWith { mutableStateMapOf<String, Any?>() } }
-    val counterHosts = ids.associateWith { id -> key(id) { rememberCounterButtonHost() } }
-    // 拉刷新：动作发出去后等脚本回传的新一屏当作「刷新完成」（最多 8 秒），转圈才收回去。
-    var refreshWait by remember { mutableStateOf<CompletableDeferred<Unit>?>(null) }
-    LaunchedEffect(pages) {
-        refreshWait?.complete(Unit)
-        refreshWait = null
+    val enabledIds = navigation.items.filter { it.enabled && it.event in pages }.map { it.event }
+    val fallbackId = enabledIds.firstOrNull() ?: pageIds.first()
+    fun validSelection(id: String?): String? = id?.takeIf {
+        it in pageIds && (enabledIds.isEmpty() || it in enabledIds)
     }
-    // Data updates retain every tab's scroll/input state. A deliberate script
-    // selection (e.g. leaving settings) may still choose a different page.
-    LaunchedEffect(navigation.selected) {
-        val target = ids.indexOf(navigation.selected).coerceAtLeast(0)
-        if (pager.currentPage != target || pager.currentPageOffsetFraction != 0f) {
-            pager.animateScrollToPage(target, animationSpec = tween(260))
+    val requestedSelection = validSelection(navigation.selected)
+    // Persist the stable navigation event ID (not a pager index). Restored ids are re-validated
+    // through validSelection/activeId below; a removed or disabled id falls back to the first
+    // usable page. lastScriptSelection starts from the current script selection so a restored
+    // page is not mistaken for a script change and overwritten by the LaunchedEffect below.
+    var selectedId by rememberSaveable(stateSaver = SelectedPageIdSaver) {
+        mutableStateOf(requestedSelection ?: fallbackId)
+    }
+    var lastScriptSelection by remember { mutableStateOf(navigation.selected) }
+    val activeId = validSelection(selectedId) ?: requestedSelection ?: fallbackId
+    // Enabled pages now stay interactive during the Depth transition (readOnly is screen-level,
+    // not an animation frame). Clear focus when the committed page changes so a retained
+    // offscreen input cannot keep the IME or steal typing from the visible page.
+    LaunchedEffect(activeId) { focusManager.clearFocus() }
+    LaunchedEffect(pageIds, enabledIds, navigation.selected) {
+        val scriptChanged = lastScriptSelection != navigation.selected
+        selectedId = if (scriptChanged) {
+            requestedSelection ?: validSelection(selectedId) ?: fallbackId
+        } else {
+            validSelection(selectedId) ?: requestedSelection ?: fallbackId
+        }
+        lastScriptSelection = navigation.selected
+    }
+
+    // Every mutable page value is keyed by its stable navigation event, not list index.
+    // Keeping these hosts above the transition also preserves them if a page is temporarily
+    // removed from the transition's retained composition while its ID remains in the data set.
+    val lists = pageIds.associateWith { id -> key("list:$id") { rememberLazyListState() } }
+    val scrolls = pageIds.associateWith { id -> key("scroll:$id") { rememberScrollState() } }
+    val values = pageIds.associateWith { id ->
+        key("values:$id") { remember { mutableStateMapOf<String, Any?>() } }
+    }
+    val errors = pageIds.associateWith { id ->
+        key("errors:$id") { remember { mutableStateMapOf<String, String>() } }
+    }
+    val previousFields = pageIds.associateWith { id ->
+        key("fields:$id") { remember { mutableStateOf<Map<String, Any?>>(emptyMap()) } }
+    }
+    val counterHosts = pageIds.associateWith { id -> key("counter:$id") { rememberCounterButtonHost() } }
+    val refreshWaits = pageIds.associateWith { id ->
+        key("refresh-wait:$id") { remember { mutableStateOf<CompletableDeferred<Unit>?>(null) } }
+    }
+    val loadMoreSent = pageIds.associateWith { id ->
+        key("load-more:$id") { remember { mutableStateOf(false) } }
+    }
+    val loadMoreRoots = pageIds.associateWith { id ->
+        key("load-more-root:$id") { remember { mutableStateOf<UiNode?>(null) } }
+    }
+
+    // Each page owns its overscroll/refresh lifecycle independently of the selected page.
+    val refreshControllers = pageIds.associateWith { id ->
+        key("refresh:$id") {
+            val page = pages[id]
+            val overscroll = rememberMochiOverscrollEffect()
+            val pullEvent = options.pullRefreshEvent
+            val waitState = refreshWaits.getValue(id)
+            val refresh: (suspend () -> Unit)? = if (page != null && pullEvent != null && id in enabledIds) {
+                {
+                    val wait = CompletableDeferred<Unit>()
+                    waitState.value = wait
+                    try {
+                        onAction(
+                            pullEvent,
+                            page.root.collect(values.getValue(id)) + (UiScreenPage.PAGE_VALUE_KEY to id),
+                        )
+                        withTimeoutOrNull(8_000) { wait.await() }
+                    } finally {
+                        if (waitState.value === wait) waitState.value = null
+                    }
+                }
+            } else {
+                null
+            }
+            val state = rememberMochiRefreshState(
+                overscroll,
+                lists.getValue(id).takeIf { page?.root?.lazyScreenRoot() == true },
+                onRefresh = refresh,
+            )
+            PageRefreshController(overscroll, state, Modifier.mochiRefreshHold(state))
         }
     }
-    val activeId = ids[pager.settledPage]
+    // A card refresh returns a replacement tree. Complete each page's own spinner, without
+    // allowing an update to reset a different page's work-in-progress state.
+    LaunchedEffect(pages) {
+        pageIds.forEach { id ->
+            refreshWaits.getValue(id).value?.let { wait ->
+                wait.complete(Unit)
+                refreshWaits.getValue(id).value = null
+            }
+        }
+    }
+
     val activePage = pages.getValue(activeId)
     val activeValues = values.getValue(activeId)
-    fun action(event: String) = onAction(event,
-        activePage.root.collect(activeValues) + (UiScreenPage.PAGE_VALUE_KEY to activeId))
-    // 顶栏折叠：内容从栏下面开始，滚过一小段后栏里的小标题淡入、栏底色渐现。
-    // 注意 topInset 要在页面里读，见下面的 HorizontalPager。
+    fun action(event: String) {
+        if (activeId !in enabledIds) return
+        onAction(event, activePage.root.collect(activeValues) + (UiScreenPage.PAGE_VALUE_KEY to activeId))
+    }
+
     val density = LocalDensity.current
     val collapsePx = with(density) { 72.dp.toPx() }
-    fun pageScrollProgress(index: Int, edgePx: Float): Float {
-        val page = pages.getValue(ids[index])
+    fun pageScrollProgress(id: String, edgePx: Float): Float {
+        val page = pages[id] ?: return 0f
         val scroll = if (page.root.lazyScreenRoot()) {
-            val list = lists[index]
+            val list = lists[id] ?: return 0f
             if (list.firstVisibleItemIndex > 0) Float.MAX_VALUE / 4f
             else list.firstVisibleItemScrollOffset.toFloat()
         } else {
-            scrolls[index].value.toFloat()
+            scrolls[id]?.value?.toFloat() ?: 0f
         }
         return smoothstep(0f, edgePx, scroll)
     }
+    // MochiPeerTransition intentionally exposes no intermediate progress callback. The card's
+    // own title remains tied to the committed stable page and its vertical scroll state.
+    val titleProgress: () -> Float = { pageScrollProgress(activeId, collapsePx) }
 
-    /**
-     * `settledPage` changes only after a swipe crosses the snap point. Reading
-     * it directly made the top bar jump at that boundary: the outgoing page
-     * could be collapsed while the incoming page suddenly started expanded.
-     * Blend the two visible pages using the live pager offset so the bar follows
-     * the same horizontal gesture as the content.
-     */
-    fun pagedProgress(edgePx: Float): Float {
-        val from = pager.currentPage.coerceIn(0, ids.lastIndex)
-        val signedOffset = pager.currentPageOffsetFraction
-        val direction = if (signedOffset >= 0f) 1 else -1
-        val target = (from + direction).coerceIn(0, ids.lastIndex)
-        val fraction = (kotlin.math.abs(signedOffset) * 2f).coerceIn(0f, 1f)
-        val fromProgress = pageScrollProgress(from, edgePx)
-        val targetProgress = pageScrollProgress(target, edgePx)
-        return fromProgress + (targetProgress - fromProgress) * fraction
-    }
-
-    // 卡片页顶部本来就是页内大标题（page_title），栏里的小标题应当等大标题滚走后再渐现：
-    // 手指向上滑、内容向上滚过 collapsePx 才淡入；向下回到顶部则让位给正文标题。
-    // 横向切页时同时混合相邻页，
-    // 顶栏和页面内容保持同一条手势进度，避免在 settledPage 切换点突然跳变。
-    val titleProgress: () -> Float = { pagedProgress(collapsePx) }
-
-    KhatKitPage(
-        title = title,
-        imageVector = Icons.Default.Edit,
-        options = options.copy(loadMoreEvent = activePage.loadMoreEvent),
-        onDismiss = onDismiss,
-        onNavigate = { event ->
-            val target = ids.indexOf(event)
-            if (target >= 0) scope.launch { pager.animateScrollToPage(target, animationSpec = tween(220)) }
-            else action(event)
-        },
-        scrollKey = activeId,
-        contentKey = activePage.root,
-        lazyListState = lists[pager.settledPage].takeIf { activePage.root.lazyScreenRoot() },
-        pagerState = pager,
-        titleProgress = titleProgress,
-    ) {
-        // 翻页用 pager 自带的横向滚动（scrollable 参与嵌套滚动）：页内的横向控件
-        // （分段选择器、横向滚动区）先消费手势，空白处拖动才切页。之前用
-        // pointerInput + detectHorizontalDragGestures 全屏拦横拖，把页内所有横向交互一起吃掉。
-        HorizontalPager(
-            state = pager,
-            key = { ids[it] },
-            modifier = Modifier.fillMaxSize(),
-            // Keep adjacent lazy lists alive during a swipe. Each list still
-            // composes only its viewport, rather than rebuilding the chart as
-            // its page crosses the pager's composition boundary.
-            beyondViewportPageCount = 1,
-            userScrollEnabled = true,
-        ) { index ->
-            // 顶栏让出的高度由页面提供，必须在这里读，外面读到的是默认 0。
-            val topInset = LocalKhatKitContentTopInset.current
-            val id = ids[index]
-            val page = pages.getValue(id)
-            val pageValues = values.getValue(id)
-            val errors = remember(page.root) { mutableStateMapOf<String, String>() }
-            // 脚本重新出屏（page.root 换新）时，把「脚本改动过的字段值」写回宿主 state。
-            // 典型场景：卡片把剪贴板内容填进输入框——在此之前分页页的 values 只在用户输入时更新，
-            // 脚本改的值永远显示不出来。只同步与上一棵树不同的字段，用户正在输入的内容不会被盖掉。
-            val previousFields = remember(id) { mutableStateOf<Map<String, Any?>>(emptyMap()) }
-            LaunchedEffect(page.root) {
-                val current = page.root.initialValues()
-                if (previousFields.value.isEmpty()) {
-                    current.forEach { (field, value) ->
-                        if (!pageValues.containsKey(field)) pageValues[field] = value
-                    }
-                } else {
-                    current.forEach { (field, value) ->
-                        if (previousFields.value[field] != value) pageValues[field] = value
-                    }
-                }
-                previousFields.value = current
+    // Keep load-more page-scoped and active-only. A retained offscreen page must not fire when
+    // a script refresh changes its tree while that page is not selected.
+    LaunchedEffect(activeId, activePage.root, activePage.loadMoreEvent) {
+        val event = activePage.loadMoreEvent ?: return@LaunchedEffect
+        val sent = loadMoreSent.getValue(activeId)
+        val lastRoot = loadMoreRoots.getValue(activeId)
+        if (lastRoot.value != null && lastRoot.value !== activePage.root) sent.value = false
+        lastRoot.value = activePage.root
+        snapshotFlow {
+            if (activePage.root.lazyScreenRoot()) {
+                val layout = lists.getValue(activeId).layoutInfo
+                layout.totalItemsCount > 0 &&
+                    (layout.visibleItemsInfo.lastOrNull()?.index ?: -1) >= layout.totalItemsCount - 2
+            } else {
+                val scroll = scrolls.getValue(activeId)
+                scroll.maxValue > 0 && scroll.value >= scroll.maxValue - with(density) { 64.dp.toPx() }
             }
-            val submit: (String) -> Unit = { event ->
-                errors.clear()
-                errors.putAll(page.root.errors(pageValues))
-                val queuedCounter = page.root.walk().any { it.type == "CounterButton" && it.props["action"] == event }
-                if (errors.isEmpty() && (!pager.isScrollInProgress || queuedCounter)) {
-                    onAction(event, page.root.collect(pageValues) + (UiScreenPage.PAGE_VALUE_KEY to id))
-                }
-            }
-            val currentPicker = pickerHost.takeIf { pager.settledPage == index && !pager.isScrollInProgress }
-            DisposableEffect(currentPicker, id) {
-                currentPicker?.attach { field, value -> pageValues[field] = value }
-                onDispose { currentPicker?.detach() }
-            }
-            // Mochi 下拉刷新（UIRefreshControl）：每页自己一根越界弹簧 + 转圈，
-            // 拉过阈值轻震一下、不等松手就开刷；事件名由卡片声明（options.pullRefreshEvent）。
-            val pageOverscroll = rememberMochiOverscrollEffect()
-            val lazyList = lists[index].takeIf { page.root.lazyScreenRoot() }
-            val pullEvent = options.pullRefreshEvent
-            val refresh: (suspend () -> Unit)? = pullEvent?.let { ev ->
-                {
-                    val wait = CompletableDeferred<Unit>()
-                    refreshWait = wait
-                    onAction(ev, page.root.collect(pageValues) + (UiScreenPage.PAGE_VALUE_KEY to id))
-                    withTimeoutOrNull(8_000) { wait.await() }
-                    refreshWait = null
-                }
-            }
-            val refreshState = rememberMochiRefreshState(pageOverscroll, lazyList, onRefresh = refresh)
-            val hold = Modifier.mochiRefreshHold(refreshState)
-            Box(Modifier.fillMaxSize()) {
-                if (page.root.lazyScreenRoot()) {
-                    NodeTreeContent(page.root, pageValues, errors, currentPicker,
-                        readOnly = false, submit, markdown, image, lazyList,
-                        counterHost = counterHosts.getValue(id),
-                        overscroll = pageOverscroll,
-                        refreshHold = hold,
-                        contentTopInset = topInset)
-                } else {
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(
-                                scrolls[index],
-                                overscrollEffect = pageOverscroll,
-                                flingBehavior = MochiScrollDefaults.flingBehavior(),
-                            )
-                            .then(hold),
-                    ) {
-                        Spacer(Modifier.height(topInset))
-                        // Moving the pager must not toggle every control's enabled
-                        // colors. Gesture cancellation and submit above guard actions;
-                        // readOnly describes the screen, not an animation frame.
-                        NodeTreeContent(page.root, pageValues, errors, currentPicker,
-                            readOnly = false, submit, markdown, image, lazyList,
-                            counterHost = counterHosts.getValue(id),
-                            overscroll = pageOverscroll)
-                    }
-                }
-                // 转圈在「栏下沿」和「被拉下来的内容上沿」之间：栏让出的高度这里补上。
-                // 转圈在「顶栏下沿」和「被拉下来的内容上沿」之间：栏高之外再留 8dp 边距。
-                MochiRefreshIndicator(
-                    refreshState,
-                    Modifier.align(Alignment.TopCenter).padding(top = topInset + 8.dp),
+        }.distinctUntilChanged().collect { nearEnd ->
+            if (!nearEnd) {
+                sent.value = false
+            } else if (!sent.value && activeId in enabledIds) {
+                sent.value = true
+                onAction(
+                    event,
+                    activePage.root.collect(values.getValue(activeId)) + (UiScreenPage.PAGE_VALUE_KEY to activeId),
                 )
             }
         }
     }
+
+    val pageBackground = MochiDefaults.groupedBackground()
+    CompositionLocalProvider(LocalKhatKitPageNavigationSelection provides activeId) {
+        KhatKitPage(
+        title = title,
+        imageVector = Icons.Default.Edit,
+        // Load-more is observed here with stable per-page state instead of one tab's collector
+        // being left active behind all retained peer pages.
+        options = options.copy(loadMoreEvent = null),
+        onDismiss = onDismiss,
+        onNavigate = { event ->
+            when {
+                event in pageIds && event in enabledIds -> selectedId = event
+                event in pageIds -> Unit
+                else -> action(event)
+            }
+        },
+        scrollKey = activeId,
+        contentKey = activePage.root,
+        lazyListState = lists.getValue(activeId).takeIf { activePage.root.lazyScreenRoot() },
+        titleProgress = titleProgress,
+    ) {
+        MochiPeerTransition(
+            targetState = activeId,
+            modifier = Modifier.fillMaxSize(),
+            pages = enabledIds.takeIf { it.size > 1 },
+            onPageChange = { id -> if (id in enabledIds && id in pages) selectedId = id },
+            background = pageBackground,
+            backdrop = pageBackground,
+            spec = MochiPeerTransitionSpec.Depth,
+            retainPages = true,
+        ) { id ->
+            val page = pages[id]
+            if (page == null || id !in pageIds) {
+                // The library may retain a removed key until its interrupted transition settles.
+                // Never dereference stale card data while that outgoing layer is retired.
+                Box(Modifier.fillMaxSize())
+            } else {
+                val topInset = LocalKhatKitContentTopInset.current
+                val pageValues = values.getValue(id)
+                val pageErrors = errors.getValue(id)
+                val previousPageFields = previousFields.getValue(id)
+                val active = id == activeId && id in enabledIds
+                LaunchedEffect(page.root) {
+                    pageErrors.clear()
+                    val current = page.root.initialValues()
+                    if (previousPageFields.value.isEmpty()) {
+                        current.forEach { (field, value) ->
+                            if (!pageValues.containsKey(field)) pageValues[field] = value
+                        }
+                    } else {
+                        current.forEach { (field, value) ->
+                            if (previousPageFields.value[field] != value) pageValues[field] = value
+                        }
+                    }
+                    previousPageFields.value = current
+                }
+                LaunchedEffect(context, configuration) {
+                    if (pageErrors.isNotEmpty()) {
+                        val visibleFields = pageErrors.keys.toSet()
+                        val localized = page.root.errors(pageValues).filterKeys { it in visibleFields }
+                        pageErrors.clear()
+                        pageErrors.putAll(localized)
+                    }
+                }
+                val submit: (String) -> Unit = { event ->
+                    pageErrors.clear()
+                    pageErrors.putAll(page.root.errors(pageValues))
+                    if (active && pageErrors.isEmpty()) {
+                        onAction(event, page.root.collect(pageValues) + (UiScreenPage.PAGE_VALUE_KEY to id))
+                    }
+                }
+                val currentPicker = pickerHost.takeIf { active }
+                DisposableEffect(currentPicker, id) {
+                    currentPicker?.attach { field, value -> pageValues[field] = value }
+                    onDispose { currentPicker?.detach() }
+                }
+
+                val refresh = refreshControllers.getValue(id)
+                val lazyList = lists.getValue(id).takeIf { page.root.lazyScreenRoot() }
+                Box(Modifier.fillMaxSize()) {
+                    if (page.root.lazyScreenRoot()) {
+                        NodeTreeContent(
+                            page.root,
+                            pageValues,
+                            pageErrors,
+                            currentPicker,
+                            readOnly = id !in enabledIds,
+                            submit,
+                            markdown,
+                            image,
+                            lazyList,
+                            counterHost = counterHosts.getValue(id),
+                            overscroll = refresh.overscroll,
+                            refreshHold = refresh.hold,
+                            contentTopInset = topInset,
+                        )
+                    } else {
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(
+                                    scrolls.getValue(id),
+                                    overscrollEffect = refresh.overscroll,
+                                    flingBehavior = MochiScrollDefaults.flingBehavior(),
+                                )
+                                .then(refresh.hold),
+                        ) {
+                            Spacer(Modifier.height(topInset))
+                            NodeTreeContent(
+                                page.root,
+                                pageValues,
+                                pageErrors,
+                                currentPicker,
+                                readOnly = id !in enabledIds,
+                                submit,
+                                markdown,
+                                image,
+                                lazyList,
+                                counterHost = counterHosts.getValue(id),
+                                overscroll = refresh.overscroll,
+                            )
+                        }
+                    }
+                    MochiRefreshIndicator(
+                        refresh.state,
+                        Modifier.align(Alignment.TopCenter).padding(top = topInset + 8.dp),
+                    )
+                }
+            }
+        }
+    }
+    }
 }
+
+/** Saves only the stable event ID; the current page set validates it on restore. */
+private val SelectedPageIdSaver: Saver<String, String> = Saver(
+    save = { it },
+    restore = { it },
+)
+
+private data class PageRefreshController(
+    val overscroll: MochiOverscrollEffect,
+    val state: MochiRefreshState,
+    val hold: Modifier,
+)
 
 private fun smoothstep(edge0: Float, edge1: Float, x: Float): Float {
     if (edge1 <= edge0) return if (x >= edge1) 1f else 0f

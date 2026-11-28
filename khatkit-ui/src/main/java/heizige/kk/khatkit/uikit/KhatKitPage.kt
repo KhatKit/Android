@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
@@ -47,6 +48,8 @@ internal val LocalKhatKitContentTopInset = compositionLocalOf { 0.dp }
 val LocalKhatKitPageBack = staticCompositionLocalOf<(() -> Unit)?> { null }
 /** Inline page content for card routes that already own the outer title bar. */
 val LocalKhatKitPageInline = staticCompositionLocalOf { false }
+/** Selected card-page navigation event, supplied by the shared page host. */
+internal val LocalKhatKitPageNavigationSelection = staticCompositionLocalOf<String?> { null }
 
 /**
  * 卡片正文滚动进度的注册口（0 = 停在顶部，1 = 已滚过顶栏标题淡入距离）。
@@ -87,14 +90,16 @@ fun KhatKitPage(
     }
     val inline = LocalKhatKitPageInline.current
     val navigation = options.navigation?.takeIf { it.items.isNotEmpty() }
-    val selected = pagerState?.let { navigation?.items?.getOrNull(it.targetPage)?.event }
+    val selectedNavigationItem = LocalKhatKitPageNavigationSelection.current
+    val selected = selectedNavigationItem?.takeIf { id -> navigation?.items?.any { it.event == id } == true }
+        ?: pagerState?.let { navigation?.items?.getOrNull(it.targetPage)?.event }
         ?: navigation?.selected
     var navigationPending by remember(contentKey) { mutableStateOf(false) }
     var barHeight by remember { mutableStateOf(0) }
     var bottomHeight by remember { mutableStateOf(0) }
     val topInset = if (inline || options.hideTopBar) 0.dp else with(density) { barHeight.toDp() }
     val bottomInset = with(density) { bottomHeight.toDp() }
-    val paged = pagerState != null
+    val paged = pagerState != null || selectedNavigationItem != null
     val collapsibleTitle = !inline && !options.hideTopBar && options.largeTopBar && !paged
     val titleScroll = rememberMochiTitleScroll()
     val titleGestures = if (collapsibleTitle) Modifier.mochiTitleScroll(titleScroll) else Modifier
@@ -199,7 +204,7 @@ fun KhatKitPage(
                                 expanded = false
                                 overflowActions.getOrNull(index)?.let(onAction)
                             },
-                        ) { Icon(Icons.Default.MoreHoriz, contentDescription = "更多操作") }
+                        ) { Icon(Icons.Default.MoreHoriz, contentDescription = stringResource(R.string.khatkit_sheet_more_actions)) }
                     }
                 }
                 if (collapsibleTitle) {
@@ -247,9 +252,9 @@ fun KhatKitPage(
                 MochiNavigationBar(
                     selectedItem = selected ?: navigation.items.first().event,
                     onItemSelected = { event ->
-                        if ((pagerState != null || !navigationPending) && event != selected &&
+                        if ((pagerState != null || selectedNavigationItem != null || !navigationPending) && event != selected &&
                             navigation.items.any { it.event == event && it.enabled }) {
-                            if (pagerState == null) navigationPending = true
+                            if (pagerState == null && selectedNavigationItem == null) navigationPending = true
                             onNavigate(event)
                         }
                     },

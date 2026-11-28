@@ -31,8 +31,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import heizige.kk.khatkit.app.core.ui.components.ui.AppDialog
 import androidx.compose.material3.ButtonDefaults
@@ -54,7 +56,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -104,6 +105,7 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.KkSingleChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.KkMultiChoiceSegmentedRow
 import heizige.kk.khatkit.uikit.mochi.SegmentedItem
@@ -123,8 +125,7 @@ fun WorkspaceDetailPage(id: String) {
     val installProgress by vm.installProgress.collectAsStateWithLifecycle()
     val installError by vm.installError.collectAsStateWithLifecycle()
     val settingsError by vm.settingsError.collectAsStateWithLifecycle()
-    val pagerState = rememberPagerState { 2 }
-    val scope = rememberCoroutineScope()
+    val navPages = rememberMochiNavPagesState(2)
     var deleteTarget by remember { mutableStateOf<WorkspaceFileEntry?>(null) }
     var showInstallDialog by remember { mutableStateOf(false) }
     var previewImageUri by remember { mutableStateOf<String?>(null) }
@@ -161,7 +162,7 @@ fun WorkspaceDetailPage(id: String) {
     // 登记时带上所在页：只拦本页的返回，压在下面的页里还开着的浮层不会吞掉栈顶页的返回
     val upBackTokenRoute = LocalPageRoute.current
     val upBackToken = remember { Any() }
-    val upBackEnabled = pagerState.currentPage == 1 && state.path.isNotBlank()
+    val upBackEnabled = navPages.currentPage == 1 && state.path.isNotBlank()
     DisposableEffect(upBackEnabled) {
         if (upBackEnabled) {
             PageBackInterceptor.push(upBackToken, upBackTokenRoute) {
@@ -177,7 +178,7 @@ fun WorkspaceDetailPage(id: String) {
     MochiSettingsPageScaffold(
         title = state.workspace?.name ?: stringResource(R.string.workspace_detail_title),
         actions = {
-            if (pagerState.currentPage == 1) {
+            if (navPages.currentPage == 1) {
                 MochiIconButton(onClick = { filePicker.launch(arrayOf("*/*")) }) {
                     Icon(
                         uploadFile,
@@ -193,24 +194,25 @@ fun WorkspaceDetailPage(id: String) {
             MochiNavBottomBar(
                 items = listOf(
                     MochiNavTab(
-                        selected = pagerState.currentPage == 0,
+                        selected = navPages.currentPage == 0,
                         icon = settings,
                         label = stringResource(R.string.workspace_detail_tab_basic),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                        onClick = { navPages.select(0) },
                     ),
                     MochiNavTab(
-                        selected = pagerState.currentPage == 1,
+                        selected = navPages.currentPage == 1,
                         icon = insertDriveFile,
                         label = stringResource(R.string.workspace_detail_tab_files),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                        onClick = { navPages.select(1) },
                     ),
                 ),
             )
         },
     ) { _ ->
         // 底栏浮在正文上：两页的列表自己按 contentBottomPadding() 在底部留白
-        HorizontalPager(
-            state = pagerState,
+        MochiNavPages(
+            state = navPages,
+            background = MochiDefaults.groupedBackground(),
             modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (page) {
@@ -224,7 +226,7 @@ fun WorkspaceDetailPage(id: String) {
 
                 1 -> WorkspaceFilesPage(
                     state = state,
-                    isActive = pagerState.currentPage == 1,
+                    isActive = navPages.currentPage == 1,
                     contentPadding = PaddingValues(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
                     onSelectArea = vm::selectArea,
                     onGoUp = vm::goUp,
@@ -379,6 +381,8 @@ private fun WorkspaceBasicPage(
     onToolApprovalChange: (String, Boolean) -> Unit,
     onShellCompatibilityModeChange: (Boolean) -> Unit,
 ) {
+    val listState = rememberLazyListState()
+    MochiNavPageReselectHandler { listState.animateScrollToItem(0) }
     val shellStatus = workspace?.shellStatus
     val installing = installProgress != null || shellStatus == WorkspaceShellStatus.INSTALLING.name
     val rootfsReady = shellStatus == WorkspaceShellStatus.READY.name
@@ -389,6 +393,7 @@ private fun WorkspaceBasicPage(
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -625,6 +630,8 @@ private fun WorkspaceFilesPage(
     onBatchExport: (List<WorkspaceFileEntry>) -> Unit,
     onShare: (WorkspaceFileEntry) -> Unit,
 ) {
+    val listState = rememberLazyListState()
+    MochiNavPageReselectHandler { listState.animateScrollToItem(0) }
     var selecting by remember(state.area, state.path) { mutableStateOf(false) }
     var selectedPaths by remember(state.area, state.path) { mutableStateOf(emptySet<String>()) }
     val files = state.entries.filterNot { it.isDirectory }
@@ -649,6 +656,7 @@ private fun WorkspaceFilesPage(
         onDispose { PageBackInterceptor.pop(pickBackToken) }
     }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding + PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),

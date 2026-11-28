@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -154,6 +155,7 @@ import androidx.compose.foundation.layout.ColumnScope
 @Composable
 internal fun ModelList(
     providerSetting: ProviderSetting,
+    lazyListState: LazyListState = rememberLazyListState(),
     onUpdateProvider: (ProviderSetting) -> Unit
 ) {
     val providerManager = rememberAppEntryPoint().providerManager()
@@ -177,7 +179,6 @@ internal fun ModelList(
         }
     }
     val modelList = remoteModels.models
-    val lazyListState = rememberLazyListState()
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         onUpdateProvider(providerSetting.moveMove(from.index, to.index))
     }

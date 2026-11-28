@@ -28,8 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed as lazyItemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -117,12 +118,12 @@ import heizige.kk.khatkit.app.core.ui.components.ui.MochiSmallFab
 import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiIconButtonVariant
 import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.theme.MochiDefaults
 
 @Composable
 fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
-    val pagerState = rememberPagerState { 2 }
-    val scope = rememberCoroutineScope()
+    val navPages = rememberMochiNavPagesState(2)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     MochiSettingsPageScaffold(
@@ -134,24 +135,25 @@ fun PromptPage(vm: PromptViewModel = hiltViewModel()) {
             MochiNavBottomBar(
                 items = listOf(
                     MochiNavTab(
-                        selected = pagerState.currentPage == 0,
+                        selected = navPages.currentPage == 0,
                         icon = autoFixHigh,
                         label = stringResource(R.string.prompt_page_mode_injection_tab),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                        onClick = { navPages.select(0) },
                     ),
                     MochiNavTab(
-                        selected = pagerState.currentPage == 1,
+                        selected = navPages.currentPage == 1,
                         icon = book2,
                         label = stringResource(R.string.prompt_page_lorebook_tab),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                        onClick = { navPages.select(1) },
                     ),
                 ),
             )
         },
     ) { _ ->
         // 底栏浮在正文上：各页列表自己按 contentBottomPadding() 在底部留白
-        HorizontalPager(
-            state = pagerState,
+        MochiNavPages(
+            state = navPages,
+            background = MochiDefaults.groupedBackground(),
             modifier = Modifier.fillMaxSize()
         ) { page ->
             when (page) {
@@ -175,6 +177,7 @@ private fun ModeInjectionTab(
     onUpdate: (List<PromptInjection.ModeInjection>) -> Unit
 ) {
     val lazyListState = rememberLazyListState()
+    MochiNavPageReselectHandler { lazyListState.animateScrollToItem(0) }
 
     val currentModeInjections by rememberUpdatedState(modeInjections)
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -550,6 +553,7 @@ private fun LorebookTab(
     onUpdate: (List<Lorebook>) -> Unit
 ) {
     val lazyListState = rememberLazyListState()
+    MochiNavPageReselectHandler { lazyListState.animateScrollToItem(0) }
 
     val currentLorebooks by rememberUpdatedState(lorebooks)
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->

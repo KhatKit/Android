@@ -123,3 +123,99 @@ patch(
                                 }""",
     """                                .fillMaxSize()""",
 )
+
+# Expose the exact Depth implementation already used by MochiTabScaffold.
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    "import androidx.compose.runtime.Composable\n",
+    "import androidx.compose.runtime.Composable\nimport androidx.compose.runtime.Immutable\n",
+)
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    "import ui.feice.mochi.utils.smoothstep\n",
+    "import ui.feice.mochi.utils.smoothstep\nimport ui.feice.mochi.theme.MochiDefaults\nimport ui.feice.mochi.theme.MochiTheme\n",
+)
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    """    background: Color,
+    modifier: Modifier = Modifier,
+    link: TabBarLink? = null,""",
+    """    background: Color,
+    modifier: Modifier = Modifier,
+    backdrop: Color = background,
+    retainPages: Boolean = true,
+    link: TabBarLink? = null,""",
+)
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    """        modifier.then(swipe).drawBehind {
+            if (layers.size > 1) drawRect(background)
+        },""",
+    """        modifier.then(swipe).drawBehind {
+            if (layers.size > 1) drawRect(backdrop)
+        },""",
+)
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    """        layers.forEach { retained.add(it.key) }
+        val shown = retained.toList()""",
+    """        if (!retainPages) retained.retainAll(layers.map { it.key }.toSet())
+        layers.forEach { retained.add(it.key) }
+        val shown = retained.toList()""",
+)
+patch(
+    "../navigation/MochiTabPageTransition.kt",
+    """/**
+ * 这一页此刻是否在场（在 [MochiTabPageTransition] 里显示或正在过渡）。""",
+    """/**
+ * The only peer transition currently exposed by this pinned library source.
+ * The implementation is MochiTabPageTransition, also used by MochiTabScaffold.
+ */
+@Immutable
+public class MochiPeerTransitionSpec private constructor() {
+    public companion object {
+        /** In-place scale and fade, with the same spring and gesture as MochiTabScaffold. */
+        public val Depth: MochiPeerTransitionSpec = MochiPeerTransitionSpec()
+    }
+}
+
+/**
+ * Public entry point for the same retained, state-saving Depth transition used by MochiTabScaffold.
+ * [pages] enables library-owned horizontal dragging; [onPageChange] is called only after a drag commits.
+ * Clicks and external selection changes use [targetState] and the same transition path.
+ * Only Depth is exposed: there is no Slide style or configurable scale/spring.
+ * [pages] is forwarded unchanged; [direction] is unused because Depth has no horizontal translation.
+ * Retained content can outlive entries removed from [pages]; callers must handle obsolete keys.
+ */
+@Composable
+@Suppress("UNUSED_PARAMETER")
+public fun <T : Any> MochiPeerTransition(
+    targetState: T,
+    modifier: Modifier = Modifier,
+    pages: List<T>? = null,
+    onPageChange: (T) -> Unit = {},
+    direction: (from: T, to: T) -> Int = { from, to ->
+        if (pages != null) pages.indexOf(to).compareTo(pages.indexOf(from)) else 1
+    },
+    background: Color = MochiDefaults.groupedBackground(),
+    backdrop: Color = MochiTheme.colorScheme.surfaceContainerHighest,
+    spec: MochiPeerTransitionSpec = MochiPeerTransitionSpec.Depth,
+    retainPages: Boolean = true,
+    content: @Composable (T) -> Unit,
+) {
+    check(spec === MochiPeerTransitionSpec.Depth)
+    MochiTabPageTransition(
+        targetState = targetState,
+        pages = pages,
+        onPageChange = onPageChange,
+        background = background,
+        modifier = modifier,
+        backdrop = backdrop,
+        retainPages = retainPages,
+        content = content,
+    )
+}
+
+/**
+ * 这一页此刻是否在场（在 [MochiTabPageTransition] 里显示或正在过渡）。""",
+)

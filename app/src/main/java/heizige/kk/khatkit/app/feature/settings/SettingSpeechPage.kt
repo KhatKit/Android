@@ -14,20 +14,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +57,6 @@ import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
 import heizige.kk.khatkit.asr.ASRProviderSetting
 import heizige.kk.khatkit.tts.provider.TTSProviderSetting
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton as KkIconButton
-import kotlinx.coroutines.launch
 import ui.feice.mochi.basic.MochiButtonStyle
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiIconButton
@@ -79,15 +78,13 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var editingTTSProvider by remember { mutableStateOf<TTSProviderSetting?>(null) }
     var editingASRProvider by remember { mutableStateOf<ASRProviderSetting?>(null) }
-    // 底部导航 + 横向 Pager：点底栏与左右滑动共用同一个 pagerState，
-    // 之前是 selectedPage 整数 + when() 直接换内容，手指划不动。
-    val pagerState = rememberPagerState { 2 }
-    val scope = rememberCoroutineScope()
-    val selectedPage by remember { derivedStateOf { pagerState.currentPage } }
+    // Bottom bar and committed library swipes share one saveable target.
+    val navPages = rememberMochiNavPagesState(2)
+    val selectedPage = navPages.currentPage
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     MochiSettingsPageScaffold(
-        // 两个 Pager 页各自给列表加顶边渐隐，骨架级的交界渐隐会把左右滑动的两页糊在一起
+        // 两页各自处理列表边缘，骨架不再对整个转场重复渐隐。
         edgeFade = false,
         title = stringResource(R.string.speech_page_title),
         scrollBehavior = scrollBehavior,
@@ -118,21 +115,21 @@ fun SettingSpeechPage(vm: SettingViewModel = hiltViewModel()) {
                         selected = selectedPage == 0,
                         icon = volumeUp,
                         label = stringResource(R.string.speech_tab_tts),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                        onClick = { navPages.select(0) },
                     ),
                     MochiNavTab(
                         selected = selectedPage == 1,
                         icon = mic,
                         label = stringResource(R.string.speech_tab_asr),
-                        onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                        onClick = { navPages.select(1) },
                     ),
                 ),
             )
         },
     ) { _ ->
-        // 底栏浮在正文上：不给 Pager 加 innerPadding，各页列表自己按 contentBottomPadding() 在底部留白
-        HorizontalPager(
-            state = pagerState,
+        // 底栏浮在正文上：转场不加 innerPadding，各页列表按 contentBottomPadding() 留白。
+        MochiNavPages(
+            state = navPages,
             modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (page) {
@@ -379,6 +376,7 @@ private fun SpeechProviderListColumn(
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
+    MochiNavPageReselectHandler { lazyListState.animateScrollToItem(0) }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()

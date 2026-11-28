@@ -33,9 +33,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPages
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPagesState
+import heizige.kk.khatkit.app.feature.ui.shell.MochiNavPageReselectHandler
+import heizige.kk.khatkit.app.feature.ui.shell.rememberMochiNavPagesState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -126,8 +128,7 @@ fun ImageGenPage(
     modifier: Modifier = Modifier,
     vm: ImgGenViewModel = hiltViewModel()
 ) {
-    val pagerState = rememberPagerState { 2 }
-    val scope = rememberCoroutineScope()
+    val navPages = rememberMochiNavPagesState(2)
 
     val isGenerating by vm.isGenerating.collectAsStateWithLifecycle()
     var showCancelDialog by remember { mutableStateOf(false) }
@@ -179,20 +180,20 @@ fun ImageGenPage(
             )
         },
         rail = {
-            BottomBar(pagerState, scope)
+            BottomBar(navPages)
         },
     
         md3ScrollBehavior = null,
     ) { innerPadding ->
-        HorizontalPager(
-            state = pagerState,
+        MochiNavPages(
+            state = navPages,
             modifier = modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) { page ->
             when (page) {
                 0 -> ImageGenScreen(vm = vm)
-                1 -> ImageGalleryScreen(vm = vm, isActive = pagerState.currentPage == 1)
+                1 -> ImageGalleryScreen(vm = vm, isActive = navPages.currentPage == 1)
             }
         }
     }
@@ -222,22 +223,21 @@ private fun CancelDialog(
 
 @Composable
 private fun BottomBar(
-    pagerState: PagerState,
-    scope: CoroutineScope
+    navPages: MochiNavPagesState
 ) {
     MochiNavBottomBar(
         items = listOf(
             MochiNavTab(
-                selected = 0 == pagerState.currentPage,
+                selected = 0 == navPages.currentPage,
                 icon = palette,
                 label = stringResource(R.string.imggen_page_title),
-                onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                onClick = { navPages.select(0) },
             ),
             MochiNavTab(
-                selected = 1 == pagerState.currentPage,
+                selected = 1 == navPages.currentPage,
                 icon = photo,
                 label = stringResource(R.string.imggen_page_gallery),
-                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                onClick = { navPages.select(1) },
             ),
         ),
     )
@@ -247,6 +247,8 @@ private fun BottomBar(
 private fun ImageGenScreen(
     vm: ImgGenViewModel,
 ) {
+    val scrollState = rememberScrollState()
+    MochiNavPageReselectHandler { scrollState.animateScrollTo(0) }
     val prompt by vm.prompt.collectAsStateWithLifecycle()
     val numberOfImages by vm.numberOfImages.collectAsStateWithLifecycle()
     val size by vm.size.collectAsStateWithLifecycle()
@@ -279,7 +281,7 @@ private fun ImageGenScreen(
                 .fillMaxWidth()
                 .weight(1f)
                 .kkScrollEdgeFade(top = 0.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -536,6 +538,8 @@ private fun ImageGalleryScreen(
     vm: ImgGenViewModel,
     isActive: Boolean,
 ) {
+    val gridState = rememberLazyGridState()
+    MochiNavPageReselectHandler { gridState.animateScrollToItem(0) }
     val generatedImages = vm.generatedImages.collectAsLazyPagingItems()
     val context = LocalContext.current
 
@@ -674,6 +678,7 @@ private fun ImageGalleryScreen(
                 }
             } else {
                 LazyVerticalGrid(
+                    state = gridState,
                     columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
