@@ -213,7 +213,7 @@ internal fun AssistantBasicContent(
                 )
                 MochiListRow(
                     title = "子代理团队",
-                    subtitle = "允许委派给已有角色或临时子代理。每批最多三项，确认后分别调用模型。",
+                    subtitle = "优先委派给职责匹配的已有角色，缺少人选时创建一次性临时角色。每批最多三项，确认后执行。",
                     onClick = { onUpdate(assistant.copy(enableSubagentTeam = !assistant.enableSubagentTeam)) },
                     trailing = {
                         MochiSwitch(

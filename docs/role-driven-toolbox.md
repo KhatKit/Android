@@ -47,15 +47,18 @@ cancel its job.
 
 The **子代理团队** switch in a role's **基础设定** is off by default. In a
 direct chat where that role has enabled it, `delegate_team_tasks` accepts one
-to three text assignments. Each `role_uid` is either a distinct role from
-`role_directory` or the literal `temporary`. Each occurrence of `temporary`
-starts a separate worker on the current chat model. This works with just one
-configured role and needs no role management permission.
+to three text assignments. The supervisor first compares the task with the
+responsibilities in `role_directory` and selects a suitable role by `role_uid`.
+When the team lacks the needed expertise, the supervisor proposes a
+`temporary_role` with a `name` and `description`. Both types can work in the
+same batch. A temporary role lasts for one assignment and uses the current
+chat model. The team switch also works for supervisors with a team of one.
 
 The user can open **子代理任务** to read each assignment in full before approving
 the batch. Up to two workers run concurrently. A named worker uses its configured
-model and role prompt. A temporary worker starts with a generic prompt. Both
-receive only their assigned text. The supervisor receives results and individual
+model and role prompt. The approval step shows each proposed temporary role's
+name and responsibilities. Those details become its role prompt. Each worker
+receives its own assigned text. The supervisor receives results and individual
 errors in submission order, and the user can open the same step to inspect them.
 Workers have no conversation history, attachments, memory or application tools.
 Cancelling the parent generation cancels running and queued workers.
@@ -63,11 +66,11 @@ Cancelling the parent generation cancels running and queued workers.
 ### 手动验收
 
 - **改动点**　角色基础设定中的「子代理团队」说明支持的两种委派方式。聊天里的「子代理任务」显示任务、接收角色和逐项结果。
-- **复现路径**　选用支持工具调用的模型，在角色的「基础设定」打开「子代理团队」。进入该角色的单聊，发送「请委派两个临时子代理，一个起草读书会议程，一个列讨论问题，然后汇总」。
+- **复现路径**　准备一个职责为「编写会议议程」的角色。给主助手选择支持工具调用的模型，在「基础设定」打开「子代理团队」。在单聊中发送「请分头起草会议议程、估算活动开支，再汇总」。
 - **预期结果**
   - [ ] 批准前打开「子代理任务」，可以核对两项完整任务。拒绝后能看到拒绝状态。
   - [ ] 再次委派并批准，可以按原顺序查看两份结果，主助手可据此汇总。角色列表数量保持原值。
-  - [ ] 同批指定一个已有角色和一个临时子代理，分别显示角色名称和临时子代理编号。
+  - [ ] 议程交给已有角色。团队缺少预算人员时，另一项显示临时角色的名称、职责和任务文本。
 - **边界**　用窄屏和系统大字号检查长任务的完整详情，再用返回手势关闭详情。浅色和深色下均可辨认任务和错误文字。
 
 ## Role Navigation

@@ -70,7 +70,9 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
     @Composable
     private fun Assignment(index: Int, task: JsonElement, result: JsonElement?, compact: Boolean) {
         val uid = task.getStringContent("role_uid")
-        val name = result.getStringContent("role")?.takeIf { it.isNotBlank() } ?: when (uid) {
+        val profile = (task as? JsonObject)?.get("temporary_role") as? JsonObject
+        val name = result.getStringContent("role")?.takeIf { it.isNotBlank() }
+            ?: profile.getStringContent("name")?.takeIf { it.isNotBlank() } ?: when (uid) {
             TEMPORARY_SUBAGENT -> "临时子代理 ${index + 1}"
             null -> "未指定角色"
             else -> LocalSettings.current.assistants.find { it.id.toString() == uid }
@@ -78,7 +80,11 @@ internal object SubagentTeamToolUI : ToolUIRenderer {
         }
         val maxLines = if (compact) 2 else Int.MAX_VALUE
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(name, style = MochiTheme.textStyles.titleSmall)
+            Text(if (profile != null) "$name（临时角色）" else name, style = MochiTheme.textStyles.titleSmall)
+            profile.getStringContent("description")?.let { duties ->
+                Text(duties, style = MochiTheme.textStyles.footnote, color = MochiTheme.colorScheme.onSurfaceVariant,
+                    maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+            }
             Text(task.getStringContent("task").orEmpty(), style = MochiTheme.textStyles.body,
                 maxLines = maxLines, overflow = TextOverflow.Ellipsis)
             val error = result.getStringContent("error")
