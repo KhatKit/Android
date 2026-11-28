@@ -60,7 +60,8 @@ class SubagentTeamDeviceTest {
         })
         val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {
-            val tool = SubagentTeamManager(manager, UsageRecorder(database.usageRecordDao())).tool(lead.id, { settings }, null)
+            val tool = SubagentTeamManager(manager, UsageRecorder(database.usageRecordDao()))
+                .tool(lead.id, { settings }, conversationId = null, chatModelId = model1.id)
             val input = Json.parseToJsonElement("""{"tasks":[{"role_uid":"${writer.id}","task":"draft"},{"role_uid":"${reviewer.id}","task":"review"}]}""")
             assertTrue(tool.needsApproval(input))
             val output = (tool.execute(input).single() as UIMessagePart.Text).text
