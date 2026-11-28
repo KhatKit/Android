@@ -554,6 +554,10 @@
   <string name="donate_page_kofi_desc">面向全球用户</string>
   <string name="donate_page_sponsor_list">赞助用户列表</string>
   <string name="donate_page_title">赞助</string>
+  <string name="donate_page_alipay">支付宝</string>
+  <string name="donate_page_wechat">微信支付</string>
+  <string name="donate_page_qr_description">%1$s赞助二维码</string>
+  <string name="donate_page_scan_hint">使用%1$s扫一扫赞助。</string>
   <string name="edit">编辑</string>
   <string name="editing">编辑中</string>
   <string name="emoji_picker_search_placeholder">搜索表情符号...</string>
