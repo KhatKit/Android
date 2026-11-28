@@ -1,4 +1,4 @@
-package heizige.kk.khatkit.app.core.ui.components.ui
+package heizige.kk.khatkit.app.feature.assistant.components.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

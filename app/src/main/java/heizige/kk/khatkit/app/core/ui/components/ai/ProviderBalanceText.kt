@@ -29,8 +29,8 @@ import heizige.kk.khatkit.app.core.util.toDp
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
 import heizige.kk.khatkit.app.core.ui.icons.utility.payments
 import heizige.kk.khatkit.app.core.ui.icons.utility.sync
-import heizige.kk.khatkit.app.feature.balance.data.BalanceReading
-import heizige.kk.khatkit.app.feature.balance.helper.isLow
+import heizige.kk.khatkit.app.core.data.model.BalanceReading
+import heizige.kk.khatkit.app.core.util.isLow
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import heizige.kk.khatkit.uikit.mochi.Toast
 import kotlinx.coroutines.launch

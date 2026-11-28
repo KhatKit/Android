@@ -30,6 +30,7 @@ import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.core.data.automation.ApprovalCategory
 import heizige.kk.khatkit.app.feature.automation.helper.UiAutomationSnapshotHelper
+import heizige.kk.khatkit.app.feature.automation.helper.BackgroundAppSessionManager
 import heizige.kk.khatkit.app.core.data.automation.UiActionDto
 import heizige.kk.khatkit.app.core.data.automation.BBoxDto
 import heizige.kk.khatkit.app.core.data.automation.AutomationTraceManager
@@ -64,6 +65,7 @@ import heizige.kk.khatkit.card.CardParser
 import heizige.kk.khatkit.dependency.DependencyCache
 import heizige.kk.khatkit.dependency.DependencyCacheEntry
 import heizige.kk.khatkit.engine.EngineResult
+import heizige.kk.khatkit.engine.localizedMessage
 import heizige.kk.khatkit.exec.CardExecutor
 import heizige.kk.khatkit.localization.localizedMessage
 import heizige.kk.khatkit.exec.CardApprovalMode
@@ -760,7 +762,7 @@ class KhatKitToolProvider(
             R.string.khatkit_tool_late_result_err,
             cardName,
             result.code,
-            result.message,
+            result.localizedMessage(appContext),
         )
     }
 
@@ -1677,7 +1679,7 @@ class KhatKitToolProvider(
         description = "宿主专用自动化会话动作（需要 AutomationManager 审批 + 看板）：\n" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
             "用户授权请求会强制重新显示看板）、overlay_show（立即恢复看板显示）、" +
-            "screen_state（返回屏幕是否点亮/锁定，无需授权）、" +
+            "screen_state（返回物理屏幕状态）、background_start（package_name 必填，在独立虚拟屏幕启动应用）、background_stop / background_status（关闭或查询会话）、" +
             "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）。\n" +
             "点击/输入/滑动/打开应用/等待/截图/节点快照等基本操作请改用 a11y_act / a11y_screen / a11y_visual_act 卡片。" +
             "overlay_hide / overlay_show 不操作屏幕，无需用户授权；screen_state 只读同理；unlock 需要用户授权（ui_action）。",
@@ -1689,11 +1691,15 @@ class KhatKitToolProvider(
                         put(
                             "enum",
                             JsonArray(
-                                listOf("overlay_hide", "overlay_show", "screen_state", "unlock")
+                                listOf("overlay_hide", "overlay_show", "screen_state", "unlock", "background_start", "background_stop", "background_status")
                                     .map { JsonPrimitive(it) }
                             )
                         )
                         put("description", "要执行的宿主动作。")
+                    })
+                    put("package_name", buildJsonObject {
+                        put("type", "string")
+                        put("description", "background_start 的目标应用包名，例如 com.android.settings。")
                     })
                     put("duration_ms", buildJsonObject {
                         put("type", "integer")
@@ -1710,7 +1716,7 @@ class KhatKitToolProvider(
                 listOf(UIMessagePart.Text(
                     "动作「$action」已移出内置工具。点击/输入/滑动/打开应用/等待/截图/节点快照请改用 " +
                         "a11y_act（基本动作）、a11y_screen（截图+节点）、a11y_visual_act（视觉定位+动作）卡片；" +
-                        "本工具仅保留 overlay_hide / overlay_show / screen_state / unlock。"
+                        "本工具还支持 background_start / background_stop / background_status。"
                 ))
             } else {
                 listOf(UIMessagePart.Text(withContext(Dispatchers.IO) { deviceAct(params) }))
@@ -1851,6 +1857,8 @@ class KhatKitToolProvider(
             }
 
                 "screen_state" -> return screenStateJson()
+            "background_status" -> return BackgroundAppSessionManager.status()
+            "background_stop" -> return stopBackgroundAppSession()
             "ui_snapshot" -> {
                 val snapshot = UiAutomationSnapshotHelper.capture()
                     ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
@@ -1867,6 +1875,15 @@ class KhatKitToolProvider(
         }
         val bridge = AccessibilityBridgeHolder.current()
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
+        if (action == "background_start") {
+            val packageName = params.str("package_name")?.trim()
+                ?: return "缺少参数：package_name"
+            AutomationManager.update(deviceActLabel(action, params))
+            if (!AutomationManager.requestApproval("在独立屏幕中操作应用", "应用包名：" + packageName, ApprovalCategory.UI_ACTION)) {
+                return "用户拒绝授权，已取消后台应用操作。"
+            }
+            return startBackgroundAppSession(packageName)
+        }
         AutomationManager.update(deviceActLabel(action, params))
         val category = if (action == "open_app") {
             ApprovalCategory.APP_MANAGE
@@ -2075,6 +2092,29 @@ class KhatKitToolProvider(
         ).orEmpty()
     }
 
+    private suspend fun startBackgroundAppSession(packageName: String): String {
+        val runShell = backgroundDisplayShellRunner()
+            ?: return "{\"error\":\"无屏幕占用操作需要已授权的 Shizuku 或 root。\"}"
+        return withContext(Dispatchers.IO) {
+            BackgroundAppSessionManager.start(appContext, packageName, runShell)
+        }
+    }
+
+    private suspend fun stopBackgroundAppSession(): String {
+        val runShell = backgroundDisplayShellRunner()
+        return withContext(Dispatchers.IO) {
+            if (runShell == null) BackgroundAppSessionManager.stop()
+            else BackgroundAppSessionManager.stop(runShell)
+        }
+    }
+
+    private suspend fun backgroundDisplayShellRunner(): ((String) -> String)? {
+        val bridges = executor().bridges
+        bridges.rootBridge()?.let { root -> return { command -> root.shell(command) } }
+        bridges.shizukuBridge()?.let { shizuku -> return { command -> shizuku.shell(command) } }
+        return null
+    }
+
     /** wake 动作：调用工具 bridge 点亮屏幕，返回唤醒结果与最新屏幕状态。 */
     private suspend fun wakeScreenAction(): String {
         val result = runCatching { ocrBridge.wakeScreen() }
@@ -2153,6 +2193,7 @@ class KhatKitToolProvider(
     /** 授权请求里展示的动作摘要：动作 + 文本 / id / 坐标。 */
     private fun deviceActApprovalDetail(action: String, params: Map<String, Any?>): String {
         val target = when (action) {
+            "background_start" -> params.str("package_name")
             "click_text", "set_text", "wait_text", "open_app" ->
                 params.str("text") ?: params.str("id")
             "click_id" -> params.str("id")
@@ -2189,6 +2230,9 @@ class KhatKitToolProvider(
         "wait_text" -> "正在等待「${params.str("text").orEmpty()}」出现"
         "wake" -> "正在点亮屏幕"
         "screen_state" -> "正在读取屏幕状态"
+        "background_start" -> "正在独立屏幕启动应用 " + params.str("package_name").orEmpty()
+        "background_stop" -> "正在结束独立屏幕会话"
+        "background_status" -> "正在读取独立屏幕会话状态"
         "unlock" -> "正在尝试解锁屏幕"
         else -> "正在执行：$action"
     }
@@ -2714,7 +2758,7 @@ private const val RECURSION_PLACEHOLDER = "[嵌套过深]"
 private val TOUCH_ACTIONS = setOf("click_text", "click_id", "tap", "swipe", "press", "set_text")
 
 /** 宿主专用内置动作：看板显隐 / 屏幕状态 / root 解锁。其余动作已外置为 a11y_* 卡片。 */
-private val HOST_DEVICE_ACTIONS = setOf("overlay_hide", "overlay_show", "screen_state", "unlock")
+private val HOST_DEVICE_ACTIONS = setOf("overlay_hide", "overlay_show", "screen_state", "unlock", "background_start", "background_stop", "background_status")
 
 /** 查找失败重试：等待 400ms，最多 2 次（共 3 次尝试） */
 private const val FIND_MAX_RETRIES = 2

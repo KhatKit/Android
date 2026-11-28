@@ -1,31 +1,13 @@
 package heizige.kk.khatkit.app.feature.balance.helper
 
 import android.os.SystemClock
-import heizige.kk.khatkit.ai.provider.BalanceOption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.math.BigDecimal
 import kotlin.uuid.Uuid
-import heizige.kk.khatkit.app.feature.balance.data.BalanceReading
-
-
-
-
-// A bare cumulative usage field is not a balance. A formula such as credits - usage is valid.
-internal val usageField = Regex("""\s*(?:[\w]+\s*\.\s*)*total_usage\s*""", RegexOption.IGNORE_CASE)
-internal val BalanceOption.isUsageOnly: Boolean get() = usageField.matches(resultPath)
-
-internal fun BalanceOption.thresholdAmount(): BigDecimal? = lowBalanceThreshold.trim()
-    .replace(',', '.').toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
-
-internal fun BalanceOption.isLow(raw: String?): Boolean? {
-    if (!enabled || !lowBalanceAlert || isUsageOnly) return null
-    val amount = raw?.trim()?.toBigDecimalOrNull() ?: return null
-    return amount < (thresholdAmount() ?: return null)
-}
+import heizige.kk.khatkit.app.core.data.model.BalanceReading
 
 /** Unknown samples do not end a low episode. Only the first observer claims the transition. */
 internal class LowBalanceEpisodes(

@@ -42,7 +42,7 @@ fun TraceAuditPage() {
     var traces by remember { mutableStateOf(tracer.list()) }
     var selectedId by remember { mutableStateOf<String?>(null) }
     val record = selectedId?.let { tracer.load(it) }
-    val views = record?.toStepViews().orEmpty()
+    val views = record?.toStepViews(context).orEmpty()
     var cursor by remember(selectedId) { mutableStateOf(TraceBrowseState(0, views.size)) }
     val current = views.getOrNull(cursor.index)
 

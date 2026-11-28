@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeImpl
+import heizige.kk.khatkit.app.feature.automation.helper.BackgroundAppSessionManager
 import heizige.kk.khatkit.app.feature.record.helper.OperationRecordManager
 
 /**
@@ -38,12 +39,14 @@ class KhatKitAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onUnbind(intent: Intent?): Boolean {
+        BackgroundAppSessionManager.onAccessibilityServiceLost()
         AccessibilityBridgeHolder.detach()
         bridge = null
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        BackgroundAppSessionManager.onAccessibilityServiceLost()
         AccessibilityBridgeHolder.detach()
         bridge = null
         super.onDestroy()

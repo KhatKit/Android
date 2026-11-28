@@ -11,6 +11,8 @@ import heizige.kk.khatkit.ai.provider.TextGenerationParams
 import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.ai.UsageRecorder
+import heizige.kk.khatkit.app.core.data.ai.tools.DELEGATE_TEAM_TASKS
+import heizige.kk.khatkit.app.core.data.ai.tools.TEMPORARY_SUBAGENT
 import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
@@ -35,9 +37,6 @@ import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.uuid.Uuid
-
-internal const val DELEGATE_TEAM_TASKS = "delegate_team_tasks"
-internal const val TEMPORARY_SUBAGENT = "temporary"
 
 internal data class SubagentAssignment(val role: Assistant, val task: String, val temporary: Boolean)
 

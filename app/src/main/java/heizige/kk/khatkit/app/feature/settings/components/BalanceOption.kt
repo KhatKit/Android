@@ -11,8 +11,8 @@ import heizige.kk.khatkit.common.http.isJsonExprValid
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.data.datastore.DEFAULT_PROVIDERS
 import heizige.kk.khatkit.app.core.di.rememberAppEntryPoint
-import heizige.kk.khatkit.app.feature.balance.helper.isUsageOnly
-import heizige.kk.khatkit.app.feature.balance.helper.thresholdAmount
+import heizige.kk.khatkit.app.core.util.isUsageOnly
+import heizige.kk.khatkit.app.core.util.thresholdAmount
 import ui.feice.mochi.basic.MochiListTextFieldRow
 import ui.feice.mochi.list.MochiListButton
 import ui.feice.mochi.list.MochiListRow

@@ -14,8 +14,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import heizige.kk.khatkit.app.core.ui.context.LocalSettings
 import heizige.kk.khatkit.app.core.ui.icons.chat.groups
-import heizige.kk.khatkit.app.feature.chat.helper.DELEGATE_TEAM_TASKS
-import heizige.kk.khatkit.app.feature.chat.helper.TEMPORARY_SUBAGENT
+import heizige.kk.khatkit.app.core.data.ai.tools.DELEGATE_TEAM_TASKS
+import heizige.kk.khatkit.app.core.data.ai.tools.TEMPORARY_SUBAGENT
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
