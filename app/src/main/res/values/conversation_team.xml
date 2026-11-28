@@ -1,0 +1,12 @@
+<resources>
+    <string name="conversation_team">Team in this chat</string>
+    <string name="team_manager">Manage team roles</string>
+    <string name="team_manager_detail">Allow this role to propose changes to permanent team roles from this chat.</string>
+    <string name="team_delegate">Delegate to subagents</string>
+    <string name="team_delegate_detail">Confirm each batch. Temporary roles can work again in this chat.</string>
+    <string name="team_temporary_label">Temporary role · %1$s</string>
+    <string name="team_edit">Edit role</string>
+    <string name="team_duties">Responsibilities</string>
+    <string name="team_promote">Make permanent</string>
+    <string name="team_remove">Remove from chat</string>
+</resources>

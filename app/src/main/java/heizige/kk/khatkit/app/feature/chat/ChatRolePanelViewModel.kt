@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.ConversationTeam
+import heizige.kk.khatkit.app.core.data.datastore.promoteTemporaryRole
+import heizige.kk.khatkit.app.core.data.datastore.team
+import heizige.kk.khatkit.app.core.data.datastore.withTeam
 import heizige.kk.khatkit.app.core.data.datastore.SettingsRepository
 import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.GroupChat
@@ -61,6 +65,20 @@ class ChatRolePanelViewModel @AssistedInject constructor(
 
     /** 角色 id 解析一次：历史聊天过滤与「新建聊天」都用它，不要每次重新 parse。 */
     private val roleUuid: Uuid? = runCatching { Uuid.parse(roleId) }.getOrNull()
+
+    fun updateTeam(chat: Uuid, change: (ConversationTeam) -> ConversationTeam) = viewModelScope.launch {
+        settingsStore.update { it.withTeam(chat, change(it.team(chat))) }
+    }
+
+    fun saveRole(chat: Uuid, role: Uuid, name: String, duties: String, promote: Boolean) = viewModelScope.launch {
+        settingsStore.update { current ->
+            val team = current.team(chat)
+            val updated = current.withTeam(chat, team.copy(temporaryRoles = team.temporaryRoles.map {
+                if (it.id == role) it.copy(name = name.trim(), description = duties.trim()) else it
+            }))
+            if (promote) updated.promoteTemporaryRole(chat, role) else updated
+        }
+    }
 
     /**
      * 该角色的历史聊天。

@@ -115,6 +115,7 @@ import heizige.kk.khatkit.app.core.data.datastore.getSelectedASRProvider
 import heizige.kk.khatkit.app.core.data.files.FilesManager
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.core.data.model.Conversation
+import heizige.kk.khatkit.app.core.data.model.GroupChat
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.chat.ChatError
 import heizige.kk.khatkit.app.core.ui.components.ai.ChatAttachmentPickerActions
@@ -374,6 +375,7 @@ internal fun ChatScaffold(
             sheetState = roleSheet,
             settings = setting,
             currentAssistant = assistant,
+            conversationId = conversation.id.takeIf { conversation.type == GroupChat.TYPE_DIRECT },
             onAssistantSelected = {
                 showRolePicker = false
                 vm.switchRole(it.id) { target ->

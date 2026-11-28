@@ -143,7 +143,8 @@ fun AssistantPickerSheet(
     settings: Settings,
     currentAssistant: Assistant,
     onAssistantSelected: (Assistant) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    conversationId: Uuid? = null,
 ) {
     val defaultAssistantName = stringResource(R.string.assistant_page_default_assistant)
 
@@ -166,7 +167,9 @@ fun AssistantPickerSheet(
     // U7b-6：直连 MochiSheet；「管理助手」移到 header 右侧。
     val manageAssistants = {
         onDismiss()
-        navController.navigate(Screen.Assistant)
+        navController.navigate(conversationId?.let {
+            Screen.RoleChatPanel(currentAssistant.id.toString(), it.toString())
+        } ?: Screen.Assistant)
     }
     MochiSheet(state = sheetState, onDismiss = onDismiss) {
         MochiSheetHeader(

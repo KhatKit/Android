@@ -47,6 +47,7 @@ class ConversationRepository(
     private val database: AppDatabase,
     private val filesManager: FilesManager,
     private val messageFtsManager: MessageFtsManager,
+    private val forgetTeam: suspend (Uuid) -> Unit = {},
 ) {
     companion object {
         private const val PAGE_SIZE = 20
@@ -417,6 +418,7 @@ class ConversationRepository(
         } else {
             conversation
         }
+        forgetTeam(conversation.id)
         messageFtsManager.deleteConversation(conversation.id.toString())
         database.withTransaction {
             // message_node 会通过 CASCADE 自动删除

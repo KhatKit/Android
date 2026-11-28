@@ -15,6 +15,8 @@ import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findProvider
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
+import heizige.kk.khatkit.app.core.data.datastore.team
+import heizige.kk.khatkit.app.core.data.datastore.withTeam
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -46,10 +48,10 @@ class SubagentTeamManager @Inject constructor(
 ) {
     private val permits = Semaphore(2)
 
-    fun tool(actorId: Uuid, settings: () -> Settings, conversationId: Uuid?, chatModelId: Uuid): Tool =
-        createSubagentTeamTool(actorId, settings, permits) { assignment, snapshot ->
+    fun tool(actorId: Uuid, update: suspend ((Settings) -> Settings) -> Unit, conversationId: Uuid, chatModelId: Uuid): Tool =
+        createSubagentTeamTool(actorId, conversationId, chatModelId, update, permits) { assignment, snapshot ->
             val (role, task, temporary) = assignment
-            val modelId = if (temporary) chatModelId else role.chatModelId ?: snapshot.chatModelId
+            val modelId = role.chatModelId ?: if (temporary) chatModelId else snapshot.chatModelId
             val (model, provider) = snapshot.subagentModel(modelId) ?: return@createSubagentTeamTool null
             val result = providers.getProviderByType(provider).generateText(
                 providerSetting = provider,
@@ -63,7 +65,7 @@ class SubagentTeamManager @Inject constructor(
                 ),
             )
             usage.record(UsageRecorder.SOURCE_SUBAGENT, result.usage, provider.id.toString(), model.id.toString(),
-                model.modelId, (if (temporary) actorId else role.id).toString(), conversationId?.toString())
+                model.modelId, role.id.toString(), conversationId.toString())
             result.message.parts.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text }
         }
 }
@@ -81,14 +83,16 @@ internal fun subagentMessages(role: Assistant, task: String): List<UIMessage> {
 
 internal fun createSubagentTeamTool(
     actorId: Uuid,
-    settings: () -> Settings,
+    conversationId: Uuid,
+    chatModelId: Uuid,
+    update: suspend ((Settings) -> Settings) -> Unit,
     permits: Semaphore,
     generate: suspend (SubagentAssignment, Settings) -> String?,
 ): Tool = Tool(
     name = DELEGATE_TEAM_TASKS,
     description = "委派最多三个独立文本任务。先按职责匹配角色目录中的已有角色，匹配时填写 role_uid。" +
         "只有缺少合适角色时才填写 temporary_role，给出本次任务所需角色的名称和职责。两种方式选一。" +
-        "临时角色仅执行该项任务，使用当前聊天模型。按返回顺序汇总结果。" +
+        "新建的临时角色使用当前聊天模型，同一会话可按返回的 UID 再次委派。按返回顺序汇总结果。" +
         "只能提交用户可核对的必要文字，不要传密钥或整段对话。执行前必须由用户确认。",
     systemPrompt = { _, _ ->
         "委派前根据团队目录中的职责选择已有角色，目录变化后用 role_directory 刷新。" +
@@ -126,16 +130,26 @@ internal fun createSubagentTeamTool(
         }, required = listOf("tasks"))
     },
     execute = { input ->
-        val snapshot = settings()
-        require(snapshot.getAssistantById(actorId)?.enableSubagentTeam == true) { "子代理团队已关闭" }
         val tasks = (input as? JsonObject)?.get("tasks") as? JsonArray ?: error("缺少任务列表")
         require(tasks.size in 1..3) { "每批需要 1 到 3 个子任务" }
-        val assignments = tasks.mapIndexed { index, entry ->
-            val task = entry as? JsonObject ?: error("子任务必须是对象")
-            task.resolveAssignment(index, actorId, snapshot)
+        lateinit var snapshot: Settings
+        lateinit var assignments: List<SubagentAssignment>
+        update { current ->
+            val team = current.team(conversationId)
+            require(actorId in team.delegates && current.getAssistantById(actorId) != null) { "当前对话的子代理团队已关闭" }
+            snapshot = current
+            assignments = tasks.mapIndexed { index, entry ->
+                val task = entry as? JsonObject ?: error("子任务必须是对象")
+                task.resolveAssignment(index, actorId, current, team.temporaryRoles, chatModelId)
+            }
+            require(assignments.distinctBy { it.role.id }.size == assignments.size) { "每批每个角色只能接一个任务" }
+            val temps = assignments.filter { it.temporary }.map { it.role }
+            require(temps.distinctBy { it.description.trim().lowercase().ifBlank { it.name } }.size == temps.size) {
+                "每批每种职责只能委派一次"
+            }
+            val roles = (team.temporaryRoles + temps).distinctBy { it.id }
+            if (roles == team.temporaryRoles) current else current.withTeam(conversationId, team.copy(temporaryRoles = roles))
         }
-        val existing = assignments.filterNot { it.temporary }
-        require(existing.distinctBy { it.role.id }.size == existing.size) { "每批每个角色只能接一个任务" }
         val results = coroutineScope {
             assignments.map { assignment ->
                 async {
@@ -151,7 +165,7 @@ internal fun createSubagentTeamTool(
                         "error" to "子代理模型调用失败"
                     }
                     buildJsonObject {
-                        put("role_uid", if (assignment.temporary) TEMPORARY_SUBAGENT else assignment.role.id.toString())
+                        put("role_uid", assignment.role.id.toString())
                         put("role", assignment.role.name)
                         put(response.first, response.second)
                     }
@@ -164,7 +178,7 @@ internal fun createSubagentTeamTool(
     },
 )
 
-private fun JsonObject.resolveAssignment(index: Int, actorId: Uuid, snapshot: Settings): SubagentAssignment {
+private fun JsonObject.resolveAssignment(index: Int, actorId: Uuid, snapshot: Settings, temporaryRoles: List<Assistant>, chatModelId: Uuid): SubagentAssignment {
     val text = requiredText("task").trim()
     require(text.length in 1..5000) { "任务需为 1 到 5000 个字符" }
     val profile = get("temporary_role")?.takeUnless { it is JsonNull }
@@ -172,11 +186,14 @@ private fun JsonObject.resolveAssignment(index: Int, actorId: Uuid, snapshot: Se
         val target = requiredText("role_uid")
         // 旧版本已进入审批的请求没有临时角色资料，按原来的名称和分工恢复。
         if (target == TEMPORARY_SUBAGENT) {
-            return SubagentAssignment(temporaryRole("临时子代理 ${index + 1}", ""), text, temporary = true)
+            val name = "临时子代理 ${index + 1}"
+            val role = temporaryRoles.firstOrNull { it.name == name && it.description.isEmpty() } ?: temporaryRole(name, "", chatModelId)
+            return SubagentAssignment(role, text, temporary = true)
         }
         val id = Uuid.parse(target)
         require(id != actorId) { "不能委派给自己" }
-        val role = requireNotNull(snapshot.getAssistantById(id)) { "子代理角色已删除" }
+        temporaryRoles.firstOrNull { it.id == id }?.let { return SubagentAssignment(it, text, temporary = true) }
+        val role = requireNotNull(snapshot.getAssistantById(id)) { "当前对话找不到这个角色" }
         return SubagentAssignment(role, text, temporary = false)
     }
 
@@ -190,7 +207,9 @@ private fun JsonObject.resolveAssignment(index: Int, actorId: Uuid, snapshot: Se
             snapshot.subagentModel(it.chatModelId ?: snapshot.chatModelId) != null
     }
     require(match == null) { "已有相同职责的角色，请改用 role_uid ${match?.id} 并重新确认" }
-    return SubagentAssignment(temporaryRole(name, duties), text, temporary = true)
+    val role = temporaryRoles.firstOrNull { it.description.trim().equals(duties, ignoreCase = true) }
+        ?: temporaryRole(name, duties, chatModelId)
+    return SubagentAssignment(role, text, temporary = true)
 }
 
 private fun Settings.subagentModel(id: Uuid?): Pair<Model, ProviderSetting>? {
@@ -199,8 +218,8 @@ private fun Settings.subagentModel(id: Uuid?): Pair<Model, ProviderSetting>? {
     return model to provider
 }
 
-private fun temporaryRole(name: String, duties: String) =
-    Assistant(name = name, description = duties, reasoningLevel = ReasoningLevel.OFF)
+private fun temporaryRole(name: String, duties: String, modelId: Uuid) =
+    Assistant(name = name, description = duties, chatModelId = modelId, reasoningLevel = ReasoningLevel.OFF)
 
 private fun JsonObject.requiredText(key: String): String =
     requireNotNull((get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content) { "缺少 $key" }

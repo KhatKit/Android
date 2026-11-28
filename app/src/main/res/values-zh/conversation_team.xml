@@ -1,0 +1,12 @@
+<resources>
+    <string name="conversation_team">当前对话的团队</string>
+    <string name="team_manager">主管权限</string>
+    <string name="team_manager_detail">允许该角色在本对话中提议创建、修改和删除正式角色。</string>
+    <string name="team_delegate">子代理委派</string>
+    <string name="team_delegate_detail">每批任务由你确认，临时角色可在本对话中继续使用。</string>
+    <string name="team_temporary_label">临时角色 · %1$s</string>
+    <string name="team_edit">编辑角色</string>
+    <string name="team_duties">职责描述</string>
+    <string name="team_promote">转为正式角色</string>
+    <string name="team_remove">从对话移除</string>
+</resources>

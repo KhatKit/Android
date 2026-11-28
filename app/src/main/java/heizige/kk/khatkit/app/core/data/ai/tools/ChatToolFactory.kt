@@ -22,6 +22,8 @@ import heizige.kk.khatkit.app.core.data.repository.MemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.RoleMemoryRepository
 import heizige.kk.khatkit.app.core.data.repository.WorkspaceRepository
 import heizige.kk.khatkit.app.feature.chat.helper.SubagentTeamManager
+import heizige.kk.khatkit.app.core.data.datastore.forTeam
+import heizige.kk.khatkit.app.core.data.datastore.team
 import heizige.kk.khatkit.workspace.WorkspaceShellStatus
 
 private const val TAG = "ChatToolFactory"
@@ -124,12 +126,15 @@ class ChatToolFactory(
             settingsRepository?.let { repository ->
                 addAll(createRoleTools(
                     actorId = assistant.id,
-                    settings = { repository.settingsFlow.value },
-                    update = { change -> repository.update(change) },
+                    settings = { repository.settingsFlow.value.forTeam(conversationId) },
+                    temporaryRoles = { repository.settingsFlow.value.team(conversationId).temporaryRoles },
+                    update = { change -> repository.update { current ->
+                        change(current.forTeam(conversationId)).forTeam(null)
+                    } },
                 ))
-                if (assistant.enableSubagentTeam) {
+                if (conversationId != null && assistant.id in repository.settingsFlow.value.team(conversationId).delegates) {
                     subagentTeamManager?.let { manager ->
-                        add(manager.tool(assistant.id, { repository.settingsFlow.value }, conversationId, model.id))
+                        add(manager.tool(assistant.id, repository::update, conversationId, model.id))
                     }
                 }
             }

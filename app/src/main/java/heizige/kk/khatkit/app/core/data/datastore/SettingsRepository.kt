@@ -156,6 +156,7 @@ class SettingsRepository @Inject constructor(
         // 助手
         val SELECT_ASSISTANT = stringPreferencesKey("select_assistant")
         val ASSISTANTS = stringPreferencesKey("assistants")
+        private val CONVERSATION_TEAMS = stringPreferencesKey("conversation_teams")
         val ASSISTANT_TAGS = stringPreferencesKey("assistant_tags")
 
         // 搜索
@@ -203,10 +204,10 @@ class SettingsRepository @Inject constructor(
         // Uses the same DataStore singleton without starting settings flows or requiring Koin.
         internal suspend fun restoreBeforeInitialization(context: Context, settings: Settings) {
             require(!settings.init) { "Cannot restore uninitialized settings" }
-            persistSettings(context.settingsStore, settings)
+            persistSettings(context.settingsStore, settings.copy(conversationTeams = emptyMap()), writeTeams = true)
         }
 
-        private suspend fun persistSettings(dataStore: DataStore<Preferences>, settings: Settings) {
+        private suspend fun persistSettings(dataStore: DataStore<Preferences>, settings: Settings, writeTeams: Boolean = false) {
             dataStore.edit { preferences ->
                 preferences[DYNAMIC_COLOR] = settings.dynamicColor
                 preferences[THEME_ID] = settings.themeId
@@ -242,6 +243,7 @@ class SettingsRepository @Inject constructor(
                 preferences[PROVIDERS] = JsonInstant.encodeToString(settings.providers)
 
                 preferences[ASSISTANTS] = JsonInstant.encodeToString(settings.assistants)
+                if (writeTeams) preferences[CONVERSATION_TEAMS] = JsonInstant.encodeToString(settings.conversationTeams)
                 preferences[SELECT_ASSISTANT] = settings.assistantId.toString()
                 preferences[ASSISTANT_TAGS] = JsonInstant.encodeToString(settings.assistantTags)
 
@@ -322,6 +324,7 @@ class SettingsRepository @Inject constructor(
                 } ?: emptyList(),
                 providers = JsonInstant.decodeFromString(preferences[PROVIDERS] ?: "[]"),
                 assistants = JsonInstant.decodeFromString(preferences[ASSISTANTS] ?: "[]"),
+                conversationTeams = preferences[CONVERSATION_TEAMS]?.let { JsonInstant.decodeFromString(it) } ?: emptyMap(),
                 dynamicColor = preferences[DYNAMIC_COLOR] != false,
                 themeId = preferences[THEME_ID] ?: PresetThemes[0].id,
                 customThemes = preferences[CUSTOM_THEMES]?.let {
@@ -443,6 +446,8 @@ class SettingsRepository @Inject constructor(
                 },
                 assistants = settings.assistants.distinctBy { it.id }.map { assistant ->
                     assistant.copy(
+                        canManageRoles = false,
+                        enableSubagentTeam = false,
                         // 过滤掉不存在的 MCP 服务器 ID
                         mcpServers = assistant.mcpServers.filter { serverId ->
                             serverId in validMcpServerIds
@@ -484,7 +489,7 @@ class SettingsRepository @Inject constructor(
         .toMutableStateFlow(scope, Settings.dummy())
 
     suspend fun update(settings: Settings) = updateMutex.withLock {
-        persistUpdate(settings)
+        persistUpdate(settings.copy(conversationTeams = settingsFlow.value.conversationTeams))
     }
 
     private suspend fun persistUpdate(settings: Settings) {
@@ -497,11 +502,11 @@ class SettingsRepository @Inject constructor(
         // 让 getCurrentAssistant() 的 first() 抛 NoSuchElementException（真机删除最后一个助手即崩溃）。
         val updated = settings.copy(
             assistants = normalizeAssistants(settings.assistants).map(::migrateLegacyDefaultRole),
-        ).withRoleModels()
+        ).forTeam(null).withRoleModels()
         val previous = settingsFlow.value
         settingsFlow.value = updated
         try {
-            persistSettings(dataStore, updated)
+            persistSettings(dataStore, updated, writeTeams = updated.conversationTeams != previous.conversationTeams)
         } catch (error: Exception) {
             settingsFlow.value = previous
             throw error
@@ -518,7 +523,9 @@ class SettingsRepository @Inject constructor(
     }
 
     suspend fun update(fn: (Settings) -> Settings) = updateMutex.withLock {
-        persistUpdate(fn(settingsFlow.value))
+        val current = settingsFlow.value
+        val updated = fn(current)
+        if (updated !== current) persistUpdate(updated)
     }
 
     suspend fun updateAssistant(assistantId: Uuid) {
@@ -645,6 +652,7 @@ data class Settings(
     val assistantId: Uuid = DEFAULT_ASSISTANT_ID,
     val providers: List<ProviderSetting> = DEFAULT_PROVIDERS,
     val assistants: List<Assistant> = DEFAULT_ASSISTANTS,
+    @Transient val conversationTeams: Map<Uuid, ConversationTeam> = emptyMap(),
     val assistantTags: List<Tag> = emptyList(),
     val searchServices: List<SearchOptions> = listOf(SearchOptions.DEFAULT),
     val searchCommonOptions: SearchCommonOptions = SearchCommonOptions(),

@@ -200,28 +200,6 @@ internal fun AssistantBasicContent(
                     label = "职责描述",
                     singleLine = false,
                 )
-                MochiListRow(
-                    title = "主管权限",
-                    subtitle = "允许 AI 创建、修改和删除团队角色；每次变更仍需确认。",
-                    onClick = { onUpdate(assistant.copy(canManageRoles = !assistant.canManageRoles)) },
-                    trailing = {
-                        MochiSwitch(
-                            checked = assistant.canManageRoles,
-                            onCheckedChange = { onUpdate(assistant.copy(canManageRoles = it)) },
-                        )
-                    },
-                )
-                MochiListRow(
-                    title = "子代理团队",
-                    subtitle = "优先委派给职责匹配的已有角色，缺少人选时创建一次性临时角色。每批最多三项，确认后执行。",
-                    onClick = { onUpdate(assistant.copy(enableSubagentTeam = !assistant.enableSubagentTeam)) },
-                    trailing = {
-                        MochiSwitch(
-                            checked = assistant.enableSubagentTeam,
-                            onCheckedChange = { onUpdate(assistant.copy(enableSubagentTeam = it)) },
-                        )
-                    },
-                )
             }
         }
 

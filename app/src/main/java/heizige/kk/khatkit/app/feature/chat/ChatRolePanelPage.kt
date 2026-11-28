@@ -41,6 +41,7 @@ import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.data.datastore.findModelById
 import heizige.kk.khatkit.app.core.data.datastore.findModelProviderName
 import heizige.kk.khatkit.app.core.data.datastore.getAssistantById
+import heizige.kk.khatkit.app.core.data.datastore.team
 import heizige.kk.khatkit.app.core.data.model.Avatar
 import heizige.kk.khatkit.app.core.ui.components.ui.CardGroup
 import heizige.kk.khatkit.app.core.ui.components.ui.UIAvatar
@@ -82,7 +83,7 @@ import kotlin.uuid.Uuid
  *
  * @param roleId 当前角色（assistant id）。由聊天页顶栏已解析出的角色 id 传入 —— 顶栏显示谁，
  *   面板就查谁，不在面板里二次猜测。
- * @param conversationId 打开面板时所在会话的 id，只用于「重命名当前聊天」。
+ * @param conversationId 当前会话的团队权限、临时角色和标题均使用这个 id。
  */
 @Composable
 fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
@@ -213,6 +214,11 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                         trailingContent = { Icon(arrowForward, null) },
                     )
                     item(
+                        onClick = { navController.navigate(Screen.Assistant) },
+                        headlineContent = { Text(stringResource(R.string.assistant_page_manage)) },
+                        trailingContent = { Icon(arrowForward, null) },
+                    )
+                    item(
                         onClick = { navController.navigate(Screen.AssistantPrompt(roleId)) },
                         leadingContent = { Icon(sms, null) },
                         headlineContent = { Text(stringResource(R.string.chat_role_panel_prompt)) },
@@ -229,6 +235,16 @@ fun ChatRolePanelPage(roleId: String, conversationId: String? = null) {
                 }
             }
 
+            if (currentConversationUuid != null) {
+                item(key = "team-$currentConversationUuid") {
+                    ConversationTeamPanel(
+                        actor = role.id,
+                        team = appSettings.team(currentConversationUuid),
+                        update = { vm.updateTeam(currentConversationUuid, it) },
+                        save = { id, name, duties, promote -> vm.saveRole(currentConversationUuid, id, name, duties, promote) },
+                    )
+                }
+            }
             // ② 该角色历史聊天：分段标题单独一行，每个会话是外层 LazyColumn 的独立 item
             //    （按需组合/回收），行的形状仍由 listCardStyle().indexedShape 算，与 CardGroup
             //    里的 option item 逐像素一致。

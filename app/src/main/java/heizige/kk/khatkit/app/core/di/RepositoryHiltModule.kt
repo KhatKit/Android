@@ -52,12 +52,18 @@ object RepositoryHiltModule {
         database: AppDatabase,
         filesManager: FilesManager,
         messageFtsManager: MessageFtsManager,
+        settings: dagger.Lazy<SettingsRepository>,
     ): ConversationRepository = ConversationRepository(
         conversationDAO,
         messageNodeDAO,
         database,
         filesManager,
         messageFtsManager,
+        forgetTeam = { chat ->
+            settings.get().update { current ->
+                if (chat in current.conversationTeams) current.copy(conversationTeams = current.conversationTeams - chat) else current
+            }
+        },
     )
 
     @Provides

@@ -4,6 +4,12 @@ import heizige.kk.khatkit.ai.provider.Model
 import heizige.kk.khatkit.ai.provider.ProviderSetting
 import heizige.kk.khatkit.ai.ui.UIMessagePart
 import heizige.kk.khatkit.app.core.data.datastore.Settings
+import heizige.kk.khatkit.app.core.data.datastore.ConversationTeam
+import heizige.kk.khatkit.app.core.data.datastore.withTeam
+import heizige.kk.khatkit.app.core.data.datastore.team
+import heizige.kk.khatkit.app.core.data.datastore.promoteTemporaryRole
+import heizige.kk.khatkit.app.feature.chat.helper.SubagentAssignment
+import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.core.data.model.Assistant
 import heizige.kk.khatkit.app.feature.chat.helper.createSubagentTeamTool
 import heizige.kk.khatkit.app.feature.chat.helper.subagentMessages
@@ -31,11 +37,16 @@ class SubagentTeamToolTest {
     private val writer = Assistant(name = "Writer")
     private val reviewer = Assistant(name = "Reviewer")
     private val researcher = Assistant(name = "Researcher")
+    private val chat = Uuid.random()
     private val settings = Settings.dummy().copy(assistants = listOf(lead, writer, reviewer, researcher))
+        .withTeam(chat, ConversationTeam(delegates = setOf(lead.id)))
+
+    private fun toolFor(snapshot: () -> Settings, generate: suspend (SubagentAssignment, Settings) -> String?) =
+        createSubagentTeamTool(lead.id, chat, settings.chatModelId, { change -> change(snapshot()) }, Semaphore(2), generate)
 
     @Test
     fun approvalAndPartialResults() = runBlocking {
-        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { (role, text), _ ->
+        val tool = toolFor({ settings }) { (role, text), _ ->
             if (role == reviewer) error("internal exception text")
             "result for $text"
         }
@@ -52,7 +63,7 @@ class SubagentTeamToolTest {
     @Test
     fun invalidBatchesAndRevokedPermissionNeverRun() = runBlocking {
         var current = settings
-        val tool = createSubagentTeamTool(lead.id, { current }, Semaphore(2)) { _, _ ->
+        val tool = toolFor({ current }) { _, _ ->
             throw AssertionError("invalid invocation reached worker")
         }
         suspend fun rejects(vararg tasks: Pair<Assistant?, String>) {
@@ -65,9 +76,7 @@ class SubagentTeamToolTest {
         rejects(Assistant() to "missing")
         rejects(null to "valid", Assistant() to "missing")
         rejects(*Array(4) { null to "extra" })
-        current = settings.copy(assistants = settings.assistants.map {
-            if (it.id == lead.id) it.copy(enableSubagentTeam = false) else it
-        })
+        current = settings.withTeam(chat, ConversationTeam())
         rejects(reviewer to "review")
         rejects(null to "draft")
     }
@@ -75,7 +84,7 @@ class SubagentTeamToolTest {
     @Test
     fun temporaryWorkersNeedOnlyOneConfiguredRoleAndReceiveSeparatePrompts() = runBlocking {
         val solo = settings.copy(assistants = listOf(lead.copy(systemPrompt = "private supervisor prompt")))
-        val tool = createSubagentTeamTool(lead.id, { solo }, Semaphore(2)) { (role, task, temporary), snapshot ->
+        val tool = toolFor({ solo }) { (role, task, temporary), snapshot ->
             assertTrue(temporary)
             assertTrue(snapshot.assistants.none { it.id == role.id })
             val messages = subagentMessages(role, task)
@@ -99,7 +108,7 @@ class SubagentTeamToolTest {
 
     @Test
     fun mixesExistingAndTemporaryRolesAndResumesOldRequests() = runBlocking {
-        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { assignment, _ ->
+        val tool = toolFor({ settings }) { assignment, _ ->
             if (assignment.temporary) assertTrue(assignment.role.id !in settings.assistants.map { it.id })
             else assertEquals(writer, assignment.role)
             assignment.role.name
@@ -112,12 +121,14 @@ class SubagentTeamToolTest {
         val output = tool.execute(tasks).single() as UIMessagePart.Text
         val results = Json.parseToJsonElement(output.text).jsonObject.getValue("results").jsonArray
         assertEquals(listOf("Writer", "Fact checker", "临时子代理 3"), results.map { it.jsonObject.getValue("text").jsonPrimitive.content })
-        assertEquals(listOf(writer.id.toString(), "temporary", "temporary"), results.map { it.jsonObject.getValue("role_uid").jsonPrimitive.content })
+        val ids = results.map { Uuid.parse(it.jsonObject.getValue("role_uid").jsonPrimitive.content) }
+        assertEquals(writer.id, ids.first())
+        assertEquals(3, ids.distinct().size)
     }
 
     @Test
     fun validatesTemporaryProfilesBeforeStartingAnyWorker() = runBlocking {
-        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { _, _ ->
+        val tool = toolFor({ settings }) { _, _ ->
             throw AssertionError("Invalid batch reached worker")
         }
         val ambiguous = JsonObject(temporary("Editor", "Edit prose", "edit") + named(writer, "edit"))
@@ -137,7 +148,7 @@ class SubagentTeamToolTest {
         val specialist = writer.copy(description = "Edit prose", chatModelId = model.id)
         var current = settings.copy(assistants = listOf(lead), providers = listOf(provider))
         var calls = 0
-        val tool = createSubagentTeamTool(lead.id, { current }, Semaphore(2)) { assignment, _ ->
+        val tool = toolFor({ current }) { assignment, _ ->
             calls++
             assignment.role.name
         }
@@ -156,7 +167,7 @@ class SubagentTeamToolTest {
     fun limitsParallelWorkAndCancelsEveryStartedChild() = runBlocking {
         val started = Channel<String>(Channel.UNLIMITED)
         val stopped = Channel<String>(Channel.UNLIMITED)
-        val tool = createSubagentTeamTool(lead.id, { settings }, Semaphore(2)) { (_, task), _ ->
+        val tool = toolFor({ settings }) { (_, task), _ ->
             started.send(task)
             try {
                 awaitCancellation()
@@ -172,6 +183,29 @@ class SubagentTeamToolTest {
             assertEquals(active, setOf(stopped.receive(), stopped.receive()))
             assertTrue(started.tryReceive().isFailure)
         }
+    }
+
+    @Test
+    fun sessionOwnsPermissionAndRoleUntilPromotion() = runBlocking {
+        var current = settings
+        val other = Uuid.random()
+        fun tool(id: Uuid) = createSubagentTeamTool(lead.id, id, current.chatModelId, { current = it(current) }, Semaphore(2)) {
+            assignment, _ -> assignment.role.name
+        }
+        val proposal = batch(temporary("Editor", "Edit prose", "review"))
+        assertTrue(runCatching { tool(other).execute(proposal) }.isFailure)
+        repeat(2) { tool(chat).execute(proposal) }
+        val role = current.team(chat).temporaryRoles.single()
+        tool(chat).execute(input(role to "again"))
+        current = current.withTeam(other, ConversationTeam(delegates = setOf(lead.id)))
+        assertTrue(runCatching { tool(other).execute(input(role to "cross chat")) }.isFailure)
+        current = current.promoteTemporaryRole(other, role.id)
+        assertTrue(current.assistants.none { it.id == role.id })
+        current = current.promoteTemporaryRole(chat, role.id).promoteTemporaryRole(chat, role.id)
+        assertTrue(current.team(chat).temporaryRoles.isEmpty())
+        assertEquals(role, current.assistants.single { it.id == role.id })
+        tool(other).execute(input(role to "now permanent"))
+        Unit
     }
 
     private fun input(vararg tasks: Pair<Assistant?, String>) =
