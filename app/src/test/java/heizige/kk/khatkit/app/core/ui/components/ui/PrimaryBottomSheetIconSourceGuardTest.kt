@@ -288,8 +288,9 @@ class PrimaryBottomSheetIconSourceGuardTest {
             // C2：删除 KhatKitPermissionSheet/RecordCardSheet（无调用点死代码），调用点 49 → 47。
             // 之后「更多选项」和 UiRequest.Confirm 移出，终端设置新增一处：47 - 2 + 1。
             // 2026-11-28：core/ui/activity/SafeModeActivity.kt:391（AssistantPickerSheet）新增一处，
-            // 在 SOURCE_ROOTS 覆盖范围内，52 → 53；同 suite 的 everyPrimaryBottomSheetCallSite_passesAnIcon 仍全绿。
-            53,
+            // 在 SOURCE_ROOTS 覆盖范围内，52 → 53；角色页操作由 AssistantActionSheet 改为行内 Mochi 菜单，53 → 52。
+            // 同 suite 的 everyPrimaryBottomSheetCallSite_passesAnIcon 仍全绿。
+            52,
             sites.size,
         )
         assertTrue("群配置面板已移除", sites.none { it.file.endsWith("feature/chat/GroupChatPage.kt") })

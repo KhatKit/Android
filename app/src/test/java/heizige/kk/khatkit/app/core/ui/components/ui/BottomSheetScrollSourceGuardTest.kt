@@ -330,8 +330,9 @@ class BottomSheetScrollSourceGuardTest {
             // 之后「更多选项」和 UiRequest.Confirm 移出，终端设置新增一处：47 - 2 + 1。
             // 2026-11-28：core/ui/activity/SafeModeActivity.kt:391（AssistantPickerSheet）新增一处
             // PrimaryBottomSheet 调用点（WIP 安全模式批量选择助手），在 SOURCE_ROOTS 覆盖范围内，52 → 53；
+            // 角色页操作由 AssistantActionSheet 改为行内 Mochi 菜单，删除一处调用，53 → 52。
             // 同 suite 的 noCallSite_nestsItsOwnVerticalScrollInsideAScrollableSheet 仍全绿。
-            53,
+            52,
             sites.size,
         )
         val selfScrolling = sites.filter { it.selfScrolls }
