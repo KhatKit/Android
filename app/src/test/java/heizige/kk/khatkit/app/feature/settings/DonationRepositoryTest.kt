@@ -79,6 +79,19 @@ class DonationRepositoryTest {
         assertEquals(1, source.refresh(base).channels.size)
     }
 
+    @Test fun confirmedPlatformFallbackRespectsAuthoritativeRemoteRemovals() {
+        val channels = heizige.kk.khatkit.app.feature.settings.data.DonationChannels.portals
+        assertEquals(listOf("https://afdian.com/a/heizige", "https://ko-fi.com/heizige"), channels.map { it.destination(null) })
+        val profile = heizige.kk.khatkit.app.feature.settings.data.DonationProfile(
+            name = "KhatKit", projectUrl = "https://github.com/KhatKit/Android", websiteUrl = "https://heizige.top",
+        )
+        val remote = heizige.kk.khatkit.app.feature.settings.data.DonationSnapshot(profile, emptyList(), emptyList(), 0)
+        assertTrue(channels.all { it.destination(remote) == null })
+        val enabled = remote.copy(channels = listOf(heizige.kk.khatkit.app.feature.settings.data.RemoteDonationChannel("kofi", "Ko-fi", "https://ko-fi.com/heizige")))
+        assertNull(channels.first { it.id == "afdian" }.destination(enabled))
+        assertEquals("https://ko-fi.com/heizige", channels.first { it.id == "kofi" }.destination(enabled))
+    }
+
     @Test fun explicitEmptyResponseIsAValidLoadedResult() = runBlocking {
         val source = DonationDataSource({ "invalid cache" }, { _, _ -> }, { """{"profile":{"name":"KhatKit","projectUrl":"https://github.com/KhatKit/Android","websiteUrl":"https://heizige.top"},"channels":[],"acknowledgements":[],"acknowledgementTotal":0}""" })
         assertNull(source.cached(base))

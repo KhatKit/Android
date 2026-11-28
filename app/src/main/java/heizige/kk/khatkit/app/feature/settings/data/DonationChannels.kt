@@ -10,17 +10,21 @@ internal enum class DonationChannel(@StringRes val label: Int, @DrawableRes val 
 }
 
 internal data class DonationPortal(
+    val id: String,
     @StringRes val label: Int,
     val icon: String,
-)
+    val url: String,
+) {
+    fun destination(snapshot: DonationSnapshot?): String? =
+        if (snapshot == null) url else snapshot.channels.firstOrNull { it.id == id }?.url
+}
 
 /** Only add payment destinations and public acknowledgements supplied by the maintainer. */
 internal object DonationChannels {
     const val projectUrl = "https://github.com/KhatKit/Android"
     const val websiteUrl = "https://heizige.top"
     val portals = listOf(
-        DonationPortal(R.string.sponsor_channel_afdian, "flash-outline"),
-        DonationPortal(R.string.sponsor_channel_bmc, "cafe-outline"),
-        DonationPortal(R.string.sponsor_channel_github, "logo-github"),
+        DonationPortal("afdian", R.string.sponsor_channel_afdian, "flash-outline", "https://afdian.com/a/heizige"),
+        DonationPortal("kofi", R.string.sponsor_channel_kofi, "cafe-outline", "https://ko-fi.com/heizige"),
     )
 }

@@ -15,8 +15,6 @@
     <string name="sponsor_link_copied">%1$s payment link copied</string>
     <string name="sponsor_other_channels">More ways to support</string>
     <string name="sponsor_channel_afdian">Afdian</string>
-    <string name="sponsor_channel_bmc">Buy Me a Coffee</string>
-    <string name="sponsor_channel_github">GitHub Sponsors</string>
     <string name="sponsor_unavailable">Not available yet</string>
     <string name="sponsor_business">Business sponsorship</string>
     <string name="sponsor_wall_tab">Supporters</string>
@@ -42,4 +40,6 @@
     <string name="sponsor_retry">Retry</string>
     <string name="sponsor_load_more">Load more</string>
     <string name="sponsor_wall_load_failed">Could not load acknowledgements. Please retry.</string>
+    <string name="sponsor_channel_kofi">Ko-fi</string>
+    <string name="sponsor_link_pending">Link not configured</string>
 </resources>

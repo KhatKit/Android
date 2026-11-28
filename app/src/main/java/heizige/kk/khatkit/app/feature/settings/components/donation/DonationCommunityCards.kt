@@ -62,34 +62,22 @@ internal fun DonationIntroduction(profile: Boolean = false, remote: DonationProf
 @Composable
 internal fun DonationPortals(state: DonationUiState) {
     val context = LocalContext.current
-    val channels = state.snapshot?.channels
     MochiListSection(header = stringResource(R.string.sponsor_other_channels)) {
-        if (channels.isNullOrEmpty()) {
-            DonationChannels.portals.forEach { portal ->
-                MochiListRow(
-                    title = stringResource(portal.label),
-                    value = stringResource(when {
-                        state.loading -> R.string.sponsor_loading
-                        state.failed -> R.string.sponsor_temporarily_unavailable
-                        else -> R.string.sponsor_unavailable
-                    }),
-                    enabled = false,
-                    leading = { MochiIonicon(portal.icon) },
-                    leadingStyle = MochiListLeadingStyle.Symbol,
-                )
-            }
-        } else channels.forEach { portal ->
+        DonationChannels.portals.forEach { portal ->
+            // A successfully loaded empty list is authoritative; offline first use gets owner-confirmed links.
+            val url = portal.destination(state.snapshot)
             MochiListRow(
-                title = portal.label,
-                onClick = { context.openUrl(portal.url) },
-                leading = { MochiIonicon(when (portal.id) {
-                    "afdian" -> "flash-outline"
-                    "bmc" -> "cafe-outline"
-                    "github" -> "logo-github"
-                    else -> "link-outline"
-                }) },
+                title = stringResource(portal.label),
+                value = if (url == null) stringResource(when {
+                    state.loading -> R.string.sponsor_loading
+                    state.failed -> R.string.sponsor_temporarily_unavailable
+                    else -> R.string.sponsor_link_pending
+                }) else null,
+                enabled = url != null,
+                onClick = url?.let { { context.openUrl(it) } },
+                leading = { MochiIonicon(portal.icon) },
                 leadingStyle = MochiListLeadingStyle.Symbol,
-                chevron = true,
+                chevron = url != null,
             )
         }
         val email = state.snapshot?.profile?.contactEmail

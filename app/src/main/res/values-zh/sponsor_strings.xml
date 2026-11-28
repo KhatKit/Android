@@ -15,8 +15,6 @@
     <string name="sponsor_link_copied">已复制%1$s收款链接</string>
     <string name="sponsor_other_channels">更多赞助渠道</string>
     <string name="sponsor_channel_afdian">爱发电</string>
-    <string name="sponsor_channel_bmc">Buy Me a Coffee</string>
-    <string name="sponsor_channel_github">GitHub Sponsors</string>
     <string name="sponsor_unavailable">暂未开放</string>
     <string name="sponsor_business">企业赞助与大额支持</string>
     <string name="sponsor_wall_tab">鸣谢榜</string>
@@ -42,4 +40,6 @@
     <string name="sponsor_retry">重试</string>
     <string name="sponsor_load_more">加载更多</string>
     <string name="sponsor_wall_load_failed">鸣谢记录加载失败，请重试。</string>
+    <string name="sponsor_channel_kofi">Ko-fi</string>
+    <string name="sponsor_link_pending">主页待配置</string>
 </resources>

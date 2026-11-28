@@ -26,17 +26,17 @@
 
 本地二维码保持原资源：支付宝 https://qr.alipay.com/fkx12240cdgdefoj6flf078；微信 wxp://f2f0BYJU7FHYqAPrDQLmsw41Jt4NGKO94p_yrAHiQeUJPJ8。复制仍从实际 drawable 解析，不拿字符串替换二维码。
 
-爱发电/BMC/GitHub Sponsors 主页、企业邮箱、个人资料与公开鸣谢名单仍待维护者提供；没有提供的数据不填样例。金额芯片只是建议，未接支付回调、未统计到账、未自动发放 AI 额度。平台付款与公开同意由管理员核实后录入。
+用户确认仅支持微信、支付宝、爱发电和 Ko-fi；Buy Me a Coffee 与 GitHub Sponsors 已移除。维护者随后确认 Ko-fi 已审核通过；爱发电 https://afdian.com/a/heizige 与 Ko-fi https://ko-fi.com/heizige 均启用并提供首次离线兜底。远端列表成功加载后，禁用/删除具有优先权。企业邮箱、个人资料与公开鸣谢名单仍待提供，没有提供的数据不填样例。金额芯片只是建议，未接支付回调、未统计到账、未自动发放 AI 额度。平台付款与公开同意由管理员核实后录入。
 
 离线缓存的首页鸣谢最多保留 24 小时；撤回同意不会保证立即删除用户设备上的离线副本。完整榜每次在线加载。
 
 ## 验证记录
 
-隔离检出基线 f3d65977e，叠加本次 16 个源码/资源/测试文件；最终 Kotlin 编译与 15 项赞助回归通过（exit 0）：二维码 3 项、数据源 8 项、生命周期/分页 4 项；failures=0、errors=0。包含最后的邮箱兼容及 mailto 编码调整。
+隔离检出基线 f3d65977e，叠加本次 16 个源码/资源/测试文件；确认四个渠道及真实主页后，主工作区与隔离检出均通过 Kotlin 编译与 16 项赞助回归（exit 0）：二维码 3、数据源 9、生命周期/分页 4，failures=0、errors=0。包括真实平台链接兜底、远端禁用优先级、邮箱兼容及 mailto 编码。
 
-主工作区最终 Kotlin 编译与同样 15 项赞助回归通过（exit 0，failures=0、errors=0）。首次定向测试因 Gradle 结果文件 in-progress-results-generic.bin 缺失 exit 1；使用一次性 Gradle 初始化参数复跑后通过，未修改仓库构建配置；AGP 最终仍将 XML 写入默认目录，因此另行归档了两组 15 项通过的 XML。验证日志与归档保留在 /home/heizige/文档/.khatkit-sponsor-validation/。
+主工作区最终 Kotlin 编译与同样 16 项赞助回归通过（exit 0，failures=0、errors=0）。首次定向测试因 Gradle 结果文件 in-progress-results-generic.bin 缺失 exit 1；使用一次性 Gradle 初始化参数复跑后通过，未修改仓库构建配置；AGP 最终仍将 XML 写入默认目录，因此另行归档了通过的 XML，最终批准渠道的两组结果各为 16 项通过。验证日志与归档保留在 /home/heizige/文档/.khatkit-sponsor-validation/。
 
-后端构建与 H2 测试的最终结果见服务端说明，交付前补齐。
+后端 ./kotlin build 与 ./kotlin test --include-classes='*Sponsor*Test' 均 exit 0，4 项 H2/API 用例全部通过、0 失败：默认真实渠道、不复活禁用项、JWT 角色鉴权、公开同意过滤、分页及非法输入原子保留。后端提交 c4fbbfd 已推送 kServer/master；协议与日志位置见服务端说明。
 
 未组装 APK，未代操作设备，也未进行视觉、扫码或真实支付验证。手动验收四段在赞助页说明中，不能把编译通过写成真机验证。
 
@@ -44,4 +44,4 @@
 
 只提交赞助相关文件；原工作区已有 30 项无关暂存内容，使用 git commit --only 的精确路径模式保留它们。保存 PNG 的旧辅助文件中另有无关未提交 import，不混入本次提交。
 
-后端目标为现有 kServer/master，客户端为 origin/main。后端尚未部署；部署后再通过管理员接口填真实渠道，客户端会在重新进入或点击重试时读取。平台档位建议为 ¥5/¥15/¥50 每月，主推 ¥15；平台费率本次未能核实，以创作者后台为准。
+后端已推送现有 kServer/master，客户端推送 origin/main。后端尚未部署；部署后再通过管理员接口填真实渠道，客户端会在重新进入或点击重试时读取。平台档位建议为 ¥5/¥15/¥50 每月，主推 ¥15；平台费率本次未能核实，以创作者后台为准。
