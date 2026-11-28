@@ -157,3 +157,11 @@ worktree `/tmp/kv-t54`、HEAD `d5b9ca5ac2e3549f66dcebee640254db91db6855`、tree 
   按合同“只验证 d5b9ca5ac”的要求，本轮未验证 6de5f9dc4；请把验证目标改指向 `6de5f9dc4`（或其后最新冻结 commit）后重派。
 - 资源统计（d5b9ca5ac 洁净树）：app en/zh 各 **3040** 条目、唯一名 **3039**、键差集 0、同类型重复 0、
   87 个 res XML 解析 0 失败；旧符号全 0（WorkflowLegacy 2 处注释）。9 项历史失败仍因编译失败未执行。
+
+## 最终验证（commit 8ff8360d7，2026-11-28）
+
+- 洁净 worktree `/tmp/kv5`（`git worktree add --detach /tmp/kv5 8ff8360d7`，含 material3 submodule 与 local.properties 前置）
+- 逐条退出码：compile=0、:app:testDebugUnitTest=0、./gradlew test=0、:app:lintDebug=0（BUILD SUCCESSFUL 9m11s）、git diff --check=0
+- 该提交包含合并评审 F1/F2 修复：未提交 chat 文件已入库、DefaultProviders 8 处中文 prose 已资源化（en/zh 各 8 对）
+- 期间修复过本地 .git 对象损坏（31 个 0 字节对象），已通过远端 8ff8360d7 重新 fetch 恢复，远端数据完整
+- 未执行本地 assemble、未操作设备
