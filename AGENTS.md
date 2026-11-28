@@ -54,7 +54,8 @@ Hub 市场（`GET /api/items`）→ 客户端下载 / 校验（哈希、名称�
 
 - **只暂存本次文件**：`git add <具体路径>`；**禁止** `git add -A` / `git commit -a` —— 本仓常驻几十个
   别人未完成的 WIP 文件，一次扫进会把无关改动打包进提交。
-- 提交前 `git status --short` 确认暂存区只有本次文件；改代码时先跑对应测试 / 构建（见「UI 库」§7）。
+- 提交前 `git status --short` 确认暂存区只有本次文件；本地只跑编译和 JVM 单测，**禁止本地组装 APK**。
+  Debug / Release APK 一律用 GitHub Actions 的 `Build APK` workflow（见下方「APK 打包」）。
 - message 照历史风格：`feat(scope): …` / `fix(scope): …` / `docs: …` / `build(mochi): …`，正文中文。
 - 推送 `git push origin main`（远端 `ssh://git@ssh.github.com:443/KhatKit/Android.git`）。
   推送被拒时**不要**强推（`--force`），先报告冲突与原因。
@@ -65,11 +66,15 @@ Hub 市场（`GET /api/items`）→ 客户端下载 / 校验（哈希、名称�
 **默认不动设备**，除非主人明确说「你来测」。即：不 `adb install` / `adb shell input` / `screencap` /
 `screenrecord`、不启模拟器、不跑 `connectedAndroidTest` / `:app:androidTest`、不折腾投屏或 Waydroid。
 
-**交付只做两件事**：
+**交付流程**：
 
-1. **自动能做的**（不碰设备）：`./gradlew :app:assembleDebug`、`:app:compileDebugKotlin`、
-   `:app:testDebugUnitTest`（JVM 单测）。
-2. **手动测试清单**：每次 UI 改动都按下面四段写，**不写「已真机验证」**。
+1. **本地自动检查**（不碰设备、不打 APK）：`./gradlew :app:compileDebugKotlin`、
+   `./gradlew :app:testDebugUnitTest`（JVM 单测）。本地**禁止**执行 `assembleDebug` / `assembleRelease`。
+2. **APK 打包**：只通过 GitHub Actions `Build APK`（`.github/workflows/build-apk.yml`）：
+   Actions → Build APK → Run workflow → `variant=debug` → 填写 versionCode / versionName → 下载 `khatkit-apk-debug` artifact。
+   先提交并推送所需改动，再选择对应分支触发构建；只有已推送的代码会进入 APK。
+   Debug 不需要 Release 签名 secrets；artifact 保留 14 天。Actions 构建失败时修复后重跑，不改成本地打包。
+3. **手动测试清单**：每次 UI 改动都按下面四段写，**不写「已真机验证」**。
 
 | 段落 | 内容 |
 |---|---|
@@ -91,11 +96,16 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
 
 ## Build, Test, and Development Commands
 
+本地只做编译与 JVM 测试；**Debug / Release APK 均由 GitHub Actions 打包，不要在本地 assemble APK**。
+
 ```bash
-./gradlew assembleDebug          # 构建 Debug APK
-./gradlew test                   # 运行所有模块的 JVM 单元测试
-./gradlew lint                   # 运行 Android Lint
+./gradlew :app:compileDebugKotlin    # 编译 app，不生成 APK
+./gradlew :app:testDebugUnitTest      # app JVM 单元测试
+./gradlew lint                        # Android Lint
 ```
+
+出 APK 走 Actions → **Build APK** → Run workflow；选 `debug` 或 `release`，完成后下载对应 artifact。
+详见本地约定「验机与 UI 验收」。
 
 ## Module Structure
 
@@ -554,8 +564,8 @@ commit/cancel 由系统阈值判定：业务只在 `onBackCompleted` 里 pop，�
 
 ```bash
 cd /home/heizige/文档/Android/Project/KhatKit
-./gradlew :app:assembleDebug                 # 0
-./gradlew test                               # 0
+./gradlew :app:compileDebugKotlin            # 0，不生成 APK
+./gradlew :app:testDebugUnitTest             # 0
 grep -rn 'isAppearanceLightStatusBars' --include=*.kt app/src/main | wc -l        # 0
 grep -rl 'import heizige.kk.kedge'   --include=*.kt . --exclude-dir=build | wc -l # 0
 grep -rl 'import top.yukonga.miuix'  --include=*.kt . --exclude-dir=build | wc -l # 0
