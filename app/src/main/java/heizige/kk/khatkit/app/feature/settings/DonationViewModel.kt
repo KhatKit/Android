@@ -25,10 +25,25 @@ import kotlinx.coroutines.withContext
 class DonationViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle,
+    private val donationRepository: heizige.kk.khatkit.app.feature.settings.data.DonationRepository,
 ) : ViewModel() {
     val pendingQr = savedStateHandle.getStateFlow<Int?>(PENDING_QR, null)
     private val savingState = MutableStateFlow(false)
     val saving = savingState.asStateFlow()
+
+    private val sponsorLoader = heizige.kk.khatkit.app.feature.settings.helper.DonationLoadManager(
+        scope = viewModelScope,
+        baseUrl = donationRepository::baseUrl,
+        cached = donationRepository::cached,
+        fetch = donationRepository::refresh,
+        fetchSupporters = donationRepository::supporters,
+    )
+    internal val sponsors = sponsorLoader.state
+
+    init { refreshSponsors() }
+
+    internal fun refreshSponsors() = sponsorLoader.refresh()
+    internal fun loadSupporters(retry: Boolean = false) = sponsorLoader.loadSupporters(retry)
 
     fun prepareExport(@DrawableRes drawable: Int): Boolean {
         if (savingState.value || pendingQr.value != null) return false

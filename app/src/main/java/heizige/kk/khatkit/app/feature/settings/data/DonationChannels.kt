@@ -1,0 +1,26 @@
+package heizige.kk.khatkit.app.feature.settings.data
+
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import heizige.kk.khatkit.app.R
+
+internal enum class DonationChannel(@StringRes val label: Int, @DrawableRes val qr: Int) {
+    Wechat(R.string.donate_page_wechat, R.drawable.donate_wechat_qr),
+    Alipay(R.string.donate_page_alipay, R.drawable.donate_alipay_qr),
+}
+
+internal data class DonationPortal(
+    @StringRes val label: Int,
+    val icon: String,
+)
+
+/** Only add payment destinations and public acknowledgements supplied by the maintainer. */
+internal object DonationChannels {
+    const val projectUrl = "https://github.com/KhatKit/Android"
+    const val websiteUrl = "https://heizige.top"
+    val portals = listOf(
+        DonationPortal(R.string.sponsor_channel_afdian, "flash-outline"),
+        DonationPortal(R.string.sponsor_channel_bmc, "cafe-outline"),
+        DonationPortal(R.string.sponsor_channel_github, "logo-github"),
+    )
+}

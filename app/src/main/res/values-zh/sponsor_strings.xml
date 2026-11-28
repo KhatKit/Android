@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sponsor_amount_tea">¥5 茶水</string>
+    <string name="sponsor_amount_coffee">¥15 咖啡</string>
+    <string name="sponsor_amount_support">¥50 支持</string>
+    <string name="sponsor_amount_custom">随心意</string>
+    <string name="sponsor_amount_hint">可参考 ¥%1$d，在付款应用中填写金额。</string>
+    <string name="sponsor_amount_custom_hint">金额由你决定，在付款应用中填写。</string>
+    <string name="sponsor_scan_hint">使用%1$s扫码，点按二维码可放大。</string>
+    <string name="sponsor_enlarge_qr">放大二维码</string>
+    <string name="sponsor_close_qr">关闭二维码</string>
+    <string name="sponsor_copy_link">复制收款链接</string>
+    <string name="sponsor_copying">正在读取收款链接…</string>
+    <string name="sponsor_copy_failed">收款链接复制失败，请尝试保存二维码。</string>
+    <string name="sponsor_link_copied">已复制%1$s收款链接</string>
+    <string name="sponsor_other_channels">更多赞助渠道</string>
+    <string name="sponsor_channel_afdian">爱发电</string>
+    <string name="sponsor_channel_bmc">Buy Me a Coffee</string>
+    <string name="sponsor_channel_github">GitHub Sponsors</string>
+    <string name="sponsor_unavailable">暂未开放</string>
+    <string name="sponsor_business">企业赞助与大额支持</string>
+    <string name="sponsor_wall_tab">鸣谢榜</string>
+    <string name="sponsor_profile_tab">项目主页</string>
+    <string name="sponsor_wall_title">感谢每一份支持</string>
+    <string name="sponsor_wall_empty">暂无公开的赞助记录</string>
+    <string name="sponsor_wall_empty_hint">感谢每一位支持 KhatKit 的朋友。</string>
+    <string name="sponsor_view_wall">查看鸣谢榜</string>
+    <string name="sponsor_wall_note">鸣谢榜仅展示赞助者同意公开的信息。</string>
+    <string name="sponsor_footer">感谢你支持 KhatKit 的持续开发与维护。</string>
+    <string name="sponsor_project_description">开源的 Android AI 对话客户端，支持工具调用与自动化。</string>
+    <string name="sponsor_project_links">项目链接</string>
+    <string name="sponsor_project_source">源代码</string>
+    <string name="sponsor_project_website">项目官网</string>
+    <string name="sponsor_project_note_title">关于这份支持</string>
+    <string name="sponsor_project_note">赞助用于支持项目的持续开发与维护。你也可以通过反馈问题、贡献代码帮助改进 KhatKit。</string>
+    <string name="sponsor_share_text">支持开源 Android AI 客户端 KhatKit。\n%1$s</string>
+    <string name="sponsor_loading">正在加载赞助信息…</string>
+    <string name="sponsor_temporarily_unavailable">暂时无法加载</string>
+    <string name="sponsor_load_failed">赞助信息更新失败</string>
+    <string name="sponsor_local_qr_available">微信和支付宝二维码仍可使用。</string>
+    <string name="sponsor_using_cache">正在显示上次保存的信息，微信和支付宝二维码仍可使用。</string>
+    <string name="sponsor_retry">重试</string>
+    <string name="sponsor_load_more">加载更多</string>
+    <string name="sponsor_wall_load_failed">鸣谢记录加载失败，请重试。</string>
+</resources>

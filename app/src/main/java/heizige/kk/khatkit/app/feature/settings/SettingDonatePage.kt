@@ -1,250 +1,208 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import heizige.kk.khatkit.app.R
-import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
-import heizige.kk.khatkit.app.core.ui.theme.PageMetrics
-import heizige.kk.khatkit.app.core.util.plus
+import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
+import heizige.kk.khatkit.app.core.util.writeClipboardText
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationIntroduction
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationPaymentCard
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationPortals
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationProjectLinks
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationProjectNote
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationQrImage
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationSupporters
+import heizige.kk.khatkit.app.feature.settings.components.donation.DonationRemoteStatus
+import heizige.kk.khatkit.app.feature.settings.components.donation.donationSupporterRows
+import heizige.kk.khatkit.app.feature.settings.data.DonationChannel
+import heizige.kk.khatkit.app.feature.settings.data.DonationChannels
+import heizige.kk.khatkit.app.feature.settings.helper.DonationPaymentLinkHelper
 import heizige.kk.khatkit.uikit.mochi.Toast
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiButton
-import ui.feice.mochi.basic.MochiDropdown
-import ui.feice.mochi.basic.MochiItem
-import ui.feice.mochi.basic.MochiSegmentedControl
-import ui.feice.mochi.basic.MochiSegmentedDefaults
+import ui.feice.mochi.basic.MochiSheet
+import ui.feice.mochi.basic.MochiSheetContent
+import ui.feice.mochi.basic.MochiSheetHeader
+import ui.feice.mochi.basic.MochiTabItem
 import ui.feice.mochi.basic.Text
-import ui.feice.mochi.effect.content.MochiBlurCrossfade
-import ui.feice.mochi.effect.content.MochiBlurText
-import ui.feice.mochi.effect.elastic.mochiPressDeform
-import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
+import ui.feice.mochi.basic.rememberMochiSheetState
+import ui.feice.mochi.basic.mochiSheetBackdrop
 import ui.feice.mochi.icons.MochiIonicon
-import ui.feice.mochi.list.MochiListCard
-import ui.feice.mochi.list.MochiListDefaults
-import ui.feice.mochi.shape.MochiSuperellipse
-import ui.feice.mochi.theme.MochiTheme
+import ui.feice.mochi.list.MochiListSectionFooter
+import ui.feice.mochi.navigation.MochiLazyCompactTitleScaffold
+import ui.feice.mochi.navigation.MochiTabScaffold
+import ui.feice.mochi.navigation.rememberMochiTabScaffoldState
 
 @Composable
 fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
     val context = LocalContext.current
-    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val tabs = rememberMochiTabScaffoldState()
+    val qrSheet = rememberMochiSheetState()
     var paymentIndex by rememberSaveable { mutableIntStateOf(0) }
+    var enlargedIndex by rememberSaveable { mutableIntStateOf(0) }
+    var amountIndex by rememberSaveable { mutableIntStateOf(1) }
+    var copying by androidx.compose.runtime.remember { mutableStateOf(false) }
+    val channel = DonationChannel.entries[paymentIndex]
     val pendingQr by vm.pendingQr.collectAsStateWithLifecycle()
     val saving by vm.saving.collectAsStateWithLifecycle()
-    val methods = persistentListOf(
-        stringResource(R.string.donate_page_alipay),
-        stringResource(R.string.donate_page_wechat),
-    )
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("image/png"),
-    ) { uri -> vm.exportTo(uri) }
+    val sponsors by vm.sponsors.collectAsStateWithLifecycle()
+    val profile = sponsors.snapshot?.profile
+    LaunchedEffect(vm) { vm.refreshSponsors() }
     val canSave = pendingQr == null && !saving
-    val saveLabel = stringResource(R.string.donate_page_save_qr)
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { vm.exportTo(it) }
 
-    fun saveQr(index: Int) {
-        if (vm.prepareExport(donationQrResource(index))) {
+    fun saveQr(selected: DonationChannel) {
+        if (!vm.prepareExport(selected.qr)) return
+        try {
+            exportLauncher.launch(context.getString(R.string.donate_page_export_file_name, context.getString(selected.label)))
+        } catch (_: ActivityNotFoundException) {
+            vm.cancelExport()
+            Toast.show(context.getString(R.string.donate_page_save_failed), isError = true)
+        }
+    }
+
+    fun copyLink(selected: DonationChannel) {
+        if (copying) return
+        copying = true
+        scope.launch {
             try {
-                exportLauncher.launch(context.getString(R.string.donate_page_export_file_name, methods[index]))
-            } catch (_: ActivityNotFoundException) {
-                vm.cancelExport()
-                Toast.show(context.getString(R.string.donate_page_save_failed), isError = true)
+                val link = withContext(Dispatchers.IO) { DonationPaymentLinkHelper.read(context, selected.qr) }
+                if (link != null && context.writeClipboardText(link)) {
+                    Toast.show(context.getString(R.string.sponsor_link_copied, context.getString(selected.label)))
+                } else {
+                    Toast.show(context.getString(R.string.sponsor_copy_failed), isError = true)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Toast.show(context.getString(R.string.sponsor_copy_failed), isError = true)
+            } finally {
+                copying = false
             }
         }
     }
 
-    MochiSettingsPageScaffold(
-        title = stringResource(R.string.donate_page_title),
-        largeTitle = false,
-        scrollUnderTopBar = true,
-    ) { innerPadding ->
-        LazyColumn(
-            state = listState,
+    val shareLabel = stringResource(R.string.share)
+    val closeLabel = stringResource(R.string.sponsor_close_qr)
+    val items = persistentListOf(
+        MochiTabItem(stringResource(R.string.donate_page_title), selectedIcon = { MochiIonicon("heart", tint = it) }) { MochiIonicon("heart-outline", tint = it) },
+        MochiTabItem(stringResource(R.string.sponsor_wall_tab), selectedIcon = { MochiIonicon("medal", tint = it) }) { MochiIonicon("medal-outline", tint = it) },
+        MochiTabItem(stringResource(R.string.sponsor_profile_tab), selectedIcon = { MochiIonicon("person-circle", tint = it) }) { MochiIonicon("person-circle-outline", tint = it) },
+    )
+    val wallTitle = stringResource(R.string.sponsor_wall_title)
+    MochiTabScaffold(items, state = tabs, modifier = Modifier.mochiSheetBackdrop(qrSheet)) { tab ->
+        LaunchedEffect(tab, sponsors.loading, sponsors.wallLoaded) {
+            if (tab == 1 && !sponsors.loading && !sponsors.wallLoaded) vm.loadSupporters()
+        }
+        MochiLazyCompactTitleScaffold(
+            title = items[tab].label,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = innerPadding + PaddingValues(
-                horizontal = MochiListDefaults.RowPadding,
-                vertical = PageMetrics.TopContentPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            flingBehavior = MochiScrollDefaults.flingBehavior(),
+            navigationIcon = { BackButton() },
+            actions = {
+                MochiBarIconButton(
+                    onClick = {
+                        try {
+                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, context.getString(R.string.sponsor_share_text, profile?.projectUrl ?: DonationChannels.projectUrl))
+                            }, shareLabel))
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.show(context.getString(R.string.setting_page_no_share_app), isError = true)
+                        }
+                    },
+                    modifier = Modifier.semantics { contentDescription = shareLabel },
+                    navId = "share",
+                    contentKey = "share-outline",
+                ) { MochiIonicon("share-outline") }
+            },
         ) {
-            item(key = "support") {
-                DonationIntroduction()
+            if (sponsors.loading || sponsors.failed) {
+                item("remote-status") { DonationRemoteStatus(sponsors, onRetry = vm::refreshSponsors) }
             }
-            item(key = "payment") {
-                // Crossfade owns the changing QR and hint size; the card adds no second animation.
-                MochiListCard(
-                    modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
-                    animateHeight = false,
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        DonationPaymentPicker(methods, paymentIndex) { paymentIndex = it }
-                        MochiBlurCrossfade(paymentIndex, modifier = Modifier.fillMaxWidth()) { index ->
-                            val qrCanSave = canSave && index == paymentIndex
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Image(
-                                    painter = painterResource(donationQrResource(index)),
-                                    contentDescription = stringResource(R.string.donate_page_qr_description, methods[index]),
-                                    colorFilter = ColorFilter.tint(MochiTheme.colorScheme.primary),
-                                    modifier = Modifier
-                                        .widthIn(max = 240.dp)
-                                        .fillMaxWidth()
-                                        .aspectRatio(1f)
-                                        .clickable(
-                                            enabled = qrCanSave,
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            role = Role.Button,
-                                            onClickLabel = saveLabel,
-                                            onClick = { saveQr(index) },
-                                        )
-                                        .then(if (qrCanSave) Modifier.mochiPressDeform() else Modifier),
-                                )
-                                Text(
-                                    text = stringResource(R.string.donate_page_scan_hint, methods[index]),
-                                    style = MochiTheme.textStyles.footnote.copy(textAlign = TextAlign.Center),
-                                    color = MochiTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        MochiButton(
-                            onClick = { saveQr(paymentIndex) },
-                            enabled = canSave,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            MochiIonicon("download-outline", modifier = Modifier.size(20.dp))
-                            Text(saveLabel)
-                        }
+            when (tab) {
+                0 -> {
+                    item("introduction") { DonationIntroduction(remote = profile) }
+                    item("payment") {
+                        DonationPaymentCard(
+                            channel = channel,
+                            onChannelChange = { paymentIndex = it.ordinal },
+                            amountIndex = amountIndex,
+                            onAmountChange = { amountIndex = it },
+                            canSave = canSave,
+                            copying = copying,
+                            onSave = { saveQr(channel) },
+                            onCopy = { copyLink(channel) },
+                            onEnlarge = { enlargedIndex = paymentIndex; qrSheet.show() },
+                        )
                     }
+                    item("portals") { DonationPortals(sponsors) }
+                    item("supporters") { DonationSupporters(sponsors, onViewAll = { tabs.select(1) }) }
+                    item("thanks") { MochiListSectionFooter(stringResource(R.string.sponsor_footer)) }
+                }
+                1 -> {
+                    donationSupporterRows(sponsors, wallTitle, onMore = { vm.loadSupporters(retry = true) })
+                    item("thanks") { MochiListSectionFooter(stringResource(R.string.sponsor_wall_note)) }
+                }
+                2 -> {
+                    item("project") { DonationIntroduction(profile = true, remote = profile) }
+                    item("project-links") { DonationProjectLinks(profile) }
+                    item("support-note") { DonationProjectNote() }
+                }
+            }
+        }
+    }
+    // Always composed: state owns appearance, dismissal and predictive back.
+    MochiSheet(qrSheet) {
+        val enlarged = DonationChannel.entries[enlargedIndex]
+        MochiSheetHeader(
+            title = stringResource(enlarged.label),
+            navigationIcon = {
+                MochiBarIconButton(
+                    onClick = { qrSheet.hide() },
+                    modifier = Modifier.semantics { contentDescription = closeLabel },
+                    contentKey = "close",
+                ) { MochiIonicon("close") }
+            },
+        )
+        MochiSheetContent {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                DonationQrImage(enlarged, Modifier.widthIn(max = 400.dp).fillMaxWidth())
+                MochiButton(onClick = { saveQr(enlarged) }, enabled = canSave, modifier = Modifier.fillMaxWidth()) {
+                    MochiIonicon("download-outline", modifier = Modifier.size(20.dp))
+                    Text(stringResource(R.string.donate_page_save_qr))
                 }
             }
         }
     }
 }
-
-@Composable
-private fun DonationPaymentPicker(
-    methods: ImmutableList<String>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-) {
-    val density = LocalDensity.current
-    val measurer = rememberTextMeasurer()
-    val labelStyle = MochiTheme.textStyles.footnote.copy(fontWeight = FontWeight.SemiBold)
-    val labels = methods.map { measurer.measure(it, labelStyle, maxLines = 1) }
-    val labelWidth = with(density) { labels.maxOf { it.size.width }.toDp() }
-    val labelHeight = with(density) { labels.maxOf { it.size.height }.toDp() }
-    val behavior = MochiSegmentedDefaults.behavior(height = maxOf(44.dp, labelHeight + 16.dp))
-    val requiredWidth = (labelWidth + behavior.segmentPadding * 2) * methods.size + 4.dp
-
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= requiredWidth) {
-            MochiSegmentedControl(
-                selectedIndex = selectedIndex,
-                onSelect = onSelect,
-                items = methods,
-                modifier = Modifier.fillMaxWidth(),
-                behavior = behavior,
-            )
-        } else {
-            // Use the library menu when two full labels cannot fit beside one another.
-            var expanded by remember { mutableStateOf(false) }
-            MochiDropdown(
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                items = methods.map { MochiItem(it) }.toImmutableList(),
-                onItemClick = onSelect,
-                selectedIndex = selectedIndex,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                MochiBlurText(
-                    methods[selectedIndex],
-                    modifier = Modifier.weight(1f),
-                    style = MochiTheme.textStyles.body.copy(textAlign = TextAlign.Center),
-                )
-                MochiIonicon("chevron-down", modifier = Modifier.size(18.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun DonationIntroduction() {
-    Column(
-        modifier = Modifier.widthIn(max = 360.dp).fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        AsyncImage(
-            model = R.mipmap.ic_launcher,
-            contentDescription = null,
-            modifier = Modifier.size(72.dp).clip(MochiSuperellipse(5f)),
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.donate_page_support_title),
-                style = MochiTheme.textStyles.titleLarge.copy(textAlign = TextAlign.Center),
-                color = MochiTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(R.string.donate_page_support_description),
-                style = MochiTheme.textStyles.subhead.copy(textAlign = TextAlign.Center),
-                color = MochiTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-private fun donationQrResource(index: Int): Int =
-    if (index == 0) R.drawable.donate_alipay_qr else R.drawable.donate_wechat_qr
