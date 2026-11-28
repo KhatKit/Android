@@ -22,6 +22,8 @@ import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.basic.MochiSheetState
 import ui.feice.mochi.basic.rememberMochiSheetState
 import ui.feice.mochi.effect.glass.LocalMochiBackdrop
+import ui.feice.mochi.effect.glass.mochiBackdropSource
+import ui.feice.mochi.effect.glass.rememberMochiBackdrop
 import heizige.kk.khatkit.app.Screen
 import heizige.kk.khatkit.app.core.ui.icons.utility.search
 import heizige.kk.khatkit.app.core.ui.theme.CustomColors
@@ -573,6 +575,10 @@ internal fun ChatScaffold(
         }
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         val inputBarHeight = with(LocalDensity.current) { inputBarHeightPx.toDp() }
+        // 顶栏采样会被 Mochi 的边缘模糊宿主裁成顶部条带，不能给底部控件复用。
+        // 在正文内层单独录完整背景；与外层边缘模糊分属不同布局节点，避免被合并成顶带。
+        val composerBackdrop = rememberMochiBackdrop(background = CustomColors.pageContainerColor)
+            .takeIf { setting.displaySetting.effectsEnabled }
         val previewListState = rememberLazyListState()
         val welcomeListState = rememberLazyListState()
         val showWelcome = !archived && !previewMode && conversation.messageNodes.isEmpty()
@@ -610,28 +616,27 @@ internal fun ChatScaffold(
                         },
                     )
             },
-            // 输入栏在正文录制层外，玻璃按钮可以安全复用顶栏的取样源。
+            // 输入栏是正文录制层的兄弟节点，只采样后方正文，不把自己录进去。
             floatingActionButton = {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .onSizeChanged { inputBarHeightPx = it.height },
                 ) {
-                    CompositionLocalProvider(LocalMochiBackdrop provides LocalKkBarBackdrop.current) {
+                    CompositionLocalProvider(LocalMochiBackdrop provides composerBackdrop) {
                         inputBarOverlay()
                     }
                 }
             },
             containerColor = CustomColors.pageContainerColor,
             barBackdropColor = CustomColors.pageContainerColor,
-            captureBodyBackdrop = setting.displaySetting.effectsEnabled,
             // 正文里铺着助手背景图，整槽渐隐会把背景一起擦掉：交界过渡由 ChatList 自己加在消息列表上
             edgeFade = false,
     ) { innerPadding ->
             // 助手背景（图片/流光）放在内容槽内的最底层：Miuix 下 backdrop 录制的
             // 就是这棵子树，画在槽外顶栏的毛玻璃采样不到它 —— 表现是「顶栏没有背景
             // 模糊」，只有消息列表被糊掉。
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().mochiBackdropSource(composerBackdrop)) {
                 // 角色由本函数 :315 解析好的 `assistant`（= getAssistantById(会话角色) ?: 当前角色）
                 // 传入，与顶栏、ChatInput 全部同源。背景图/流光不再自己解析全局 currentAssistant。
                 AssistantBackground(assistant = assistant, modifier = Modifier)
