@@ -7,6 +7,7 @@ import heizige.kk.khatkit.app.core.data.ai.mcp.McpCommonOptions
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpServerConfig
 import heizige.kk.khatkit.app.core.data.ai.mcp.McpStatus
 import heizige.kk.khatkit.app.core.data.ai.mcp.serverUrl
+import heizige.kk.khatkit.app.core.data.datastore.Settings
 import heizige.kk.khatkit.hub.HubResourceMcpServer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -103,6 +104,29 @@ fun mcpMissingRequiredKeys(config: McpServerConfig): List<String> =
 fun rePlanMcpInstall(config: McpServerConfig): McpInstallPlan {
     val missing = mcpMissingRequiredKeys(config)
     return McpInstallPlan(config = config.withEnabled(missing.isEmpty()), missingRequired = missing)
+}
+
+/** 安装与保存共用的落盘决策：缺必填的候选配置不会启用或挂入助手。 */
+internal fun applyMcpInstallDecision(settings: Settings, plan: McpInstallPlan): Settings {
+    val incoming = plan.config
+    val index = settings.mcpServers.indexOfFirst { existing ->
+        existing.id == incoming.id ||
+            (incoming.serverUrl.isNotBlank() && existing.serverUrl == incoming.serverUrl)
+    }
+    val servers = if (index >= 0) {
+        settings.mcpServers.toMutableList().also { it[index] = incoming }
+    } else {
+        settings.mcpServers + incoming
+    }
+    val assistants = if (plan.enable) {
+        settings.assistants.map { assistant ->
+            if (assistant.id != settings.assistantId) assistant
+            else assistant.copy(mcpServers = assistant.mcpServers + incoming.id)
+        }
+    } else {
+        settings.assistants
+    }
+    return settings.copy(mcpServers = servers, assistants = assistants)
 }
 
 /** 不改其它字段，只改启用位。 */

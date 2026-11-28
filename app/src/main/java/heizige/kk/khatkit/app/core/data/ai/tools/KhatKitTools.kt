@@ -29,7 +29,7 @@ import heizige.kk.khatkit.bridge.impl.DownloadPolicy
 import heizige.kk.khatkit.bridge.impl.CardAiBridge
 import heizige.kk.khatkit.bridge.impl.FileStoreBridge
 import heizige.kk.khatkit.app.core.data.automation.ApprovalCategory
-import heizige.kk.khatkit.app.feature.automation.helper.UiAutomationSnapshotHelper
+import heizige.kk.khatkit.app.core.data.automation.UiAutomationSnapshotHelper
 import heizige.kk.khatkit.app.feature.automation.helper.BackgroundAppSessionManager
 import heizige.kk.khatkit.app.core.data.automation.UiActionDto
 import heizige.kk.khatkit.app.core.data.automation.BBoxDto

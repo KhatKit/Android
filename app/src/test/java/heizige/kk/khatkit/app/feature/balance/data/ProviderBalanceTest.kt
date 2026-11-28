@@ -1,6 +1,8 @@
 package heizige.kk.khatkit.app.feature.balance.data
 
 import heizige.kk.khatkit.ai.provider.BalanceOption
+import heizige.kk.khatkit.app.core.data.model.BalanceReading
+import heizige.kk.khatkit.app.core.util.isLow
 import heizige.kk.khatkit.common.http.getByKey
 import heizige.kk.khatkit.common.http.getByKeyStrict
 import kotlinx.coroutines.CancellationException
@@ -14,7 +16,6 @@ import org.junit.Test
 import kotlin.uuid.Uuid
 import heizige.kk.khatkit.app.feature.balance.helper.LowBalanceEpisodes
 import heizige.kk.khatkit.app.feature.balance.helper.BalanceQuery
-import heizige.kk.khatkit.app.feature.balance.helper.isLow
 
 class ProviderBalanceTest {
     private val options = BalanceOption(enabled = true, resultPath = "data.remaining", lowBalanceAlert = true)

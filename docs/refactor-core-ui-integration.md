@@ -99,6 +99,15 @@ settings 的 workflow/automation 源另归真实功能：`settings/CreateWorkflo
 
 ## 5. 保留 core 的具体消费者证据 / 未闭合
 
+2026-11-29 交接复审补充（覆盖 t39 当时未闭合状态）：
+
+- `feature/ui/shell/{MochiShell,MochiNavPages}.kt` 两份无消费者副本已删除，实际共享实现仅留 `core/ui/shell`。
+- `ExtensionSelector` 已从 core 归位 `feature/assistant/components/ui`，没有留转发副本。
+- `ProviderBalanceText` 改用 `core/data/model/BalanceReading` 与 `core/util/BalanceExtensions`；
+  `SubagentTeamToolUI` 改用 `core/data/ai/tools/SubagentToolConstants`，两者已无 feature import。
+- 下述运行时桥和平台注册引用是剩余耦合的实况说明；不等于由 DI/EntryPoint 自动取得共享豁免。
+  `core/data` 全量反向引用见 `refactor-core-data.md` §2（包含 B 时 8 import + 1 处生产 FQ）。
+
 - **core 保留**（t27 no-touch/keep，有消费证据）：`ModelList/AvatarEditSheet/UIAvatar/ChartCard/BuiltinToolUIs/AssistantPicker` 等被 2+ feature 或 core 调用链使用（共享提升的 M01–M04 亦同）；
   `core/network` 全部仍服务 web 路由（17 文件），无单 feature 独占证据。
 - **平台/运行时桥**（保留 core→feature 引用，消费者具体）：`KhatKitTools` 的 `ScheduleBridgeHelper/BusApprovalHelper`

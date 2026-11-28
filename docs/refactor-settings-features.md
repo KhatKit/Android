@@ -2,6 +2,11 @@
 
 依据：t28 审计 [/tmp/khatkit-reviewer-ownership.md（M33–M54、E01/E02）] 与 t26/t27 归属结论；本文件只记录本批**实际落地**的迁移、外部符号清单与未闭合项。M01–M06 共享提升、M31/M32 settings→workflow/automation 跨源移动留最后 core 批次，本次未动。
 
+> 2026-11-29 交接复审补充：M37 连接测试、M49 Chatbox 导入、E02 市场安装原先仍含业务副作用，
+> 不能因需要传依赖就视为完成。本轮已分别提取至 `ProviderConnectionTestHelper`、
+> `ChatboxRestoreHelper`、`ResourceInstallHelper`。以下历史映射保留；对应最新状态见各表与
+> `review-handover-a-2026-11-29.md`。本轮编译/JVM/Lint 由主代理统一执行。
+
 ## 1. 落地映射（旧 → 新，包路径相对 `app/src/main/java/heizige/kk/khatkit/app/feature/`）
 
 | ID | 旧路径/符号 | 新落点 |
@@ -14,6 +19,7 @@
 | M36 | `settings/SettingLeafIndex.kt` 的 SettingSearchEntry | `settings/data/SettingSearchEntry.kt`（filteredSettingResults / supportingLine / leafIcon 留原文件） |
 | M37 | `settings/SettingPreferencesThemePage.kt` 的 parseHslCode / parseHslPercentOrFraction / formatHslCode / hslNumberRegex | `settings/helper/ThemeColorExtensions.kt` |
 | M37 | `settings/components/ProviderConfigure.kt` 的 convertTo / defaultBaseUrlForReset / resetBaseUrlToDefault / isUsingDefaultBaseUrl / convertToTargetBaseUrl / convertToTargetPath / normalizePath / isValidBaseUrl / OFFICIAL_PROVIDER_HOSTS | `settings/helper/ProviderSettingExtensions.kt`（Composable 与文件选择回调留 components） |
+| M37（交接补齐） | `settings/components/ProviderConnectionTester.kt` 三路 `generateText/streamText` 请求 | `settings/helper/ProviderConnectionTestHelper.kt`；Compose 保留并发调度、加载状态和结果展示 |
 | M38 | `stats/StatsVM.kt`（UsageRange/UsageStats/AppStats、class StatsVM、DAO 读取） | `stats/StatsViewModel.kt` + `stats/data/StatsModels.kt` + `stats/data/StatsRepository.kt`（DAO/SQL/时间窗下沉，VM 只持加载态） |
 | M39 | `favorite/FavoriteVM.kt` 的 NodeFavoriteListItem；class FavoriteVM | `favorite/data/NodeFavoriteListItem.kt` + `favorite/FavoriteViewModel.kt` |
 | M39 | `history/HistoryVM.kt` class HistoryVM | `history/HistoryViewModel.kt` |
@@ -36,10 +42,12 @@
 | M48 | `search/SearchViewModel.kt` 的 MessageSearchScope / SearchRequest | `search/data/SearchModels.kt` |
 | M48 | 同文件 SORT_ORDER_PREF_KEY 与排序偏好读写 | `search/data/SearchPreferencesRepository.kt`（key 与 enum.name 落盘格式不变） |
 | M49 | `backup/BackupViewModel.kt` 的 ChatboxRestoreResult | `backup/data/ChatboxRestoreResult.kt` |
+| M49（交接补齐） | `BackupViewModel.restoreFromChatBox` 的导入、图片保存、会话落库、设置合并和计数 | `backup/helper/ChatboxRestoreHelper.kt`；ViewModel 保留入口与当前设置快照 |
 | M52 | `balance/data/ProviderBalanceRepository.kt` 的 BalanceReading | `balance/data/BalanceReading.kt` |
 | M52 | 同文件 LowBalanceEpisodes / BalanceQuery / usageField / isUsageOnly / thresholdAmount / isLow | `balance/helper/BalanceQueryManager.kt` |
 | E01 | `explore/McpInstallPlan.kt` 的 McpInstallPlan / McpCardStatus | `explore/data/McpInstallModels.kt` |
 | E01 | 同文件纯判定/脱敏函数与私有常量 | `explore/helper/McpInstallExtensions.kt`（原 McpInstallPlan.kt 已无残留声明，文件删除） |
+| E02（交接补齐） | `ExploreMarketViewModel.applyResourcePackage/saveMcpServerConfig` 的安装与写设置 | `explore/helper/ResourceInstallHelper.kt`；共享纯决策 `applyMcpInstallDecision` 归 `McpInstallExtensions.kt`，VM 仅保留兼容转发 |
 
 ## 2. 内部引用与测试同步
 
@@ -58,7 +66,9 @@
 | `core/di/AppHiltModule.kt:40,147` | 同上 + 构造调用 | → 同上 |
 | `app/src/androidTest/.../feature/yunx/YunxUiDeviceTest.kt` | 引用 YunxCardBridge | → helper 包（androidTest 不在本批 inScope） |
 
-`core/ui/components/ai/ProviderBalanceText.kt:31` 仅 import data.BalanceReading（未移动，无需改）；其文件内 isLow/thresholdAmount 字样为普通词匹配，不是本批符号。
+以上为 t37 时的外部清单，后续集成已改引用。交接复审确认 `BalanceReading` 已归
+`core/data/model`，`isLow`/`thresholdAmount` 已归 `core/util/BalanceExtensions.kt`；
+`ProviderBalanceText` 与 `ProviderBalanceTest` 均改用共享包，避免 core UI 反向依赖 balance feature。
 
 ## 4. 保持不变的兼容契约
 
@@ -72,15 +82,15 @@
 | 项 | 现状证据 |
 |---|---|
 | M33 ProxyTestState | `settings/data/ProxyTestState.kt` 全 app/src（main/test/androidTest）零引用；页面 `SettingPreferencesNetworkPage.kt` 用内联状态。审计 O2 明确「不要移动死文件制造分层完成」，删除需 captain 裁定；本批保留原位。 |
-| M37 ProviderConnectionTester | 测试流程直接写 Compose `UiState`/`rememberCoroutineScope` 并调 `providerManager.getProviderByType(...).generateText`（行 92–227），拆 helper 必须引入结果模型+回调，属行为面重构；本批只迁了同文件体系的纯 HSL/ProviderSetting 部分。 |
+| M37 ProviderConnectionTester | **已在交接补齐**：三路网络请求迁 `ProviderConnectionTestHelper`；Compose 仍持 `UiState`/`rememberCoroutineScope` 与流式展示状态，请求消息、模型、自定义 headers/body 和工具定义保持。 |
 | M37 ProviderCredentialImport | Google 服务账号 JSON 导入内联在 `ProviderConfigureGoogle` Composable（Toast/stringResource/uri launcher），Context/Compose 边界本身即 UI；未造 helper。 |
 | M40 图片落盘 | `saveImagePreview`(292)/`deleteReferenceFiles`(368) 是 VM 私有成员，读写 job 状态与 FilesManager；非顶层可迁。 |
 | M44 artifact 其余 | `openArtifact/shareArtifact/artifactFileUri` 是行 Composable 内局部函数（`CardRunsPage.kt`），仅顶层 isAvailable/fileOrNull 可安全外提。 |
 | M46 Client 常量 | `WorkspaceTerminalClient.kt` 已含 URL_REGEX/URL_TRAILING_TRIM/activeDnsServers；`WorkspaceTerminalHelper.kt` 保留 create/prepare/rootfsReady 三函数。 |
-| M49 Chatbox 导入流程 | `BackupViewModel.restoreFromChatBox`(~117–245) 依赖 VM settings 流、conversationRepository、filesManager 与计数回写；外提要参数化 4 个依赖并返回结果，超出本批最小改动，结果模型已下沉。 |
+| M49 Chatbox 导入流程 | **已在交接补齐**：副作用集中到 `ChatboxRestoreHelper.restore`，VM 转发当前设置；去重、图片落盘、会话写入、provider 合并与系统提示启用条件保持。 |
 | M50 onboarding | `GreetingPage.kt:973–1047` 的私有一行扩展紧贴 AiSetup 步骤状态；审计标「可选」，本批未强拆。 |
 | M51 debug | `DebugViewModel` 的 createOversizedConversation/randomMessageText 是类成员（依赖 repository/VM 状态），无顶层可迁点；审计标「可选」。 |
-| E02 市场安装流程 | `ExploreMarketViewModel.kt:386–558` 的 applyResourcePackage/installResource/saveMcpServerConfig 持 busy/job/回调与 repository 副作用，外提需带 4–5 个依赖与原子安装顺序校验；本批只落 E01 纯模型/判定。 |
+| E02 市场安装流程 | **已在交接补齐**：安装/保存副作用迁 `ResourceInstallHelper`，busy/job/回调、列表刷新与 `provider.applySettings` 时机仍由原调用链保持；安装顺序仍为 skill → MCP → assistant skill → card，缺必填 MCP 不启用且不挂助手。 |
 | M53/M54 | Worker FQCN 与平台组件按合同保留原包名，仅更新其引用的内部实现。 |
 
 ## 6. 验证

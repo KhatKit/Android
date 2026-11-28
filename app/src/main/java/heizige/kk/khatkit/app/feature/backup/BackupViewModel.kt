@@ -21,7 +21,7 @@ import heizige.kk.khatkit.app.core.data.files.saveUploadFromBytes
 import heizige.kk.khatkit.app.core.data.repository.ConversationRepository
 import heizige.kk.khatkit.app.feature.backup.data.DeepSeekImportResult
 import heizige.kk.khatkit.app.feature.backup.helper.DeepSeekImportHelper
-import heizige.kk.khatkit.app.feature.backup.data.importer.ChatboxImporter
+import heizige.kk.khatkit.app.feature.backup.helper.ChatboxRestoreHelper
 import heizige.kk.khatkit.app.feature.backup.data.importer.CherryStudioProviderImporter
 import heizige.kk.khatkit.app.feature.backup.data.remote.webdav.WebDavBackupItem
 import heizige.kk.khatkit.app.feature.backup.data.remote.webdav.WebDavSync
@@ -41,6 +41,9 @@ class BackupViewModel @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val filesManager: FilesManager,
 ) : ViewModel() {
+    private val chatboxRestoreHelper =
+        ChatboxRestoreHelper(settingsStore, conversationRepository, filesManager)
+
     val settings = settingsStore.settingsFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -115,67 +118,8 @@ class BackupViewModel @Inject constructor(
         )
     }
 
-    suspend fun restoreFromChatBox(file: File): ChatboxRestoreResult = withContext(Dispatchers.IO) {
-        val currentSettings = settings.value
-        var importedConversations = 0
-        var skippedExistingConversations = 0
-        val result = ChatboxImporter.importStreaming(
-            file = file,
-            assistantId = currentSettings.assistantId,
-            providers = currentSettings.providers,
-            shouldImportConversation = { conversationId ->
-                val exists = conversationRepository.existsConversationById(conversationId)
-                if (exists) skippedExistingConversations++
-                !exists
-            },
-            saveImage = { resource ->
-                val entity = filesManager.saveUploadFromBytes(
-                    bytes = resource.bytes,
-                    displayName = resource.fileName,
-                    mimeType = resource.mimeType,
-                )
-                filesManager.getFile(entity).toUri().toString()
-            },
-            onConversation = { conversation ->
-                conversationRepository.insertConversation(conversation)
-                importedConversations++
-            }
-        )
-
-        val targetAssistantId = currentSettings.assistantId
-        settingsStore.update { latestSettings ->
-            latestSettings.copy(
-                providers = result.providers + latestSettings.providers.filterNot { existing ->
-                    result.providers.any { imported -> imported.id == existing.id }
-                },
-                assistants = latestSettings.assistants.map { assistant ->
-                    if (result.hasConversationSystemPrompt && assistant.id == targetAssistantId) {
-                        assistant.copy(allowConversationSystemPrompt = true)
-                    } else {
-                        assistant
-                    }
-                }
-            )
-        }
-
-        Log.i(
-            TAG,
-            "restoreFromChatBox: import ${result.providers.size} providers, " +
-                "$importedConversations conversations, skip $skippedExistingConversations existing, " +
-                "import ${result.importedImageParts} images, drop ${result.skippedImageParts} images, " +
-                "skip ${result.skippedForkMessages} fork messages and ${result.skippedSessions} sessions"
-        )
-        ChatboxRestoreResult(
-            importedProviders = result.providers.size,
-            importedConversations = importedConversations,
-            skippedExistingConversations = skippedExistingConversations,
-            importedImageParts = result.importedImageParts,
-            skippedImageParts = result.skippedImageParts,
-            skippedEmptyMessages = result.skippedEmptyMessages,
-            skippedForkMessages = result.skippedForkMessages,
-            skippedSessions = result.skippedSessions,
-        )
-    }
+    suspend fun restoreFromChatBox(file: File): ChatboxRestoreResult =
+        chatboxRestoreHelper.restore(file, settings.value)
 
     suspend fun restoreFromDeepSeek(
         file: File,

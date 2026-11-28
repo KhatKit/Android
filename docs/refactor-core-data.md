@@ -1,7 +1,10 @@
 # core/data 功能归属与反向依赖收口（t38）
 
 > 输入：`/tmp/khatkit-data-auditor-ownership.md`（t26，HEAD 2ad2ae270，217 文件 / 1058 import / 14 条 core→feature）与 t35–t37 的新路径。
-> 结论：**14 条反向边 → 3 条**；其余归属按 t26 逐路径索引执行 MOVE/SPLIT/KEEP，无功能删减、无复制空壳。
+> t38 历史结论：原审计的 14 条边中收口后保留 3 条；该数字不等于全 `core/data` 当前反向依赖总量。
+> 2026-11-29 交接复审已补全范围：A 为 **7 条 import + 1 处生产全限定引用**，
+> 同树 B 另加 `BackgroundAppSessionManager` 一条 import，合计 **8 + 1**，见 §2。
+> 其余归属按 t26 逐路径索引执行 MOVE/SPLIT/KEEP，无功能删减、无复制空壳。
 > 未运行 Gradle/测试/设备；最终编译/JVM/Lint 由 t45 执行。
 
 ## 1. 已执行迁移（21 个 MOVE + 1 个 SPLIT）
@@ -32,7 +35,7 @@
 - `feature/chat/di/ChatGatewayModule.kt` + core/data/ai/tools/CardChatGateway.kt（core 端口，@Binds 由 feature 实现）
 - 所有旧包 import 已全仓改写（app main/test/androidTest），同名旧 FQCN 残留 0（S3Config 按 t26 仍留 core）。
 
-## 2. 反向依赖（14 → 3）
+## 2. 反向依赖（t38 历史映射与交接全量复算）
 
 | # | 原边 | 处理 |
 |---|---|---|
@@ -50,6 +53,30 @@
 这三者保持 feature 归属符合任务「工具/自动化注册保持功能与协议」；core 只保留其数据与合同。
 
 core/ui 仍有多条 core→feature（如 ChatError/ChatViewModel、PermissionChecklist→AutomationBus 等），属 core/ui 批次（本任务 inScope 之外），未在本批改动，t26 清单外新增项由后续批次按同一规则处理——本文件不把它们当共享证据。
+
+### 2026-11-29 全量复算（覆盖上述「3 条」的总量表述）
+
+`UiAutomationSnapshotHelper` 已从 `feature/automation/helper` 迁至 `core/data/automation`，
+与模型同层；`KhatKitTools` 引用改为共享包。全量生产代码仍保留以下反向引用，**均记录为耦合，
+不是因是运行时装配点就自动符合单向依赖**：
+
+| 位置 | feature 目标 | 条数/证据 |
+|---|---|---|
+| `KhatKitTools.kt` import | `lanshare.helper.LanShareCardBridge`、`LanShareCardEntryPoint` | 2；卡片调用 LAN 会话和文档挂载桥 |
+| 同上 | `yunx.helper.YunxCardBridge`、`YunxMediaDownloadHandler` | 2；YunX 卡片运行时及媒体下载适配 |
+| 同上 | `automation.helper.AutomationManager`、`BusApprovalHelper`、`ScheduleBridgeHelper` | 3；看板/审批/WorkManager 桥，历史保留项 |
+| 同上（B） | `automation.helper.BackgroundAppSessionManager` | 1；本次虚拟屏会话，独立于 A 的既有迁移 |
+| `KhatKitTools.kt` `apiHealth` 初始化 | `feature.tools.data.ToolApiHealthRepository` | 1 个生产全限定引用；工具健康记录 |
+
+复算命令（注释/KDoc 中的类型链接不算生产边）：
+
+```bash
+rg -n '^import .*feature\.' app/src/main/java/heizige/kk/khatkit/app/core/data
+rg -n 'heizige\.kk\.khatkit\.app\.feature\.' app/src/main/java/heizige/kk/khatkit/app/core/data
+```
+
+第二条输出需排除第一条的 import，以及 `AutomationModels.kt`、`CardChatGateway.kt` 的 KDoc 链接。
+当前 A 不含 B 时为 7 import + 1 FQ；包含 B 的同树为 8 import + 1 FQ。本轮没有宣称 core→feature 归零。
 
 ## 3. KEEP（有共享证据）
 

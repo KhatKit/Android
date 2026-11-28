@@ -4,6 +4,10 @@
 > `docs/architecture-map.md` 与 `AGENTS.md` §包放置/§命名。范围只用三个 feature 包与其 tests。
 > **本批未运行 Gradle / 未碰设备 / 未提交**（编译与集成验证由 verifier 独占）。
 
+> 2026-11-29 交接复审：下表记录 t36 当时落点；`UiAutomationSnapshotHelper` 随 t65 收口已进一步迁至
+> `core/data/automation`，与共享 DTO 同层，`KhatKitTools` 已改 import，旧 feature 文件删除。
+> 该适配只改归属，节点字段、截断上限和 wire schema 保持。完整复审见 `review-handover-a-2026-11-29.md`。
+
 ## 1. 结论
 
 - M19–M30 已落到源码：自动化授权/触发/队列/轨迹/磁贴/回放、workflow 模型/仓库/算法/事件、录制链。

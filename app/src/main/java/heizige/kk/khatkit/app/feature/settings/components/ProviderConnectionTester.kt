@@ -32,14 +32,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import heizige.kk.khatkit.ai.core.Tool
 import heizige.kk.khatkit.ai.provider.ModelType
-import heizige.kk.khatkit.ai.provider.ProviderManager
 import heizige.kk.khatkit.ai.provider.ProviderSetting
-import heizige.kk.khatkit.ai.provider.TextGenerationParams
-import heizige.kk.khatkit.ai.ui.StreamChunk
-import heizige.kk.khatkit.ai.ui.UIMessage
 import heizige.kk.khatkit.ai.ui.UIMessagePart
+import heizige.kk.khatkit.app.feature.settings.helper.ProviderConnectionTestHelper
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.ai.ModelSelector
 import heizige.kk.khatkit.app.core.ui.theme.extendColors
@@ -50,7 +46,6 @@ import heizige.kk.khatkit.app.core.ui.icons.utility.error
 import heizige.kk.khatkit.app.core.ui.icons.utility.link
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
-import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet
 
 
 
@@ -135,48 +130,21 @@ fun ProviderConnectionTester(
                     onClick = {
                         if (model == null) return@MochiTextButton
                         val provider = providerManager.getProviderByType(internalProvider)
+                        val tester = ProviderConnectionTestHelper(provider)
                         resetStates()
                         scope.launch {
                             launch {
                                 runCatching {
                                     nonStreamingState = UiState.Loading
-                                    val result = provider.generateText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(
-                                            UIMessage.system("You are a helpful assistant"),
-                                            UIMessage.user("hello"),
-                                        ),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
-                                        )
-                                    )
-                                    val text = result.message.parts
-                                        .filterIsInstance<UIMessagePart.Text>()
-                                        .joinToString("") { it.text }
+                                    val text = tester.nonStreaming(internalProvider, model!!)
                                     nonStreamingState = UiState.Success(text)
                                 }.onFailure { nonStreamingState = UiState.Error(it) }
                             }
                             launch {
                                 runCatching {
                                     streamingState = UiState.Loading
-                                    val flow = provider.streamText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(
-                                            UIMessage.system("You are a helpful assistant"),
-                                            UIMessage.user("hello"),
-                                        ),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
-                                        )
-                                    )
-                                    flow.collect { chunk ->
-                                        if (chunk is StreamChunk.TextDelta) {
-                                            streamingText += chunk.text
-                                        }
+                                    tester.streaming(internalProvider, model!!) { text ->
+                                        streamingText += text
                                     }
                                     streamingState = UiState.Success("")
                                 }.onFailure { streamingState = UiState.Error(it) }
@@ -184,25 +152,7 @@ fun ProviderConnectionTester(
                             launch {
                                 runCatching {
                                     toolsState = UiState.Loading
-                                    val testTool = Tool(
-                                        name = "get_current_time",
-                                        description = "Get the current date and time.",
-                                        execute = { emptyList() }
-                                    )
-                                    val result = provider.generateText(
-                                        providerSetting = internalProvider,
-                                        messages = listOf(
-                                            UIMessage.system("You are a helpful assistant"),
-                                            UIMessage.user("Use the get_current_time tool."),
-                                        ),
-                                        params = TextGenerationParams(
-                                            model = model!!,
-                                            tools = listOf(testTool),
-                                            customHeaders = model!!.customHeaders,
-                                            customBody = model!!.customBodies
-                                        )
-                                    )
-                                    val message = result.message
+                                    val message = tester.tools(internalProvider, model!!)
                                     val toolCall = message.parts
                                         .filterIsInstance<UIMessagePart.Tool>()
                                         .firstOrNull()

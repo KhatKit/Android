@@ -1,8 +1,5 @@
-package heizige.kk.khatkit.app.feature.automation.helper
+package heizige.kk.khatkit.app.core.data.automation
 
-import heizige.kk.khatkit.app.core.data.automation.UiAutomationBounds
-import heizige.kk.khatkit.app.core.data.automation.UiAutomationNode
-import heizige.kk.khatkit.app.core.data.automation.UiAutomationSnapshot
 import heizige.kk.khatkit.bridge.impl.AccessibilityBridgeHolder
 
 /**
