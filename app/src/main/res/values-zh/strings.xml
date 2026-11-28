@@ -1256,6 +1256,15 @@
   <string name="shortcut_take_picture">拍照提问</string>
   <string name="silicon_flow_description">**全球领先的 AI 能力提供商，加速 AGI 普惠人类。**</string>
   <string name="silicon_flow_website">官网: [https://cloud.siliconflow.cn/](https://cloud.siliconflow.cn/i/u1Ia4Ycf)</string>
+  <string name="default_provider_302ai_desc">企业级AI服务, 官网：</string>
+  <string name="default_provider_sta1n_desc">主要为 RP 玩家服务的站点</string>
+  <string name="default_provider_sta1n_website">官网：</string>
+  <string name="default_provider_sta1n_short">主要为 RP 玩家服务的站点</string>
+  <string name="default_provider_geekcat_desc">免费 AI 网关，OpenAI 兼容，默认启用。</string>
+  <string name="default_provider_geekcat_models">模型：</string>
+  <string name="default_provider_geekcat_docs">查看接口文档</string>
+  <string name="default_provider_geekcat_short">免费 DeepSeek V4 Flash / GLM 5.2，开箱即用</string>
+
   <string name="skill_detail_page_content">内容</string>
   <string name="skill_detail_page_create">创建</string>
   <string name="skill_detail_page_delete_confirm">确定要删除文件“%s”吗？</string>

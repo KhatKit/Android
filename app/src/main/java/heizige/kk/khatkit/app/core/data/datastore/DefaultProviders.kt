@@ -139,7 +139,7 @@ val DEFAULT_PROVIDERS = listOf(
         description = {
             Text(
                 text = buildAnnotatedString {
-                    append("企业级AI服务, 官网：")
+                    append(stringResource(R.string.default_provider_302ai_desc))
                     withLink(LinkAnnotation.Url("https://302.ai/")) {
                         withStyle(SpanStyle(MaterialTheme.colorScheme.primary)) {
                             append("https://302.ai/")
@@ -176,9 +176,9 @@ val DEFAULT_PROVIDERS = listOf(
         description = {
             Text(
                 text = buildAnnotatedString {
-                    append("主要为 RP 玩家服务的站点")
+                    append(stringResource(R.string.default_provider_sta1n_desc))
                     appendLine()
-                    append("官网：")
+                    append(stringResource(R.string.default_provider_sta1n_website))
                     withLink(LinkAnnotation.Url("https://sta1n.ai")) {
                         withStyle(SpanStyle(MaterialTheme.colorScheme.primary)) {
                             append("https://sta1n.ai")
@@ -188,7 +188,7 @@ val DEFAULT_PROVIDERS = listOf(
             )
         },
         shortDescription = {
-            Text("主要为 RP 玩家服务的站点")
+            Text(stringResource(R.string.default_provider_sta1n_short))
         },
     ),
     ProviderSetting.OpenAI(
@@ -201,19 +201,19 @@ val DEFAULT_PROVIDERS = listOf(
         description = {
             Text(
                 text = buildAnnotatedString {
-                    append("免费 AI 网关，OpenAI 兼容，默认启用。")
+                    append(stringResource(R.string.default_provider_geekcat_desc))
                     appendLine()
-                    append("模型：")
+                    append(stringResource(R.string.default_provider_geekcat_models))
                     withLink(LinkAnnotation.Url("https://platform.zenneko.top/index.php?page=doc&api=ai")) {
                         withStyle(SpanStyle(MaterialTheme.colorScheme.primary)) {
-                            append("查看接口文档")
+                            append(stringResource(R.string.default_provider_geekcat_docs))
                         }
                     }
                 }
             )
         },
         shortDescription = {
-            Text("免费 DeepSeek V4 Flash / GLM 5.2，开箱即用")
+            Text(stringResource(R.string.default_provider_geekcat_short))
         },
         models = listOf(
             Model(

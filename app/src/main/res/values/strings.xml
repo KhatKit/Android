@@ -1333,6 +1333,15 @@
   <string name="shortcut_take_picture">Take Picture &amp; Ask</string>
   <string name="silicon_flow_description">**Leading global AI capability provider, accelerating AGI to benefit humanity.**</string>
   <string name="silicon_flow_website">Website: [https://cloud.siliconflow.cn/](https://cloud.siliconflow.cn/i/u1Ia4Ycf)</string>
+  <string name="default_provider_302ai_desc">Enterprise-grade AI service, website: </string>
+  <string name="default_provider_sta1n_desc">A site primarily serving role-play (RP) users</string>
+  <string name="default_provider_sta1n_website">Website: </string>
+  <string name="default_provider_sta1n_short">A site primarily serving role-play (RP) users</string>
+  <string name="default_provider_geekcat_desc">Free AI gateway, OpenAI-compatible, enabled by default.</string>
+  <string name="default_provider_geekcat_models">Models: </string>
+  <string name="default_provider_geekcat_docs">View API documentation</string>
+  <string name="default_provider_geekcat_short">Free DeepSeek V4 Flash / GLM 5.2, ready to use</string>
+
   <string name="skill_detail_page_content">Content</string>
   <string name="skill_detail_page_create">Create</string>
   <string name="skill_detail_page_delete_confirm">Are you sure you want to delete file "%s"?</string>

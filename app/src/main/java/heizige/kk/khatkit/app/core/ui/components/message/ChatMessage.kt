@@ -53,6 +53,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextStyle
+import heizige.kk.khatkit.app.core.data.datastore.DisplaySetting
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -169,12 +171,7 @@ fun ChatMessage(
 ) {
     val message = node.messages[node.selectIndex]
     val settings = LocalSettings.current.displaySetting
-    val chatFontFamily = LocalChatFontFamily.current ?: rememberChatFontFamily(settings)
-    val textStyle = LocalTextStyle.current.copy(
-        fontSize = LocalTextStyle.current.fontSize * settings.fontSizeRatio,
-        lineHeight = LocalTextStyle.current.lineHeight * settings.fontSizeRatio,
-        fontFamily = chatFontFamily
-    )
+    val textStyle = chatMessageTextStyle(settings)
     var showActionsSheet by remember { mutableStateOf(false) }
     var showSelectCopySheet by remember { mutableStateOf(false) }
     val navController = LocalNavController.current
@@ -329,8 +326,7 @@ fun ChatMessage(
                     KkSurface(
                         // 整条消息一个大圆角（Mochi 列表卡 26dp），里面所有行都不带圆角
                         shape = AssistantMessageShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh
-                            .copy(alpha = settings.bubbleOpacity),
+                        color = chatMessageBubbleColor(MessageRole.ASSISTANT, settings),
                     ) {
                         Column(modifier = Modifier.padding(ChatBubblePadding)) {
                             messageBody()
@@ -529,7 +525,7 @@ private fun MessagePartsBlock(
                                 KkSurface(
                                     modifier = Modifier.kkAnimateContentSize(),
                                     shape = ChatBubbleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                    color = chatMessageBubbleColor(MessageRole.USER, settings.displaySetting),
                                     onClick = { onUserMessageClick?.invoke() },
                                 ) {
                                     Column(modifier = Modifier.padding(ChatBubblePadding)) {
@@ -558,7 +554,7 @@ private fun MessagePartsBlock(
                                         KkSurface(
                                             modifier = Modifier.kkAnimateContentSize(),
                                             shape = ChatBubbleShape,
-                                            color = assistantBubbleColor.copy(alpha = settings.displaySetting.bubbleOpacity),
+                                            color = chatMessageBubbleColor(role, settings.displaySetting),
                                         ) {
                                             Column(modifier = Modifier.padding(ChatBubblePadding)) {
                                                 MarkdownBlock(
@@ -812,7 +808,7 @@ private fun MessagePartsBlock(
  * 但不能喧宾夺主。错误用 error 色，因为它是唯一需要人立刻处理的性质。
  */
 @Composable
-private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
+internal fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
     KkSurface(
         shape = RoundedCornerShape(6.dp),
         color = if (isError) {
@@ -833,11 +829,30 @@ private fun ChatMessageSpeakerBadge(text: String, isError: Boolean) {
 
 // 消息气泡度量（用户 / 助手两侧共用）：Mochi 连续曲率圆角 18dp + 横 14 / 纵 9 内边距，
 // 取自 Mochi 示例的 DemoChatBubble。
-private val ChatBubbleShape = MochiRoundedRectangle(18.dp)
+internal val ChatBubbleShape = MochiRoundedRectangle(18.dp)
 
 /** 助手整条消息的共享卡：Mochi 列表卡的大圆角，卡里所有行都不再各自做圆角。 */
-private val AssistantMessageShape = MochiRoundedRectangle(ui.feice.mochi.list.MochiListDefaults.SectionCorner)
-private val ChatBubblePadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)
+internal val AssistantMessageShape = MochiRoundedRectangle(ui.feice.mochi.list.MochiListDefaults.SectionCorner)
+internal val ChatBubblePadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)
+
+/** 正常聊天与搜索消息共用字体、字号及行高，避免切换搜索后退回界面默认字体。 */
+@Composable
+internal fun chatMessageTextStyle(display: DisplaySetting): TextStyle {
+    val base = LocalTextStyle.current
+    val family = LocalChatFontFamily.current ?: rememberChatFontFamily(display)
+    return base.copy(
+        fontSize = base.fontSize * display.fontSizeRatio,
+        lineHeight = base.lineHeight * display.fontSizeRatio,
+        fontFamily = family,
+    )
+}
+
+@Composable
+internal fun chatMessageBubbleColor(role: MessageRole, display: DisplaySetting): Color {
+    val colors = MaterialTheme.colorScheme
+    val color = if (role == MessageRole.USER) colors.primaryContainer else colors.surfaceContainerHigh
+    return color.copy(alpha = display.bubbleOpacity)
+}
 
 /**
  * 助手消息是否已经整体包进一张共享卡片（思考链 + 正文 + 询问表单共用一张卡）。

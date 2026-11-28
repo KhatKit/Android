@@ -93,6 +93,13 @@ import heizige.kk.khatkit.app.core.data.model.Conversation
 import heizige.kk.khatkit.app.core.data.model.MessageNode
 import heizige.kk.khatkit.app.feature.chat.data.ChatError
 import heizige.kk.khatkit.app.core.ui.components.message.ChatMessage
+import heizige.kk.khatkit.app.core.ui.components.message.ChatBubblePadding
+import heizige.kk.khatkit.app.core.ui.components.message.ChatBubbleShape
+import heizige.kk.khatkit.app.core.ui.components.message.ChatMessageSpeakerBadge
+import heizige.kk.khatkit.app.core.ui.components.message.chatMessageTextStyle
+import heizige.kk.khatkit.app.core.ui.components.message.chatMessageBubbleColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight
 import heizige.kk.khatkit.app.feature.chat.components.ui.ErrorCardsDisplay
 import heizige.kk.khatkit.app.feature.chat.components.ui.ListSelectableItem
 import heizige.kk.khatkit.app.core.ui.components.ui.RabbitLoadingIndicator
@@ -715,7 +722,8 @@ private fun extractMatchingSnippet(
 private fun buildHighlightedText(
     text: String,
     query: String,
-    highlightColor: Color
+    highlightColor: Color,
+    highlightContentColor: Color,
 ): AnnotatedString {
     if (query.isBlank()) {
         return AnnotatedString(text)
@@ -733,7 +741,7 @@ private fun buildHighlightedText(
             withStyle(
                 style = SpanStyle(
                     background = highlightColor,
-                    color = Color.Black
+                    color = highlightContentColor
                 )
             ) {
                 append(text.substring(index, index + query.length))
@@ -820,50 +828,50 @@ private fun ChatListPreview(
                         ),
                     horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
                 ) {
-                    // 显示名 + 性质徽章（议长 / 投票小结 / 错误）。徽章错误时染 error 色，
-                    // 和气泡层 `ChatMessage` 的 `ChatMessageSpeakerBadge` 同一套语义。
+                    // 说话者与徽章沿用气泡层同一套（群聊才显示），单聊不额外占位。
                     speaker?.let { who ->
-                        Text(
-                            text = who.badge?.let { "${who.displayName} · $it" } ?: who.displayName,
-                            style = MochiTheme.textStyles.labelSmall,
-                            color = if (who.isError) {
-                                MochiTheme.colorScheme.error
-                            } else {
-                                MochiTheme.colorScheme.onSurfaceVariant
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        ) {
+                            Text(
+                                text = who.displayName,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            who.badge?.let { badge ->
+                                ChatMessageSpeakerBadge(text = badge, isError = who.isError)
+                            }
+                        }
+                    }
+                    // 仍只显示命中位置起的一行片段（与改动前一致），只是字体、气泡圆角与内边距、
+                    // 底色和透明度改用聊天页气泡那一套；点按照旧跳到原消息。
+                    val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
+                    val highlightContentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    val highlightedText = remember(searchQuery, message, highlightColor, highlightContentColor) {
+                        buildHighlightedText(
+                            text = extractMatchingSnippet(
+                                text = message.toText().trim().ifBlank { "[...]" },
+                                query = searchQuery,
+                            ),
+                            query = searchQuery,
+                            highlightColor = highlightColor,
+                            highlightContentColor = highlightContentColor,
                         )
                     }
                     KkSurface(
-                        color = if (isUser) MochiTheme.colorScheme.primaryContainer else MochiTheme.colorScheme.secondaryContainer,
+                        onClick = { onJumpToMessage(originalIndex) },
+                        shape = ChatBubbleShape,
+                        color = chatMessageBubbleColor(message.role, settings.displaySetting),
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .clickable {
-                                    onJumpToMessage(originalIndex)
-                                }
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val highlightColor = MochiTheme.colorScheme.tertiaryContainer
-                            val highlightedText = remember(searchQuery, message) {
-                                val fullText = message.toText().trim().ifBlank { "[...]" }
-                                val messageText = extractMatchingSnippet(
-                                    text = fullText,
-                                    query = searchQuery
-                                )
-                                buildHighlightedText(
-                                    text = messageText,
-                                    query = searchQuery,
-                                    highlightColor = highlightColor
-                                )
-                            }
+                        Column(modifier = Modifier.padding(ChatBubblePadding)) {
                             Text(
                                 text = highlightedText,
-                                style = MochiTheme.textStyles.body,
+                                style = chatMessageTextStyle(settings.displaySetting),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
