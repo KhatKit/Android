@@ -49,6 +49,12 @@ class AssistantViewModel @Inject constructor(
         }
     }
 
+    fun setCurrentAssistant(assistant: Assistant) {
+        viewModelScope.launch {
+            settingsStore.updateAssistant(assistant.id)
+        }
+    }
+
     fun removeAssistant(assistant: Assistant) {
         viewModelScope.launch {
             cleanupAssistantFiles(assistant)

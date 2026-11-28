@@ -283,6 +283,9 @@
   <string name="assistant_page_confirm">确定</string>
   <string name="assistant_page_creative">创造</string>
   <string name="assistant_page_current_assistant">当前角色</string>
+  <string name="assistant_page_set_current">设为当前角色</string>
+  <string name="assistant_page_edit_role">编辑角色</string>
+  <string name="assistant_page_clone_with_memories_action">复制并携带记忆</string>
   <string name="assistant_page_custom_bodies">自定义 Body</string>
   <string name="assistant_page_custom_headers">自定义 Headers</string>
   <string name="assistant_page_default_assistant">默认角色</string>
