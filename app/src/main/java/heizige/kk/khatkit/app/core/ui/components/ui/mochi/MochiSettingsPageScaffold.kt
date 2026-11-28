@@ -56,6 +56,8 @@ fun MochiSettingsPageScaffold(
      * 允许正文滚过顶栏下方。列表将顶部留白作为 contentPadding 使用。
      */
     scrollUnderTopBar: Boolean = false,
+    /** 栏下渐进模糊的进度；不传时用 [titleProgress]（紧凑栏）或大标题收起进度。 */
+    scrollEdgeProgress: (() -> Float)? = null,
     /**
      * 盖在顶栏上的内容槽（例如聊天页那种「点搜索，标题位置换成输入框」）。
      *
@@ -98,6 +100,7 @@ fun MochiSettingsPageScaffold(
         containerColor = MochiTheme.colorScheme.background,
         edgeFade = edgeFade,
         scrollUnderTopBar = scrollUnderTopBar && showTopBar,
+        scrollEdgeProgress = scrollEdgeProgress ?: titleProgress,
     ) { innerPadding ->
         // 设置搜索定位：搜索页在 navigate 之前请求「本页的哪一行」，这里消费掉并下发给组内的行。
         // 锚点由行自己声明（CardGroup 的 anchor / settingItem 的标题资源派生），未命中的页

@@ -576,6 +576,7 @@ internal fun ChatScaffold(
                 } else 0.dp
             },
             scrollUnderTopBar = true,
+            scrollEdgeProgress = topBarProgress,
             topBar = {
                     TopBar(
                         settings = setting,
@@ -972,7 +973,7 @@ private fun TopBar(
     // 按设置里的按钮样式：玻璃或实心，见 uikit 的 kkBarButtonColors。
     val barColors = kkBarButtonColors()
 
-    Box(Modifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxWidth().background(if (roleHasCustomBackground) Color.Transparent else CustomColors.pageContainerColor)) {
         // 标题区的点击（切换角色）与搜索框，放在 MochiTitleBar **下面**画：
         // 栏里的按钮（搜索 / 角色面板）在上面先吃触摸，标题区没有 pointerInput，
         // 点标题才会落到这一层。以前这层画在栏上面，左右各让 64dp 仍压住搜索按钮左半边，
@@ -1030,9 +1031,10 @@ private fun TopBar(
             } else {
                 roleModelName.takeIf { it.isNotBlank() && !settings.init }
             },
-            background = if (roleHasCustomBackground) Color.Transparent else CustomColors.pageContainerColor,
+            background = Color.Transparent,
             // 搜索展开时标题模糊退场，让位给搜索框
             titleProgress = { 1f - searchProgress.value },
+            collapsible = true,
             // 页面骨架（MochiPageScaffold）统一录正文、下发来源；材质没开玻璃时它是 null
             backdrop = LocalKkBarBackdrop.current,
             navigationIcon = { KkBarIconScope {

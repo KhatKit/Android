@@ -1111,6 +1111,7 @@ fun ExploreMarketPage() {
             // 这才是 Mochi 示例顶栏的「背景模糊」。缺了它骨架走 Column 分支，栏是固定表头，
             // 正文永远滚不到栏下，栏下自然没有模糊。
             scrollUnderTopBar = true,
+            scrollEdgeProgress = MochiScrollEdgeDefaults.progress(marketListState),
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
                 marketList(

@@ -197,13 +197,14 @@ internal fun ToolCataloguePage() {
         // 这与设置页 / 探索页是同一套。原来缺了它，骨架走「固定表头」分支，正文永远滚不到栏下，
         // 栏下既没有可模糊的内容，栏自己的渐隐又一直全浓 —— 这就是工具台顶栏发死、栏下发硬边的原因。
         scrollUnderTopBar = true,
+        // 栏下渐进模糊跟着当前视图（网格 / 列表）的滚动进度走
+        scrollEdgeProgress = edgeProgress,
         topBar = {
             MochiPageTitleBar(
                 title = "工具台",
                 navigationIcon = { BackButton() },
                 backdrop = LocalKkBarBackdrop.current,
                 actions = {
-                    ToolCatalogueMenu(onNavigate = { nav?.navigate(it) })
                     MochiBarIconButton(
                         onClick = {
                             grid = !grid
@@ -243,6 +244,7 @@ internal fun ToolCataloguePage() {
                     },
                     error = state.error,
                     onRetry = vm::refresh,
+                    onNavigate = { nav?.navigate(it) },
                 )
             }
             Row(Modifier.fillMaxSize()) {
@@ -294,32 +296,6 @@ internal fun ToolCataloguePage() {
             }
         }
     }
-}
-
-@Composable
-private fun ToolCatalogueMenu(onNavigate: (Screen) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val colors = kkBarButtonColors()
-    MochiIconDropdown(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        items = persistentListOf(
-            MochiItem("卡片 API 状态", icon = { tint -> MochiIonicon("pulse", size = 20.dp, tint = tint) }),
-            MochiItem("局域网共享", icon = { tint -> MochiIonicon("wifi", size = 20.dp, tint = tint) }),
-        ),
-        onItemClick = { index ->
-            expanded = false
-            when (index) {
-                0 -> onNavigate(Screen.ToolApiHealth)
-                1 -> onNavigate(Screen.LanShare)
-            }
-        },
-        colors = MochiDropdownDefaults.iconDropdownColors(
-            buttonColor = colors.container,
-            buttonContentColor = colors.content,
-        ),
-        size = 44.dp,
-    ) { MochiIonicon("ellipsis-horizontal", contentDescription = "工具台更多操作") }
 }
 
 @Composable
@@ -581,6 +557,7 @@ private fun ToolCatalogueHeader(
     onCategorySelected: (ToolCategory) -> Unit,
     error: String?,
     onRetry: () -> Unit,
+    onNavigate: (Screen) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth()) {
         MochiSearchBar(
@@ -612,6 +589,25 @@ private fun ToolCatalogueHeader(
                     }
                 }
             }
+        }
+        // 原来顶栏「更多」菜单里的两项，改成正文里的卡片行（和工具卡片同一套列表卡）
+        MochiListSection(modifier = Modifier.padding(vertical = 4.dp)) {
+            MochiListRow(
+                title = "卡片 API 状态",
+                subtitle = "查看卡片 API 的连通与健康状态",
+                onClick = { onNavigate(Screen.ToolApiHealth) },
+                leading = { MochiIonicon("pulse") },
+                leadingStyle = MochiListLeadingStyle.Symbol,
+                chevron = true,
+            )
+            MochiListRow(
+                title = "局域网共享",
+                subtitle = "同一局域网内发现设备、共享文件",
+                onClick = { onNavigate(Screen.LanShare) },
+                leading = { MochiIonicon("wifi") },
+                leadingStyle = MochiListLeadingStyle.Symbol,
+                chevron = true,
+            )
         }
         if (error != null) {
             MochiListSection(modifier = Modifier.padding(vertical = 4.dp)) {

@@ -56,14 +56,16 @@ fun MochiPageTitleBar(
     if (scroll == null || title.isBlank()) {
         MochiTitleBar(
             title = title,
-            modifier = modifier.background(background),
+            // 不在这里铺不透明底色：栏底色由 backgroundProgress 随滚动淡入，
+            // 否则栏把下面的内容盖死，顶栏样式的渐进模糊永远看不见
+            modifier = modifier,
             subtitle = subtitle,
             navigationIcon = navigationIcon,
             actions = actions,
             background = background,
             barHeight = barHeight,
             titleProgress = titleProgress ?: { 1f },
-            backgroundProgress = { 0f },
+            backgroundProgress = titleProgress ?: { 0f },
             backdrop = backdrop,
         )
     } else {
@@ -114,7 +116,7 @@ fun MochiLargeTitleTopBar(
     val visibility = titleVisibility().coerceIn(0f, 1f)
     val expanded = (1f - collapsed) * visibility
     Column(
-        modifier = modifier.fillMaxWidth().background(background),
+        modifier = modifier.fillMaxWidth(),
     ) {
         MochiTitleBar(
             title = title,
@@ -124,7 +126,8 @@ fun MochiLargeTitleTopBar(
             background = background,
             barHeight = barHeight,
             titleProgress = { collapsed * visibility },
-            backgroundProgress = { 0f },
+            // 大标题收起（= 正文滚上来）时栏底色淡入，栏下才有可模糊的内容
+            backgroundProgress = { collapsed },
             backdrop = backdrop,
         )
         Column(
