@@ -144,3 +144,16 @@ worktree `/tmp/kv-t54`、HEAD `d5b9ca5ac2e3549f66dcebee640254db91db6855`、tree 
 - 建议加守门：任何提交（含 docs 类）至少跑一次 `:app:compileDebugKotlin`，避免同类破坏再次进入主干。
 - 临时 worktree 已按合同删除（`git worktree remove --force` + `prune`）；本轮未 assemble、未操作设备、未改源码、
   未 git add/commit。
+
+### 轮 3（t54 attempt5，复跑确认）：d5b9ca5ac 仍是坏的
+
+- worktree 重建（22:58:54→23:01:19，日志 `/tmp/t54a5/`）：HEAD `d5b9ca5ac`、tree `1c7d201d…`、
+  submodule `6fd88eb…`、local.properties 就位、worktree dirty=0。
+- 结果与轮 2 完全一致：compile=**1**/42s、app:testDebugUnitTest=**1**/22s、test=**1**/25s、
+  :app:lintDebug=**1**/55s、git diff --check=**0**；仍为 `AssistantPage.kt` 的 11 条错误
+  （:215:37 候选不匹配、:219/:220/:230/:233/:234… composable 上下文/类型推断、:345:70 `longPressDraggableHandle` 未解析）。
+- 结论：`d5b9ca5ac` 是不可变对象，验证只会重复失败；修复已落在其后的 `6de5f9dc4`
+  （refactor(assistant): 角色列表改用普通 LazyColumn；提交说明称 `:app:compileDebugKotlin --rerun-tasks` EXIT=0）。
+  按合同“只验证 d5b9ca5ac”的要求，本轮未验证 6de5f9dc4；请把验证目标改指向 `6de5f9dc4`（或其后最新冻结 commit）后重派。
+- 资源统计（d5b9ca5ac 洁净树）：app en/zh 各 **3040** 条目、唯一名 **3039**、键差集 0、同类型重复 0、
+  87 个 res XML 解析 0 失败；旧符号全 0（WorkflowLegacy 2 处注释）。9 项历史失败仍因编译失败未执行。
