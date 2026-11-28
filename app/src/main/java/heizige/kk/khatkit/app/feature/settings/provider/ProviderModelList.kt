@@ -186,8 +186,7 @@ internal fun ModelList(
         LazyColumn(
             // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
-                .fillMaxSize()
-                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+                .fillMaxSize(),
             // 底部留出浮动底栏 + FAB 的高度，最后一项能滚到它们上面
             contentPadding = PaddingValues(
                 start = 16.dp,

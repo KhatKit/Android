@@ -1,12 +1,10 @@
 package heizige.kk.khatkit.app.core.ui.components.ui
 
-import android.view.View
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -65,45 +63,6 @@ fun Modifier.kkScrollEdgeFade(
     val rampPx = with(LocalDensity.current) { KkScrollEdgeExtent.toPx() }
     val amount = remember(state, rampPx) { LazyListEdgeAmount(state, rampPx) }
     return mochiFadeMask(MochiFadeEdges(top = top, bottom = bottom), amount)
-}
-
-/**
- * 原生 View（WebView）版：View 自己滚，不经过 Compose 的嵌套滚动，只能直接听它的 scrollY。
- * 用法：`val edge = rememberKkViewScrollEdge()`，把 [KkViewScrollEdge.attach] 交给 View 的创建回调，
- * 再在包着它的 Modifier 上挂 `kkScrollEdgeFade(edge)`。
- */
-@Composable
-fun rememberKkViewScrollEdge(): KkViewScrollEdge {
-    val rampPx = with(LocalDensity.current) { KkScrollEdgeExtent.toPx() }
-    return remember { KkViewScrollEdge() }.also { it.rampPx = rampPx }
-}
-
-fun Modifier.kkScrollEdgeFade(
-    edge: KkViewScrollEdge,
-    top: Dp = KkScrollEdgeExtent,
-    bottom: Dp = KkScrollEdgeExtent,
-): Modifier = mochiFadeMask(MochiFadeEdges(top = top, bottom = bottom), edge)
-
-@Stable
-class KkViewScrollEdge internal constructor() : MochiFadeAmount {
-    internal var rampPx = 1f
-    private var fromStart by mutableFloatStateOf(0f)
-
-    // 底边只知道「还能不能往下滚」；没滚过之前当作到底了，不遮
-    private var canScrollDown by mutableStateOf(false)
-
-    fun attach(view: View) {
-        view.setOnScrollChangeListener { v, _, scrollY, _, _ ->
-            fromStart = scrollY.toFloat()
-            canScrollDown = v.canScrollVertically(1)
-        }
-    }
-
-    override fun amount(edge: MochiFadeEdge): Float = when (edge) {
-        MochiFadeEdge.Top -> MochiSmoothGradient.smoothstep(fromStart / rampPx)
-        MochiFadeEdge.Bottom -> if (canScrollDown) 1f else 0f
-        else -> 0f
-    }
 }
 
 @Stable

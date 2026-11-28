@@ -211,8 +211,7 @@ private fun ModeInjectionTab(
         LazyColumn(
             // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
-                .fillMaxSize()
-                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+                .fillMaxSize(),
             // 底部留出浮动底栏 + 右下角 FAB 的高度
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -587,8 +586,7 @@ private fun LorebookTab(
         LazyColumn(
             // 顶边贴着顶栏渐隐；底边不遮：底栏是浮着的，列表本来就要从它底下透出来
             modifier = Modifier
-                .fillMaxSize()
-                .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+                .fillMaxSize(),
             // 底部留出浮动底栏 + 右下角 FAB 的高度
             contentPadding = PaddingValues(
                 start = 16.dp,

@@ -31,13 +31,14 @@ import heizige.kk.khatkit.app.core.ui.icons.sms
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
-import ui.feice.mochi.navigation.MochiLargeTitleScaffold
+import heizige.kk.khatkit.app.feature.ui.shell.MochiPageScaffold
+import ui.feice.mochi.theme.MochiDefaults
 import ui.feice.mochi.theme.MochiTheme
 
 /**
  * 角色详情：头像 + 名字 + 人格摘要，下面一整张 Mochi 分组卡片列出七个子页入口。
  *
- * 骨架是 [MochiLargeTitleScaffold]，每行是 [MochiListRow]（图标 + 标题 + 副标题 + ›），
+ * 每行是 [MochiListRow]（图标 + 标题 + 副标题 + ›），
  * 点进去分别是基本 / 提示词 / 扩展 / 记忆 / 请求参数 / MCP / 本地工具。
  */
 @Composable
@@ -50,11 +51,12 @@ fun AssistantDetailPage(id: String) {
     val providers by vm.providers.collectAsStateWithLifecycle()
     val navController = LocalNavController.current
 
-    MochiLargeTitleScaffold(
+    MochiPageScaffold(
         title = assistant.name.ifBlank {
             stringResource(R.string.assistant_page_default_assistant)
         },
         navigationIcon = { BackButton() },
+        containerColor = MochiDefaults.groupedBackground(),
     ) {
         AssistantHeader(
             assistant = assistant,

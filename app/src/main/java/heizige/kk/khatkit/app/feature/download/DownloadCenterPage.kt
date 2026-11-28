@@ -64,7 +64,7 @@ import ui.feice.mochi.effect.content.MochiMorphIcon
 import ui.feice.mochi.effect.content.mochiBlurReveal
 import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListDefaults
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
+import androidx.compose.foundation.layout.statusBarsPadding
 import ui.feice.mochi.list.MochiListLeadingStyle
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
@@ -78,7 +78,6 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     // 栏底渐显：与历史记录页同一套（标题常显、底色跟滚动淡入）。
     val listState = rememberLazyListState()
-    val barProgress = MochiScrollEdgeDefaults.progress(listState)
     // 搜索态不进 rememberSaveable：重新进页面应该回到普通态（ChatPage 的搜索也是临时的）。
     var query by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
@@ -128,7 +127,6 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
         title = "下载中心",
         // 搜索时标题让位给输入框；平时标题常显、底色跟滚动淡入。
         titleProgress = { 1f - searchProgress.value },
-        scrollEdgeProgress = barProgress,
         actions = {
             // 图标变化走 Mochi 的内容变换（MochiMorphIcon 原位变形），不是直接换一张图。
             MochiIconButton(
@@ -165,7 +163,8 @@ fun DownloadCenterPage(vm: DownloadCenterViewModel = hiltViewModel()) {
                 val navTitle = MochiTheme.textStyles.navTitle
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
                         .fillMaxWidth()
                         .height(MochiTitleBarDefaults.Height)
                         .padding(horizontal = MochiButtonDefaults.BarHorizontalPadding + 64.dp),

@@ -1,14 +1,18 @@
 package heizige.kk.khatkit.app.feature.settings
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import heizige.kk.khatkit.app.R
 import heizige.kk.khatkit.app.core.ui.components.nav.BackButton
 import heizige.kk.khatkit.app.core.ui.components.permission.PermissionChecklist
-import ui.feice.mochi.navigation.MochiLazyLargeTitleScaffold
+import androidx.compose.ui.unit.dp
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 
 /**
  * 权限页：常规权限 / 系统级权限 / 高危权限三组清单 + 实时授权状态。
@@ -18,16 +22,24 @@ import ui.feice.mochi.navigation.MochiLazyLargeTitleScaffold
  */
 @Composable
 fun SettingPermissionsPage() {
-    MochiLazyLargeTitleScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_page_permissions),
         navigationIcon = { BackButton() },
     ) {
-        item(key = "checklist") {
-            PermissionChecklist(
-                modifier = Modifier.fillMaxWidth(),
-                compact = true,
-                contentPadding = PaddingValues(),
-            )
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp,
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
+            ),
+        ) {
+            item(key = "checklist") {
+                PermissionChecklist(
+                    modifier = Modifier.fillMaxWidth(),
+                    compact = true,
+                    contentPadding = PaddingValues(),
+                )
+            }
         }
     }
 }

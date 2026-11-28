@@ -8,6 +8,8 @@
 
 package heizige.kk.khatkit.mediapicker.ui
 
+import androidx.compose.foundation.background
+
 import androidx.compose.material3.Scaffold
 import android.net.Uri
 import androidx.activity.compose.PredictiveBackHandler
@@ -16,6 +18,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import ui.feice.mochi.effect.glass.rememberMochiBackdrop
 import ui.feice.mochi.theme.MochiTheme
@@ -127,8 +129,6 @@ internal fun MediaPickerRootContent(
     var previewUri by rememberSaveable { mutableStateOf<String?>(null) }
     // 网格往下滚时收起相册芯片行（工具台同一套行为），回到顶部再展开。
     var chipsCollapsed by remember { mutableStateOf(false) }
-    // 栏底渐显：网格滚进栏下面才把底色淡入（同下载中心/历史记录页）。
-    var barProgress by remember { mutableFloatStateOf(0f) }
 
     val albumsState by pickerState.albumsState.collectAsStateWithLifecycle()
     val mediaState by pickerState.mediaState.collectAsStateWithLifecycle()
@@ -179,15 +179,14 @@ internal fun MediaPickerRootContent(
         topBar = {
             val hasAlbums = albumsState.albums.size > 1
             val isRefreshing = mediaState.isLoading && mediaState.media.isNotEmpty()
-            // 只用 MochiTitleBar 的渐隐底色，避免实色底板盖住网格的渐进模糊。
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().background(MochiTheme.colorScheme.background)) {
                 MochiTitleBar(
                     title = title ?: stringResource(
                         if (allowMultiple) R.string.media_picker_pick_multiple
                         else R.string.media_picker_pick_single
                     ),
                     titleProgress = { 1f },
-                    backgroundProgress = { barProgress },
+                    backgroundProgress = { 0f },
                     background = MochiTheme.colorScheme.background,
                     backdrop = contentBackdrop,
                     navigationIcon = {
@@ -248,7 +247,6 @@ internal fun MediaPickerRootContent(
                     onPreview = { uri -> if (uri != null) previewUri = uri },
                     onTakePicture = onTakePicture,
                     onScrolled = { chipsCollapsed = it },
-                    onScrollProgress = { barProgress = it },
                     backdrop = contentBackdrop,
                     topContentPadding = contentPadding.calculateTopPadding(),
                     onRefresh = { pickerState.init(allowedMedia) },

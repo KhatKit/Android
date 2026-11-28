@@ -127,7 +127,7 @@ fun SkillsPage() {
         val cards = listCardStyle()
         LazyColumn(
             // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-            modifier = listModifier.kkScrollEdgeFade(bottom = 0.dp),
+            modifier = listModifier,
             verticalArrangement = Arrangement.spacedBy(cards.gap),
         ) {
             if (visibleSkills.isEmpty()) {

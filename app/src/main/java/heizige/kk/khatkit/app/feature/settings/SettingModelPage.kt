@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavBottomBar
 import heizige.kk.khatkit.app.feature.ui.shell.MochiNavTab
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
@@ -57,7 +56,6 @@ fun SettingModelPage(vm: SettingViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val modelList = rememberLazyListState()
     val promptList = rememberLazyListState()
-    val progress = MochiScrollEdgeDefaults.progress(if (pagerState.currentPage == 0) modelList else promptList)
     MochiSettingsPageScaffold(
         title = stringResource(R.string.setting_model_page_title),
         rail = {

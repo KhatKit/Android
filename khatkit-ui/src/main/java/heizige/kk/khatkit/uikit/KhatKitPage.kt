@@ -28,11 +28,13 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import ui.feice.mochi.navigation.MochiBackButton
 import ui.feice.mochi.basic.MochiBarIconButton
 import heizige.kk.khatkit.uikit.mochi.NavigationBarScrim
-import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.navigation.MochiTitleBar
 import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiLargeTitleTopBar
+import heizige.kk.khatkit.uikit.mochi.LocalMochiTitleScroll
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
+import heizige.kk.khatkit.uikit.mochi.mochiTitleScroll
+import heizige.kk.khatkit.uikit.mochi.rememberMochiTitleScroll
 import ui.feice.mochi.effect.glass.LocalMochiBackdrop
 import ui.feice.mochi.effect.glass.mochiBackdropSource
 import ui.feice.mochi.effect.glass.rememberMochiBackdrop
@@ -76,7 +78,6 @@ fun KhatKitPage(
     lazyListState: LazyListState? = null,
     pagerState: PagerState? = null,
     titleProgress: (() -> Float)? = null,
-    backgroundProgress: (() -> Float)? = null,
     content: @Composable (onDismiss: () -> Unit) -> Unit,
 ) {
     val scroll = remember(scrollKey) { ScrollState(0) }
@@ -94,12 +95,10 @@ fun KhatKitPage(
     val topInset = if (inline || options.hideTopBar) 0.dp else with(density) { barHeight.toDp() }
     val bottomInset = with(density) { bottomHeight.toDp() }
     val paged = pagerState != null
+    val collapsibleTitle = !inline && !options.hideTopBar && options.largeTopBar && !paged
+    val titleScroll = rememberMochiTitleScroll()
+    val titleGestures = if (collapsibleTitle) Modifier.mochiTitleScroll(titleScroll) else Modifier
     val ownsScroll = !paged && lazyListState == null
-    val edgeProgress = backgroundProgress ?: if (lazyListState != null) {
-        MochiScrollEdgeDefaults.progress(lazyListState)
-    } else {
-        MochiScrollEdgeDefaults.progress(scroll)
-    }
     val titleFadePx = with(density) { 72.dp.toPx() }
     // The body owns the scroll container.  Read either its ScrollState or its
     // LazyListState so both regular and lazy card screens can drive the bar.
@@ -145,8 +144,8 @@ fun KhatKitPage(
         Box(Modifier.fillMaxSize().background(MochiDefaults.groupedBackground())) {
         Column(
             Modifier.fillMaxSize()
+                .then(titleGestures)
                 .mochiBackdropSource(barBackdrop)
-                .then(if (topInset > 0.dp) Modifier.mochiScrollEdgeBlur(topInset, edgeProgress) else Modifier)
                 .then(if (ownsScroll) Modifier.verticalScroll(scroll).padding(top = topInset, bottom = bottomInset) else Modifier),
         ) {
             // 内联到卡片整页时，把正文的滚动进度报给外层骨架：顶栏小标题只在页内
@@ -170,9 +169,6 @@ fun KhatKitPage(
                 if (paged) titleProgress?.invoke() ?: 0f
                 else if (options.largeTopBar) progressState.value
                 else titleProgress?.invoke() ?: progressState.value
-            }
-            val barBackgroundProgress: () -> Float = {
-                backgroundProgress?.invoke() ?: barTitleProgress()
             }
             val bar = @Composable {
                 val content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
@@ -206,12 +202,21 @@ fun KhatKitPage(
                         ) { Icon(Icons.Default.MoreHoriz, contentDescription = "更多操作") }
                     }
                 }
-                if (options.largeTopBar) {
+                if (collapsibleTitle) {
+                    CompositionLocalProvider(LocalMochiTitleScroll provides titleScroll) {
+                        MochiPageTitleBar(
+                            title = title,
+                            modifier = Modifier.onSizeChanged { barHeight = it.height },
+                            navigationIcon = { MochiBackButton(onClick = back) },
+                            actions = content,
+                            backdrop = barBackdrop,
+                        )
+                    }
+                } else if (options.largeTopBar) {
                     MochiLargeTitleTopBar(
                         title = title,
                         modifier = Modifier.onSizeChanged { barHeight = it.height },
                         titleProgress = barTitleProgress,
-                        // 新的 MochiLargeTitleTopBar 自己按 titleProgress 算栏底色，不再收 backgroundProgress
                         navigationIcon = { MochiBackButton(onClick = back) },
                         actions = content,
                         backdrop = barBackdrop,
@@ -219,10 +224,10 @@ fun KhatKitPage(
                 } else {
                     MochiTitleBar(
                         title = title,
-                        modifier = Modifier.onSizeChanged { barHeight = it.height },
+                        modifier = Modifier.onSizeChanged { barHeight = it.height }.background(MochiDefaults.groupedBackground()),
                         background = MochiDefaults.groupedBackground(),
                         titleProgress = barTitleProgress,
-                        backgroundProgress = barBackgroundProgress,
+                        backgroundProgress = { 0f },
                         navigationIcon = { MochiBackButton(onClick = back) },
                         actions = content,
                         backdrop = barBackdrop,

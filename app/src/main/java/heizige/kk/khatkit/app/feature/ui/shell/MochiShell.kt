@@ -38,7 +38,6 @@ import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.effect.glass.mochiBackdropSource
 import ui.feice.mochi.effect.glass.rememberMochiBarBackdrop
 import ui.feice.mochi.effect.glass.rememberMochiBackdrop
-import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
 import ui.feice.mochi.theme.MochiDefaults
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
 import ui.feice.mochi.theme.MochiTheme
@@ -209,9 +208,7 @@ fun MochiNavBottomBar(
  *
  * @param md3ScrollBehavior 仅为兼容旧调用点保留，Mochi 侧不使用（P4 删）。
  *
- * TOP1：新增 title 模式 —— 传了 [title] 就交给 Mochi 真页面骨架
- * （[MochiLargeTitleScaffold] / [MochiCompactTitleScaffold]：大标题折叠、滚动边缘渐隐、下拉刷新、
- * 安全区都由库内处理），topBar 槽不再需要；不传 title 时保持旧槽位骨架，11 处存量调用点零改动。
+ * 标题模式和自定义 [topBar] 共用 Mochi 标题组件与页面折叠手势。
  */
 /**
  * 当前页面骨架给顶栏的玻璃取样源（材质开了玻璃才非空）。
@@ -280,7 +277,6 @@ private fun PageTopBarLayout(
     topBar: @Composable () -> Unit,
     backdrop: MochiBackdrop?,
     scrollUnderTopBar: Boolean,
-    scrollEdgeProgress: () -> Float,
     edgeFade: Boolean,
     bottomEdge: Boolean,
     bottomInset: Dp = 0.dp,
@@ -302,10 +298,8 @@ private fun PageTopBarLayout(
         val bar = subcompose("bar") { Column { topBar() } }.single().measure(loose)
         val topInset = bar.height.toDp()
         val body = subcompose("body") {
-            // 栏下渐进模糊（顶栏样式的模糊参数生效的前提；栏本身不铺不透明底色）
-            val blur = Modifier.mochiScrollEdgeBlur(topInset, scrollEdgeProgress)
             val fade = if (edgeFade && bottomEdge) Modifier.kkScrollEdgeFade(top = 0.dp) else Modifier
-            Box(Modifier.fillMaxSize().then(bodyModifier).mochiBackdropSource(backdrop).then(blur).then(fade)) {
+            Box(Modifier.fillMaxSize().then(bodyModifier).mochiBackdropSource(backdrop).then(fade)) {
                 content(PaddingValues(top = topInset, bottom = bottomInset))
             }
         }.single().measure(loose)
@@ -352,8 +346,6 @@ fun MochiPageScaffold(
     edgeFade: Boolean = true,
     /** Opt in only if the scroll container consumes top padding as contentPadding, not outer padding. */
     scrollUnderTopBar: Boolean = false,
-    /** 栏下渐进模糊的进度（0 = 不模糊，1 = 最强）；不传时跟随大标题收起进度。 */
-    scrollEdgeProgress: (() -> Float)? = null,
     /** Other floating surfaces on this page can sample the body even with solid bar buttons. */
     captureBodyBackdrop: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
@@ -391,10 +383,11 @@ fun MochiPageScaffold(
         rememberMochiBarBackdrop(background = barBackdropColor)
     }
     val titleScroll = rememberMochiTitleScroll()
-    // 栏下渐进模糊的进度：页面没传就跟着大标题收起走
-    val edgeProgress: () -> Float = scrollEdgeProgress ?: { titleScroll.progress }
     val pageTopBar: @Composable () -> Unit = {
         CompositionLocalProvider(LocalMochiTitleScroll provides titleScroll, content = topBar)
+    }
+    val pageContent: @Composable (PaddingValues) -> Unit = { padding ->
+        CompositionLocalProvider(LocalMochiTitleScroll provides titleScroll) { content(padding) }
     }
     val titleGestures = Modifier.mochiTitleScroll(titleScroll)
     // 栏量出来高度为 0 = 这一页没有那条栏，那一边就没有交界、不遮
@@ -409,8 +402,8 @@ fun MochiPageScaffold(
                         CompositionLocalProvider(LocalTabPlacement provides placement, content = rail)
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        PageTopBarLayout(pageTopBar, barBackdrop, scrollUnderTopBar, edgeProgress, edgeFade, bottomEdge = false,
-                            bodyModifier = titleGestures, content = content)
+                        PageTopBarLayout(pageTopBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = false,
+                            bodyModifier = titleGestures, content = pageContent)
                     }
                 }
             } else if (rail != null) {
@@ -419,17 +412,16 @@ fun MochiPageScaffold(
                     background = containerColor,
                     topBar = pageTopBar,
                     scrollUnderTopBar = scrollUnderTopBar,
-                    scrollEdgeProgress = edgeProgress,
                     edgeFade = edgeFade,
                     bodyModifier = titleGestures,
                     rail = rail,
-                    content = content,
+                    content = pageContent,
                 )
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f)) {
-                        PageTopBarLayout(pageTopBar, barBackdrop, scrollUnderTopBar, edgeProgress, edgeFade, bottomEdge = bottomBarHeight > 0,
-                            bodyModifier = titleGestures, content = content)
+                        PageTopBarLayout(pageTopBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = bottomBarHeight > 0,
+                            bodyModifier = titleGestures, content = pageContent)
                     }
                     MeasuredBar(onHeight = { bottomBarHeight = it }, bar = bottomBar)
                 }
@@ -455,7 +447,6 @@ private fun FloatingRailLayout(
     background: Color,
     topBar: @Composable () -> Unit,
     scrollUnderTopBar: Boolean,
-    scrollEdgeProgress: () -> Float,
     edgeFade: Boolean,
     bodyModifier: Modifier,
     rail: @Composable () -> Unit,
@@ -467,7 +458,7 @@ private fun FloatingRailLayout(
     val railInset = with(density) { railPx.toDp() }
     Box(modifier = Modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalMochiBottomBarInset provides railInset) {
-            PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, scrollEdgeProgress, edgeFade, bottomEdge = false,
+            PageTopBarLayout(topBar, barBackdrop, scrollUnderTopBar, edgeFade, bottomEdge = false,
                 bottomInset = railInset,
                 bodyModifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection).then(bodyModifier),
                 content = content)

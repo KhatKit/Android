@@ -251,7 +251,7 @@ private fun SearchServiceList(
 
     LazyColumn(
         // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-        modifier = modifier.kkScrollEdgeFade(state = listState, bottom = 0.dp),
+        modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp) +
             PaddingValues(bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(cards.gap),

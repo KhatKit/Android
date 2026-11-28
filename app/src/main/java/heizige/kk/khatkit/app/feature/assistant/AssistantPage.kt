@@ -204,7 +204,7 @@ fun AssistantPage(vm: AssistantViewModel = hiltViewModel()) {
                 val cards = listCardStyle()
                 LazyColumn(
                     // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-                    modifier = listModifier.kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+                    modifier = listModifier,
                     // UI-1：底部留 16dp，最后一行不再贴着导航条/手势区
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     // 项间距取全局列表卡片样式：整列看起来是一张分组卡片，

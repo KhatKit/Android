@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.workspace
 
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import heizige.kk.khatkit.app.core.ui.components.ui.rememberKkViewScrollEdge
 import heizige.kk.khatkit.uikit.mochi.Md3TextFieldWithState
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import androidx.compose.foundation.layout.Box
@@ -157,8 +156,7 @@ fun WorkspaceFileEditorPage(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .imePadding()
-                    .kkScrollEdgeFade(bottom = 0.dp),
+                    .imePadding(),
                 readOnly = !editable,
                 lineLimits = TextFieldLineLimits.MultiLine(),
                 textStyle = LocalTextStyle.current.copy(
@@ -191,10 +189,8 @@ private fun WorkspaceWebPreview(
             loadWithOverviewMode = true
         },
     )
-    val scrollEdge = rememberKkViewScrollEdge()
     WebView(
         state = state,
-        modifier = modifier.kkScrollEdgeFade(scrollEdge, bottom = 0.dp),
-        onCreated = scrollEdge::attach,
+        modifier = modifier,
     )
 }

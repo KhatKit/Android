@@ -22,7 +22,6 @@ import ui.feice.mochi.theme.ColorSchemeMode
 import ui.feice.mochi.theme.DefaultKeyColor
 import ui.feice.mochi.theme.MochiMaterials
 import ui.feice.mochi.theme.MochiHdr
-import ui.feice.mochi.theme.MochiScrollEdge
 import ui.feice.mochi.theme.LocalMochiControlPalette
 import ui.feice.mochi.theme.defaultTextStyles
 import ui.feice.mochi.theme.withSerifDisplay
@@ -68,16 +67,15 @@ internal fun mochiAppearanceMaterials(
     glassStyle: MochiGlassStyle,
     tint: Float,
     dark: Boolean,
-    scrollEdge: MochiScrollEdge,
 ): MochiMaterials {
-    if (!glassEnabled) return MochiMaterials(scrollEdge = scrollEdge)
+    if (!glassEnabled) return MochiMaterials()
     val glass = MochiGlass(
         style = glassStyle,
         tint = (if (dark) Color.Black else Color.White)
             .copy(alpha = tint.coerceIn(0f, 1f) * 0.32f)
             .takeIf { it.alpha > 0f },
     )
-    return mochiGlassMaterials(glass, scrollEdge = scrollEdge)
+    return mochiGlassMaterials(glass, scrollEdge = null)
 }
 
 /**
@@ -232,13 +230,12 @@ fun KhatKitTheme(
     val effectsEnabled = display.effectsEnabled
     val glassButtons = effectsEnabled && display.glassButtons
     val glassStyle = display.resolvedMochiGlassStyle
-    val mochiMaterials = remember(effectsEnabled, glassStyle, display.glassTint, darkTheme, display.mochiTopBarStyle) {
+    val mochiMaterials = remember(effectsEnabled, glassStyle, display.glassTint, darkTheme) {
         mochiAppearanceMaterials(
             glassEnabled = effectsEnabled,
             glassStyle = glassStyle,
             tint = display.glassTint,
             dark = darkTheme,
-            scrollEdge = MochiScrollEdge.of(display.mochiTopBarStyle),
         )
     }
     // Mochi falls back from control to bar when control is null. Bottom navigation

@@ -1,7 +1,6 @@
 package heizige.kk.khatkit.app.feature.webview
 
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import heizige.kk.khatkit.app.core.ui.components.ui.rememberKkViewScrollEdge
 import heizige.kk.khatkit.app.LocalPageRoute
 import ui.feice.mochi.basic.MochiDropdown
 import ui.feice.mochi.basic.MochiItem
@@ -152,15 +151,11 @@ fun WebViewPage(url: String, contentId: String) {
     
         md3ScrollBehavior = null,
     ) {
-        // WebView 自己滚、嵌套滚动里看不到：直接听它的 scrollY 给顶栏交界渐隐
-        val scrollEdge = rememberKkViewScrollEdge()
         WebView(
             state = state,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
-                .kkScrollEdgeFade(scrollEdge, bottom = 0.dp),
-            onCreated = scrollEdge::attach,
+                .padding(it),
         )
     }
 

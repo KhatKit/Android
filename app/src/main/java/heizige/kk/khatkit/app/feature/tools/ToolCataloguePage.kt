@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -182,23 +181,12 @@ internal fun ToolCataloguePage() {
             }
         }
     }
-    // 滚动状态提到页面层：顶栏底色渐显与栏下渐进模糊都要读当前视图（网格 / 列表）的滚动进度。
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
-    val edgeProgress = if (grid) {
-        MochiScrollEdgeDefaults.progress(gridState)
-    } else {
-        MochiScrollEdgeDefaults.progress(listState)
-    }
 
     MochiPageScaffold(
         containerColor = MochiDefaults.groupedBackground(),
-        // 正文压在顶栏下面滚：栏按滚动进度出底色，栏下的正文由骨架做 Mochi 的 scroll edge 渐进模糊。
-        // 这与设置页 / 探索页是同一套。原来缺了它，骨架走「固定表头」分支，正文永远滚不到栏下，
-        // 栏下既没有可模糊的内容，栏自己的渐隐又一直全浓 —— 这就是工具台顶栏发死、栏下发硬边的原因。
         scrollUnderTopBar = true,
-        // 栏下渐进模糊跟着当前视图（网格 / 列表）的滚动进度走
-        scrollEdgeProgress = edgeProgress,
         topBar = {
             MochiPageTitleBar(
                 title = "工具台",
@@ -260,7 +248,7 @@ internal fun ToolCataloguePage() {
                     val railState = rememberLazyListState()
                     LazyColumn(
                         state = railState,
-                        modifier = Modifier.width(156.dp).kkScrollEdgeFade(railState, bottom = 0.dp),
+                        modifier = Modifier.width(156.dp),
                         contentPadding = PaddingValues(start = 12.dp, end = 4.dp, top = topInset + 12.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         flingBehavior = MochiScrollDefaults.flingBehavior(),

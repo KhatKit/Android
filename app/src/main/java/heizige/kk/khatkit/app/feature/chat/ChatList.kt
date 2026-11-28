@@ -462,7 +462,7 @@ private fun ChatListNormal(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    // 顶栏过渡由页面骨架绘制。底边从悬浮输入栏顶上 24dp 一直渐隐到屏幕底，
+                    // 底边从悬浮输入栏顶上 24dp 一直渐隐到屏幕底，
                     // 滚到最新一条时底边是实的。
                     .kkScrollEdgeFade(
                         state = state,

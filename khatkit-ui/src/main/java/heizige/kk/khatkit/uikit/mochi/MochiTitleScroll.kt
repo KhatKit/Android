@@ -19,7 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/** The page owns the gesture; only its top-bar slot receives this state. */
+/** Page-local title state, also available to native scrolling content. */
 val LocalMochiTitleScroll = staticCompositionLocalOf<MochiTitleScroll?> { null }
 
 @Composable
@@ -69,7 +69,12 @@ class MochiTitleScroll internal constructor(private val scope: CoroutineScope) :
     override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
         if (available.y > 0f) Offset(0f, consumeDrag(available.y)) else Offset.Zero
 
-    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+    fun onNativeDrag(deltaY: Float, canScrollUp: Boolean) {
+        if (deltaY < 0f || !canScrollUp) consumeDrag(deltaY)
+    }
+
+    /** Finish a drag from a Compose or native scroll container. */
+    fun settle() {
         val current = progress
         if (current > 0f && current < 1f) {
             snapJob?.cancel()
@@ -79,6 +84,10 @@ class MochiTitleScroll internal constructor(private val scope: CoroutineScope) :
                 }
             }
         }
+    }
+
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+        settle()
         return Velocity.Zero
     }
 }

@@ -92,7 +92,6 @@ internal fun MediaPickerGridWithOverlays(
     /** 网格滚离顶部时回调 true（收起相册芯片行用）。 */
     onScrolled: (Boolean) -> Unit = {},
     /** 栏底渐显进度 0..1。 */
-    onScrollProgress: (Float) -> Unit = {},
     /** Mochi 下拉刷新：重新扫一遍 MediaStore。 */
     onRefresh: (suspend () -> Unit)? = null,
     /** 玻璃取样源：只录网格本身，录完给栏 / 按钮取样。 */
@@ -130,7 +129,6 @@ internal fun MediaPickerGridWithOverlays(
                 onPreview = onPreview,
                 onTakePicture = onTakePicture,
                 onScrolled = onScrolled,
-                onScrollProgress = onScrollProgress,
                 onRefresh = onRefresh,
                 backdrop = backdrop,
                 topContentPadding = topContentPadding,

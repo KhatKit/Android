@@ -51,21 +51,21 @@ fun MochiPageTitleBar(
     titleProgress: (() -> Float)? = null,
     collapsible: Boolean = titleProgress == null,
     backdrop: MochiBackdrop? = null,
+    expandedTitleLeading: (@Composable () -> Unit)? = null,
+    expandedTitleModifier: Modifier = Modifier,
 ) {
     val scroll = LocalMochiTitleScroll.current.takeIf { collapsible }
     if (scroll == null || title.isBlank()) {
         MochiTitleBar(
             title = title,
-            // 不在这里铺不透明底色：栏底色由 backgroundProgress 随滚动淡入，
-            // 否则栏把下面的内容盖死，顶栏样式的渐进模糊永远看不见
-            modifier = modifier,
+            modifier = modifier.background(background),
             subtitle = subtitle,
             navigationIcon = navigationIcon,
             actions = actions,
             background = background,
             barHeight = barHeight,
             titleProgress = titleProgress ?: { 1f },
-            backgroundProgress = titleProgress ?: { 0f },
+            backgroundProgress = { 0f },
             backdrop = backdrop,
         )
     } else {
@@ -84,6 +84,8 @@ fun MochiPageTitleBar(
             barHeight = barHeight,
             backdrop = backdrop,
             onExpandedTitleHeightChanged = scroll::updateHeight,
+            expandedTitleLeading = expandedTitleLeading,
+            expandedTitleModifier = expandedTitleModifier,
         )
     }
 }
@@ -111,12 +113,14 @@ fun MochiLargeTitleTopBar(
     subtitle: String? = null,
     background: Color = MochiDefaults.groupedBackground(),
     barHeight: androidx.compose.ui.unit.Dp = MochiTitleBarDefaults.Height,
+    expandedTitleLeading: (@Composable () -> Unit)? = null,
+    expandedTitleModifier: Modifier = Modifier,
 ) {
     val collapsed = titleProgress().coerceIn(0f, 1f)
     val visibility = titleVisibility().coerceIn(0f, 1f)
     val expanded = (1f - collapsed) * visibility
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().background(background),
     ) {
         MochiTitleBar(
             title = title,
@@ -126,8 +130,7 @@ fun MochiLargeTitleTopBar(
             background = background,
             barHeight = barHeight,
             titleProgress = { collapsed * visibility },
-            // 大标题收起（= 正文滚上来）时栏底色淡入，栏下才有可模糊的内容
-            backgroundProgress = { collapsed },
+            backgroundProgress = { 0f },
             backdrop = backdrop,
         )
         Column(
@@ -151,15 +154,19 @@ fun MochiLargeTitleTopBar(
                     },
                 )
                 .graphicsLayer { alpha = expanded }
-                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                .then(expandedTitleModifier),
         ) {
-            Text(
-                text = title,
-                style = MochiTheme.textStyles.largeTitle,
-                color = MochiTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                expandedTitleLeading?.invoke()
+                Text(
+                    text = title,
+                    style = MochiTheme.textStyles.largeTitle,
+                    color = MochiTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             if (subtitle != null) {
                 Text(
                     text = subtitle,

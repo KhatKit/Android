@@ -57,7 +57,6 @@ import ui.feice.mochi.effect.content.crossfadeOrChange
 import ui.feice.mochi.picker.MochiSeedPalette
 import ui.feice.mochi.theme.MochiTheme
 import ui.feice.mochi.theme.MochiGlassStyle
-import ui.feice.mochi.theme.MochiTopBarStyle
 import ui.feice.mochi.theme.PaletteStyle
 
 private val paletteOptions = listOf(
@@ -67,13 +66,6 @@ private val paletteOptions = listOf(
     PaletteStyle.Neutral to "Neutral",
     PaletteStyle.Content to "Content",
     PaletteStyle.Fidelity to "Fidelity",
-)
-
-private val topBarOptions = listOf(
-    MochiTopBarStyle.Frosted to "毛玻璃",
-    MochiTopBarStyle.GradientBlur to "渐变模糊",
-    MochiTopBarStyle.SolidFade to "实色渐隐",
-    MochiTopBarStyle.TranslucentFade to "半透明渐隐",
 )
 
 private val glassOptions = listOf(
@@ -362,15 +354,6 @@ fun SettingThemeMaterialsPage(vm: SettingViewModel = hiltViewModel()) {
                         )
                     },
                 )
-                mochiThemePicker(
-                    title = "顶栏样式",
-                    options = topBarOptions,
-                    selected = display.mochiTopBarStyle,
-                ) { style ->
-                    themeReveal.crossfadeOrChange {
-                        vm.updateSettings { it.copy(displaySetting = it.displaySetting.copy(mochiTopBarStyle = style)) }
-                    }
-                }
             }
         }
         }

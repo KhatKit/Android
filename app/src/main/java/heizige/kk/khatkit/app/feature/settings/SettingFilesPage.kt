@@ -198,7 +198,7 @@ fun SettingFilesPage() {
             } else {
                 LazyVerticalStaggeredGrid(
                     // 搜索栏 / 筛选条是固定的，交界渐隐加在它下面的列表上（这一页骨架级的关了）
-                    modifier = Modifier.fillMaxSize().kkScrollEdgeFade(bottom = 0.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 16.dp,
                         top = 16.dp,

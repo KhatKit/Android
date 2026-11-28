@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -63,7 +66,8 @@ import ui.feice.mochi.effect.content.MochiCounterText
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
-import ui.feice.mochi.navigation.MochiLazyLargeTitleScaffold
+import heizige.kk.khatkit.app.core.ui.components.ui.mochi.MochiSettingsPageScaffold
+import ui.feice.mochi.navigation.MochiTabScaffoldDefaults
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiTheme
 import java.time.DayOfWeek
@@ -74,7 +78,7 @@ import java.time.temporal.TemporalAdjusters
 /**
  * 统计页（Mochi / iOS 26 分组列表）。
  *
- * 骨架是 [MochiLazyLargeTitleScaffold]，正文全部落在 [MochiListSection] 分组卡片里：
+ * 正文全部落在 [MochiListSection] 分组卡片里：
  *  1. 概览：两个主数字（会话 / 消息）用 Mochi 计数器滚动，下面 2x2 收起 token 与启动次数；
  *  2. 热力：近 52 周的聊天热力，连续圆角小格 + 5 档主色深浅，底部报连续天数；
  *  3. 用量：Mochi 分段选择器（7/30/90/全部）+ 面积趋势图 + 模型 / 来源排行行；
@@ -92,26 +96,35 @@ fun StatsPage(vm: StatsVM = hiltViewModel()) {
     // 路由快照只在进页时取一次：它是进程级计数器，没必要跟着每一次重组重读。
     val routeRows = remember { routeSummary() }
 
-    MochiLazyLargeTitleScaffold(
+    MochiSettingsPageScaffold(
         title = stringResource(R.string.stats_page_title),
         navigationIcon = { BackButton() },
     ) {
-        item(key = "overview") {
-            if (stats.isLoading) StatsSkeleton() else OverviewCard(stats = stats)
-        }
-        item(key = "heatmap") {
-            HeatmapCard(conversationsPerDay = stats.conversationsPerDay)
-        }
-        item(key = "usage") {
-            UsageCard(
-                usage = usage,
-                range = usageRange,
-                onSelectRange = { vm.selectRange(it) },
-            )
-        }
-        if (routeRows.isNotEmpty()) {
-            item(key = "routes") {
-                RouteCard(rows = routeRows)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp,
+                bottom = MochiTabScaffoldDefaults.contentBottomPadding(),
+            ),
+            verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
+        ) {
+            item(key = "overview") {
+                if (stats.isLoading) StatsSkeleton() else OverviewCard(stats = stats)
+            }
+            item(key = "heatmap") {
+                HeatmapCard(conversationsPerDay = stats.conversationsPerDay)
+            }
+            item(key = "usage") {
+                UsageCard(
+                    usage = usage,
+                    range = usageRange,
+                    onSelectRange = { vm.selectRange(it) },
+                )
+            }
+            if (routeRows.isNotEmpty()) {
+                item(key = "routes") {
+                    RouteCard(rows = routeRows)
+                }
             }
         }
     }

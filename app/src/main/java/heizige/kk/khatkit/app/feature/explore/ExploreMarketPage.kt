@@ -152,7 +152,6 @@ import ui.feice.mochi.list.MochiListCard
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListLeadingStyle
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import kotlin.math.abs
 import ui.feice.mochi.basic.MochiButton
@@ -342,14 +341,12 @@ private fun TagChip(
  * 页面顶栏：Mochi 的紧凑标题栏。
  *
  * 大标题与搜索框是正文首项（见 [ExploreMarketPage] 的 page_header），所以栏里的标题只在
- * 内容滚上去之后渐显（[MochiScrollEdgeDefaults.progress]），滚回顶部时把位置让给正文大标题，
- * 与 iOS 的 large title → 紧凑标题交接同一条规则。返回、「本地」入口都是栏里的 Mochi 按钮。
+ * 探索与卡片市场共用页面大标题和栏内操作。
  */
 @Composable
 private fun MarketTopBar(
     title: String,
     subtitle: String?,
-    listState: LazyListState,
     actions: @Composable RowScope.() -> Unit,
 ) {
     MochiPageTitleBar(
@@ -359,7 +356,6 @@ private fun MarketTopBar(
         backdrop = LocalKkBarBackdrop.current,
         navigationIcon = { BackButton() },
         actions = { KkBarIconScope { actions() } },
-        titleProgress = MochiScrollEdgeDefaults.progress(listState),
     )
 }
 
@@ -575,23 +571,10 @@ fun ExploreMarketPage() {
             contentPadding = listPadding + PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(MochiListDefaults.SectionSpacing),
         ) {
-            // 首项 = 页面大标题 + 一行说明 + Mochi 搜索框：顶栏的紧凑标题只在滚上去后渐显，
-            // 静止时由这一项承担「探索」这个一级标题。
-            item(key = "page_header") {
+            item(key = "page_search") {
                 Column(
                     modifier = sectionPad,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(
-                        text = stringResource(R.string.explore_market_title),
-                        style = MochiTheme.textStyles.largeTitle,
-                        color = MochiTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = stringResource(R.string.explore_market_subtitle),
-                        style = MochiTheme.textStyles.subhead,
-                        color = MochiTheme.colorScheme.onSurfaceVariant,
-                    )
                     MochiSearchBar(
                         query = query,
                         onQueryChange = { new ->
@@ -1084,7 +1067,6 @@ fun ExploreMarketPage() {
                 MarketTopBar(
                     title = stringResource(R.string.explore_market_title),
                     subtitle = stringResource(R.string.explore_market_subtitle),
-                    listState = marketListState,
                     actions = {
                         MochiBadgedBox(
                             badge = installed.size.takeIf { it > 0 }?.toString(),
@@ -1111,7 +1093,6 @@ fun ExploreMarketPage() {
             // 这才是 Mochi 示例顶栏的「背景模糊」。缺了它骨架走 Column 分支，栏是固定表头，
             // 正文永远滚不到栏下，栏下自然没有模糊。
             scrollUnderTopBar = true,
-            scrollEdgeProgress = MochiScrollEdgeDefaults.progress(marketListState),
         ) { innerPadding ->
             Box(Modifier.fillMaxSize()) {
                 marketList(
@@ -1323,7 +1304,6 @@ fun ExploreCardsPage(initialQuery: String = "") {
             MarketTopBar(
                 title = stringResource(R.string.explore_market_cards_page_title),
                 subtitle = null,
-                listState = listState,
                 actions = {},
             )
         },

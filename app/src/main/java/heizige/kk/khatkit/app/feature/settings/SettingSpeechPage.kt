@@ -382,8 +382,7 @@ private fun SpeechProviderListColumn(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .imePadding()
-            .kkScrollEdgeFade(state = lazyListState, bottom = 0.dp),
+            .imePadding(),
         contentPadding = PaddingValues(
             start = 16.dp,
             top = 16.dp,

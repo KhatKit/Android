@@ -86,7 +86,6 @@ internal fun PagedNodeTreePage(
     // 顶栏折叠：内容从栏下面开始，滚过一小段后栏里的小标题淡入、栏底色渐现。
     // 注意 topInset 要在页面里读，见下面的 HorizontalPager。
     val density = LocalDensity.current
-    val edgeFadePx = with(density) { 8.dp.toPx() }
     val collapsePx = with(density) { 72.dp.toPx() }
     fun pageScrollProgress(index: Int, edgePx: Float): Float {
         val page = pages.getValue(ids[index])
@@ -123,7 +122,6 @@ internal fun PagedNodeTreePage(
     // 横向切页时同时混合相邻页，
     // 顶栏和页面内容保持同一条手势进度，避免在 settledPage 切换点突然跳变。
     val titleProgress: () -> Float = { pagedProgress(collapsePx) }
-    val backgroundProgress: () -> Float = { pagedProgress(edgeFadePx) }
 
     KhatKitPage(
         title = title,
@@ -140,7 +138,6 @@ internal fun PagedNodeTreePage(
         lazyListState = lists[pager.settledPage].takeIf { activePage.root.lazyScreenRoot() },
         pagerState = pager,
         titleProgress = titleProgress,
-        backgroundProgress = backgroundProgress,
     ) {
         // 翻页用 pager 自带的横向滚动（scrollable 参与嵌套滚动）：页内的横向控件
         // （分段选择器、横向滚动区）先消费手势，空白处拖动才切页。之前用

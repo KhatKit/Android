@@ -278,7 +278,7 @@ private fun ImageGenScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .kkScrollEdgeFade()
+                .kkScrollEdgeFade(top = 0.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
             Row(
@@ -678,8 +678,7 @@ private fun ImageGalleryScreen(
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    // 多选操作行固定在上面，交界渐隐只加在网格上
-                    modifier = Modifier.fillMaxSize().kkScrollEdgeFade(),
+                    modifier = Modifier.fillMaxSize().kkScrollEdgeFade(top = 0.dp),
                 ) {
                     items(
                         count = generatedImages.itemCount,

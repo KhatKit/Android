@@ -1,6 +1,5 @@
 package heizige.kk.khatkit.app.feature.settings
 
-import heizige.kk.khatkit.app.core.ui.components.ui.kkScrollEdgeFade
 import heizige.kk.khatkit.uikit.mochi.MochiTextButton
 import heizige.kk.khatkit.uikit.mochi.MochiIconButton
 import androidx.compose.animation.AnimatedVisibility
@@ -44,7 +43,7 @@ import androidx.compose.material3.Surface
 import heizige.kk.khatkit.uikit.mochi.KkOptionSwitch
 import heizige.kk.khatkit.app.core.ui.components.ui.PrimaryBottomSheet // 项目内转发，按风格分流：Miuix 走 MochiPrimaryBottomSheet
 import androidx.compose.material3.Text
-import heizige.kk.khatkit.app.core.ui.components.ui.MochiPageTopBar
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +61,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFilter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -171,25 +169,16 @@ fun SettingProviderDetailPage(id: Uuid, vm: SettingViewModel = hiltViewModel()) 
     val settingProviderPageSaveSuccess = stringResource(R.string.setting_provider_page_save_success)
 
     MochiPageScaffold(
-        // 渐隐加在每一页自己的滚动容器上（三页滚动位置各自独立）
         edgeFade = false,
-       containerColor = CustomColors.pageContainerColor,
+        containerColor = CustomColors.pageContainerColor,
         topBar = {
-            MochiPageTopBar(
+            MochiPageTitleBar(
                 navigationIcon = {
                     BackButton()
                 },
-                colors = CustomColors.topBarColors,
+                background = CustomColors.pageContainerColor,
                 title = provider.name,
-                titleContent = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AutoAIIcon(provider.name, modifier = Modifier.size(22.dp))
-                        Text(text = provider.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                },
+                expandedTitleLeading = { AutoAIIcon(provider.name, modifier = Modifier.size(22.dp)) },
                 actions = {
                     val shareSheetState = rememberShareSheetState()
                     ShareSheet(shareSheetState)
@@ -284,7 +273,6 @@ private fun ProviderPageColumn(content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
-            .kkScrollEdgeFade(bottom = 0.dp)
             .verticalScroll(rememberScrollState())
             .padding(start = 16.dp, top = 16.dp, end = 16.dp)
             .padding(bottom = MochiTabScaffoldDefaults.contentBottomPadding()),

@@ -55,7 +55,6 @@ import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
 import ui.feice.mochi.list.MochiSwipeAction
 import ui.feice.mochi.list.MochiSwipeRow
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.theme.MochiTheme
 
 @Composable
@@ -66,7 +65,6 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     // 栏底渐显：正文滚进栏下面才把底色淡入（标题常显，底色跟滚动走）。
     val listState = rememberLazyListState()
-    val barProgress = MochiScrollEdgeDefaults.progress(listState)
 
     val conversations by vm.conversations.collectAsStateWithLifecycle()
 
@@ -76,7 +74,6 @@ fun HistoryPage(vm: HistoryVM = hiltViewModel()) {
             // 正文没有大标题（列表直接从分组卡片开始），栏标题常显；
             // 栏底色仍然跟滚动走：滚动时淡入，停下时透明。
             titleProgress = { 1f },
-            scrollEdgeProgress = barProgress,
             actions = {
                 MochiIconButton(
                     onClick = {

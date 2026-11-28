@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import ui.feice.mochi.basic.MochiButtonDefaults
 import heizige.kk.khatkit.app.feature.ui.shell.LocalKkBarBackdrop
 import heizige.kk.khatkit.uikit.mochi.KkBarIconScope
+import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.navigation.MochiTitleBar
 import ui.feice.mochi.navigation.MochiTitleBarDefaults
@@ -129,7 +130,7 @@ fun MochiPageLargeTopBar(
             actions = { KkBarIconScope { actions() } },
             background = background,
             titleProgress = { smoothstep(0.5f, 1f, collapsed()) * alpha },
-            backgroundProgress = { smoothstep(0.9f, 1f, collapsed()) },
+            backgroundProgress = { 0f },
             backdrop = effectiveBackdrop,
         )
         Column(
@@ -245,14 +246,13 @@ fun MochiPageTopBar(
             )
         }
     } else {
-        MochiTitleBar(
+        MochiPageTitleBar(
             title = title,
             modifier = modifier.background(background),
             subtitle = subtitle,
             navigationIcon = { KkBarIconScope { navigationIcon() } },
             actions = { KkBarIconScope { actions() } },
             background = background,
-            backgroundProgress = { state?.overlappedFraction ?: 0f },
             backdrop = effectiveBackdrop,
         )
     }

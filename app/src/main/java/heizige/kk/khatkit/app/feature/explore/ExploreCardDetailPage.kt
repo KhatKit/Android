@@ -87,7 +87,6 @@ import ui.feice.mochi.effect.elastic.mochiPressDeform
 import ui.feice.mochi.list.MochiListDefaults
 import ui.feice.mochi.list.MochiListRow
 import ui.feice.mochi.list.MochiListSection
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import heizige.kk.khatkit.uikit.mochi.MochiPageTitleBar
 import ui.feice.mochi.shape.MochiRoundedRectangle
 import ui.feice.mochi.theme.MochiDefaults
@@ -157,8 +156,6 @@ fun ExploreCardDetailPage(name: String) {
                 title = name,
                 backdrop = LocalKkBarBackdrop.current,
                 navigationIcon = { BackButton() },
-                // 正文首项就是带大标题的海报卡：栏里的标题等它滚到栏下面才渐显。
-                titleProgress = MochiScrollEdgeDefaults.progress(listState),
             )
         },
         containerColor = MochiDefaults.groupedBackground(),
@@ -491,16 +488,8 @@ private fun CardDetailHero(
             }
 
             Spacer(Modifier.height(20.dp))
-            Text(
-                text = entry.name,
-                style = MochiTheme.textStyles.largeTitle,
-                color = onPoster,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
             val author = entry.author.ifBlank { hubInfo?.author.orEmpty() }
             if (author.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
                 Text(
                     text = stringResource(R.string.explore_market_provided_by, author),
                     style = MochiTheme.textStyles.subhead,

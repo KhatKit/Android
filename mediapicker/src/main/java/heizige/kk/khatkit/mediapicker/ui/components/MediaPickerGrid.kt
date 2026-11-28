@@ -46,9 +46,7 @@ import ui.feice.mochi.effect.overscroll.mochiContainedScroll
 import ui.feice.mochi.effect.overscroll.rememberMochiOverscrollEffect
 import ui.feice.mochi.effect.glass.MochiBackdrop
 import ui.feice.mochi.effect.glass.mochiBackdropSource
-import ui.feice.mochi.effect.mask.mochiScrollEdgeBlur
 import ui.feice.mochi.icons.MochiIonicon
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,7 +82,6 @@ internal fun MediaPickerGrid(
     onTakePicture: (() -> Unit)? = null,
     onScrolled: (Boolean) -> Unit = {},
     /** 栏底渐显进度 0..1（滚进栏下面多少）。 */
-    onScrollProgress: (Float) -> Unit = {},
     onRefresh: (suspend () -> Unit)? = null,
     /** 玻璃取样源：录网格自己，给栏 / 底部按钮取样。 */
     backdrop: MochiBackdrop? = null,
@@ -93,7 +90,6 @@ internal fun MediaPickerGrid(
 ) {
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
-    val scrollEdgeProgress = MochiScrollEdgeDefaults.progress(gridState)
     val hapticFeedback = LocalHapticFeedback.current
 
     // 只在「换相册 / 数据真的变了」时回顶。直接拿 mappedMedia 当 key 会在每次
@@ -178,11 +174,6 @@ internal fun MediaPickerGrid(
         }.distinctUntilChanged().collect(onScrolled)
     }
     // 标题栏底色与滚动内容的渐进模糊共用 Mochi 的进度曲线。
-    LaunchedEffect(gridState, scrollEdgeProgress) {
-        snapshotFlow { scrollEdgeProgress() }
-            .distinctUntilChanged()
-            .collect(onScrollProgress)
-    }
 
     // Mochi 下拉刷新：跟页面同一套 overscroll / 指示器。
     val overscroll = rememberMochiOverscrollEffect()
@@ -204,16 +195,6 @@ internal fun MediaPickerGrid(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
-            .then(
-                if (topContentPadding != Dp.Unspecified) {
-                    Modifier.mochiScrollEdgeBlur(
-                        top = topContentPadding,
-                        alpha = scrollEdgeProgress,
-                    )
-                } else {
-                    Modifier
-                },
-            )
             .padding(
                 start = cutout.calculateStartPadding(layoutDirection),
                 end = cutout.calculateEndPadding(layoutDirection),

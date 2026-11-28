@@ -5,6 +5,8 @@ import heizige.kk.khatkit.uikit.mochi.KkProgressIndicator
 import heizige.kk.khatkit.uikit.mochi.KkProgressIndicatorType
 import android.graphics.Bitmap
 import android.util.Log
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.ViewGroup.LayoutParams
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
@@ -21,9 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import heizige.kk.khatkit.uikit.mochi.LocalMochiTitleScroll
+import kotlin.math.abs
 
 private const val TAG = "WebView"
 
@@ -130,6 +135,7 @@ fun WebView(
     // Remember the clients based on the state
     val webChromeClient = remember { MyWebChromeClient(state) }
     val webViewClient = remember { MyWebViewClient(state) }
+    val titleScroll by rememberUpdatedState(LocalMochiTitleScroll.current)
 
     Box(
         modifier = modifier
@@ -145,6 +151,44 @@ fun WebView(
                     state.webView = this // Assign the WebView instance to the state
 
                     onCreated(this)
+
+                    // WebView handles its own scrolling. Observe only single-finger vertical drags.
+                    val slop = ViewConfiguration.get(context).scaledTouchSlop
+                    var startX = 0f
+                    var startY = 0f
+                    var lastY = 0f
+                    var trackDrag = false
+                    var verticalDrag = false
+                    setOnTouchListener { view, event ->
+                        when (event.actionMasked) {
+                            MotionEvent.ACTION_DOWN -> {
+                                startX = event.rawX
+                                startY = event.rawY
+                                lastY = startY
+                                trackDrag = true
+                                verticalDrag = false
+                            }
+                            MotionEvent.ACTION_MOVE -> if (trackDrag) {
+                                val y = event.rawY
+                                if (!verticalDrag && abs(y - startY) > slop && abs(y - startY) > abs(event.rawX - startX)) {
+                                    verticalDrag = true
+                                    lastY = y
+                                } else if (!verticalDrag && abs(event.rawX - startX) > slop) {
+                                    trackDrag = false
+                                }
+                                if (verticalDrag) {
+                                    titleScroll?.onNativeDrag(y - lastY, view.canScrollVertically(-1))
+                                    lastY = y
+                                }
+                            }
+                            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                if (verticalDrag) titleScroll?.settle()
+                                trackDrag = false
+                                verticalDrag = false
+                            }
+                        }
+                        false
+                    }
 
                     settings.javaScriptEnabled = true // Enable JavaScript
                     settings.domStorageEnabled = true

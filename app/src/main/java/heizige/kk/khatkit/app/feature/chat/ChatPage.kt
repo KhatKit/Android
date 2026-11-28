@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.runtime.SideEffect
 import ui.feice.mochi.navigation.MochiTitleBarDefaults
-import ui.feice.mochi.navigation.MochiScrollEdgeDefaults
 import ui.feice.mochi.basic.MochiBarIconButton
 import ui.feice.mochi.basic.MochiButtonDefaults
 import ui.feice.mochi.effect.content.MochiBlurCrossfade
@@ -564,11 +563,6 @@ internal fun ChatScaffold(
         val previewListState = rememberLazyListState()
         val welcomeListState = rememberLazyListState()
         val showWelcome = !archived && !previewMode && conversation.messageNodes.isEmpty()
-        val topBarProgress = MochiScrollEdgeDefaults.progress(when {
-            previewMode -> previewListState
-            showWelcome -> welcomeListState
-            else -> chatListState
-        })
         MochiPageScaffold(
             modifier = activeNestedScroll.clipToBounds().mochiBlur(continuous = true) {
                 if (setting.displaySetting.effectsEnabled) {
@@ -576,7 +570,6 @@ internal fun ChatScaffold(
                 } else 0.dp
             },
             scrollUnderTopBar = true,
-            scrollEdgeProgress = topBarProgress,
             topBar = {
                     TopBar(
                         settings = setting,
@@ -596,7 +589,6 @@ internal fun ChatScaffold(
                             previewSearchQuery = ""
                         },
                         scrollBehavior = scrollBehavior,
-                        edgeProgress = topBarProgress,
                         onClickMenu = {
                             previewMode = !previewMode
                         },
@@ -933,14 +925,10 @@ private fun TopBar(
     onSearchQueryChange: (String) -> Unit,
     onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
-    /** 消息列表：顶栏底色 / 渐隐跟着它是否滚进栏下面（照 Mochi demo 的聊天页）。 */
-    edgeProgress: () -> Float,
     onClickMenu: () -> Unit,
     onRoleClick: () -> Unit,
 ) {
-    // 照 Mochi demo 的聊天页（SidebarPage 的 ChatScreen）：MochiTitleBar 盖在列表上，标题居中、
-    // 副标题是模型名；左边侧边栏按钮，右边搜索 + 角色面板，都是栏按钮。内容停在顶部时栏没有底色，
-    // 滚进栏下面才渐渐出来。栏高固定，不再折叠：把共享折叠行为的可折叠高度设成 0，否则它会吃掉全部滚动。
+    // 大标题由页面骨架折叠，旧的 Material 滚动行为不再消费高度。
     SideEffect { scrollBehavior.state.heightOffsetLimit = 0f }
 
     // 搜索（预览）展开进度：预测返回手势跟手收起
@@ -966,7 +954,7 @@ private fun TopBar(
     val roleName = if (settings.init) "" else topBarRole.name.ifBlank { stringResource(R.string.assistant_page_default_assistant) }
     val roleModelName = topBarModel?.displayName.orEmpty()
 
-    // 自定义助手背景透到顶栏，边缘过渡由页面的 Mochi scroll edge 处理。
+    // 自定义助手背景透到顶栏。
     val roleHasCustomBackground = role.background != null
     val cs = MochiTheme.colorScheme
     // 栏按钮配色照 Mochi 实例（demo 的聊天页/目录页）：白胶囊（浅色）/ 深胶囊（深色）+ 深色图标。
@@ -981,7 +969,8 @@ private fun TopBar(
         // 栏高 56、左右各让出 64 给按钮
         Box(
             Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
                 .fillMaxWidth()
                 .height(MochiTitleBarDefaults.Height)
                 .padding(horizontal = MochiButtonDefaults.BarHorizontalPadding + 64.dp),
@@ -1035,6 +1024,11 @@ private fun TopBar(
             // 搜索展开时标题模糊退场，让位给搜索框
             titleProgress = { 1f - searchProgress.value },
             collapsible = true,
+            expandedTitleModifier = if (searchVisible || settings.init) Modifier else Modifier.combinedClickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = onRoleClick,
+            ),
             // 页面骨架（MochiPageScaffold）统一录正文、下发来源；材质没开玻璃时它是 null
             backdrop = LocalKkBarBackdrop.current,
             navigationIcon = { KkBarIconScope {

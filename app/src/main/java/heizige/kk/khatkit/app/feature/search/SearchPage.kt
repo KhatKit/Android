@@ -272,7 +272,7 @@ private fun SearchResultSection(
                             val resultsState = rememberLazyListState()
                             LazyColumn(
                                 state = resultsState,
-                                modifier = Modifier.fillMaxSize().kkScrollEdgeFade(resultsState, bottom = 0.dp),
+                                modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
                                     start = 16.dp,
                                     end = 16.dp,
