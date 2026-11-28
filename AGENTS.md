@@ -157,15 +157,12 @@ Built with Jetpack Compose, Kotlin, and follows Material Design 3 principles.
   processing after generation completes.
   (app/src/main/java/me/rerere/rikkahub/data/ai/transformers/Transformer.kt)
 
-## Internationalization
+## Internationalization（上游原文，已被本仓规则覆盖）
 
-- String resources are usually located in `app/src/main/res/values*/strings.xml`; feature modules such as `search`
-  may also maintain their own `values*/strings.xml`
-- Use `stringResource(R.string.key_name)` in Compose
-- Page-specific strings should use page prefix (e.g., `setting_page_`)
-- If the user does not explicitly request localization, prioritize implementing functionality without considering
-  localization. (e.g `Text("Hello world")`)
-- For `locale-tui` operations, use the `locale-tui-localization` skill.
+> 上游这句「用户没要求本地化就不考虑 i18n，直接 `Text("Hello world")`」**本仓不采用**。
+> 所有用户可见文案必须进 `R.string`：见 §「文本与本地化（所有文案进 R.string）」。
+> 原路径说明仍有效：`app/src/main/res/values*/strings.xml`，`search` 等模块有自己的 `values*/strings.xml`。
+> `locale-tui` 的本地化操作走 `locale-tui-localization` skill。
 
 ---
 
@@ -321,6 +318,60 @@ Composable 页面与 ViewModel 留 feature 根**。新增功能包按同一口�
 **明码代价**：47 个文件在上游有对应物，以后同步上游时这些文件的比对要"新名 ↔ 旧名"做一次映射；
 每个文件都是独立 rename，`git log --follow` 可追。
 
+## 文本与本地化（所有文案进 R.string）
+
+**规则：界面上的每一句话都来自资源文件，Kotlin 里不写字面量。**（2026-11-28 起生效，覆盖上游 i18n 约定）
+
+### 1. 放哪
+
+| 位置 | 用途 |
+|---|---|
+| `app/src/main/res/values/strings.xml` | **英文（默认语言）**，新增 key 必须落这里（当前 1882 条） |
+| `app/src/main/res/values-zh/strings.xml` | 简体中文（本仓主要语言，1866 条），**新增 key 必须同步** |
+| `values-zh-rTW` / `values-ja` / `values-ko-rKR` / `values-ru` / `values-ar` / `values-de` | 其它语言；缺 key 会回落英文，别用「先不建」当借口漏 zh |
+| 模块自己的 `src/main/res/values*/strings.xml` | `:search` / `:oauth` / `:khatkit-ui` 等模块自带资源，就近放模块；`:speech` / `:khatkit` / `:workspace` 目前没有，需要时新建 |
+
+### 2. 怎么引用
+
+- Compose：`stringResource(R.string.key)`；带参 `stringResource(R.string.key, arg)`。
+- 非 Compose（Service / Worker / Notification / 普通类）：`context.getString(R.string.key)`。
+- **禁止**：`Text("取消")`、`contentDescription = "关闭"`、`Toast.makeText(ctx, "已复制", …)`、
+  `AlertDialog` 的 title/text、`Snackbar`、空状态、设置项标题/摘要、错误提示、通知标题与正文 ——
+  这些全是用户可见文本，一律资源化。
+
+### 3. 命名
+
+- 结构：`页面/分组前缀_语义`，全小写 snake_case：`setting_page_general`、`chat_input_placeholder`、
+  `error_network_unavailable`、`dialog_clear_cache_title`、`toast_message_copied`、`a11y_send_button`。
+- 前缀约定：`<page>_page_` / `dialog_` / `toast_` / `notification_` / `error_` / `a11y_` / `common_`。
+- 造新 key 前先 grep 现有通用词（`common_cancel` / `cancel` / `confirm` / `save` …），别造近义重复。
+
+### 4. 带参与复数
+
+- 参数用位置化占位符：`<string name="toast_deleted_n">已删除 %1$s 项</string>` →
+  `stringResource(R.string.toast_deleted_n, count)`；**禁止** `"已删除 " + n + " 项"` 拼接（语序会坏）。
+- 数量语义用 `<plurals>`（`quantityStringResource` / `resources.getQuantityString`）。
+
+### 5. 存量与例外
+
+- 例外**只有**：`Log.*`、异常 `message`、`BuildConfig`、测试断言、commit message、调试开关名。
+  用户能看到的都不例外。
+- 存量：34 个文件仍有硬编码中文 `Text("…")`（如 `DefaultProviders.kt:191`、`ImageCropDialog.kt:122`、
+  `SearchPicker.kt:148`），**只减不增**；改到哪个文件顺手迁哪个，不单独开大迁移。
+- 卡片运行时：卡片包自己的文案走卡片 `locales/`（见 `docs/card-runtime.md`），不进 app 资源；
+  但**宿主**给卡片渲染的按钮/提示文案仍走 `R.string`。
+
+### 6. 检查
+
+```bash
+cd ~/文档/Android/Project/KhatKit
+grep -rlP 'Text\("(?![^"]*\$)[^"]*[\x{4e00}-\x{9fff}]' --include=*.kt app/src/main | wc -l  # 34，只减不增
+grep -c '<string' app/src/main/res/values/strings.xml      # 1882
+grep -c '<string' app/src/main/res/values-zh/strings.xml   # 1866
+```
+
+新增 key 必须**同时**出现在 `values/` 与 `values-zh/`；只写英文会让中文界面回落成英文（漏字）。
+
 ## 快速决策卡
 
 ```
@@ -334,6 +385,7 @@ Composable 页面与 ViewModel 留 feature 根**。新增功能包按同一口�
 
 图标? → app/core/ui/icons/ 按语义(153 个 kt，跨功能共享，不拆进 feature)
 版本? → gradle/libs.versions.toml（唯一版本来源，模块 build 里不写死版本）
+文案? → R.string（values/ 英文 + values-zh/ 中文都要有；禁止 Text("中文")）
 ```
 
 ## 版本目录
@@ -509,6 +561,7 @@ grep -rl 'import heizige.kk.kedge'   --include=*.kt . --exclude-dir=build | wc -
 grep -rl 'import top.yukonga.miuix'  --include=*.kt . --exclude-dir=build | wc -l # 0
 grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -l # 0
 grep -rn 'RoundedCornerShape' --include=*.kt app/src/main | wc -l                 # 只减不增（存量 82 文件）
+grep -rlP 'Text\("(?![^"]*\$)[^"]*[\x{4e00}-\x{9fff}]' --include=*.kt app/src/main | wc -l  # 硬编码中文只减不增（存量 34）
 ```
 
 UI 改动交付按「验机与 UI 验收」写：改动点 + 复现路径 + 预期结果 + 边界；**不要代操作手机**。
