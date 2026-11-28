@@ -22,19 +22,28 @@
 > （`me.rerere.rikkahub` → `heizige.kk.khatkit`），并持续合并上游提交。
 > 卡片、Hub 服务端与 UI 组件库分别在同级仓库 `Android/KhatKitCards`、`IDEA/Project/KodeHeapServer`、`Android/Project/Mochi`。
 
+## 版本约定
+
+KhatKit 尚未正式发布，当前为第 1 个测试版：`versionName = 1.0.0-beta.1`、`versionCode = 1`。
+应用版本统一维护在 [gradle/libs.versions.toml](gradle/libs.versions.toml) 的 `appVersionName` / `appVersionCode`；
+本地 Debug / Release、每日构建与手动 Build APK 默认共用这两个值，启动页、关于页与更新请求从 `BuildConfig` 读取。
+手动构建的版本输入留空即可；需要临时覆盖时同时填写 `VERSION_CODE` / `VERSION_NAME`（Actions 对应 `versionCode` / `versionName`）。
+后续测试版按 `1.0.0-beta.2` / `2`、`1.0.0-beta.3` / `3` 递增；正式发布时去掉 `-beta.N`，`versionCode` 继续递增。
+本次重置了上游继承的 `2.5.7` / `192` 编号；已安装旧高版本号包的设备不能直接覆盖安装第 1 个测试版，换装前需备份数据。
+
 ## ⬆️ 应用更新
 
 客户端在启动时请求 Hub 上的更新接口，版本号为 Android `versionCode`：
 
 ```http
-GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVersion=186&channel=stable
+GET https://heizige.top/api/khatkit/app/update?currentVersionCode=1&currentVersion=1&channel=beta
 ```
 
 ```json
 {
   "hasUpdate": true,
   "forceUpdate": false,
-  "latestVersion": "187",
+  "latestVersion": "2",
   "downloadUrl": "/media/khatkit-app-updates/KhatKit-xxx-arm64-v8a.apk",
   "description": "更新说明（Markdown）",
   "packageMismatch": false
@@ -48,7 +57,7 @@ GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVer
 客户端会上报本机首选 ABI 与自身包名（老客户端不传这两个参数，行为与以前完全一致）：
 
 ```http
-GET https://heizige.top/api/khatkit/app/update?currentVersionCode=186&currentVersion=186&channel=stable&abi=arm64-v8a&applicationId=heizige.kk.khatkit.debug
+GET https://heizige.top/api/khatkit/app/update?currentVersionCode=1&currentVersion=1&channel=beta&abi=arm64-v8a&applicationId=heizige.kk.khatkit.debug
 ```
 
 | 查询参数 | 必填 | 说明 |
@@ -85,15 +94,15 @@ curl -X POST https://heizige.top/admin/khatkit/releases/upload \
 #      ⚠️ JSON 里写不了注释，所以这里就是唯一的提醒：填写前**必须**先确认自己设备上
 #         实际安装的包名（debug 包 = heizige.kk.khatkit.debug，release = heizige.kk.khatkit）。
 #         填错不报错，而是该客户端**静默收不到更新** —— 详见上面的「发布前自检」。
-curl -X PUT https://heizige.top/admin/khatkit/versions/stable \
+curl -X PUT https://heizige.top/admin/khatkit/versions/beta \
   -H "Authorization: Bearer <JWT>" \
   -H "Content-Type: application/json" \
   -d '{
-        "version": "187",
-        "downloadUrl": "/media/khatkit-app-updates/KhatKit-187-universal.apk",
+        "version": "2",
+        "downloadUrl": "/media/khatkit-app-updates/KhatKit-2-universal.apk",
         "downloadUrls": {
-          "arm64-v8a": "/media/khatkit-app-updates/KhatKit-187-arm64-v8a.apk",
-          "universal": "/media/khatkit-app-updates/KhatKit-187-universal.apk"
+          "arm64-v8a": "/media/khatkit-app-updates/KhatKit-2-arm64-v8a.apk",
+          "universal": "/media/khatkit-app-updates/KhatKit-2-universal.apk"
         },
         "applicationId": "",
         "description": "更新说明"

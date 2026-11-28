@@ -1,4 +1,7 @@
 [versions]
+# KhatKit 尚未正式发布；测试版从 1 开始，应用与 CI 共用此处版本。
+appVersionCode = "1"
+appVersionName = "1.0.0-beta.1"
 webkit = "1.17.1"
 agp = "9.3.1"
 dom4j = "2.2.0"

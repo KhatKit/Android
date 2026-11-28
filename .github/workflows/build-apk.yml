@@ -22,12 +22,12 @@ on:
           - debug
           - release
       versionCode:
-        description: 'Android versionCode（必须高于当前线上版本）'
-        required: true
-        default: '192'
+        description: 'Android versionCode（留空读取版本目录；后续测试版递增）'
+        required: false
+        default: ''
         type: string
       versionName:
-        description: '展示给用户的版本名'
+        description: '展示版本名（留空读取版本目录中的测试版版本）'
         required: false
         default: ''
         type: string
@@ -38,6 +38,11 @@ concurrency:
 
 permissions:
   contents: read
+
+# 留空时由 app/build.gradle.kts 读取版本目录，避免 CI 与本地默认版本分叉。
+env:
+  VERSION_CODE: ${{ inputs.versionCode }}
+  VERSION_NAME: ${{ inputs.versionName }}
 
 jobs:
   build-debug:
@@ -67,8 +72,8 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDebug \
-            -PVERSION_CODE="${{ inputs.versionCode }}" \
-            -PVERSION_NAME="${{ inputs.versionName }}" \
+            -PVERSION_CODE="$VERSION_CODE" \
+            -PVERSION_NAME="$VERSION_NAME" \
             --stacktrace
 
       - name: List APKs
@@ -118,8 +123,8 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleRelease \
-            -PVERSION_CODE="${{ inputs.versionCode }}" \
-            -PVERSION_NAME="${{ inputs.versionName }}" \
+            -PVERSION_CODE="$VERSION_CODE" \
+            -PVERSION_NAME="$VERSION_NAME" \
             --stacktrace
 
       - name: List APKs

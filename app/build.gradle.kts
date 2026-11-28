@@ -16,11 +16,11 @@ plugins {
 val ciVersionCode = providers.gradleProperty("VERSION_CODE").orNull
     ?.toIntOrNull()
     ?.takeIf { it > 0 }
-    ?: 192
+    ?: libs.versions.appVersionCode.get().toInt()
 val ciVersionName = providers.gradleProperty("VERSION_NAME").orNull
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
-    ?: "2.5.7"
+    ?: libs.versions.appVersionName.get()
 
 android {
     namespace = "heizige.kk.khatkit.app"
