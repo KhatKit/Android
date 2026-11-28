@@ -557,7 +557,7 @@
   <string name="donate_page_alipay">支付宝</string>
   <string name="donate_page_wechat">微信支付</string>
   <string name="donate_page_qr_description">%1$s赞助二维码</string>
-  <string name="donate_page_scan_hint">使用%1$s扫码，或保存图片后从相册识别。</string>
+  <string name="donate_page_scan_hint">使用%1$s扫码，或点按二维码保存图片。</string>
   <string name="donate_page_support_title">支持 KhatKit</string>
   <string name="donate_page_support_description">支持 KhatKit 的持续开发与维护。</string>
   <string name="donate_page_save_qr">保存二维码</string>

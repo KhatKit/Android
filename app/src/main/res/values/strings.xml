@@ -563,7 +563,7 @@
   <string name="donate_page_alipay">Alipay</string>
   <string name="donate_page_wechat">WeChat Pay</string>
   <string name="donate_page_qr_description">%1$s donation QR code</string>
-  <string name="donate_page_scan_hint">Scan with %1$s, or save the image to recognize it from your gallery.</string>
+  <string name="donate_page_scan_hint">Scan with %1$s, or tap the QR code to save it.</string>
   <string name="donate_page_support_title">Support KhatKit</string>
   <string name="donate_page_support_description">Help with the ongoing development and maintenance of KhatKit.</string>
   <string name="donate_page_save_qr">Save QR code</string>

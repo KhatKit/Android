@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +57,7 @@ import ui.feice.mochi.basic.MochiSegmentedDefaults
 import ui.feice.mochi.basic.Text
 import ui.feice.mochi.effect.content.MochiBlurCrossfade
 import ui.feice.mochi.effect.content.MochiBlurText
+import ui.feice.mochi.effect.elastic.mochiPressDeform
 import ui.feice.mochi.effect.overscroll.MochiScrollDefaults
 import ui.feice.mochi.icons.MochiIonicon
 import ui.feice.mochi.list.MochiListCard
@@ -75,6 +79,19 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("image/png"),
     ) { uri -> vm.exportTo(uri) }
+    val canSave = pendingQr == null && !saving
+    val saveLabel = stringResource(R.string.donate_page_save_qr)
+
+    fun saveQr(index: Int) {
+        if (vm.prepareExport(donationQrResource(index))) {
+            try {
+                exportLauncher.launch(context.getString(R.string.donate_page_export_file_name, methods[index]))
+            } catch (_: ActivityNotFoundException) {
+                vm.cancelExport()
+                Toast.show(context.getString(R.string.donate_page_save_failed), isError = true)
+            }
+        }
+    }
 
     MochiSettingsPageScaffold(
         title = stringResource(R.string.donate_page_title),
@@ -108,6 +125,7 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
                     ) {
                         DonationPaymentPicker(methods, paymentIndex) { paymentIndex = it }
                         MochiBlurCrossfade(paymentIndex, modifier = Modifier.fillMaxWidth()) { index ->
+                            val qrCanSave = canSave && index == paymentIndex
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -116,7 +134,19 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
                                     painter = painterResource(donationQrResource(index)),
                                     contentDescription = stringResource(R.string.donate_page_qr_description, methods[index]),
                                     colorFilter = ColorFilter.tint(MochiTheme.colorScheme.primary),
-                                    modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth().aspectRatio(1f),
+                                    modifier = Modifier
+                                        .widthIn(max = 240.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .clickable(
+                                            enabled = qrCanSave,
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            role = Role.Button,
+                                            onClickLabel = saveLabel,
+                                            onClick = { saveQr(index) },
+                                        )
+                                        .then(if (qrCanSave) Modifier.mochiPressDeform() else Modifier),
                                 )
                                 Text(
                                     text = stringResource(R.string.donate_page_scan_hint, methods[index]),
@@ -126,21 +156,12 @@ fun SettingDonatePage(vm: DonationViewModel = hiltViewModel()) {
                             }
                         }
                         MochiButton(
-                            onClick = {
-                                if (vm.prepareExport(donationQrResource(paymentIndex))) {
-                                    try {
-                                        exportLauncher.launch(context.getString(R.string.donate_page_export_file_name, methods[paymentIndex]))
-                                    } catch (_: ActivityNotFoundException) {
-                                        vm.cancelExport()
-                                        Toast.show(context.getString(R.string.donate_page_save_failed), isError = true)
-                                    }
-                                }
-                            },
-                            enabled = pendingQr == null && !saving,
+                            onClick = { saveQr(paymentIndex) },
+                            enabled = canSave,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             MochiIonicon("download-outline", modifier = Modifier.size(20.dp))
-                            Text(stringResource(R.string.donate_page_save_qr))
+                            Text(saveLabel)
                         }
                     }
                 }
