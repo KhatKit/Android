@@ -381,20 +381,70 @@ fun ChatInput(
     fun composerGlassAlpha(): Float =
         if (editorOverlayReady) 1f - editorSurfaceHandoff(editorReveal) else 1f
 
-    // 返回兜底：编辑器是页内浮层，它的 PredictiveBackHandler 与 NavDisplay 注册在同一个
-    // 页面 dispatcher 上（后注册者优先）。这里再登记一层，保证即便顺序假设不成立，
-    // 返回也只会关掉编辑器，不会把 ChatPage pop 掉（见 RouteActivity.PageBackInterceptor）。
+    // 编辑器把预测手势登记给页面唯一返回 owner，由 RouteActivity.PageBackGuard 分发。
+    // 这样页面级 BackHandler 不会先于本地编辑器处理器接到系统手势。
     val editorBackToken = remember { Any() }
     val pageRoute = LocalPageRoute.current
-    // U7a-6：只在编辑器真正打开时登记。之前无条件 push（handler 在关闭态返回 false）会让
-    // PageBackInterceptor.hasHandlers 在 Chat 页常驻 true，RouteActivity.PageBackGuard 便一直
-    // 抢在 MochiNavHost 的 PredictiveBackHandler 前面，预测性返回动画整体消失。
     DisposableEffect(editorOpen) {
         if (editorOpen) {
-            PageBackInterceptor.push(editorBackToken, pageRoute) {
-                settleEditor(open = false)
-                true
-            }
+            PageBackInterceptor.pushPredictive(
+                token = editorBackToken,
+                ownerRoute = pageRoute,
+                handler = {
+                    settleEditor(open = false)
+                    true
+                },
+                predictiveHandler = { events ->
+                    editorJobRef.job?.cancel()
+                    val startReveal = editorReveal.coerceIn(0f, 1f)
+                    var touchStart = Offset.Unspecified
+                    try {
+                        events.collect { event ->
+                            if (touchStart == Offset.Unspecified) touchStart = Offset(event.touchX, event.touchY)
+                            val direction = when (event.swipeEdge) {
+                                BackEventCompat.EDGE_LEFT -> 1f
+                                BackEventCompat.EDGE_RIGHT -> -1f
+                                else -> 0f
+                            }
+                            val follow = event.progress.coerceIn(0f, 1f)
+                            editorReveal = startReveal * (1f - follow)
+                            editorBackMotion = EditorBackMotion(
+                                direction = direction,
+                                progress = follow,
+                                touchY = event.touchY,
+                                travelX = (direction * (event.touchX - touchStart.x)).coerceAtLeast(0f),
+                                travelY = event.touchY - touchStart.y,
+                            )
+                        }
+                        focusManager.clearFocus(force = true)
+                        keyboardController?.hide()
+                        val releaseReveal = editorReveal
+                        val releaseMotion = editorBackMotion
+                        animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.closeSpatial) { value, _ ->
+                            val remaining = 1f - value.coerceIn(0f, 1f)
+                            editorReveal = releaseReveal * remaining
+                            editorBackMotion = releaseMotion.copy(progress = releaseMotion.progress * remaining)
+                        }
+                        editorReveal = 0f
+                        editorBackMotion = EditorBackMotion()
+                        editorSettled = false
+                        editorOpen = false
+                    } catch (e: CancellationException) {
+                        val cancelReveal = editorReveal
+                        val cancelMotion = editorBackMotion
+                        editorJobRef.job = scope.launch {
+                            animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.openSpatial) { value, _ ->
+                                val fraction = value.coerceIn(0f, 1f)
+                                editorReveal = cancelReveal + (startReveal - cancelReveal) * fraction
+                                editorBackMotion = cancelMotion.copy(progress = cancelMotion.progress * (1f - fraction))
+                            }
+                            editorBackMotion = EditorBackMotion()
+                            if (!editorSettled) settleEditor(open = true)
+                        }
+                        throw e
+                    }
+                },
+            )
         } else {
             PageBackInterceptor.pop(editorBackToken)
         }
@@ -913,56 +963,6 @@ fun ChatInput(
 
             }
 
-        }
-    }
-
-    PredictiveBackHandler(enabled = editorOpen) { events ->
-        editorJobRef.job?.cancel()
-        val startReveal = editorReveal.coerceIn(0f, 1f)
-        var touchStart = Offset.Unspecified
-        try {
-            events.collect { event ->
-                if (touchStart == Offset.Unspecified) touchStart = Offset(event.touchX, event.touchY)
-                val direction = when (event.swipeEdge) {
-                    BackEventCompat.EDGE_LEFT -> 1f
-                    BackEventCompat.EDGE_RIGHT -> -1f
-                    else -> 0f
-                }
-                val follow = event.progress.coerceIn(0f, 1f)
-                editorReveal = startReveal * (1f - follow)
-                editorBackMotion = EditorBackMotion(
-                    direction = direction,
-                    progress = follow,
-                    touchY = event.touchY,
-                    travelX = (direction * (event.touchX - touchStart.x)).coerceAtLeast(0f),
-                    travelY = event.touchY - touchStart.y,
-                )
-            }
-            focusManager.clearFocus(force = true)
-            keyboardController?.hide()
-            val releaseReveal = editorReveal
-            val releaseMotion = editorBackMotion
-            animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.closeSpatial) { value, _ ->
-                val remaining = 1f - value.coerceIn(0f, 1f)
-                editorReveal = releaseReveal * remaining
-                editorBackMotion = releaseMotion.copy(progress = releaseMotion.progress * remaining)
-            }
-            editorReveal = 0f
-            editorBackMotion = EditorBackMotion()
-            editorSettled = false
-            editorOpen = false
-        } catch (_: CancellationException) {
-            val cancelReveal = editorReveal
-            val cancelMotion = editorBackMotion
-            editorJobRef.job = scope.launch {
-                animate(0f, 1f, animationSpec = if (reduceMotion) androidx.compose.animation.core.snap() else MochiMotions.Ios27Menu.openSpatial) { value, _ ->
-                    val fraction = value.coerceIn(0f, 1f)
-                    editorReveal = cancelReveal + (startReveal - cancelReveal) * fraction
-                    editorBackMotion = cancelMotion.copy(progress = cancelMotion.progress * (1f - fraction))
-                }
-                editorBackMotion = EditorBackMotion()
-                if (!editorSettled) settleEditor(open = true)
-            }
         }
     }
 

@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import ui.feice.mochi.utils.mochiEnableEdgeToEdge
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
@@ -351,11 +352,9 @@ class RouteActivity : ComponentActivity() {
                     // ── U7a-3：路由全部由 MochiNavHost 渲染，Nav3 外壳已删除 ──────────
                     // route ⇄ Screen 由 [ScreenRoutes] 保证；未知 route 不画、不崩。
                     //
-                    // NAV3：有页内浮层登记返回（PageBackInterceptor.hasHandlers）时，把 Mochi 的
-                    // 预测性返回切到普通 BackHandler，交给 PageBackGuard 独占；没有浮层时遵循外观设置。
-                    // 这样任一时刻只有一条处理器接返回，不会出现「第一次白按、第二次才退层」。
-                    // 只看「栈顶那一页」登记的浮层：下层页面的登记（例如 Chat 底部页仍组合着的编辑器）
-                    // 不能吞掉当前页的返回，否则就会出现「第一次按返回没反应」。
+                    // 有页内浮层时关闭 Mochi 的 route 预测处理；PageBackGuard 成为该页唯一返回 owner，
+                    // 需要跟手的浮层由它分发事件进度，普通浮层走 BackHandler。
+                    // 只看栈顶页登记，避免仍在组合的下层页面拦截当前页返回。
                     val topRoute = mochiNavigator.current
                     val hasOverlay = PageBackInterceptor.hasHandlersFor(topRoute)
                     MochiNavHost(
@@ -363,8 +362,7 @@ class RouteActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         predictiveBack = settings.displaySetting.mochiPredictiveBack && !hasOverlay,
                     ) { route ->
-                        // 页内浮层（ChatInput 全屏编辑器）的返回：只有浮层登记时抢在 Mochi 前面，
-                        // 否则完全交给 Mochi 的预测性返回处理（取消 rethrow、提交才 pop）。
+                        // 页内浮层登记在 PageBackGuard 中先消费；没有本页浮层时才交给 Mochi route 返回。
                         // 每页一个子返回分发器，只有栈顶页开着：MochiNavHost 会让栈顶下面那页保持组合，
                         // 它里面的 BackHandler（侧边栏、面板、菜单、行内编辑……）原本照样挂在 Activity 上、
                         // 而且比 NavHost 的处理器登记得晚、优先级更高 —— 从侧边栏进设置，第一下返回就被
@@ -377,7 +375,9 @@ class RouteActivity : ComponentActivity() {
                             LocalPageRoute provides route,
                         ) {
                         if (isTopPage) {
-                            PageBackGuard(route) { if (!kkNav.popBackStack()) finish() }
+                            PageBackGuard(route, predictiveBackEnabled = settings.displaySetting.mochiPredictiveBack) {
+                                if (!kkNav.popBackStack()) finish()
+                            }
                         }
                         when (val screen = ScreenRoutes.screenOf(route)) {
                             // 未知 route（旧版本恢复/脏数据）：不画，交给 Mochi 栈回退，别崩。
@@ -593,18 +593,25 @@ private class MochiBackedNavStack(private val kkNav: KkNavController) : Abstract
 }
 
 /**
- * 核心页的返回前置钩子：只在有页内浮层登记返回拦截时注册（否则完全不注册，返回照旧由
- * [MochiNavHost] 的预测性返回处理）。等价于迁移前 Nav3 onBack 里那层
- * [PageBackInterceptor]，保证 ChatInput 全屏编辑器这类浮层还能先关自己。
+ * 核心页的返回 owner：普通浮层用 BackHandler；登记了预测处理器的浮层由这里统一分发手势进度，
+ * 避免局部处理器与 route 返回处理器竞争同一个系统返回手势。
  */
 @Composable
-private fun PageBackGuard(route: String, onPop: () -> Unit) {
+private fun PageBackGuard(route: String, predictiveBackEnabled: Boolean, onPop: () -> Unit) {
     // 只统计「本页」登记的浮层；下层页面的登记不算（否则会把本页第一次返回吞掉）。
     val hasOverlay = PageBackInterceptor.hasHandlersFor(route)
-    // NAV3：只保留这一条处理器。调用方已按 hasOverlay 把 MochiNavHost 切到「非预测模式」，
-    // 所以有浮层时它是唯一接管点（浮层先消费，否则退一层）；无浮层时它根本不注册，
-    // 预测性返回（跟手预览 + 取消回弹）全部由 MochiNavHost.PredictiveBackHandler 负责。
-    BackHandler(enabled = hasOverlay) {
+    val hasPredictiveOverlay = PageBackInterceptor.hasPredictiveHandlersFor(route)
+
+    // 浮层需要跟手返回时，由页面的唯一返回 owner 分发整条预测手势；普通浮层继续走 BackHandler。
+    // MochiNavHost 在有浮层时已关闭 route 预测处理，避免同一手势同时驱动浮层和页面转场。
+    PredictiveBackHandler(enabled = predictiveBackEnabled && hasPredictiveOverlay) { events ->
+        val handled = PageBackInterceptor.interceptPredictiveFor(route, events)
+        if (!handled) {
+            events.collect {}
+            if (!PageBackInterceptor.interceptFor(route)) onPop()
+        }
+    }
+    BackHandler(enabled = hasOverlay && (!predictiveBackEnabled || !hasPredictiveOverlay)) {
         if (!PageBackInterceptor.interceptFor(route)) onPop()
     }
 }
@@ -866,19 +873,17 @@ sealed interface Screen : NavKey {
 }
 
 /**
- * 页内浮层的返回拦截登记处（结构性地保证浮层打开时返回不会穿透到导航栈）。
- *
- * 背景：ChatInput 的全屏编辑器是**同一 window 内的页内浮层**（Khromia `FullscreenPopup`
- * 挂在 decorView 上），它自己的 PredictiveBackHandler 与 Nav3 onBack 的返回处理注册在
- * 同一个页面 dispatcher 上。「后注册者优先」是 androidx 文档写明的规则，但为了让返回
- * 结果不依赖这个顺序假设，这里再兜一层：浮层登记后，返回接管点先问拦截器。
- *
- * 这是普通可变状态而不是 Compose state：`onBack` 与浮层回调都在事件里同步读写它，
- * 不需要参与重组；浮层的显示/隐藏由各自的 Compose 状态驱动。
+ * 页内浮层的返回拦截登记处：登记归属 route 和普通返回回调；需要跟手预览的浮层还可登记
+ * PredictiveBackHandler 事件流。RouteActivity 只分发栈顶 route 的 handler，避免和 Mochi route
+ * 转场争抢同一系统手势。
  */
 internal object PageBackInterceptor {
     // 两者都是 snapshot state：登记/注销要能触发 PageBackGuard 重组。
     private val handlers = mutableStateMapOf<Any, () -> Boolean>()
+    private val predictiveHandlers = mutableStateMapOf<
+        Any,
+        suspend (kotlinx.coroutines.flow.Flow<androidx.activity.BackEventCompat>) -> Unit,
+    >()
     /** token -> 登记时正在组合的那一页 route；返回只问「本页」登记的浮层。 */
     private val owners = mutableStateMapOf<Any, String?>()
 
@@ -902,9 +907,39 @@ internal object PageBackInterceptor {
         owners[token] = ownerRoute
     }
 
+    /** 需要跟手预览的浮层：由 PageBackGuard 的唯一 PredictiveBackHandler 分发事件流。 */
+    fun pushPredictive(
+        token: Any,
+        ownerRoute: String?,
+        handler: () -> Boolean,
+        predictiveHandler: suspend (kotlinx.coroutines.flow.Flow<androidx.activity.BackEventCompat>) -> Unit,
+    ) {
+        push(token, ownerRoute, handler)
+        predictiveHandlers[token] = predictiveHandler
+    }
+
     fun pop(token: Any) {
+        predictiveHandlers.remove(token)
         handlers.remove(token)
         owners.remove(token)
+    }
+
+    fun hasPredictiveHandlersFor(route: String?): Boolean =
+        handlers.keys.any { token ->
+            predictiveHandlers.containsKey(token) && (owners[token] == null || owners[token] == route)
+        }
+
+    suspend fun interceptPredictiveFor(
+        route: String?,
+        events: kotlinx.coroutines.flow.Flow<androidx.activity.BackEventCompat>,
+    ): Boolean {
+        val pending = handlers.entries.filter {
+            (owners[it.key] == null || owners[it.key] == route) && predictiveHandlers.containsKey(it.key)
+        }
+        val entry = pending.lastOrNull() ?: return false
+        val predictiveHandler = predictiveHandlers[entry.key] ?: return false
+        predictiveHandler(events)
+        return true
     }
 
     /** 从最新登记的往回问（全部页），任一消费即返回 true。 */
