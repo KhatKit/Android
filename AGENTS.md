@@ -60,6 +60,27 @@ Hub 市场（`GET /api/items`）→ 客户端下载 / 校验（哈希、名称�
   推送被拒时**不要**强推（`--force`），先报告冲突与原因。
 - 上游同步走 `upstream`（rikkahub）与 `upstream-ssh`，不要混进 `origin` 的提交历史。
 
+## 验机与 UI 验收（不代操作手机）
+
+**默认不动设备**，除非主人明确说「你来测」。即：不 `adb install` / `adb shell input` / `screencap` /
+`screenrecord`、不启模拟器、不跑 `connectedAndroidTest` / `:app:androidTest`、不折腾投屏或 Waydroid。
+
+**交付只做两件事**：
+
+1. **自动能做的**（不碰设备）：`./gradlew :app:assembleDebug`、`:app:compileDebugKotlin`、
+   `:app:testDebugUnitTest`（JVM 单测）。
+2. **手动测试清单**：每次 UI 改动都按下面四段写，**不写「已真机验证」**。
+
+| 段落 | 内容 |
+|---|---|
+| 改动点 | `file:line` + 一句话说明改了什么（组件 / 交互 / 样式） |
+| 复现路径 | 从哪进：启动页 → 哪个 tab → 哪个设置项 / 页面；需要的前置状态（已装卡 / 已授权 / 有会话） |
+| 预期结果 | 逐条可勾选，一条 = 一个可看 / 可点的现象（不要「界面正常」这类空话） |
+| 边界 | 深色 / 浅色、玻璃开 / 关、动效减弱、系统大字号、返回手势 / 预测性返回、窄屏 / 宽屏（涉及哪个测哪个） |
+
+清单体例照 `docs/manual-verification.md`；**只编译通过 ≠ 视觉/交互验证**，
+不要把「已构建成功」写成「已验证」，也不要把未测项静默略过。
+
 ---
 
 ## Project Overview（上游原文，路径已过期）
@@ -490,4 +511,4 @@ grep -rl 'import heizige.kk.khromia' --include=*.kt . --exclude-dir=build | wc -
 grep -rn 'RoundedCornerShape' --include=*.kt app/src/main | wc -l                 # 只减不增（存量 82 文件）
 ```
 
-UI 改动交付时说清「改了哪些页面 + 用了什么组件 + 真机看过哪些交互」；只编译通过不算视觉/交互验证。
+UI 改动交付按「验机与 UI 验收」写：改动点 + 复现路径 + 预期结果 + 边界；**不要代操作手机**。
