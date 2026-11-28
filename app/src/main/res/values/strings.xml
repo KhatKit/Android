@@ -3115,4 +3115,24 @@
   <string name="account_not_signed_in">Not signed in yet</string>
   <string name="account_no_refresh_token">The credential has no refresh token; please sign in again</string>
   <string name="account_renew_failed">Renewal failed</string>
+  <string name="automation_background_android_required">Background app operation requires Android 13 (API 33) or later.</string>
+  <string name="automation_background_invalid_package">The app package name is invalid.</string>
+  <string name="automation_background_accessibility_required">Enable the KhatKit accessibility service in system settings first.</string>
+  <string name="automation_background_app_unavailable">No launchable app is installed for package %1$s.</string>
+  <string name="automation_background_entry_unavailable">Unable to resolve the launch activity for package %1$s.</string>
+  <string name="automation_background_unsupported">This system does not expose the required virtual display commands. Background app operation is unavailable.</string>
+  <string name="automation_background_create_failed">Unable to create a separate display: %1$s</string>
+  <string name="automation_background_launch_unconfirmed">The app could not be confirmed on the separate display. The display has been released.</string>
+  <string name="automation_background_launch_cleanup_failed">The app could not be confirmed on the separate display, and display cleanup failed. Retry stopping the session: %1$s</string>
+  <string name="automation_background_started">The app was detected on the separate display. Subsequent accessibility actions target this session.</string>
+  <string name="automation_background_stopped">The separate display session has ended.</string>
+  <string name="automation_background_cleanup_failed">Display cleanup failed. The session is retained for another stop attempt: %1$s</string>
+  <string name="automation_background_approval_title">Operate an app on a separate display</string>
+  <string name="automation_background_approval_detail">App package: %1$s</string>
+  <string name="automation_background_approval_denied">Background app operation cancelled because permission was denied.</string>
+  <string name="automation_background_shell_required">Background app operation requires authorized Shizuku or root access.</string>
+  <string name="automation_background_starting">Starting %1$s on a separate display</string>
+  <string name="automation_background_stopping">Stopping the separate display session</string>
+  <string name="automation_background_status_label">Separate display session status</string>
+  <string name="automation_background_package_required">Missing parameter: package_name</string>
 </resources>

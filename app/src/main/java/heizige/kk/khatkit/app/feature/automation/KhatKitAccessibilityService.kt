@@ -22,6 +22,7 @@ class KhatKitAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         val impl = AccessibilityBridgeImpl(this)
         bridge = impl
+        BackgroundAppSessionManager.onAccessibilityServiceConnected(impl)
         AccessibilityBridgeHolder.attach(impl)
     }
 

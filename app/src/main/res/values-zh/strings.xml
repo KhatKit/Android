@@ -3099,4 +3099,24 @@
   <string name="backup_page_import_deepseek_complete">DeepSeek 导入完成</string>
   <string name="backup_page_import_deepseek_summary">已导入会话：%1$d\n跳过已存在会话：%2$d\n跳过空会话：%3$d\n导出中缺失或无法导入的附件：%4$d，已保留文件名占位。</string>
   <string name="backup_page_import_deepseek_missing_attachment">[导出中缺失或无法导入的附件：%1$s]</string>
+  <string name="automation_background_android_required">无屏幕占用操作需要 Android 13（API 33）及以上系统。</string>
+  <string name="automation_background_invalid_package">应用包名格式无效。</string>
+  <string name="automation_background_accessibility_required">请先在系统设置中开启 KhatKit 无障碍服务。</string>
+  <string name="automation_background_app_unavailable">设备上没有包名为 %1$s 的可启动应用。</string>
+  <string name="automation_background_entry_unavailable">无法解析应用 %1$s 的启动入口。</string>
+  <string name="automation_background_unsupported">当前系统未提供所需的虚拟屏幕命令，无法使用后台应用操作。</string>
+  <string name="automation_background_create_failed">创建独立屏幕失败：%1$s</string>
+  <string name="automation_background_launch_unconfirmed">未能在独立屏幕上确认目标应用，已回收该屏幕。</string>
+  <string name="automation_background_launch_cleanup_failed">未能在独立屏幕上确认目标应用，且屏幕回收失败。请重试结束会话：%1$s</string>
+  <string name="automation_background_started">已在独立屏幕上检测到目标应用，后续无障碍操作将作用于此会话。</string>
+  <string name="automation_background_stopped">独立屏幕会话已结束。</string>
+  <string name="automation_background_cleanup_failed">系统屏幕回收失败，已保留会话以便重试结束：%1$s</string>
+  <string name="automation_background_approval_title">在独立屏幕中操作应用</string>
+  <string name="automation_background_approval_detail">应用包名：%1$s</string>
+  <string name="automation_background_approval_denied">用户拒绝授权，已取消后台应用操作。</string>
+  <string name="automation_background_shell_required">无屏幕占用操作需要已授权的 Shizuku 或 root。</string>
+  <string name="automation_background_starting">正在独立屏幕启动应用 %1$s</string>
+  <string name="automation_background_stopping">正在结束独立屏幕会话</string>
+  <string name="automation_background_status_label">独立屏幕会话状态</string>
+  <string name="automation_background_package_required">缺少参数：package_name</string>
 </resources>

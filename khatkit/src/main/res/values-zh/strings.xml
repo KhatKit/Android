@@ -89,4 +89,17 @@
     <string name="khatkit_download_failed">下载失败，请检查网络与目标目录后重试。</string>
     <string name="khatkit_download_target_failed">无法保存下载文件：%1$s</string>
     <string name="khatkit_notification_download_progress">%1$s %2$d%%</string>
+    <string name="khatkit_accessibility_display_changed">截图失败：显示目标已改变</string>
+    <string name="khatkit_accessibility_capture_android_required">截图失败：需要 Android 11（API 30）及以上系统</string>
+    <string name="khatkit_accessibility_capture_unknown">截图失败：未知错误</string>
+    <string name="khatkit_accessibility_capture_failed">截图失败：%1$s</string>
+    <string name="khatkit_accessibility_capture_save_failed">截图保存失败：%1$s</string>
+    <string name="khatkit_accessibility_capture_decode_failed">截图失败：无法解码屏幕图像</string>
+    <string name="khatkit_accessibility_capture_system_error">截图失败（系统错误码 %1$d）</string>
+    <string name="khatkit_accessibility_capture_timeout">截图失败：等待系统回调超时</string>
+    <string name="khatkit_accessibility_storage_required">无共享存储访问权限：%1$s\n请在 KhatKit 卡片市场 → 设置里授予「所有文件访问」</string>
+    <string name="khatkit_accessibility_template_missing">模板图片不存在：%1$s</string>
+    <string name="khatkit_accessibility_template_invalid">模板图片无法解码：%1$s</string>
+    <string name="khatkit_accessibility_color_invalid">颜色格式错误：%1$s（应为 #RRGGBB）</string>
+    <string name="khatkit_accessibility_region_invalid">region 格式错误：%1$s（应为 x,y,w,h）</string>
 </resources>

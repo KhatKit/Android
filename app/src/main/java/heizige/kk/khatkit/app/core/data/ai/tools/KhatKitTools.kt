@@ -1679,10 +1679,10 @@ class KhatKitToolProvider(
         description = "宿主专用自动化会话动作（需要 AutomationManager 审批 + 看板）：\n" +
             "overlay_hide（临时隐藏自动化悬浮看板，duration_ms 默认 5000、范围 1000..30000，到时自动恢复；" +
             "用户授权请求会强制重新显示看板）、overlay_show（立即恢复看板显示）、" +
-            "screen_state（返回物理屏幕状态）、background_start（package_name 必填，在独立虚拟屏幕启动应用）、background_stop / background_status（关闭或查询会话）、" +
+            "screen_state（返回物理屏幕状态）、background_start（实验功能，package_name 必填；仅支持明确提供创建/销毁虚拟屏命令的系统，原生 Android 暂不支持）、background_stop / background_status（关闭或查询会话）、" +
             "unlock（root/Shizuku 下执行 KEYCODE_WAKEUP + 上滑解锁；安全锁屏无法绕过，会返回中文说明）。\n" +
             "点击/输入/滑动/打开应用/等待/截图/节点快照等基本操作请改用 a11y_act / a11y_screen / a11y_visual_act 卡片。" +
-            "overlay_hide / overlay_show 不操作屏幕，无需用户授权；screen_state 只读同理；unlock 需要用户授权（ui_action）。",
+            "overlay_hide / overlay_show 不操作屏幕，无需用户授权；screen_state 只读同理；unlock / background_start 需要用户授权（ui_action）。",
         parameters = {
             InputSchema.Obj(
                 properties = buildJsonObject {
@@ -1838,10 +1838,15 @@ class KhatKitToolProvider(
     private data class ScreenCapture(val text: String, val imagePath: String? = null)
 
     private suspend fun deviceAct(params: Map<String, Any?>): String {
-        runCatching { TaskRoutes.resolve(settingsRepository.settingsFlow.value, ModelTaskType.UI_CONTROL) }
-        if (AutomationManager.isCancelRequested()) return "已停止：用户取消了自动化"
         val action = params.str("action")?.lowercase()
             ?: return "缺少参数：action"
+        // Cancellation must not prevent read-only status or resource cleanup.
+        when (action) {
+            "background_status" -> return BackgroundAppSessionManager.status()
+            "background_stop" -> return stopBackgroundAppSession()
+        }
+        runCatching { TaskRoutes.resolve(settingsRepository.settingsFlow.value, ModelTaskType.UI_CONTROL) }
+        if (AutomationManager.isCancelRequested()) return "已停止：用户取消了自动化"
         // 看板显隐不操作屏幕：不需要无障碍服务，也不走授权请求；screen_state 只读同理
         when (action) {
             "overlay_hide" -> {
@@ -1856,9 +1861,7 @@ class KhatKitToolProvider(
                 return "看板已恢复显示"
             }
 
-                "screen_state" -> return screenStateJson()
-            "background_status" -> return BackgroundAppSessionManager.status()
-            "background_stop" -> return stopBackgroundAppSession()
+            "screen_state" -> return screenStateJson()
             "ui_snapshot" -> {
                 val snapshot = UiAutomationSnapshotHelper.capture()
                     ?: return """{"error":"无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"}"""
@@ -1877,10 +1880,15 @@ class KhatKitToolProvider(
             ?: return "无障碍服务未开启，请在系统设置中开启 KhatKit 的无障碍服务后再试"
         if (action == "background_start") {
             val packageName = params.str("package_name")?.trim()
-                ?: return "缺少参数：package_name"
+                ?.takeIf { it.isNotEmpty() }
+                ?: return appContext.getString(R.string.automation_background_package_required)
             AutomationManager.update(deviceActLabel(action, params))
-            if (!AutomationManager.requestApproval("在独立屏幕中操作应用", "应用包名：" + packageName, ApprovalCategory.UI_ACTION)) {
-                return "用户拒绝授权，已取消后台应用操作。"
+            if (!AutomationManager.requestApproval(
+                    appContext.getString(R.string.automation_background_approval_title),
+                    appContext.getString(R.string.automation_background_approval_detail, packageName),
+                    ApprovalCategory.UI_ACTION,
+                )) {
+                return appContext.getString(R.string.automation_background_approval_denied)
             }
             return startBackgroundAppSession(packageName)
         }
@@ -2094,17 +2102,18 @@ class KhatKitToolProvider(
 
     private suspend fun startBackgroundAppSession(packageName: String): String {
         val runShell = backgroundDisplayShellRunner()
-            ?: return "{\"error\":\"无屏幕占用操作需要已授权的 Shizuku 或 root。\"}"
+            ?: return buildJsonObject {
+                put("ok", false)
+                put("error", appContext.getString(R.string.automation_background_shell_required))
+            }.toString()
         return withContext(Dispatchers.IO) {
             BackgroundAppSessionManager.start(appContext, packageName, runShell)
         }
     }
 
     private suspend fun stopBackgroundAppSession(): String {
-        val runShell = backgroundDisplayShellRunner()
         return withContext(Dispatchers.IO) {
-            if (runShell == null) BackgroundAppSessionManager.stop()
-            else BackgroundAppSessionManager.stop(runShell)
+            BackgroundAppSessionManager.stop()
         }
     }
 
@@ -2230,9 +2239,9 @@ class KhatKitToolProvider(
         "wait_text" -> "正在等待「${params.str("text").orEmpty()}」出现"
         "wake" -> "正在点亮屏幕"
         "screen_state" -> "正在读取屏幕状态"
-        "background_start" -> "正在独立屏幕启动应用 " + params.str("package_name").orEmpty()
-        "background_stop" -> "正在结束独立屏幕会话"
-        "background_status" -> "正在读取独立屏幕会话状态"
+        "background_start" -> appContext.getString(R.string.automation_background_starting, params.str("package_name").orEmpty())
+        "background_stop" -> appContext.getString(R.string.automation_background_stopping)
+        "background_status" -> appContext.getString(R.string.automation_background_status_label)
         "unlock" -> "正在尝试解锁屏幕"
         else -> "正在执行：$action"
     }
