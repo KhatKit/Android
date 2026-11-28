@@ -70,6 +70,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.adaptive.currentWindowDpSize
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import heizige.kk.khatkit.uikit.mochi.KkGrowRiseText
+import heizige.kk.khatkit.uikit.mochi.KkRisingText
+import heizige.kk.khatkit.uikit.mochi.LocalKkEffectsEnabled
+import heizige.kk.khatkit.uikit.mochi.rememberKkReduceMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -370,7 +380,8 @@ internal fun ChatScaffold(
     val scope = rememberCoroutineScope()
     val workspaceRepository: WorkspaceRepository = rememberAppEntryPoint().workspaceRepository()
     var previewMode by rememberSaveable { mutableStateOf(false) }
-    var previewSearchQuery by rememberSaveable { mutableStateOf("") }
+    val previewSearchState = rememberTextFieldState()
+    val previewSearchQuery = previewSearchState.text.toString()
     val assistant = setting.getAssistantById(conversation.assistantId) ?: setting.getCurrentAssistant()
     val editorReveal = remember(conversation.id, archived) { mutableFloatStateOf(0f) }
     var showRolePicker by remember { mutableStateOf(false) }
@@ -601,11 +612,10 @@ internal fun ChatScaffold(
                         bigScreen = bigScreen,
                         sidebarState = sidebarState,
                         previewMode = previewMode,
-                        searchQuery = previewSearchQuery,
-                        onSearchQueryChange = { previewSearchQuery = it },
+                        searchState = previewSearchState,
                         onCollapseSearch = {
                             previewMode = false
-                            previewSearchQuery = ""
+                            previewSearchState.setTextAndPlaceCursorAtEnd("")
                         },
                         scrollBehavior = scrollBehavior,
                         onClickMenu = {
@@ -656,7 +666,7 @@ internal fun ChatScaffold(
                 processingStatus = processingStatus,
                 previewMode = previewMode,
                 previewSearchQuery = previewSearchQuery,
-                onPreviewSearchQueryChange = { previewSearchQuery = it },
+                onPreviewSearchQueryChange = { previewSearchState.setTextAndPlaceCursorAtEnd(it) },
                 settings = setting,
                 errors = errors,
                 onDismissError = onDismissError,
@@ -940,8 +950,7 @@ private fun TopBar(
     sidebarState: MochiSidebarState,
     bigScreen: Boolean,
     previewMode: Boolean,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
+    searchState: TextFieldState,
     onCollapseSearch: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
     onClickMenu: () -> Unit,
@@ -1006,29 +1015,47 @@ private fun TopBar(
                         ),
                 )
             } else {
-                val navTitle = MochiTheme.textStyles.navTitle
-                Box(
-                    Modifier
-                        .fillMaxWidth()
+                val searchStyle = MochiTheme.textStyles.body
+                val fieldScroll = rememberScrollState()
+                val text = searchState.text
+                // 与聊天输入框共用字符动效；出现横向滚动时交还原生文字绘制，避免叠字错位。
+                val inputMotionEnabled = !rememberKkReduceMotion() && LocalKkEffectsEnabled.current &&
+                    text.length in 1..256 && fieldScroll.maxValue == 0 && '\n' !in text
+                BasicTextField(
+                    state = searchState,
+                    scrollState = fieldScroll,
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    textStyle = searchStyle.copy(
+                        color = if (inputMotionEnabled) Color.Transparent else cs.onSurface,
+                    ),
+                    cursorBrush = SolidColor(cs.primary),
+                    modifier = Modifier.fillMaxWidth().focusRequester(searchFocus)
                         .mochiBlurReveal({ searchProgress.value }, rise = 6.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (searchQuery.isBlank()) {
-                        Text(
-                            stringResource(R.string.history_page_search),
-                            style = navTitle,
-                            color = cs.onSurfaceVariant.copy(alpha = 0.5f),
-                        )
-                    }
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        singleLine = true,
-                        textStyle = navTitle.copy(color = cs.onSurface),
-                        cursorBrush = SolidColor(cs.primary),
-                        modifier = Modifier.fillMaxWidth().focusRequester(searchFocus),
-                    )
-                }
+                    decorator = { innerTextField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (text.isEmpty()) {
+                                KkRisingText(
+                                    text = stringResource(R.string.history_page_search),
+                                    style = searchStyle,
+                                    color = cs.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                            }
+                            if (inputMotionEnabled) {
+                                Box(
+                                    Modifier.matchParentSize().clipToBounds().clearAndSetSemantics {},
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    KkGrowRiseText(
+                                        text = text.toString(),
+                                        style = searchStyle,
+                                        color = cs.onSurface,
+                                    )
+                                }
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
             }
         }
         // MochiBlurText 换字时自己做模糊交叉淡化，这里只换字符串
